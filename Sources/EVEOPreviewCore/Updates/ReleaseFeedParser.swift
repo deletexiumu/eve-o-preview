@@ -10,6 +10,8 @@
 //
 // 限流：403 或 429，且 `x-ratelimit-remaining` 是 0 或有 `retry-after` 时是限流。
 // 可以再试的时刻先看 `retry-after`（GitHub 文档：有它时按它等待），再看 `x-ratelimit-reset`，都没有时取现在加 1 小时。
+// 两个头的值都应是有限的非负数，否则当作没有（`Double` 能解析 `inf`、`nan`）。得到的时刻不早于现在、不晚于现在加 24 小时：
+// 过大的值会让检查停很久，也可能写出 state.json 读不回来的日期。
 
 import Foundation
 
@@ -23,6 +25,8 @@ public enum ReleaseFeedParser {
     public static let maxAssets = 100
     /// 限流答复里两个时刻头都没有时，推后的秒数。
     public static let defaultRateLimitDelay: TimeInterval = 3_600
+    /// 可以再试的时刻最多推后多少秒：24 小时。
+    public static let maxRateLimitDelay: TimeInterval = 86_400
 
     /// 解析 200 答复的正文。内容不符合规则时抛 `malformedFeed`，关联值是原因（英文，不含正文内容）。
     public static func parse(_ data: Data, feed: UpdateFeed) throws(UpdateError) -> ReleaseInfo {
@@ -55,13 +59,23 @@ public enum ReleaseFeedParser {
         let remaining = headers["x-ratelimit-remaining"]?.trimmingCharacters(in: .whitespaces)
         let retryAfter = headers["retry-after"]
         guard remaining == "0" || retryAfter != nil else { return nil }
-        if let seconds = retryAfter.flatMap({ Double($0.trimmingCharacters(in: .whitespaces)) }), seconds >= 0 {
-            return .rateLimited(until: now.addingTimeInterval(seconds))
+        let latest = now.addingTimeInterval(maxRateLimitDelay)
+        if let seconds = nonNegativeNumber(retryAfter) {
+            return .rateLimited(until: min(now.addingTimeInterval(min(seconds, maxRateLimitDelay)), latest))
         }
-        if let reset = headers["x-ratelimit-reset"].flatMap({ Double($0.trimmingCharacters(in: .whitespaces)) }) {
-            return .rateLimited(until: Date(timeIntervalSince1970: reset))
+        if let reset = nonNegativeNumber(headers["x-ratelimit-reset"]) {
+            // 先在秒数上截到上限，再建 Date：极大的值不经过 Date 的运算。
+            let bounded = min(reset, latest.timeIntervalSince1970)
+            return .rateLimited(until: max(Date(timeIntervalSince1970: bounded), now))
         }
         return .rateLimited(until: now.addingTimeInterval(defaultRateLimitDelay))
+    }
+
+    /// 头的值是有限的非负数时返回它；缺失、解析不了、`inf`、`nan` 或负数时返回 nil。
+    static func nonNegativeNumber(_ text: String?) -> Double? {
+        guard let text, let value = Double(text.trimmingCharacters(in: .whitespaces)),
+              value.isFinite, value >= 0 else { return nil }
+        return value
     }
 
     /// 一个附件；缺字段或地址不通过 `feed.accepts` 时返回 nil。

@@ -264,6 +264,9 @@ private final class DownloadOperation: NSObject, URLSessionDownloadDelegate, @un
                 return state.cancelled
             }
             if cancelledEarly {
+                // 没有 resume 的任务也算未完成，`finishTasksAndInvalidate` 会一直等它，会话与委托都不释放。
+                // 取消它，会话随后失效；它的 didCompleteWithError 再调 finish 时 continuation 已是 nil，不重复回复。
+                task.cancel()
                 finish(.failure(.cancelled))
             } else {
                 task.resume()

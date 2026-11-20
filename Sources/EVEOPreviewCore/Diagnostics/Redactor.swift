@@ -11,6 +11,8 @@
 // 4. 去掉首尾空白后不足 3 个字符的 ASCII 词，只在紧跟 `/Users/` 或 `\/Users\/` 时替换；不足 2 个字符的非 ASCII 词不替换。
 // 5. 主目录路径同时匹配原样的与每个 `/` 写成 `\/` 的两种写法（JSON 转义）。
 // 6. 设备标识按 `"键" : "值"` 匹配，冒号两侧的空白可有可无，只替换值。
+// 7. 每个词同时按 NFC（预组合）与 NFD（分解）两种写法匹配：文件系统与部分日志用 NFD 写 `é`，
+//    逐个标量比较时 `José` 的两种写法不相同。
 //
 // 实现：文字先转成 Unicode 标量数组，再逐个标量做小写折叠（只取一对一的映射，下标不变），
 // 词按折叠后的前两个标量分桶，桶内按长度从长到短试。日志有几 MiB，这样每个位置只试开头相同的几个词。
@@ -108,7 +110,8 @@ public struct Redactor: Sendable {
 
     /// 用词表建脱敏器。空白的词被忽略；同一个词（不区分大小写）出现在多个类别时，按用户名、主机名、角色名的顺序取第一个。
     public init(terms: RedactionTerms) {
-        var seen = Set<String>()
+        // 按标量去重：Swift 的 String 按规范等价比较，NFC 与 NFD 两种写法会被当成同一个键。
+        var seen = Set<[UInt32]>()
         var list: [Term] = []
         // 主目录路径：原样与 JSON 转义两种写法，替换成同样写法的占位路径，JSON 仍能解析。
         if let home = terms.homeDirectory?.trimmingCharacters(in: .whitespacesAndNewlines), home.count > 1 {
@@ -130,7 +133,8 @@ public struct Redactor: Sendable {
         var characterKeys = Set<String>()
         for raw in terms.characterNames {
             let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            let key = Redactor.foldedString(name)
+            // 键取 NFC 写法：同一个名字的两种写法得到同一个序号。
+            let key = Redactor.foldedString(name.precomposedStringWithCanonicalMapping)
             guard Redactor.isEligible(name), characterKeys.insert(key).inserted else { continue }
             characters.append((key, name))
         }
@@ -155,24 +159,27 @@ public struct Redactor: Sendable {
         singleBuckets = singles
     }
 
-    /// 把一个词加进列表。空白、过短（非 ASCII 不足 2 个字符）或已出现过的词不加。
+    /// 把一个词的原样、NFC、NFD 三种写法加进列表（相同的只加一次）。空白、过短（非 ASCII 不足 2 个字符）
+    /// 或已出现过的写法不加。
     ///
     /// - Parameter pathRule: 是否对不足 3 个字符的 ASCII 词套用「只在 `/Users/` 之后替换」的规则（主目录路径不套用）。
     private static func append(_ raw: String, replacement: String, category: Category, pathRule: Bool = true,
-                               to list: inout [Term], seen: inout Set<String>) {
+                               to list: inout [Term], seen: inout Set<[UInt32]>) {
         let word = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isEligible(word) else { return }
         let isASCII = word.unicodeScalars.allSatisfy(\.isASCII)
-        let folded = word.unicodeScalars.map(Redactor.fold)
-        let key = String(String.UnicodeScalarView(folded))
-        guard seen.insert(key).inserted else { return }
-        list.append(Term(folded: folded, replacement: replacement, category: category,
-                         requiresBoundary: isASCII, pathOnly: pathRule && isASCII && word.count < 3))
+        for form in [word, word.precomposedStringWithCanonicalMapping, word.decomposedStringWithCanonicalMapping] {
+            let folded = form.unicodeScalars.map(Redactor.fold)
+            guard seen.insert(folded.map(\.value)).inserted else { continue }
+            list.append(Term(folded: folded, replacement: replacement, category: category,
+                             requiresBoundary: isASCII, pathOnly: pathRule && isASCII && word.count < 3))
+        }
     }
 
     /// 角色名的占位符，如 `[character-2]`；序号按名字排序（不区分大小写）后从 1 起编。不在词表里时返回 nil。
     public func placeholder(forCharacter name: String) -> String? {
-        characterPlaceholders[Redactor.foldedString(name.trimmingCharacters(in: .whitespacesAndNewlines))]
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return characterPlaceholders[Redactor.foldedString(trimmed.precomposedStringWithCanonicalMapping)]
     }
 
     /// 脱敏一段文字，返回结果与按类别的替换次数。词表为空时原样返回。

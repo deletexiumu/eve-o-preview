@@ -8,7 +8,8 @@
 //   样例内容含真实的主目录路径（JSON 转义写法）、主机名、假角色名与 `crashReporterKey`，预览里能看到每种脱敏。
 // - 本机名字、压缩包、访达与浏览器转给真实的 `SystemDiagnosticsService`：演示模式与正式运行写同一个日志目录
 //   （v1.1 设计 5.2 节），日志里有真实的主目录路径，脱敏要用真实的名字。
-//   因此演示模式生成的 zip 也放在真实的 `Reports/` 目录里，参与「只保留最新 3 个」。
+// - 压缩包放在 `Reports-fake/`（与 `state-fake.json` 等同样的做法），不占正式运行的 `Reports/` 里「只保留最新 3 个」的名额。
+//   Issue 标题由 `IssueURLBuilder` 按 `RuntimeSummary.isFakeMode` 加 `[demo] ` 前缀。
 
 import Foundation
 import EVEOPreviewCore
@@ -16,8 +17,8 @@ import EVEOPreviewPlatform
 
 /// 演示模式的问题报告服务。
 struct FakeDiagnosticsService: DiagnosticsService {
-    /// 真实的服务：本机名字、压缩包、访达与浏览器。
-    private let live = SystemDiagnosticsService()
+    /// 真实的服务：本机名字、压缩包（写进 `Reports-fake/`）、访达与浏览器。
+    private let live = SystemDiagnosticsService(reportsDirectory: SystemDiagnosticsService.defaultReportsDirectory(fake: true))
     /// 样例崩溃报告的文件名前缀。
     static let samplePrefix = "EVEOPreview-"
     /// 样例里出现的假角色名（与 FakeServices 的假客户端一致）。
@@ -54,7 +55,7 @@ struct FakeDiagnosticsService: DiagnosticsService {
         return Data(sampleReport(named: fileName).utf8.prefix(max(0, maxBytes)))
     }
 
-    /// 转给真实服务：写进真实的 `Reports/` 目录。
+    /// 转给真实服务：写进 `Reports-fake/` 目录。
     func writeArchive(named name: String, files: [DiagnosticsFile]) throws(DiagnosticsIOError) -> URL {
         try live.writeArchive(named: name, files: files)
     }

@@ -16,6 +16,11 @@ public struct UpdateFeed: Sendable, Equatable {
     public static let productionURL = URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest")!
     /// 正式地址下，附件与发布页的地址应以它开头。
     public static let productionAssetPrefix = "https://github.com/deletexiumu/eve-o-preview-macos/releases/"
+    /// 正式地址下，附件与发布页的主机。`html_url`、`browser_download_url` 与缓存的发布页都在这个主机上；
+    /// 下载时重定向到的文件存储主机不经 `accepts` 核对（见 `UpdateDownloader`）。
+    static let productionAssetHost = "github.com"
+    /// 正式地址下，附件与发布页的路径前缀。
+    static let productionAssetPathPrefix = "/deletexiumu/eve-o-preview-macos/releases/"
     /// 测试地址用 `http` 时允许的主机（已去掉 IPv6 的方括号、转成小写）。
     static let loopbackHosts: Set<String> = ["127.0.0.1", "localhost", "::1"]
 
@@ -43,15 +48,34 @@ public struct UpdateFeed: Sendable, Equatable {
         }
     }
 
-    /// 附件与发布页的地址是否可用：正式地址应以 productionAssetPrefix 开头；测试地址应与 feedURL 同源。
+    /// 附件与发布页的地址是否可用。测试地址下应与 feedURL 同源。正式地址下同时满足：
+    /// - 原文以 productionAssetPrefix 开头，不含反斜杠、`%2e`（编码的点，不分大小写）、`%2f`、`%5c`；
+    /// - 按地址解析后协议是 https，主机正好是 `github.com`，没有用户名与密码，端口省略或是 443；
+    /// - 路径以本仓库的 `/releases/` 开头，没有 `.` 或 `..` 段（如 `…/releases/../../../evil/repo/…`）。
     ///
     /// 同源指协议、主机与端口都相同；端口省略时按协议的默认端口（http 80，https 443）比较。
     public func accepts(_ urlString: String) -> Bool {
-        guard isTestFeed else { return urlString.hasPrefix(UpdateFeed.productionAssetPrefix) }
+        guard isTestFeed else { return UpdateFeed.isProductionAsset(urlString) }
         guard let url = URL(string: urlString), let candidate = Origin(url), let own = Origin(feedURL) else {
             return false
         }
         return candidate == own
+    }
+
+    /// 正式地址下的规则，见 `accepts`。先查原文：`URLComponents.path` 会解码百分号编码，解码后再查就晚了。
+    static func isProductionAsset(_ urlString: String) -> Bool {
+        guard urlString.hasPrefix(productionAssetPrefix), !urlString.contains("\\") else { return false }
+        let lowered = urlString.lowercased()
+        guard !["%2e", "%2f", "%5c"].contains(where: lowered.contains) else { return false }
+        guard let components = URLComponents(string: urlString),
+              components.scheme?.lowercased() == "https",
+              components.host?.lowercased() == productionAssetHost,
+              components.user == nil, components.password == nil,
+              components.port == nil || components.port == 443 else { return false }
+        let path = components.percentEncodedPath
+        guard path.hasPrefix(productionAssetPathPrefix) else { return false }
+        let segments = path.split(separator: "/", omittingEmptySubsequences: false)
+        return !segments.contains { $0 == "." || $0 == ".." }
     }
 
     /// 地址的源：协议、主机与端口，都已规范化。

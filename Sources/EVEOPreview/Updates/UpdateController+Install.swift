@@ -10,6 +10,8 @@
 //   失败过的版本不再自动安装。dmg 已被平台层删掉（验证失败、校验和不符）时清掉 `prepared`。
 // - 演示模式与 `EVEO_UPDATE_UI_STATE` 调试入口下不下载、不安装、不重新启动。
 // - 阶段的进入顺序：下载中 → 核对中（下载完成、开始算 SHA-256）→ 安装中 → 重新启动中。
+// - 开始下载或安装时，先在主线程上同步把阶段设成下载中或安装中（`isBusy` 随之为真），再建任务：
+//   两次很快的调用（连点按钮、按钮与菜单项）第二次看到的已是忙，不会开始第二次安装。
 
 import AppKit
 import Foundation
@@ -35,19 +37,35 @@ extension UpdateController {
         }
         guard canRunInstaller, !isBusy, let release = currentRelease else { return }
         coordinator.presenter.cancel(key: UpdateController.presenterKey)
-        workTask = Task { [weak self] in await self?.downloadAndInstall(release, relaunch: true) }
+        startInstall(release)
     }
 
     /// 自动安装已下载好时，由菜单项「重新启动以更新到 <版本>」调用。
     func restartToInstall() {
         guard canRunInstaller, !isBusy, case .readyToInstall(let release) = phase else { return }
-        workTask = Task { [weak self] in await self?.downloadAndInstall(release, relaunch: true) }
+        startInstall(release)
+    }
+
+    /// 同步定出起始阶段（已有可用的下载时是安装中，否则是下载中），再建下载与安装的任务。
+    /// 不能用的旧下载在这里就丢掉。调用方已确认 `!isBusy`。
+    private func startInstall(_ release: ReleaseInfo) {
+        var prepared = state.state.updates.prepared
+        if let existing = prepared, existing.version != release.version || !isUsable(existing) {
+            discardPrepared()
+            prepared = nil
+        }
+        preparationCancelRequested = false
+        setPhase(prepared == nil ? .downloading(release, initialProgress(release)) : .installing(release))
+        workTask = Task { [weak self] in await self?.downloadAndInstall(release, prepared: prepared, relaunch: true) }
     }
 
     /// 取消进行中的下载或核对，回到 `.available`。安装开始后不能取消。
     func cancel() {
         switch phase {
-        case .downloading, .verifying: service.cancelPreparation()
+        case .downloading, .verifying:
+            // 下载可能还没开始（在等启动时的清理），先记下，`prepare` 开始前看到它就不下载。
+            preparationCancelRequested = true
+            service.cancelPreparation()
         default: break
         }
     }
@@ -64,6 +82,9 @@ extension UpdateController {
             becomeReady(release)
             return
         }
+        // 同步进入下载中，与 `startInstall` 相同：任务开始前 `isBusy` 已为真。
+        preparationCancelRequested = false
+        setPhase(.downloading(release, initialProgress(release)))
         workTask = Task { [weak self] in
             guard let self else { return }
             switch await self.prepare(release) {
@@ -88,13 +109,23 @@ extension UpdateController {
         log.info("更新 \(release.version, privacy: .public) 已下载，退出时安装")
     }
 
-    /// 下载并核对；成功时把结果写进 `state.updates.prepared`。
+    /// 下载开始前的进度：0 字节，总数取 dmg 附件声明的大小。
+    private func initialProgress(_ release: ReleaseInfo) -> UpdateProgress {
+        UpdateProgress(receivedBytes: 0, totalBytes: release.assets.first {
+            $0.name == UpdateAssetContract.imageName(version: release.version)
+        }?.size.map(Int64.init))
+    }
+
+    /// 下载并核对；成功时把结果写进 `state.updates.prepared`。先等启动时的清理做完。
     private func prepare(_ release: ReleaseInfo) async -> Result<PreparedUpdate, UpdateError> {
         preparationID += 1
         let id = preparationID
-        setPhase(.downloading(release, UpdateProgress(receivedBytes: 0, totalBytes: release.assets.first {
-            $0.name == UpdateAssetContract.imageName(version: release.version)
-        }?.size.map(Int64.init))))
+        setPhase(.downloading(release, initialProgress(release)))
+        await cleanupTask?.value
+        if preparationCancelRequested {
+            preparationID += 1
+            return .failure(.cancelled)
+        }
         let result = await service.prepare(release, feed: feed) { [weak self] progress in
             Task { @MainActor in self?.progressDidChange(progress, release: release, id: id) }
         }
@@ -124,13 +155,9 @@ extension UpdateController {
 
     // MARK: - 安装
 
-    /// 下载（已有可用的下载时跳过）、安装，relaunch 为真时成功后重新启动。
-    private func downloadAndInstall(_ release: ReleaseInfo, relaunch: Bool) async {
-        var prepared = state.state.updates.prepared
-        if let existing = prepared, existing.version != release.version || !isUsable(existing) {
-            discardPrepared()
-            prepared = nil
-        }
+    /// 下载（prepared 是 `startInstall` 核对过的可用下载，有时跳过下载）、安装，relaunch 为真时成功后重新启动。
+    private func downloadAndInstall(_ release: ReleaseInfo, prepared: PreparedUpdate?, relaunch: Bool) async {
+        var prepared = prepared
         if prepared == nil {
             switch await prepare(release) {
             case .success(let value):
@@ -175,7 +202,7 @@ extension UpdateController {
         -> Result<InstallOutcome, UpdateError> {
         switch result {
         case .success(let outcome):
-            try? FileManager.default.removeItem(atPath: prepared.imagePath)
+            removePreparedImage(prepared)
             let record = InstallRecord(version: outcome.installedVersion, fromVersion: environment.buildLabel,
                                        at: Date(), succeeded: true)
             state.update {
@@ -223,7 +250,12 @@ extension UpdateController {
         log.info("退出时安装更新 \(prepared.version, privacy: .public)")
         let service = self.service
         let environment = self.environment
-        let install = Task { await service.install(prepared, environment: environment) }
+        // 启动时的清理还没做完时先等它（计入时限），免得两边同时卸载挂载点、动缓存目录。
+        let cleanup = cleanupTask
+        let install = Task {
+            await cleanup?.value
+            return await service.install(prepared, environment: environment)
+        }
         guard let result = await UpdateController.value(of: install, timeout: timeout) else {
             log.error("退出时安装超过时限，不再等待")
             return

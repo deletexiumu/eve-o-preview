@@ -4,7 +4,7 @@
 // 「在访达中显示日志」按钮、「报告问题…」按钮。控制器经 `model.coordinator.problemReport` 取得。
 //
 // 「详细日志」把 `general.logLevel` 在 info 与 debug 之间切换；改动立即生效由协调器的
-// `diagnosticsSettingsDidChange` 负责（WP-1）。日志目录的规则见 `ProblemReportBuilder.logDirectory()`。
+// `diagnosticsSettingsDidChange` 负责（WP-1）。日志目录的规则见 `LogBootstrap.logDirectory()`。
 
 import SwiftUI
 import EVEOPreviewCore
@@ -26,7 +26,7 @@ struct DiagnosticsSettingsSection: View {
                 }
             }
             LabeledContent(L10n.diagnostics.logLocationLabel) {
-                Text(DiagnosticsSettingsSection.displayPath(ProblemReportBuilder.logDirectory()))
+                Text(DiagnosticsSettingsSection.displayPath(LogBootstrap.logDirectory()))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
@@ -53,7 +53,7 @@ struct DiagnosticsSettingsSection: View {
 
     /// 在访达里显示日志：有当前日志文件时选中它，否则选中目录；目录还不存在时显示上一级目录。
     private func revealLogs() {
-        let directory = ProblemReportBuilder.logDirectory()
+        let directory = LogBootstrap.logDirectory()
         let current = LogFileLayout(directory: directory).currentURL
         let fileManager = FileManager.default
         let target: URL

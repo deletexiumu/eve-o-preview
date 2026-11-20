@@ -614,7 +614,7 @@ public enum CrashReportMatcher {
 `.abnormal` 不等于崩溃。只有在系统的崩溃报告目录里找到对应的报告，才认为上一次运行崩溃了。
 
 - 目录：`~/Library/Logs/DiagnosticReports/` 及其 `Retired/` 子目录。
-- `CrashReportMatcher.isCandidateName`：文件名以 `<可执行文件名>-` 或 `<可执行文件名>_` 开头，扩展名是 `ips` 或 `crash`。可执行文件名是 `EVEOPreview`。
+- `CrashReportMatcher.isCandidateName`：文件名以 `<可执行文件名>-` 或 `<可执行文件名>_` 开头，扩展名是 `ips`（最低支持的 macOS 14 不再写 `.crash`，见 19 节）。可执行文件名是 `EVEOPreview`。
 - 时间窗口：文件的修改时间不早于 `previous.startedAt` 减 5 秒，不晚于扫描时刻加 5 秒。
 - `CrashReportMatcher.header`：把文件的第一行当作 JSON 对象解析，取 `bundleID`、`app_name`、`app_version`。解析失败返回 `nil`，这个文件仍按文件名与时间参与匹配。解析成功且 `bundleID` 有值、又不等于本应用的 bundle id 时，排除这个文件。
 - `select` 把符合条件的文件按修改时间从新到旧排序，取前 3 个。
@@ -1940,4 +1940,7 @@ README 的卸载说明应列出这 4 个位置。
 | 8.6 | 「重新启动失败」不新增阶段或提示原因：`UpdateController.relaunchFailed` 为真时窗口与「通用」页显示 `reopenManually`，并重新弹出窗口 |
 | 13.1 | 「通用」页的两组在 WP-0 是 `EmptyView`，不显示空的组 |
 | 5.4 | 未捕获异常的原因按 `.public` 记录 |
-| 7.x 演示模式 | 演示模式生成的 zip 写入真实的 `Reports/` 目录；「打开 GitHub」打开真实仓库的预填页面，不会自动提交（待审查结论） |
+| 7.x 演示模式 | 演示模式生成的 zip 写入 `Reports-fake/`（与 `*-fake.json` 同样的做法），不占 `Reports/` 的名额；Issue 标题加 `[demo] ` 前缀；「打开 GitHub」打开真实仓库的预填页面，不会自动提交 |
+| 6.2、7.2 | 不认 `.crash` 扩展名（macOS 14 起只写 `.ips`）；崩溃情境从 `state.json` 读到的报告文件名，读之前再用 `isCandidateName` 核对 |
+| 9.3 第 10 步 | 替换后复核失败且换回也失败时，返回 `swapFailed`，界面显示「无法替换应用」，实际装上的是未通过复核的新应用；旧应用留在暂存目录，位置写进 fault 日志。要准确提示需新增错误类型（契约改动），这种情况要连续两步失败，v1.1.0 不做 |
+| 9.1 | 非 APFS 卷在第 1 步预检时返回 `swapFailed(ENOTSUP)`，界面是通用的「无法替换应用」；README 写明这类卷只能手动安装 |

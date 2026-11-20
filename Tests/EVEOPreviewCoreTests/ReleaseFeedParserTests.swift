@@ -157,6 +157,60 @@ struct ReleaseFeedParserTests {
         #expect(neither == .rateLimited(until: now.addingTimeInterval(3_600)))
     }
 
+    /// retry-after 是 inf、nan、负数或解析不了时当作没有，改看 x-ratelimit-reset，再没有时取现在加 1 小时。
+    @Test(arguments: ["inf", "nan", "-5", "-inf", "soon", "1e400"])
+    func invalidRetryAfterIsIgnored(value: String) {
+        let fallback = ReleaseFeedParser.rateLimit(status: 429, headers: ["retry-after": value], now: now)
+        #expect(fallback == .rateLimited(until: now.addingTimeInterval(3_600)))
+        let withReset = ReleaseFeedParser.rateLimit(status: 429, headers: ["retry-after": value,
+                                                                           "x-ratelimit-reset": "1800000600"], now: now)
+        #expect(withReset == .rateLimited(until: Date(timeIntervalSince1970: 1_800_000_600)))
+    }
+
+    /// x-ratelimit-reset 是 inf、nan 或负数时当作没有，取现在加 1 小时。
+    @Test(arguments: ["inf", "nan", "-1", "-1800000000"])
+    func invalidResetIsIgnored(value: String) {
+        let result = ReleaseFeedParser.rateLimit(status: 403, headers: ["x-ratelimit-remaining": "0",
+                                                                        "x-ratelimit-reset": value], now: now)
+        #expect(result == .rateLimited(until: now.addingTimeInterval(3_600)))
+    }
+
+    /// 过大的值截到现在加 24 小时；早于现在的 reset 取现在。
+    @Test func clampsToOneDay() {
+        let day = now.addingTimeInterval(86_400)
+        let huge = ReleaseFeedParser.rateLimit(status: 429, headers: ["retry-after": "99999999999"], now: now)
+        #expect(huge == .rateLimited(until: day))
+        let farReset = ReleaseFeedParser.rateLimit(status: 403, headers: ["x-ratelimit-remaining": "0",
+                                                                          "x-ratelimit-reset": "99999999999"], now: now)
+        #expect(farReset == .rateLimited(until: day))
+        let pastReset = ReleaseFeedParser.rateLimit(status: 403, headers: ["x-ratelimit-remaining": "0",
+                                                                           "x-ratelimit-reset": "1000"], now: now)
+        #expect(pastReset == .rateLimited(until: now))
+        let normal = ReleaseFeedParser.rateLimit(status: 429, headers: ["retry-after": " 30 "], now: now)
+        #expect(normal == .rateLimited(until: now.addingTimeInterval(30)))
+    }
+
+    /// 任何头的值得到的时刻都能按 state.json 的格式（ISO 8601）写出并读回同一个时刻。
+    @Test(arguments: ["inf", "nan", "99999999999", "-5", "120", "1e308"])
+    func resultSurvivesStateRoundTrip(value: String) throws {
+        for headers in [["retry-after": value], ["x-ratelimit-remaining": "0", "x-ratelimit-reset": value]] {
+            guard case .rateLimited(let until?) = ReleaseFeedParser.rateLimit(status: 403, headers: headers, now: now)
+            else {
+                Issue.record("not rate limited: \(headers)")
+                continue
+            }
+            #expect(until >= now && until <= now.addingTimeInterval(86_400))
+            var state = AppState()
+            state.updates.rateLimitedUntil = until
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let decoded = try decoder.decode(AppState.self, from: encoder.encode(state))
+            #expect(decoded.updates.rateLimitedUntil == until)
+        }
+    }
+
     /// 普通 403（还有额度、没有 retry-after）、200、404 不是限流。
     @Test func notRateLimited() {
         #expect(ReleaseFeedParser.rateLimit(status: 403, headers: ["x-ratelimit-remaining": "12"], now: now) == nil)

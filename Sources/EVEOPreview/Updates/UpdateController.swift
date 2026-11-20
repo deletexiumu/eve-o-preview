@@ -5,7 +5,9 @@
 // 下载、安装、退出时安装在 UpdateController+Install.swift。
 //
 // - 启动：算出 `capability`；`.unavailable`（不是从 .app 运行）时什么都不做。否则恢复上次的状态（不发请求），
-//   清理残留文件，再启动循环：先等 10 秒，之后每小时醒一次，到时就检查（`UpdatePolicy.isCheckDue`）。
+//   清理残留文件，清理做完后再启动循环：先等 10 秒，之后每小时醒一次，到时就检查（`UpdatePolicy.isCheckDue`）。
+//   下载也先等清理做完（`cleanupTask`），免得清理删掉正在下载的文件。
+// - 删 dmg 前核对它在更新缓存目录下（`SystemUpdateService.isInsideCache`）：路径来自 state.json，不删别处的文件。
 // - 检查失败（网络、状态码）不写 `lastCheckAt`，下一次醒来时重试。
 // - 自动检查发现新版本：「自动安装」打开且能安装、这个版本没装失败过时在后台下载；否则亮圆点并经
 //   `DeferredPresenter` 弹窗口（不抢焦点，EVE 在前台时推迟）。用户发起的检查直接显示窗口。
@@ -19,6 +21,7 @@ import AppKit
 import Foundation
 import Observation
 import EVEOPreviewCore
+import EVEOPreviewPlatform
 
 /// 更新功能的控制器。全部方法在主线程调用。
 @MainActor @Observable final class UpdateController {
@@ -52,6 +55,10 @@ import EVEOPreviewCore
     @ObservationIgnored var isChecking = false
     /// 正在下载或安装的任务。
     @ObservationIgnored var workTask: Task<Void, Never>?
+    /// 启动时的残留清理。下载开始前等它做完。
+    @ObservationIgnored var cleanupTask: Task<Void, Never>?
+    /// 用户在下载真正开始前点了「取消」（阶段已是下载中，但还在等清理）。
+    @ObservationIgnored var preparationCancelRequested = false
     /// 当前这次下载的编号；进度回调晚到时据此丢掉。
     @ObservationIgnored var preparationID = 0
     @ObservationIgnored let log = AppLog.logger("Updates")
@@ -116,11 +123,12 @@ import EVEOPreviewCore
         let prepared = updates.prepared
         let stale = updates.staleStagingPath
         let service = self.service
-        Task { [weak self] in
+        // 清理做完再启动定时检查，检查与后台下载不会与清理同时动缓存目录。
+        cleanupTask = Task { [weak self] in
             await service.removeLeftovers(keeping: prepared, staleStagingPath: stale)
             if stale != nil { self?.state.update { $0.updates.staleStagingPath = nil } }
+            self?.startLoop()
         }
-        startLoop()
     }
 
     /// 新实例启动时：上次安装成功且旧包还没删（说明这是安装后的第一次启动），核对版本并记日志。
@@ -173,9 +181,10 @@ import EVEOPreviewCore
         }
     }
 
-    /// 已下载的更新还能不能用：dmg 还在；它的版本大于正在运行的版本；`cachedRelease` 的版本与它相同。
+    /// 已下载的更新还能不能用：dmg 还在且位于更新缓存目录下；它的版本大于正在运行的版本；`cachedRelease` 的版本与它相同。
     func isUsable(_ prepared: PreparedUpdate) -> Bool {
         guard FileManager.default.fileExists(atPath: prepared.imagePath),
+              SystemUpdateService.isInsideCache(prepared.imagePath),
               let version = SemanticVersion(prepared.version),
               let running = UpdatePolicy.comparableVersion(of: environment), running < version,
               let cached = state.state.updates.cachedRelease, SemanticVersion(cached.version) == version else {
@@ -184,11 +193,22 @@ import EVEOPreviewCore
         return true
     }
 
-    /// 清掉 `prepared` 并删掉它的 dmg。
+    /// 清掉 `prepared` 并删掉它的 dmg（只在 dmg 位于更新缓存目录下时删，记录总是清掉）。
     func discardPrepared() {
         guard let prepared = state.state.updates.prepared else { return }
-        try? FileManager.default.removeItem(atPath: prepared.imagePath)
+        removePreparedImage(prepared)
         state.update { $0.updates.prepared = nil }
+    }
+
+    /// 删 prepared 的 dmg。路径解析符号链接后不在更新缓存目录下时不删，只记日志。
+    func removePreparedImage(_ prepared: PreparedUpdate) {
+        guard SystemUpdateService.isInsideCache(prepared.imagePath) else {
+            if FileManager.default.fileExists(atPath: prepared.imagePath) {
+                log.error("state.json 记录的 dmg 不在更新缓存目录下，不删")
+            }
+            return
+        }
+        try? FileManager.default.removeItem(atPath: prepared.imagePath)
     }
 
     // MARK: - 定时检查

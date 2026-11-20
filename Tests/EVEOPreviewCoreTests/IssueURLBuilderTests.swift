@@ -170,4 +170,17 @@ struct IssueURLBuilderTests {
         #expect(crash.sections[2].body.contains("1.0.9"))
         #expect(crash.sections[3].body.contains("x.zip"))
     }
+
+    /// 演示模式的报告：标题以 `[demo] ` 开头，小节不变。
+    @Test func demoModeTitle() {
+        var report = DiagnosticsSummaryTests.sampleReport()
+        report.runtime.isFakeMode = true
+        let manual = IssueURLBuilder.problemReportDraft(isCrash: false, environment: report, previousVersion: nil,
+                                                        crashReportCount: 0, archiveFileName: "x.zip")
+        #expect(manual.title == "[demo] Problem report: EVE-O Preview 1.1.0 on macOS 27.0")
+        #expect(manual.sections.map(\.heading) == ["What happened", "Environment", "Diagnostics"])
+        let crash = IssueURLBuilder.problemReportDraft(isCrash: true, environment: report, previousVersion: "1.0.9",
+                                                       crashReportCount: 1, archiveFileName: "x.zip")
+        #expect(crash.title.hasPrefix("[demo] Crash report: "))
+    }
 }

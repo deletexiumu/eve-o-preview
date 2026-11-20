@@ -3,7 +3,8 @@
 // 崩溃报告的匹配（v1.1 设计 6.2 节）。只在系统的崩溃报告目录里找到对应的报告，才认为上一次运行崩溃了。
 //
 // 规则：
-// - 文件名以 `<可执行文件名>-` 或 `<可执行文件名>_` 开头，扩展名是 `ips` 或 `crash`。
+// - 文件名以 `<可执行文件名>-` 或 `<可执行文件名>_` 开头，扩展名是 `ips`（不分大小写）。
+//   最低支持的 macOS 14 只写 `.ips`，不再写旧式的 `.crash`，所以不认 `.crash`。
 // - 修改时间落在给定的时间窗口里。异常退出检测用 `window(startedAt:scannedAt:)`：
 //   不早于上一次运行开始前 5 秒，不晚于扫描时刻后 5 秒。
 // - 文件头（第一行的 JSON）解析成功、带 `bundleID` 且不等于本应用的 bundle id 时排除；
@@ -45,9 +46,9 @@ public enum CrashReportMatcher {
     /// 异常退出检测的时间窗口在两端各放宽的秒数：文件时间与进程时间可能差一点，系统写报告也要时间。
     public static let windowSlack: TimeInterval = 5
     /// 报告文件的扩展名，比较时不分大小写。
-    private static let extensions: Set<String> = ["ips", "crash"]
+    private static let extensions: Set<String> = ["ips"]
 
-    /// 文件名是否像本应用的崩溃报告：以 `<可执行文件名>-` 或 `<可执行文件名>_` 开头，扩展名是 `ips` 或 `crash`。
+    /// 文件名是否像本应用的崩溃报告：以 `<可执行文件名>-` 或 `<可执行文件名>_` 开头，扩展名是 `ips`。
     ///
     /// 前缀之后到扩展名之前至少要有一个字符。`EVEOPreviewHelper-…` 这类前缀相同但更长的名字不算。
     public static func isCandidateName(_ fileName: String, executableName: String) -> Bool {

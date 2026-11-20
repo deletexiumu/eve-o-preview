@@ -7,7 +7,7 @@
 // 3. 用户确认后，`manifestItem` 按勾选的文件生成 `manifest.json`，`issueDraft` 生成脱敏后的 Issue 草稿。
 //
 // 压缩包里的文件名都是应用自己起的：`summary.md`、`config-summary.json`、`logs/<日志文件名>`、
-// `crash/crash-N.ips`（按从新到旧编号，不沿用原文件名）、`manifest.json`。
+// `crash/crash-N.ips`（按从新到旧编号，不沿用原文件名；macOS 14 起只有 `.ips`）、`manifest.json`。
 
 import Foundation
 import EVEOPreviewCore
@@ -109,7 +109,8 @@ enum ProblemReportBuilder {
         return ProblemReportSnapshot(context: context, environment: environment, runtime: runtime,
                                      config: configSummary,
                                      characterNames: CharacterNameCollector.names(config: config.config, online: online),
-                                     logDirectory: logDirectory(), diagnostics: coordinator.services.diagnostics,
+                                     logDirectory: LogBootstrap.logDirectory(),
+                                     diagnostics: coordinator.services.diagnostics,
                                      takenAt: Date())
     }
 
@@ -200,15 +201,6 @@ enum ProblemReportBuilder {
         return text.firstIndex(of: "(").map { String(text[..<$0]) } ?? text
     }
 
-    /// 日志目录：环境变量 `EVEO_LOG_DIR` 不为空时用它（`~` 会展开），否则是 `~/Library/Logs/EVE-O Preview`。
-    /// 规则与 `LogBootstrap`（WP-1）相同，集成后宜合并成一处。
-    static func logDirectory() -> URL {
-        if let override = ProcessInfo.processInfo.environment["EVEO_LOG_DIR"], !override.isEmpty {
-            return URL(fileURLWithPath: (override as NSString).expandingTildeInPath, isDirectory: true)
-        }
-        return LogFileLayout.defaultDirectory()
-    }
-
     // MARK: - 第 2 步：后台收集
 
     /// 在 GCD 的后台队列上收集，不占主线程与 Swift 并发的协作线程（读文件是阻塞的）。
@@ -240,8 +232,8 @@ enum ProblemReportBuilder {
         for log in readLogs(in: snapshot.logDirectory) {
             add(.log, "logs/\(log.name)", log.text)
         }
-        for (index, crash) in readCrashReports(snapshot).enumerated() {
-            add(.crash(index + 1), "crash/crash-\(index + 1).\(crash.fileExtension)", crash.text)
+        for (index, text) in readCrashReports(snapshot).enumerated() {
+            add(.crash(index + 1), "crash/crash-\(index + 1).ips", text)
         }
         return ProblemReportContents(snapshot: snapshot, report: report, redactor: redactor, items: items)
     }
@@ -274,12 +266,16 @@ enum ProblemReportBuilder {
 
     /// 崩溃报告的内容，从新到旧，最多 `CrashReportMatcher.maxReports` 个。
     /// 崩溃情境取 `PendingCrash.reportFileNames`；手动情境取最近 7 天内的报告。
-    private static func readCrashReports(_ snapshot: ProblemReportSnapshot) -> [(text: String, fileExtension: String)] {
+    /// `reportFileNames` 来自 state.json，读之前再用 `isCandidateName` 核对一次（不含 `/`、前缀与扩展名都对）。
+    private static func readCrashReports(_ snapshot: ProblemReportSnapshot) -> [String] {
         let diagnostics = snapshot.diagnostics
         let fileNames: [String]
         switch snapshot.context {
         case .crash(let crash):
-            fileNames = crash.reportFileNames
+            let executable = snapshot.environment.executableName
+            fileNames = crash.reportFileNames.filter {
+                CrashReportMatcher.isCandidateName($0, executableName: executable)
+            }
         case .manual:
             let now = snapshot.takenAt
             let candidates = diagnostics.crashReportCandidates(executableName: snapshot.environment.executableName)
@@ -296,8 +292,7 @@ enum ProblemReportBuilder {
             if data.count >= maxBytes, let newline = data.lastIndex(of: 0x0A) {
                 data = data.subdata(in: data.startIndex..<data.index(after: newline))
             }
-            let fileExtension = name.lowercased().hasSuffix(".crash") ? "crash" : "ips"
-            return (String(decoding: data, as: UTF8.self), fileExtension)
+            return String(decoding: data, as: UTF8.self)
         }
     }
 

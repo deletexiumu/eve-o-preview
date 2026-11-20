@@ -69,6 +69,12 @@ public final class SystemUpdateService: UpdateService {
         await installer.removeLeftovers(keeping: prepared, staleStagingPath: staleStagingPath)
     }
 
+    /// path（来自 state.json 的 `prepared.imagePath`）解析符号链接后是否位于缓存目录之下。
+    /// App 删 dmg 前用它核对，不在缓存目录下的路径不删。路径不存在时返回 false。
+    public static func isInsideCache(_ path: String, cacheDirectory: URL = defaultCacheDirectory()) -> Bool {
+        BundleInstaller.isInsideCache(path, cacheRoot: cacheDirectory)
+    }
+
     /// 本进程 Info.plist 的版本号，用于下载请求的 `User-Agent`；没有时是 0.0.0。
     static var appVersion: String {
         (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String).flatMap { $0.isEmpty ? nil : $0 }

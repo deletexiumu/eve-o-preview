@@ -46,6 +46,39 @@ struct UpdateFeedTests {
         #expect(!production.accepts("https://github.com/deletexiumu/eve-o-preview-macos/issues/1"))
     }
 
+    /// 正式地址下，前缀对但路径能跳出 Release 目录、编码过的点与斜杠、反斜杠、别的端口都不认。
+    @Test(arguments: [
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/../../../evil/repo/releases/download/v1/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/download/../../../../evil/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/./download/v1/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/..",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/%2e%2e/%2e%2e/evil/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/%2E%2E/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/.%2e/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/%2f..%2fevil/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/download\\..\\..\\evil/x.dmg",
+        "https://github.com/deletexiumu/eve-o-preview-macos/releases/%5c../x.dmg",
+        "https://github.com:8443/deletexiumu/eve-o-preview-macos/releases/x.dmg",
+        "https://api.github.com/deletexiumu/eve-o-preview-macos/releases/x.dmg",
+        "https://objects.githubusercontent.com/deletexiumu/eve-o-preview-macos/releases/x.dmg",
+        "https://github.com.evil.com/deletexiumu/eve-o-preview-macos/releases/x.dmg",
+        "",
+    ])
+    func productionRejectsTraversal(text: String) {
+        #expect(!production.accepts(text))
+    }
+
+    /// 正式地址下：查询串、显式的 443 端口、文件名里普通的点不影响结果；大写的主机不在前缀里，不认。
+    @Test func productionEdgeCases() {
+        let base = "https://github.com/deletexiumu/eve-o-preview-macos/releases/"
+        #expect(production.accepts(base + "download/v1.1.0/EVE-O-Preview-1.1.0.dmg?raw=1"))
+        #expect(production.accepts(base + "download/v1.1.0/SHA256SUMS.txt"))
+        #expect(production.accepts(base + "tag/v1.1.0"))
+        #expect(production.accepts(base + "latest"))
+        #expect(!production.accepts("https://GITHUB.com/deletexiumu/eve-o-preview-macos/releases/tag/v1"))
+        #expect(!production.accepts("https://github.com:443/deletexiumu/eve-o-preview-macos/releases/tag/v1"))
+    }
+
     /// 测试地址下只认同源（协议、主机、端口都相同）的地址。
     @Test func testFeedAcceptsSameOriginOnly() {
         let feed = UpdateFeed.resolve(override: "http://127.0.0.1:8123/feed.json")

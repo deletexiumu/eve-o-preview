@@ -164,18 +164,23 @@ public enum IssueURLBuilder {
 }
 
 extension IssueURLBuilder {
+    /// 演示模式下 Issue 标题的前缀。
+    public static let demoTitlePrefix = "[demo] "
+
     /// 问题报告的草稿（7.5 节的 4 个小节）。
     ///
     /// - Parameters:
     ///   - isCrash: 是否为崩溃情境；标题开头与是否有「Previous run」一节随之变化。
-    ///   - environment: 环境报告，取版本、系统版本与 `issueLines()`。
+    ///   - environment: 环境报告，取版本、系统版本与 `issueLines()`；`runtime.isFakeMode` 为真时标题加 `[demo] `。
     ///   - previousVersion: 崩溃情境下上一次运行的版本。
     ///   - crashReportCount: 崩溃情境下报告里的崩溃报告个数。
     ///   - archiveFileName: zip 的文件名。
     public static func problemReportDraft(isCrash: Bool, environment: EnvironmentReport, previousVersion: String?,
                                           crashReportCount: Int, archiveFileName: String) -> IssueDraft {
         let prefix = isCrash ? "Crash report" : "Problem report"
-        let title = "\(prefix): EVE-O Preview \(environment.app.version) on macOS \(environment.system.osVersion)"
+        // 演示模式生成的报告在标题前加 `[demo] `，维护者一眼能认出不是真实的问题。
+        let demo = environment.runtime.isFakeMode ? demoTitlePrefix : ""
+        let title = "\(demo)\(prefix): EVE-O Preview \(environment.app.version) on macOS \(environment.system.osVersion)"
         var sections = [
             IssueSection(heading: "What happened",
                          body: "<!-- Describe what you did and what went wrong. Then drag the zip file "

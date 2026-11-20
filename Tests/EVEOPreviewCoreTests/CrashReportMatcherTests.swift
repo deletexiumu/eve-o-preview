@@ -42,14 +42,13 @@ struct CrashReportMatcherTests {
 
     // MARK: - 文件名
 
-    /// 合法的 4 种形式：`-` 与 `_` 两种分隔符，`ips` 与 `crash` 两种扩展名；
+    /// 合法的形式：`-` 与 `_` 两种分隔符，扩展名 `ips`；
     /// 另含实测的同一秒第二份报告的写法（`.000.ips`）与大写扩展名。
     @Test func acceptsValidNames() {
         let names = [
             "EVEOPreview-2026-11-21-005621.ips",
             "EVEOPreview_2026-11-21-005621.ips",
-            "EVEOPreview-2026-11-21-005621.crash",
-            "EVEOPreview_2026-11-21-005621_host.crash",
+            "EVEOPreview_2026-11-21-005621_host.ips",
             "EVEOPreview-2026-11-21-005621.000.ips",
             "EVEOPreview-2026-11-21-005621.IPS",
         ]
@@ -64,6 +63,8 @@ struct CrashReportMatcherTests {
             "EVEOWP1Probe-2026-11-21-005621.ips",
             "Google Chrome-2026-11-19-094219.ips",
             "EVEOPreview-2026-11-21-005621.diag",
+            "EVEOPreview-2026-11-21-005621.crash",
+            "EVEOPreview_2026-11-21-005621_host.CRASH",
             "EVEOPreview-2026-11-21-005621.ips.txt",
             "EVEOPreview-2026-11-21-005621",
             "EVEOPreviewHelper-2026-11-21-005621.ips",
@@ -129,9 +130,9 @@ struct CrashReportMatcherTests {
             candidate("EVEOPreview-1.ips", at: time, firstLine: probeHeader),
             candidate("EVEOPreview-2.ips", at: time.addingTimeInterval(1), firstLine: eveoHeader),
             candidate("EVEOPreview-3.ips", at: time.addingTimeInterval(2), firstLine: unbundledHeader),
-            candidate("EVEOPreview-4.crash", at: time.addingTimeInterval(3), firstLine: "Process: EVEOPreview [4242]"),
+            candidate("EVEOPreview-4.ips", at: time.addingTimeInterval(3), firstLine: "Process: EVEOPreview [4242]"),
         ]
-        #expect(select(candidates) == ["EVEOPreview-4.crash", "EVEOPreview-3.ips", "EVEOPreview-2.ips"])
+        #expect(select(candidates) == ["EVEOPreview-4.ips", "EVEOPreview-3.ips", "EVEOPreview-2.ips"])
         let unread = candidate("EVEOPreview-5.ips", at: time, firstLine: nil)
         #expect(select([unread]) == ["EVEOPreview-5.ips"])
     }

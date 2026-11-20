@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 安装更新（v1.1 设计 9.3 节）。12 步按顺序执行，第 9 步（替换）之前的任何失败都不碰已安装的应用：
-//  1. 重新算能否安装；重新算 dmg 的 SHA-256 并与记录比较。
+// 安装更新（v1.1 设计 9.3 节、19 节的修订）。12 步按顺序执行，第 9 步（替换）之前的任何失败都不碰已安装的应用：
+//  1. 重新算能否安装；已安装的包所在的卷应支持 `RENAME_SWAP`（APFS）；重新算 dmg 的 SHA-256 并与记录比较。
 //  2. 挂载 dmg（`DiskImage`）。从这一步起，不论成败都在结束前卸载。
 //  3. 找卷顶层的 `EVE-O Preview.app`，`lstat` 确认是目录而不是符号链接。
 //  4. 在已安装的包所在的卷上建暂存目录（`itemReplacementDirectory`），权限 0700。
@@ -9,12 +9,19 @@
 //  6. 核对暂存副本的签名，要求满足正在运行的应用的指定要求（`CodeSignatureVerifier`）。
 //  7. 核对副本的 Info.plist 与架构（`UpdatePolicy.validate`）。
 //  8. 删掉副本上的 `com.apple.quarantine`（递归，不存在不算错）。
-//  9. `renamex_np(副本, 已安装的包, RENAME_SWAP)`；ENOTSUP 或 EINVAL 时改为两次改名。
-// 10. 对已安装的路径再核对一次签名；失败时换回旧版本，返回 `signatureInvalid`。
+//  9. 先 `lstat` 已安装的路径：应是目录而不是符号链接，bundle id 与版本号等于正在运行的应用，否则返回
+//     `bundleMismatch("installedBundle")`。然后 `renamex_np(副本, 已安装的包, RENAME_SWAP)`。只用这一种办法：
+//     任何失败（HFS+ 与 exFAT 返回 ENOTSUP，FAT 返回 ENOTEMPTY）都返回 `swapFailed`，已安装的应用不变。
+//     不再有「两次改名」的后备：两次改名之间被打断时，已安装的路径下什么都没有（审查 M1）。
+// 10. 对已安装的路径再核对一次签名；失败时换回旧版本，返回 `signatureInvalid`。换回也失败时，已安装的路径下是
+//     没通过复核的新版本，旧版本在暂存目录里：保留暂存目录，在 fault 日志里写明它的位置，返回 `swapFailed`（审查 B1）。
 // 11. 把已安装的包的修改时间设为现在，并 `LSRegisterURL`；失败只记日志。
 // 12. 返回 `InstallOutcome`。
 //
 // 失败的处理按 9.4 节：挂载与复制失败时卸载并删暂存目录；验证失败时另删 dmg，并写一条 fault 日志。
+// 暂存目录只在两种情况下删：旧版本仍在（或已换回）已安装的路径，暂存目录里只有新副本；或安装成功，
+// 暂存目录里是换下来的旧版本（交给下次启动的 `removeLeftovers`）。dmg 只在它位于缓存目录下时才删
+// （`isInsideCache`）：路径来自 state.json，不能让它删到别处的文件。
 // 契约里没有对应错误的两种失败按以下办法报告：暂存目录建不出来报 `swapFailed(code:)`（替换没能开始），
 // 从卷里复制失败报 `imageMountFailed`（与挂载同属 9.4 节「挂载与复制」一行）；
 // 正在运行的应用没有指定要求时报 `requirementNotSatisfied`（无从核对，按不满足处理）。
@@ -33,8 +40,6 @@ struct BundleInstaller: Sendable {
     let registersWithLaunchServices: Bool
     /// 挂载点所在的子目录名。
     static let mountDirectoryName = "mnt"
-    /// 回退替换时旧包在暂存目录里的名字。
-    static let previousBundleName = "previous.app"
     /// 隔离属性的名字。
     static let quarantineAttribute = "com.apple.quarantine"
     private var log: LogChannel { PlatformLog.logger("Updates") }
@@ -54,12 +59,18 @@ struct BundleInstaller: Sendable {
             if case .notifyOnly(let blocker) = capability { return .failure(.blocked(blocker)) }
             return .failure(.blocked(.unsigned))
         }
+        let installed = URL(fileURLWithPath: installedPath, isDirectory: true)
+        // 卷不支持交换时第 9 步一定失败，在挂载与复制之前就停下。查不到时照常往下走，由第 9 步报错。
+        if (try? installed.resourceValues(forKeys: [.volumeSupportsSwapRenamingKey]))?
+            .volumeSupportsSwapRenaming == false {
+            log.error("已安装的应用所在的卷不支持 RENAME_SWAP（不是 APFS），不能自动安装")
+            return .failure(.swapFailed(code: ENOTSUP))
+        }
         guard let actual = UpdateDownloader.sha256(of: image), actual == prepared.sha256.lowercased() else {
             log.error("待装的 dmg 与下载时的 SHA-256 不同，删掉它")
-            try? FileManager.default.removeItem(at: image)
+            removeImage(image)
             return .failure(.checksumMismatch)
         }
-        let installed = URL(fileURLWithPath: installedPath, isDirectory: true)
 
         // 第 2～5 步：挂载、找应用、建暂存目录、复制，然后卸载。
         let staging: URL
@@ -73,18 +84,16 @@ struct BundleInstaller: Sendable {
         if let error = verifyStaged(staged, prepared: prepared, environment: environment,
                                     systemVersion: systemVersion) {
             try? FileManager.default.removeItem(at: staging)
-            try? FileManager.default.removeItem(at: image)
+            removeImage(image)
             return .failure(error)
         }
 
         // 第 8 步：去掉隔离属性。
         removeQuarantine(under: staged)
 
-        // 第 9 步：替换。
-        let swap: SwapMode
-        switch replace(installed: installed, with: staged, staging: staging) {
-        case .success(let mode): swap = mode
-        case .failure(let error):
+        // 第 9 步：核对已安装的路径，然后交换。失败时什么都没有动，暂存目录里只有新副本。
+        if let error = checkInstalled(installed, environment: environment)
+            ?? replace(installed: installed, with: staged) {
             try? FileManager.default.removeItem(at: staging)
             return .failure(error)
         }
@@ -94,7 +103,12 @@ struct BundleInstaller: Sendable {
                                                   requirement: environment.signature.designatedRequirement ?? "")
         if recheck != errSecSuccess {
             log.fault("替换后复核签名失败，返回值 \(recheck)，换回旧版本")
-            revert(installed: installed, staging: staging, mode: swap)
+            if let code = revert(installed: installed, staged: staged) {
+                // 旧版本不在已安装的路径上：暂存目录是它唯一的副本，不删。
+                log.fault("换回旧版本失败，errno \(code)，旧版本保留在 \(staged.path, privacy: .public)")
+                log.fault("已安装的路径下是没通过复核的新版本，暂存目录不删")
+                return .failure(.swapFailed(code: code))
+            }
             try? FileManager.default.removeItem(at: staging)
             return .failure(.signatureInvalid(status: recheck))
         }
@@ -212,55 +226,60 @@ struct BundleInstaller: Sendable {
 
     // MARK: - 替换
 
-    /// 第 9 步用的是哪种办法，第 10 步换回时按同样的办法反过来做。
-    enum SwapMode: Sendable {
-        /// `RENAME_SWAP` 一次交换。
-        case exchange
-        /// 两次改名：旧包在暂存目录的 `previous.app`。
-        case twoRenames
+    /// 第 9 步之前核对已安装的路径：`lstat` 是目录而不是符号链接；Info.plist 的 bundle id 与版本号等于正在运行的应用。
+    /// 不满足时返回 `bundleMismatch("installedBundle")`：路径被换成了别的东西，或用户已手动换了版本，不去覆盖它。
+    func checkInstalled(_ installed: URL, environment: AppEnvironment) -> UpdateError? {
+        var info = stat()
+        guard lstat(installed.path, &info) == 0, info.st_mode & S_IFMT == S_IFDIR else {
+            log.error("已安装的路径不是目录（或是符号链接），不替换")
+            return .bundleMismatch("installedBundle")
+        }
+        let current = stagedInfo(installed)
+        guard current.bundleIdentifier == environment.bundleIdentifier, current.version == environment.version else {
+            let found = "\(current.bundleIdentifier ?? "nil") \(current.version ?? "nil")"
+            log.error("已安装的包与正在运行的应用不同（\(found, privacy: .public)），不替换")
+            return .bundleMismatch("installedBundle")
+        }
+        return nil
     }
 
-    /// 第 9 步。成功后已安装的路径下是新版本，旧版本在暂存目录里。
-    private func replace(installed: URL, with staged: URL, staging: URL) -> Result<SwapMode, UpdateError> {
-        if renamex_np(staged.path, installed.path, UInt32(RENAME_SWAP)) == 0 { return .success(.exchange) }
+    /// 第 9 步：`RENAME_SWAP` 一次交换。成功时返回 nil，已安装的路径下是新版本，旧版本在 staged 的位置。
+    /// 失败时返回 `swapFailed`；交换是原子的，失败时两边都没有动，旧版本仍在已安装的路径上。
+    private func replace(installed: URL, with staged: URL) -> UpdateError? {
+        guard renamex_np(staged.path, installed.path, UInt32(RENAME_SWAP)) != 0 else { return nil }
         let code = errno
-        guard code == ENOTSUP || code == EINVAL else {
-            log.error("RENAME_SWAP 失败，errno \(code)")
-            return .failure(.swapFailed(code: code))
-        }
-        log.notice("文件系统不支持 RENAME_SWAP（errno \(code)），改为两次改名")
-        let previous = staging.appendingPathComponent(BundleInstaller.previousBundleName, isDirectory: true)
-        guard rename(installed.path, previous.path) == 0 else {
-            let first = errno
-            log.error("把旧包移到暂存目录失败，errno \(first)")
-            return .failure(.swapFailed(code: first))
-        }
-        guard rename(staged.path, installed.path) != 0 else { return .success(.twoRenames) }
-        let second = errno
-        if rename(previous.path, installed.path) != 0 {
-            log.fault("新包改名失败（errno \(second)），旧包也没能改回原处，旧包在 \(previous.path, privacy: .public)")
-        } else {
-            log.error("新包改名失败，errno \(second)，已把旧包改回原处")
-        }
-        return .failure(.swapFailed(code: second))
+        log.error("RENAME_SWAP 失败，errno \(code)；已安装的应用没有改动。只有 APFS 卷支持自动安装")
+        return .swapFailed(code: code)
     }
 
-    /// 第 10 步失败后换回旧版本。
-    private func revert(installed: URL, staging: URL, mode: SwapMode) {
-        let stagedName = staging.appendingPathComponent(UpdateAssetContract.appBundleName, isDirectory: true)
-        switch mode {
-        case .exchange:
-            // 暂存目录里的同名包现在是旧版本，再交换一次。
-            if renamex_np(stagedName.path, installed.path, UInt32(RENAME_SWAP)) != 0 {
-                log.fault("换回旧版本失败，errno \(errno)，旧包在 \(stagedName.path, privacy: .public)")
-            }
-        case .twoRenames:
-            let previous = staging.appendingPathComponent(BundleInstaller.previousBundleName, isDirectory: true)
-            guard rename(installed.path, stagedName.path) == 0, rename(previous.path, installed.path) == 0 else {
-                log.fault("换回旧版本失败，errno \(errno)，旧包在 \(previous.path, privacy: .public)")
-                return
-            }
+    /// 第 10 步失败后再交换一次，换回旧版本（交换后 staged 的位置上是旧版本）。
+    /// 返回 nil 表示旧版本已回到已安装的路径；否则返回 errno，旧版本仍在 staged 的位置。
+    private func revert(installed: URL, staged: URL) -> Int32? {
+        guard renamex_np(staged.path, installed.path, UInt32(RENAME_SWAP)) != 0 else { return nil }
+        return errno
+    }
+
+    /// 删除 dmg，只在它位于缓存目录下时删。
+    private func removeImage(_ image: URL) {
+        guard BundleInstaller.isInsideCache(image.path, cacheRoot: cacheRoot) else {
+            log.error("待装的 dmg 不在更新缓存目录下，不删：\(image.path, privacy: .public)")
+            return
         }
+        try? FileManager.default.removeItem(at: image)
+    }
+
+    /// path 解析符号链接并规范化后是否位于 cacheRoot（同样解析）之下。任何一个解析不了（不存在）时返回 false。
+    static func isInsideCache(_ path: String, cacheRoot: URL) -> Bool {
+        guard let resolvedPath = realPath(path), let resolvedRoot = realPath(cacheRoot.path) else { return false }
+        let root = resolvedRoot.hasSuffix("/") ? resolvedRoot : resolvedRoot + "/"
+        return resolvedPath.hasPrefix(root)
+    }
+
+    /// `realpath(3)`：解析全部符号链接与 `.`、`..`。路径不存在时返回 nil。
+    private static func realPath(_ path: String) -> String? {
+        guard let resolved = realpath(path, nil) else { return nil }
+        defer { free(resolved) }
+        return String(cString: resolved)
     }
 
     /// 第 11 步：修改时间设为现在，并让 LaunchServices 重新登记。失败只记日志。
@@ -313,13 +332,13 @@ struct BundleInstaller: Sendable {
     }
 
     /// 上次换下来的旧包只在同时满足以下条件时删：路径里有 `/TemporaryItems/`；是目录；
-    /// 里面只有一个条目，名字是 `EVE-O Preview.app` 或 `previous.app`。不满足时不删，只记日志。
+    /// 里面只有一个条目，名字是 `EVE-O Preview.app`。不满足时不删，只记日志。
     private func removeStaleStaging(_ path: String) {
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
         guard exists else { return }
         let entries = (try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []
-        let allowed: Set<String> = [UpdateAssetContract.appBundleName, BundleInstaller.previousBundleName]
+        let allowed: Set<String> = [UpdateAssetContract.appBundleName]
         guard path.contains("/TemporaryItems/"), isDirectory.boolValue, entries.count == 1,
               allowed.contains(entries[0]) else {
             log.error("旧包目录不符合删除条件，不删：\(path, privacy: .public)")

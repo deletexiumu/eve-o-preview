@@ -126,6 +126,50 @@ struct RedactorTests {
         #expect(a.placeholder(forCharacter: "nobody") == nil)
     }
 
+    // MARK: Unicode 规范化
+
+    /// 「José García」的 NFC（预组合）与 NFD（分解）两种写法。用转义写出，免得源文件保存时被规范化。
+    static let nfcName = "Jos\u{E9} Garc\u{ED}a"
+    static let nfdName = "Jose\u{301} Garci\u{301}a"
+
+    /// 两种写法在标量层面确实不同，字符层面相同（否则下面的用例测不到东西）。
+    @Test func normalizationFixturesDiffer() {
+        #expect(Self.nfcName.unicodeScalars.count == 11)
+        #expect(Self.nfdName.unicodeScalars.count == 13)
+        #expect(Self.nfcName == Self.nfdName)
+        #expect(Array(Self.nfcName.unicodeScalars) != Array(Self.nfdName.unicodeScalars))
+    }
+
+    /// 词是 NFC、正文是 NFD，或反过来，都能替换；同一个名字的两种写法得到同一个占位符。
+    @Test(arguments: [(RedactorTests.nfcName, RedactorTests.nfdName), (RedactorTests.nfdName, RedactorTests.nfcName),
+                      (RedactorTests.nfcName, RedactorTests.nfcName), (RedactorTests.nfdName, RedactorTests.nfdName)])
+    func characterNameInBothForms(term: String, text: String) {
+        let redactor = Redactor(terms: RedactionTerms(characterNames: [term]))
+        let result = redactor.redact("pilot \(text) undocked")
+        #expect(result.text == "pilot [character-1] undocked")
+        #expect(result.counts.character == 1)
+        #expect(redactor.placeholder(forCharacter: Self.nfcName) == "[character-1]")
+        #expect(redactor.placeholder(forCharacter: Self.nfdName) == "[character-1]")
+    }
+
+    /// 全名与主目录路径也按两种写法匹配（文件系统给出的路径常是 NFD）；一段文字里两种写法都换掉。
+    @Test func userNameAndHomeInBothForms() {
+        let redactor = Redactor(terms: RedactionTerms(userNames: [Self.nfcName],
+                                                      homeDirectory: "/Users/" + Self.nfcName))
+        let text = "\(Self.nfdName) at /Users/\(Self.nfdName)/x and \(Self.nfcName)"
+        let result = redactor.redact(text)
+        #expect(result.text == "[user] at /Users/[user]/x and [user]")
+        #expect(result.counts.user == 3)
+    }
+
+    /// 同一个名字的两种写法同时出现在角色名里时只占一个序号。
+    @Test func bothFormsShareOneNumber() {
+        let redactor = Redactor(terms: RedactionTerms(characterNames: [Self.nfdName, "Alpha", Self.nfcName]))
+        #expect(redactor.placeholder(forCharacter: "Alpha") == "[character-1]")
+        #expect(redactor.placeholder(forCharacter: Self.nfcName) == "[character-2]")
+        #expect(redactor.redact("\(Self.nfcName)/\(Self.nfdName)").text == "[character-2]/[character-2]")
+    }
+
     // MARK: 设备标识
 
     /// `crashReporterKey` 与 `deviceIdentifierForVendor` 的值被替换，键保留；冒号两侧的空白可有可无。
