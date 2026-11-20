@@ -7,7 +7,8 @@
 # 用法：scripts/package-release.sh
 # 环境变量：
 #   VERSION     写进 Info.plist 的版本号，默认取仓库根目录 VERSION 文件的内容
-#   LABEL       文件名里的版本标签，默认等于 VERSION；CI 给 PR 构建填 1.0.0-pr.12.abc1234 这样的值
+#   LABEL       文件名里的版本标签，默认等于 VERSION；CI 给 PR 构建填 1.0.0-pr.12.abc1234 这样的值。
+#               同时传给 build-app.sh，写进 Info.plist 的 EVEOBuildLabel
 #   SKIP_BUILD  设为 1 时不调用 build-app.sh，直接打包已有的 dist/EVE-O Preview.app
 #   UNIVERSAL、SIGN_IDENTITY  原样传给 build-app.sh
 #
@@ -32,7 +33,7 @@ OUT="$ROOT/dist/release"
 
 # 1. 构建并签名 .app。
 if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
-    VERSION="$VERSION" "$ROOT/scripts/build-app.sh"
+    VERSION="$VERSION" LABEL="$LABEL" "$ROOT/scripts/build-app.sh"
 fi
 if [[ ! -d "$APP" ]]; then
     echo "找不到 ${APP}，请先运行 scripts/build-app.sh" >&2
