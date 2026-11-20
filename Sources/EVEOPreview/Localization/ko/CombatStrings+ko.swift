@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「提醒」页的韩文文字（反馈文档 5.3 节、7.11 节）。
+// 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
+// 用词按 5.5 节的词表：전투 알림、게임 로그、썸네일、테두리；系统权限用 macOS 韩文界面的「파일 및 폴더」。
+
+import Foundation
+
+/// 「提醒」页的韩文文字。
+struct CombatStringsKO: CombatStrings {
+    // MARK: 页头
+    var pageSubtitle: String { "캐릭터가 공격받으면 해당 썸네일이 깜박입니다." }
+
+    // MARK: 开关与状态行
+    var enableToggle: String { "캐릭터가 공격받으면 썸네일 깜박이기" }
+    var statusLabel: String { "상태" }
+    var statusStopped: String { "꺼짐" }
+    func statusWatching(directory: String, files: Int) -> String {
+        "감시 중: \(directory) (로그 파일 \(files)개)"
+    }
+    func statusDirectoryNotFound(_ path: String) -> String { "게임 로그 폴더를 찾을 수 없음: \(path)" }
+    func statusAccessDenied(_ path: String) -> String { "읽기 권한 없음: \(path)" }
+    var accessDeniedHelp: String {
+        "시스템 설정 > 개인정보 보호 및 보안 > 파일 및 폴더에서 "
+            + "EVE-O Preview가 '문서' 폴더에 접근하도록 허용하십시오."
+    }
+    var openSystemSettings: String { "시스템 설정 열기…" }
+
+    // MARK: 日志目录
+    var logDirectoryHeader: String { "게임 로그" }
+    var logDirectoryLabel: String { "폴더" }
+    var automaticSuffix: String { "(자동)" }
+    var chooseDirectory: String { "선택…" }
+    var useAutomaticLocation: String { "자동 위치 사용" }
+    var chooseDirectoryMessage: String { "EVE의 'logs' 또는 'Gamelogs' 폴더를 선택하십시오." }
+
+    // MARK: 闪烁的外观
+    var appearanceHeader: String { "깜박임" }
+    var flashColor: String { "깜박임 색상" }
+    var duration: String { "지속 시간" }
+    func seconds(_ value: Double) -> String { "\(combatSecondsNumber(value))초" }
+    var style: String { "스타일" }
+    var styleBorder: String { "테두리" }
+    var styleWash: String { "채우기" }
+    var styleBoth: String { "둘 다" }
+
+    // MARK: 触发条件
+    var triggersHeader: String { "조건" }
+    var includeMisses: String { "빗나간 공격도 알림" }
+    var minimumDamage: String { "최소 피해량" }
+    var minimumDamageHelp: String { "이 값보다 작은 피해는 알리지 않습니다. 빗나간 공격은 위의 스위치를 따릅니다." }
+
+    // MARK: 测试与说明
+    var testFlash: String { "깜박임 테스트" }
+    var testFlashHelp: String { "기능이 꺼져 있어도 모든 썸네일을 한 번 깜박입니다." }
+    var footnote: String {
+        "EVE 클라이언트에서 게임 메시지를 로그 파일에 기록하도록 설정해야 합니다. "
+            + "이 기능은 게임 로그를 읽기만 하며 게임에 어떤 입력도 보내지 않습니다."
+    }
+}
