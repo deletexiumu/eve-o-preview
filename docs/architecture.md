@@ -4,6 +4,7 @@
 本项目按上游 [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)（GPL-3.0）的功能重新实现，不移植 C# 代码。
 文中的 Swift 片段只有类型与协议签名，已在 2026 年 11 月 20 日用 Swift 6.0.3 的 Swift 6 语言模式编译通过。
 v1 试用后的第一轮反馈（缩略图边框、多语言、鼠标按键热键与热键作用范围、战斗提醒）的设计在 [design-feedback-round1.md](design-feedback-round1.md)，下称「反馈文档」。本文已同步改动后的类型签名、默认值和范围表，规则与流程的细节以反馈文档为准。
+v1.1（文件日志与异常退出检测、问题报告、更新检查与应用内安装）的设计在 [design-v1.1.md](design-v1.1.md)，下称「v1.1 设计」。本文各节只加一句增量说明与指向，类型、流程与文件清单以 v1.1 设计为准。
 
 ## 1 已核实的环境事实
 
@@ -28,6 +29,8 @@ v1 试用后的第一轮反馈（缩略图边框、多语言、鼠标按键热�
 ## 2 产品范围
 
 ### 2.1 v1 范围
+
+v1.1 在本节范围之外新增 3 项：文件日志与问题报告（v1.1 设计第 5～7 节）、更新检查（第 8 节）、应用内安装（第 9 节）。
 
 1. 客户端发现：自动找到 EVE 客户端窗口，客户端启动、退出、登录后改名时更新。
 2. 实时缩略图：每个客户端一条 ScreenCaptureKit 流，尺寸和帧率可配置。
@@ -81,6 +84,8 @@ v1 试用后的第一轮反馈（缩略图边框、多语言、鼠标按键热�
 
 ### 3.1 模块
 
+v1.1 起，三个模块各增加日志、诊断与更新的部分，职责划分见 v1.1 设计 4.1 节：纯规则（版本比较、脱敏、发布说明选取等）在 Core，文件、网络、签名核对与磁盘映像在 Platform，窗口与控制器在 App。
+
 ```text
 EVEOPreview（可执行，AppKit + SwiftUI）
    ├── EVEOPreviewPlatform（AppKit、ScreenCaptureKit、ApplicationServices、Carbon）
@@ -100,6 +105,8 @@ EVEOPreviewCoreTests（swift-testing）── EVEOPreviewCore
 `Package.swift` 用 `swift-tools-version: 6.0`，`platforms: [.macOS(.v14)]`，`swiftLanguageModes: [.v6]`，没有第三方依赖，没有资源文件。
 
 ### 3.2 线程与隔离
+
+v1.1 新增两处隔离的例外：`FileLogSink` 用锁保护，可从任意线程写日志；更新的下载、哈希、挂载与签名核对在后台任务里执行，结果回到主线程（v1.1 设计 4.3 节）。
 
 - Core 的模型都是 `Sendable` 值类型，纯函数没有隔离要求。
 - Platform 的服务和 App 的全部类型都是 `@MainActor`，只有 5 处例外：
@@ -259,6 +266,8 @@ public struct CombatAlertWindow: Sendable, Equatable { public var startedAt: Dou
 ```
 
 ### 5.2 配置模型
+
+v1.1 起 `GeneralSettings` 新增 3 个键：`checkForUpdates`（默认开）、`autoInstallUpdates`（默认关）、`logLevel`。`schemaVersion` 仍是 1，旧版本读到新键时忽略。跳过的版本、上次检查时间、ETag、待报告的崩溃等运行记录不放在配置里，放在单独的状态文件 `state.json` 与会话标记 `session.json`，见 v1.1 设计第 3 节。
 
 配置文件是 `~/Library/Application Support/EVE-O Preview/config.json`，一个文件装下全部配置方案，`schemaVersion` 当前是 1。
 
@@ -654,6 +663,8 @@ public enum HexColor {
 
 ### 6.1 协议
 
+v1.1 起 `PlatformServices` 新增 `diagnostics`（`DiagnosticsService`）与 `updates`（`UpdateService`）两个成员，协议定义在 Core 的 `Contracts/DiagnosticsContracts.swift` 与 `Contracts/UpdateContracts.swift`（v1.1 设计第 4 节）。
+
 以下协议只含值类型，定义在 Core 的 `Contracts/PlatformContracts.swift`，由 Platform 实现。
 
 ```swift
@@ -899,6 +910,8 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 
 ### 6.7 探针
 
+v1.1 起探针新增 `update` 子命令：`update feed [地址]`、`update verify <新应用> <基准应用>`、`update prepare <地址> [--cache 目录]`、`update install <dmg> <应用副本> --version 版本`（只用于临时副本）。
+
 `EVEOProbe` 是 WP-B 的第一项产出，用来在 3 个真实客户端上验证 Platform。它从终端运行，权限记在终端应用名下。
 
 | 命令 | 作用 |
@@ -914,6 +927,8 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 ## 7 App 设计
 
 ### 7.1 生命周期
+
+v1.1 起启动顺序加入日志初始化、会话标记、状态文件与更新检查，退出时先写会话标记，再在需要时安装已下载的更新（最多等 10.5 秒）。顺序见 v1.1 设计 4.4 节，会话标记的规则见第 6 节。
 
 - `main.swift` 建 `NSApplication`，设 `AppDelegate`，激活策略为 `.accessory`（Info.plist 同时写 `LSUIElement`）。
 - 启动时如果同 bundle id 的实例已在运行，退出自己。例外：权限页的「重新启动」以参数 `--relaunched-from <pid>` 打开新实例，新实例最多等 8 秒让该 PID 退出，并在单实例检查中排除它（`Support/InstanceGuard.swift`）。
@@ -966,6 +981,8 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 
 ### 7.4 菜单栏与设置窗口
 
+v1.1 起菜单新增「检查更新…」「报告问题…」，有可用更新、更新已就绪或上次运行意外退出时，图标上出现圆点，菜单顶部多出对应的一项；「通用」页新增「更新」「诊断」两组（v1.1 设计第 11 节）。
+
 菜单栏图标是 `StatusBarIcon` 画出的模板图像（八边形框里的分子，与应用图标同一图案），不用 SF Symbol。常驻的菜单项依次是：显示或隐藏全部缩略图、配置方案子菜单、全部最小化、「热键只在 EVE 内生效」（带勾选，切换当前配置方案的 `hotkeyDefaultScope`，第一轮反馈新增）、设置、退出。
 有客户端处于 `stoppedByUser` 时多一项「恢复捕获」，缺权限时多一项权限提示。
 
@@ -993,7 +1010,7 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 - 单个文件不超过 1,000 行，宜在 400 行以内；单个函数不超过 500 行，宜在 60 行以内。超过 400 行的文件按职责拆成扩展文件（`类型名+职责.swift`）。
 - 注释率高于 20%，注释写中文。每个 `public` 声明有文档注释，写清语义、单位和边界情况；实现里解释原因，不复述代码。
 - 每个源文件首行是 `// SPDX-License-Identifier: GPL-3.0-or-later`。
-- 日志用 `os.Logger`，subsystem 是 bundle id，category 取模块名；角色名按 `.private` 记录；不用 `print`（`EVEOProbe` 除外）。
+- 日志经 `PlatformLog.logger("<分类>")` 或 `AppLog.logger("<分类>")` 取得的 `LogChannel` 写，不直接建 `os.Logger`（v1.1 起，同时写系统日志与日志文件）；subsystem 是 bundle id，category 取模块名；角色名按 `.private` 记录；不用 `print`（`EVEOProbe` 除外）。v1.1 新增目录与文件的清单见 v1.1 设计第 12 节。
 - 新建的文档与脚本文件名用小写英文加连字符。
 
 以下路径相对于 `app/`。下面各表是 v1 的文件与当时的归属；第一轮反馈新增和改动的文件、它们的归属列在反馈文档第 8 节。
@@ -1128,6 +1145,8 @@ Info.plist 的键：
 
 ### 9.4 `scripts/package-release.sh`
 
+附件名是 CI 与应用内更新之间的契约，见 v1.1 设计 8.1 节与本文 9.5 节。
+
 脚本在 `dist/release/` 下生成发布文件：
 
 | 文件 | 内容 |
@@ -1214,6 +1233,8 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 日、韩、俄文的摘要标题分别是 `日本語`、`한국어`、`Русский`。应用内的更新提示按界面语言取对应区块，取不到时用英文，正文里没有标记时显示全文。
 
 ## 10 实施计划与测试
+
+v1.1 的工作包、测试与手工验证见 v1.1 设计第 13、14 节；风险、待用户决定的问题与术语见第 16～18 节。
 
 ### 10.1 分工
 
