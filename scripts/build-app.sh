@@ -6,6 +6,7 @@
 # 用法：scripts/build-app.sh
 # 环境变量：
 #   VERSION        写进 Info.plist 的版本号，默认取仓库根目录 VERSION 文件的内容
+#   LABEL          构建标签，写进 Info.plist 的 EVEOBuildLabel，默认等于 VERSION；CI 给 PR 构建填 1.1.0-pr.12.abc1234 这样的值
 #   SIGN_IDENTITY  代码签名身份；不设时钥匙串里有「EVEO Preview Dev」就用它，否则 ad-hoc（-）
 #   UNIVERSAL      设为 1 时分别编译 arm64 与 x86_64，再用 lipo 合成通用二进制；默认只编译本机架构
 #
@@ -18,6 +19,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 VERSION="${VERSION:-$(tr -d '[:space:]' < "$ROOT/VERSION")}"
+LABEL="${LABEL:-$VERSION}"
 APP_NAME="EVE-O Preview"
 BUNDLE_ID="io.github.deletexiumu.eveopreview-macos"
 DEV_IDENTITY="EVEO Preview Dev"
@@ -70,6 +72,12 @@ if [[ -f "$ROOT/packaging/AppIcon.png" ]]; then
     done
     iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
     plutil -insert CFBundleIconFile -string AppIcon "$APP/Contents/Info.plist"
+fi
+# 4b. 构建标签与提交号（v1.1 设计 8.1、8.3 节）：应用据此判断 PR 或 main 构建是否该收到同版本号正式版的更新。
+#     不在 git 仓库里（如从源码包构建）时取不到提交号，就不写 EVEOBuildCommit。
+plutil -insert EVEOBuildLabel -string "$LABEL" "$APP/Contents/Info.plist"
+if COMMIT="$(git -C "$ROOT" rev-parse --short=7 HEAD 2>/dev/null)"; then
+    plutil -insert EVEOBuildCommit -string "$COMMIT" "$APP/Contents/Info.plist"
 fi
 plutil -lint "$APP/Contents/Info.plist"
 

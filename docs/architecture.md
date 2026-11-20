@@ -1079,7 +1079,7 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 1. 运行 `swift build -c release --product EVEOPreview`。环境变量 `UNIVERSAL=1` 时改为按 `arm64-apple-macosx14.0` 与 `x86_64-apple-macosx14.0` 两个三元组各编译一次，再用 `lipo -create` 合成通用二进制。不用 `swift build --arch arm64 --arch x86_64`，因为那条路径依赖 Xcode 的 xcbuild，只装 Command Line Tools 时不可用。
 2. 建 `dist/EVE-O Preview.app/Contents/{MacOS,Resources}`，把可执行文件复制为 `Contents/MacOS/EVEOPreview`。
 3. 用 `packaging/Info.plist` 生成 `Contents/Info.plist`，把版本号换成环境变量 `VERSION`（默认取仓库根目录 `VERSION` 文件的内容），并用 `plutil -lint` 检查。
-4. 如果存在 `packaging/AppIcon.png`，用 `sips` 与 `iconutil` 生成 `Contents/Resources/AppIcon.icns`。
+4. 如果存在 `packaging/AppIcon.png`，用 `sips` 与 `iconutil` 生成 `Contents/Resources/AppIcon.icns`。随后写入两个附加键：`EVEOBuildLabel` 取环境变量 `LABEL`（默认等于 `VERSION`）；`EVEOBuildCommit` 取 `git rev-parse --short=7 HEAD`，不在 git 仓库里时不写。自动更新用这两个键区分正式版与 PR、`main` 的构建（v1.1 设计 8.3 节）。
 5. 选签名身份：`SIGN_IDENTITY` 有值时用它；否则钥匙串里有 `EVEO Preview Dev` 时用它；都没有时用 `-`（ad-hoc）。运行 `codesign --force --sign "$身份" --identifier io.github.deletexiumu.eveopreview-macos "dist/EVE-O Preview.app"`，再用 `codesign --verify --strict` 检查。
 6. 打印产物路径和签名方式。使用 ad-hoc 签名时多打印一行提示：重新构建后要重新授权。
 
@@ -1099,6 +1099,7 @@ Info.plist 的键：
 | `CFBundleIconFile` | `AppIcon`（有图标时） |
 | `NSHumanReadableCopyright` | GPL-3.0 说明 |
 | `NSDocumentsFolderUsageDescription` | 读「文稿」下游戏日志的用途说明，英文（第一轮反馈新增，反馈文档 7.9 节） |
+| `EVEOBuildLabel`、`EVEOBuildCommit` | 构建标签与提交号（v1.1 新增，见上文第 4 步） |
 
 不启用 App Sandbox（沙盒内不能用辅助功能控制别的应用），不启用 hardened runtime（本机使用，不做公证）。屏幕录制与辅助功能没有用途说明键（4.4 节）。
 
@@ -1143,9 +1144,11 @@ Info.plist 的键：
 
 | 触发 | 做的事 | 产物 |
 | --- | --- | --- |
-| 向 `main` 发起或更新 PR、推送到 `main`、手动运行 | 质量门禁、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 检查其中应用的架构、签名、指定要求、版本号与「应用程序」替身 | 工作流制品，保留 30 天；标签为 `<VERSION>-pr.<编号>.<提交>` 或 `<VERSION>-dev.<提交>` |
+| 向 `main` 发起或更新 PR、推送到 `main`、手动运行 | 质量门禁、发布说明标记检查（`scripts/check_release_notes.py`）、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 核对架构、签名、指定要求、「应用程序」替身与发布契约 | 工作流制品，保留 30 天；标签为 `<VERSION>-pr.<编号>.<提交>` 或 `<VERSION>-dev.<提交>` |
 | 推送 `v*` tag | 同上，另外核对 tag 与 `VERSION` 文件一致，再建 GitHub Release | Release 附件：dmg、两个源码包、`SHA256SUMS.txt` |
 | 手动运行并勾选「演练发布」（`rehearse_release`） | 同第一行，再建一个草稿 Release，名为 `v<VERSION>-rehearsal.<运行编号>` | 草稿 Release，不打 tag、不公开，检查完在 Releases 页面删掉 |
+
+发布契约是 CI 与应用自动更新之间的约定（v1.1 设计 8.1 节）：`dist/release/` 只有 4 个附件且名字固定，`SHA256SUMS.txt` 有 dmg 那一行，dmg 顶层的 `EVE-O Preview.app` 是真实目录，`Info.plist` 的 `CFBundleIdentifier`、`CFBundleExecutable`、`CFBundleShortVersionString`、`EVEOBuildLabel`、`EVEOBuildCommit` 取值正确。改动其中任何一项，已安装的版本就只能提示更新、不能自动安装。
 
 PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以制品名里的提交号与内容一致。只有建 Release 的任务有 `contents: write` 权限。tag 名带 `-`（如 `v1.1.0-beta.1`）时，Release 标为预发布。Release 已存在时任务失败，不覆盖附件：已经发出去的文件与校验和不应被悄悄替换，要重发按本节末尾的步骤重打 tag。签名见 9.6 节，发布说明的格式见 9.7 节。
 
@@ -1173,11 +1176,22 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 | 维护者本机 `~/Documents/dev/ai/eve-o-preview/signing-backup/` | p12 与证书的备份，不在仓库里 |
 | 维护者本机登录钥匙串，服务名 `EVE-O Preview Release p12` | p12 密码的备份 |
 
+自签名证书只有一级，`codesign` 生成的要求可能写成 `certificate root` 或 `certificate leaf`，两种写法指同一张证书，CI 都接受。
+
 工作流把 p12 导入一个临时钥匙串，用 `set-key-partition-list` 允许 `codesign` 直接用私钥，打包后删掉钥匙串。没有 secret 时，tag 构建与演练发布直接失败；其他构建（如来自 fork 的 PR）退回 ad-hoc 签名并给出警告。检查产物时，用固定证书签名的构建要求指定要求里含 `certificate root = H"<SHA-1>"`。
 
 **警告：** 不应更换这张证书，除非私钥泄露。换证书后指定要求改变，所有用户升级后都要重新授权，自动更新的签名核对也会拒绝新版本。
 
 证书没有经过 Apple 公证，用户首次下载后 Gatekeeper 仍会拦截，处理办法写在 README 的安装一节。
+
+备份：p12 与证书在维护者本机的 `signing-backup/` 目录，密码在登录钥匙串里。宜另外把这两样存一份到离线介质或密码管理器。两处都丢失时，只能换证书。
+
+如果私钥泄露或丢失，按以下步骤换证书：
+
+1. 生成新证书（代码签名用途），导出为 p12，用 `security import` 导入临时钥匙串并签一个应用，确认能用。
+2. 更新两个 Actions secret 与 `packaging/release-cert-sha1.txt`。
+3. 在发布说明里写明：这个版本换了签名证书，已安装的版本只会提示更新、不能自动安装，用户要手动下载安装并重新授予屏幕录制与辅助功能权限。
+4. 演练发布，确认指定要求钉在新证书上，再打 tag。
 
 ### 9.7 发布说明格式
 

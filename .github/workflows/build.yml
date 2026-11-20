@@ -58,6 +58,10 @@ jobs:
       - name: 质量门禁
         run: python3 scripts/check_quality.py
 
+      # 发布说明的语言标记写错时，应用内的更新提示会退回英文或显示全文，在这里提前拦下（架构文档 9.7 节）。
+      - name: 发布说明标记
+        run: python3 scripts/check_release_notes.py
+
       - name: 单元测试
         run: swift test
 
@@ -138,6 +142,8 @@ jobs:
 
       # 核对 dmg 里的应用（不是 dist/ 下的）：通用二进制含两种架构、签名有效、版本号正确、带「应用程序」替身；
       # 用固定证书签名时，指定要求应钉在 packaging/release-cert-sha1.txt 记录的证书上。
+      # 同时核对 CI 与应用自动更新之间的契约（v1.1 设计 8.1 节）：附件名、dmg 顶层的应用是真实目录、
+      # SHA256SUMS.txt 有 dmg 那一行、Info.plist 的 5 个键。改这些会让已安装的版本无法自动更新。
       - name: 检查产物
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -145,22 +151,41 @@ jobs:
           SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
         run: |
           (cd dist/release && shasum -a 256 -c SHA256SUMS.txt)
+          for f in "EVE-O-Preview-${LABEL}.dmg" "eve-o-preview-macos-${LABEL}-source.tar.gz" "eve-o-preview-macos-${LABEL}-source.zip" SHA256SUMS.txt; do
+            [[ -f "dist/release/$f" ]] || { echo "::error::缺少附件 ${f}"; exit 1; }
+          done
+          [[ "$(ls dist/release | wc -l | tr -d ' ')" == "4" ]] || { echo "::error::dist/release 里的文件数不是 4"; ls dist/release; exit 1; }
+          grep -q "  EVE-O-Preview-${LABEL}.dmg\$" dist/release/SHA256SUMS.txt || { echo "::error::SHA256SUMS.txt 里没有 dmg 那一行"; exit 1; }
           MOUNT="$(mktemp -d)"
           hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT" "dist/release/EVE-O-Preview-${LABEL}.dmg"
           trap 'hdiutil detach "$MOUNT" -quiet || true' EXIT
           APP="$MOUNT/EVE-O Preview.app"
           [[ -L "$MOUNT/Applications" ]] || { echo "::error::dmg 里缺少「应用程序」替身"; exit 1; }
+          [[ -d "$APP" && ! -L "$APP" ]] || { echo "::error::dmg 顶层的 EVE-O Preview.app 不是真实目录"; exit 1; }
+          PLIST="$APP/Contents/Info.plist"
+          check_key() {
+            local actual
+            actual="$(plutil -extract "$1" raw "$PLIST" 2>/dev/null || true)"
+            [[ "$actual" == "$2" ]] || { echo "::error::Info.plist 的 $1 是「${actual}」，应为「$2」"; exit 1; }
+          }
+          check_key CFBundleIdentifier io.github.deletexiumu.eveopreview-macos
+          check_key CFBundleExecutable EVEOPreview
+          check_key CFBundleShortVersionString "$VERSION"
+          check_key EVEOBuildLabel "$LABEL"
+          check_key EVEOBuildCommit "$(git rev-parse --short=7 HEAD)"
           ARCHS="$(lipo -archs "$APP/Contents/MacOS/EVEOPreview")"
           echo "架构：${ARCHS}"
           [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]] || { echo "::error::不是通用二进制"; exit 1; }
           codesign --verify --strict --verbose=2 "$APP"
-          PLIST_VERSION="$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")"
-          [[ "$PLIST_VERSION" == "$VERSION" ]] || { echo "::error::Info.plist 版本 ${PLIST_VERSION} 不是 ${VERSION}"; exit 1; }
           REQUIREMENT="$(codesign -d -r- "$APP" 2>&1 | grep '^designated')"
           echo "$REQUIREMENT"
           if [[ "$SIGN_IDENTITY" != "-" ]]; then
             CERT_SHA1="$(tr -d '[:space:]' < packaging/release-cert-sha1.txt)"
-            [[ "$REQUIREMENT" == *"certificate root = H\"${CERT_SHA1}\""* ]] || { echo "::error::指定要求没有钉在发布证书 ${CERT_SHA1} 上"; exit 1; }
+            # 自签名证书只有一级，codesign 生成的要求可能写成 certificate root 或 certificate leaf，指的是同一张证书。
+            if [[ "$REQUIREMENT" != *"certificate root = H\"${CERT_SHA1}\""* && "$REQUIREMENT" != *"certificate leaf = H\"${CERT_SHA1}\""* ]]; then
+              echo "::error::指定要求没有钉在发布证书 ${CERT_SHA1} 上"
+              exit 1
+            fi
           fi
 
       # 删掉临时钥匙串，即使前面的步骤失败也执行。
