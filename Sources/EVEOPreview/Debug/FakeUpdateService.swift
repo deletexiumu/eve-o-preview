@@ -3,33 +3,42 @@
 // 演示模式（`EVEO_FAKE=1`）的更新服务（v1.1 设计 8.5 节、第 12 节），不发任何网络请求。
 // 另放 `EVEO_UPDATE_UI_STATE` 调试入口用的样例（13.1 节第 4 项），由 `UpdateController.start()` 取用。
 //
-// WP-0 只建骨架：检查返回 `.noRelease`，下载与安装返回 `.cancelled`；WP-3 实现。
+// 演示模式下 `UpdateController` 不下载、不安装、不重新启动，所以下面的下载与安装只做最少的事。
 
 import Foundation
 import EVEOPreviewCore
 
-/// 演示模式的更新服务。
+/// 演示模式的更新服务。检查返回样例版本 1.1.1；下载只模拟进度，不写文件；安装不改动任何东西。
 final class FakeUpdateService: UpdateService {
-    /// 骨架：返回 `.noRelease`（WP-3 实现）。
+    /// 模拟下载的步数与每步的间隔。
+    private static let steps = 10
+    private static let stepDelay: Duration = .milliseconds(200)
+
+    /// 返回样例版本 1.1.1（不发请求），不带 ETag。
     func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult {
-        .noRelease
+        .release(FakeUpdateService.sampleRelease, etag: nil)
     }
 
-    /// 骨架：返回 `.cancelled`（WP-3 实现）。
+    /// 模拟约 2 秒的下载进度，然后返回 `.cancelled`：演示模式不写缓存目录，也就没有可装的 dmg。
     func prepare(_ release: ReleaseInfo, feed: UpdateFeed,
                  progress: @escaping @Sendable (UpdateProgress) -> Void) async -> Result<PreparedUpdate, UpdateError> {
-        .failure(.cancelled)
+        let total: Int64 = 2_618_184
+        for step in 1...FakeUpdateService.steps {
+            try? await Task.sleep(for: FakeUpdateService.stepDelay)
+            progress(UpdateProgress(receivedBytes: total * Int64(step) / Int64(FakeUpdateService.steps), totalBytes: total))
+        }
+        return .failure(.cancelled)
     }
 
-    /// 骨架：不做事（WP-3 实现）。
+    /// 没有真实的下载可取消。
     func cancelPreparation() {}
 
-    /// 骨架：返回 `.cancelled`（WP-3 实现）。
+    /// 演示模式不改动已安装的应用（控制器在演示模式下也不会调用它）。
     func install(_ prepared: PreparedUpdate, environment: AppEnvironment) async -> Result<InstallOutcome, UpdateError> {
         .failure(.cancelled)
     }
 
-    /// 骨架：不做事（WP-3 实现）。
+    /// 演示模式没有缓存文件，不做事。
     func removeLeftovers(keeping prepared: PreparedUpdate?, staleStagingPath: String?) async {}
 }
 
