@@ -147,6 +147,9 @@ extension UpdateController {
         }
         guard let prepared else { return }
         setPhase(.installing(release))
+        // 安装中没有对应的菜单提示项，两个圆点原因都熄灭；失败后由窗口关闭时的 remindLater 重新定出。
+        coordinator.setAttention(.updateReady, on: false)
+        coordinator.setAttention(.updateAvailable, on: false)
         let result = await service.install(prepared, environment: environment)
         guard case .success(let outcome) = apply(result, prepared: prepared) else {
             if case .failure(let error) = result { setPhase(.failed(error, release: release)) }

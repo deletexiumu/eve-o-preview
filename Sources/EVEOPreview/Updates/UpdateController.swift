@@ -148,12 +148,13 @@ import EVEOPreviewCore
     }
 
     /// 只按 `state.updates` 与开关重新定出阶段和圆点，不发请求：
-    /// 已下载好且两个开关都打开时是 `.readyToInstall`；否则缓存的发布版仍该提示时是 `.available`；否则是 `.idle`。
+    /// 已下载好、两个开关都打开、这个版本没装失败过时是 `.readyToInstall`；否则缓存的发布版仍该提示时是 `.available`
+    /// （装失败过的版本退为普通提示，9.5 节）；否则是 `.idle`。
     /// 启动时的恢复与失败窗口关闭后（`remindLater`）都用它，保证圆点与阶段一致。
     func rederivePhaseFromState() {
         let updates = state.state.updates
         if general.checkForUpdates, general.autoInstallUpdates, let prepared = updates.prepared, isUsable(prepared),
-           let release = updates.cachedRelease {
+           !hasFailedInstall(of: prepared.version), let release = updates.cachedRelease {
             phase = .readyToInstall(release)
             coordinator.setAttention(.updateAvailable, on: false)
             coordinator.setAttention(.updateReady, on: true)
@@ -422,8 +423,10 @@ import EVEOPreviewCore
         phase = newPhase
     }
 
-    /// 记下重新启动没有成功。
+    /// 记下重新启动没有成功，并重新显示更新窗口：这是用户自己发起的操作失败了，
+    /// 用户可能已在「重新启动中…」时关掉了窗口，要让他看到「请手动重新打开」的说明。
     func markRelaunchFailed() {
         relaunchFailed = true
+        presentWindow?(true)
     }
 }
