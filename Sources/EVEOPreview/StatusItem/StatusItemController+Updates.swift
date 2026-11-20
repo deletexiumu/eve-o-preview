@@ -16,9 +16,12 @@ extension StatusItemController {
         let attention = coordinator.attention
         var items: [NSMenuItem] = []
         // 已下载好、等用户退出或点这一项安装：点击后安装并重新启动（9.5 节）。
+        // 先打开更新窗口（用户发起）：`restartToInstall()` 自己不显示窗口，安装的进度、失败与
+        // 「重新启动失败，请手动重新打开」只能在窗口里看到。
         if attention.contains(.updateReady), case .readyToInstall(let release) = updates.phase {
-            items.append(ClosureMenuItem(L10n.updates.menuRestartToUpdate(release.version)) { [weak updates] in
-                updates?.restartToInstall()
+            items.append(ClosureMenuItem(L10n.updates.menuRestartToUpdate(release.version)) { [weak coordinator] in
+                coordinator?.updateWindow?.show(userInitiated: true)
+                coordinator?.updates?.restartToInstall()
             })
         }
         // 有可用更新：点击后打开更新窗口，算用户发起，激活本应用。

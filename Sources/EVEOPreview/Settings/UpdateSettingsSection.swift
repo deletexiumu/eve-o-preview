@@ -7,7 +7,8 @@
 // - 「自动安装更新」在 `capability` 不是 `.canInstall` 或「自动检查更新」关闭时置灰（3.1 节：置灰时不改值）。
 //   置灰的原因是不能安装时，在开关下方写明原因；原因是另一个开关关着时不另写。
 // - 更新功能整个停用（不是从 .app 运行）时，状态行写「这个构建不能使用更新功能」，「立即检查」置灰。
-// - 检查、下载、核对、安装进行中时「立即检查」置灰。
+// - 检查、下载、核对、安装进行中时「立即检查」置灰；重新启动中与重新启动失败后也置灰（包已换成新版本）。
+// - 重新启动失败（`relaunchFailed`）时状态行写「请退出并重新打开」，不再显示「重新启动中…」。
 
 import SwiftUI
 import EVEOPreviewCore
@@ -108,7 +109,8 @@ private struct UpdateSettingsContent: View {
     /// 检查、下载、核对、安装、重新启动进行中。
     private var isBusy: Bool {
         switch updates.phase {
-        case .checking, .downloading, .verifying, .installing, .relaunching: return true
+        case .checking, .downloading, .verifying, .installing: return true
+        case .relaunching: return !updates.relaunchFailed
         case .idle, .upToDate, .available, .readyToInstall, .failed: return false
         }
     }
@@ -127,7 +129,7 @@ private struct UpdateSettingsContent: View {
         case .verifying: return strings.progressVerifying
         case .readyToInstall(let release): return strings.statusReady(release.version)
         case .installing: return strings.progressInstalling
-        case .relaunching: return strings.progressRelaunching
+        case .relaunching: return updates.relaunchFailed ? strings.reopenManually : strings.progressRelaunching
         case .failed(let error, _): return strings.error(error)
         }
     }

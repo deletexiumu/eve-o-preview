@@ -12,13 +12,15 @@
 // | `available`，只提示或停用 | 「跳过此版本」「稍后」「打开发布页」，原因显示在发布说明上方 |
 // | `downloading`、`verifying` | 进度条与「取消」 |
 // | `installing` | 进度条与置灰的「取消」 |
-// | `relaunching` | 只有进度 |
+// | `relaunching` | 只有进度；重新启动失败（`relaunchFailed`）时是提示条与「关闭」「退出 EVE-O Preview」 |
 // | `readyToInstall` | 「稍后」「重新启动以更新到 <版本>」（8.6 节没有写这一种，取菜单项的做法） |
 // | `failed` | 「打开发布页」「关闭」「重试」，上方是错误说明与「当前版本没有变化」 |
 // | `checking`、`upToDate` | 「关闭」 |
 // | `idle` | 「关闭」「立即检查」（8.6 节没有写这一种） |
 //
 // 「跳过此版本」「稍后」先调控制器，再由窗口自己关闭：控制器不持有窗口。
+// `relaunchFailed`（安装成功、新实例 15 秒内没有启动）时阶段停在 `relaunching`，提示条写 `reopenManually`；
+// 包已换成新版本，用户退出后重新打开即是新版本，所以按钮区给出「退出」（用菜单的同名文字）。
 
 import AppKit
 import SwiftUI
@@ -106,7 +108,11 @@ struct UpdateView: View {
             // `cancelled` 没有说明，只留「当前版本没有变化」。
             let message = [strings.error(error), strings.currentVersionUnchanged].compactMap { $0 }.joined(separator: " ")
             NoticeBanner(text: message)
-        case .idle, .checking, .upToDate, .downloading, .verifying, .installing, .relaunching:
+        case .relaunching:
+            if controller.relaunchFailed {
+                NoticeBanner(text: strings.reopenManually)
+            }
+        case .idle, .checking, .upToDate, .downloading, .verifying, .installing:
             EmptyView()
         }
     }
@@ -139,8 +145,11 @@ struct UpdateView: View {
                 Image(systemName: "checkmark.circle.fill").font(.largeTitle).foregroundStyle(.green)
                 Text(strings.statusUpToDate).multilineTextAlignment(.center)
             case .relaunching:
-                ProgressView().controlSize(.small)
-                Text(strings.progressRelaunching)
+                // 重新启动失败时说明在提示条里，这里不再转圈。
+                if !controller.relaunchFailed {
+                    ProgressView().controlSize(.small)
+                    Text(strings.progressRelaunching)
+                }
             case .idle, .available, .downloading, .verifying, .readyToInstall, .installing, .failed:
                 EmptyView()
             }
@@ -167,7 +176,12 @@ struct UpdateView: View {
         case .installing:
             progressRow(strings.progressInstalling, fraction: nil, canCancel: false, strings: strings)
         case .relaunching:
-            EmptyView()
+            if controller.relaunchFailed {
+                buttonRow {
+                    Button(strings.closeButton) { dismiss() }.keyboardShortcut(.cancelAction)
+                    Button(L10n.menu.quit) { NSApp.terminate(nil) }.keyboardShortcut(.defaultAction)
+                }
+            }
         case .readyToInstall(let release):
             // 「稍后」只关窗口：已下载好的更新照常在退出时安装，圆点与菜单项保留（9.5 节）。
             buttonRow {

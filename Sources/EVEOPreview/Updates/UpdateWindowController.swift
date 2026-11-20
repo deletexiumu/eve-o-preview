@@ -8,7 +8,8 @@
 // - 应用自己弹出的（自动检查发现新版本）：经 `DeferredPresenter`，key 是 `update`。能弹时只 `orderFrontRegardless()`，
 //   不激活本应用，窗口不成为 key 窗口；前台是 EVE 客户端时等前台变化之后再弹。窗口已显示时不重复弹出。
 //
-// 窗口被用户用标题栏的关闭按钮或 ⌘W 直接关掉、阶段仍是 `available` 时，按「稍后」处理（Esc 本来就触发「稍后」按钮）。
+// 窗口每次关闭（按钮、标题栏的关闭按钮、⌘W）都调控制器的 `remindLater()`：它可以重复调用，
+// 阶段是 `available` 时只保留圆点与菜单项，是 `failed` 时按 state 重新定出阶段与圆点（UpdateController.swift）。
 // 界面语言变了以后重设标题并重建视图：本窗口不在设置窗口的 `.id` 重建范围里，协调器的
 // `onLanguageChanged` 已由 AppDelegate 占用，所以自己注册一个配置观察者。
 
@@ -30,8 +31,6 @@ import EVEOPreviewCore
     private var window: NSWindow?
     /// 窗口的内容控制器，界面语言变了以后换掉它的根视图。
     private var hosting: NSHostingController<AnyView>?
-    /// 为真时窗口是按钮的动作关掉的，`windowWillClose` 不再按「稍后」处理。
-    private var closingAfterAction = false
 
     /// 建窗口控制器。窗口在第一次 `show` 时才建。
     init(controller: UpdateController) {
@@ -64,11 +63,9 @@ import EVEOPreviewCore
         ensureWindow().orderFrontRegardless()
     }
 
-    /// 按钮的动作已交给控制器之后关窗口。
+    /// 按钮的动作已交给控制器之后关窗口。关闭时照常经过 `windowWillClose`。
     private func dismissAfterAction() {
-        closingAfterAction = true
         window?.close()
-        closingAfterAction = false
     }
 
     /// 取已有的窗口，没有时创建：标准标题栏，可缩放，第一次显示时居中。
@@ -102,9 +99,10 @@ import EVEOPreviewCore
         hosting?.rootView = rootView()
     }
 
-    /// 窗口被用户直接关掉、阶段仍是 `available` 时，按「稍后」处理：圆点与菜单项保留，下次自动检查时再提示。
+    /// 窗口关闭：按「稍后」处理。有新版本时圆点与菜单项保留，下次自动检查时再提示；失败的阶段退回到
+    /// 按 state 算出的阶段（缓存的新版本仍在时回到 `available`），「通用」页不再一直显示上次的错误。
+    /// 按钮已调过 `remindLater()` 时这里再调一次，第二次不改任何状态。
     func windowWillClose(_ notification: Notification) {
-        guard !closingAfterAction, case .available = controller.phase else { return }
         controller.remindLater()
     }
 }
