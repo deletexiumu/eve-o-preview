@@ -261,6 +261,8 @@ struct BundleInstaller: Sendable {
 
     /// 删除 dmg，只在它位于缓存目录下时删。
     private func removeImage(_ image: URL) {
+        // 文件已经不在时不必判断位置，也不记日志。
+        guard FileManager.default.fileExists(atPath: image.path) else { return }
         guard BundleInstaller.isInsideCache(image.path, cacheRoot: cacheRoot) else {
             log.error("待装的 dmg 不在更新缓存目录下，不删：\(image.path, privacy: .public)")
             return

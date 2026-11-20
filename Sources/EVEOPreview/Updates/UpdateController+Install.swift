@@ -173,6 +173,9 @@ extension UpdateController {
             }
         }
         guard let prepared else { return }
+        // 已有下载直接安装时也先等启动时的清理做完：清理会卸下残留的挂载，
+        // 没卸完就挂同一个 dmg 会报「资源忙」（复审意见）。
+        await cleanupTask?.value
         setPhase(.installing(release))
         // 安装中没有对应的菜单提示项，两个圆点原因都熄灭；失败后由窗口关闭时的 remindLater 重新定出。
         coordinator.setAttention(.updateReady, on: false)

@@ -214,15 +214,17 @@ jobs:
           hdiutil attach -nobrowse -readonly -mountpoint "$NEW_MOUNT" "dist/release/EVE-O-Preview-${LABEL}.dmg" > /dev/null
           trap 'hdiutil detach "$NEW_MOUNT" -quiet || true; hdiutil detach "$OLD_MOUNT" -quiet || true' EXIT
           "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$NEW_MOUNT/EVE-O Preview.app"
-          # 不带 tag 时 gh release download 取最新的正式版；还没有正式版时跳过这一项。
-          if gh release download --repo "$GITHUB_REPOSITORY" --pattern 'EVE-O-Preview-*.dmg' --dir "$WORK"; then
-            OLD_DMG="$(ls "$WORK"/EVE-O-Preview-*.dmg | head -1)"
-            echo "上一个正式版：$(basename "$OLD_DMG")"
-            hdiutil attach -nobrowse -readonly -mountpoint "$OLD_MOUNT" "$OLD_DMG" > /dev/null
-            "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$OLD_MOUNT/EVE-O Preview.app"
-          else
+          # 先用 gh release view 判断有没有正式版：没有时跳过这一项；有却下载失败时报错，不静默跳过。
+          if ! gh release view --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             echo "::notice::还没有正式版，跳过与上一个正式版的核对"
+            exit 0
           fi
+          # 不带 tag 时 gh release download 取最新的正式版。
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern 'EVE-O-Preview-*.dmg' --dir "$WORK"
+          OLD_DMG="$(ls "$WORK"/EVE-O-Preview-*.dmg | head -1)"
+          echo "上一个正式版：$(basename "$OLD_DMG")"
+          hdiutil attach -nobrowse -readonly -mountpoint "$OLD_MOUNT" "$OLD_DMG" > /dev/null
+          "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$OLD_MOUNT/EVE-O Preview.app"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
