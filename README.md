@@ -24,6 +24,8 @@ This repository started as a GitHub fork of EveOPlus/eve-o-preview and was moved
 - Cycle groups: forward and backward hotkeys, skip for the current session; per-character hotkeys; a hotkey to cycle through login-screen clients; Hide All and Minimize All hotkeys. Hotkeys can use the middle and side mouse buttons, and each hotkey can be global or EVE-only.
 - Combat alerts (off by default): reads the game logs and flashes a character's thumbnail when that character is attacked.
 - Profiles: create, clone, rename, delete and switch.
+- Updates: checks GitHub for new releases and installs them from inside the app after verifying the download and its code signature (see [Updates](#updates)).
+- Problem reports: builds a redacted diagnostics zip and opens a prefilled GitHub issue; after an unexpected quit, the next launch offers to report it (see [Reporting a problem](#reporting-a-problem)).
 - A menu bar icon in place of the Windows tray icon.
 - An 8-page settings window: Clients, Previews & Layout, Switching & Hotkeys, Alerts, Profiles, General, Permissions and About.
 - UI languages: English (default), Chinese, Russian, Japanese and Korean. Switch on the General page, or choose "Follow System"; the change takes effect immediately. The Russian, Japanese and Korean translations are machine-generated; corrections are welcome.
@@ -67,6 +69,8 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 ```
 
 **Note:** Every release is signed with the same certificate, so macOS keeps the Screen Recording and Accessibility permissions when you upgrade. If the permissions stop working after an upgrade, reset them with the `tccutil` commands at the end of [Permissions](#permissions) and grant them again.
+
+Starting with 1.1.0 the app can update itself (see [Updates](#updates)). Version 1.0.0 has no updater, so install 1.1.0 by hand once: download the dmg and replace the app in Applications. The permissions are kept, because 1.0.0 and later are signed with the same certificate.
 
 Each release also includes the source code as `.tar.gz` and `.zip`, and a `SHA256SUMS.txt` file. To verify the downloads, run `shasum -a 256 --ignore-missing -c SHA256SUMS.txt` in the download folder.
 
@@ -170,7 +174,43 @@ Turn them on in the Alerts page of the settings window. The app then reads the g
 
 ### Menu bar
 
-The menu bar icon matches the app icon: a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Settings and Quit. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
+The menu bar icon matches the app icon: a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Check for Updates…, Report a Problem…, Settings and Quit. When an update is available or the previous run quit unexpectedly, a dot appears on the icon and the menu gets an item for it at the top. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
+
+### Updates
+
+EVE-O Preview checks GitHub for a new release at launch and once a day. To turn this off, clear "Check for updates automatically" under Settings > General > Updates; "Check for Updates…" in the menu bar menu still checks on demand.
+
+When a new version is available, a window shows the release notes in your interface language (English if there is no translation) and offers Install Update, Skip This Version and Later. While an EVE client is in front, the window waits until you switch away, and it never takes keyboard focus on its own; a dot on the menu bar icon shows that an update is waiting. "Skip This Version" only stops automatic reminders for that version; "Check for Updates…" still shows it.
+
+Install Update downloads the dmg, checks it against `SHA256SUMS.txt`, verifies that the new app is signed with the same certificate as the running one, replaces the app and restarts it. If any step fails, the installed app is left unchanged. With "Install updates automatically" turned on, the update is downloaded in the background and installed when you quit EVE-O Preview, or when you choose "Restart to Update to <version>" in the menu bar menu; the app never restarts by itself.
+
+Some builds can only show the reason and an "Open Release Page" button instead of installing: ad-hoc or locally signed builds, an app running from a disk image or from a translocated location, an app in a folder you cannot write to, and an app on a FAT or exFAT volume.
+
+### Reporting a problem
+
+Choose "Report a Problem…" from the menu bar menu or the General page, or answer the prompt that appears after EVE-O Preview quit unexpectedly. The window lists every file that will go into the report and shows its contents after redaction: an environment summary, a settings summary without any names, the app log (up to 2 MiB) and up to three macOS crash reports. Nothing is created until you click "Create Report Only" or "Create Report and Open GitHub". The zip is saved to `~/Library/Application Support/EVE-O Preview/Reports/` (the 3 newest are kept) and Finder shows it; "Create Report and Open GitHub" also opens a prefilled issue in your browser. You attach the zip yourself; the app never uploads anything.
+
+Your macOS user name, full name, home folder path and computer names are replaced with `[user]` and `[host]`. EVE character names become `[character-1]`, `[character-2]` and so on, and crash-report device identifiers become `[redacted]`. Only names the app knows are replaced: characters that never appeared in your settings or as a running client are not. If a name is a common word, the same word elsewhere in the log is replaced too. You can read every file before creating the report and untick any file you don't want to include.
+
+The app keeps up to 5 log files of 1 MiB each in `~/Library/Logs/EVE-O Preview/`. Character names and window titles are written as `<private>`. Turn on "Verbose logging" in General to also record debug lines; "Show Logs in Finder" opens the folder. If no prompt appears after a crash, attach `~/Library/Logs/DiagnosticReports/EVEOPreview-<date>.ips` to the issue by hand.
+
+## Privacy
+
+Version 1.0.0 made no network requests. From 1.1.0 the app connects only to GitHub, and only for updates:
+
+- Checking for updates requests `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…".
+- Installing an update downloads `SHA256SUMS.txt` and the dmg from the release.
+
+The requests carry only the app version in the `User-Agent` header, a fixed `Accept-Language: en` and a cache tag; no character names, settings, logs, hardware details, system version or identifiers are sent, and no cookies are used. GitHub sees your IP address and the time of the request. There is no telemetry and no automatic crash upload: "Report a Problem…" only creates a zip on your Mac and opens a web page that you choose whether to submit.
+
+The app stores data in these places. To uninstall completely, delete them along with the app and `~/Library/Application Support/EVE-O Preview/config.json`:
+
+| Location | Contents |
+| --- | --- |
+| `~/Library/Logs/EVE-O Preview/` | App logs, about 5 MiB at most |
+| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Session marker; update and diagnostics records |
+| `~/Library/Application Support/EVE-O Preview/Reports/` | Problem report zips you created, redacted (the 3 newest) |
+| `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/` | Downloaded update files, deleted after installing |
 
 ## Configuration file
 
@@ -194,6 +234,10 @@ The Profiles page has a "Show in Finder" button.
 | `scripts/package-release.sh` | Build the dmg, source archives and checksums in `dist/release/` |
 | `swift run EVEOProbe gamelog [dir] [--follow seconds]` | Count each kind of combat line in the game logs, to diagnose combat alerts |
 | `swift run EVEOProbe mousetap <seconds> [--swallow <button>]` | Print mouse button numbers, to diagnose mouse hotkeys |
+| `swift run EVEOProbe update feed [url]` | Fetch and parse the release feed |
+| `swift run EVEOProbe update verify <new app> <base app>` | Check whether a new app satisfies the base app's designated requirement |
+| `swift run EVEOProbe update prepare <url> [--cache dir]` | Download and verify an update without installing it |
+| `scripts/make-update-test-feed.sh [version]` | Write a `feed.json` for a local update test from `dist/release/` |
 
 Demo mode writes its configuration to `config-fake.json` in the same folder, leaving the real configuration untouched. These environment variables help with debugging:
 
@@ -204,6 +248,12 @@ Demo mode writes its configuration to `config-fake.json` in the same folder, lea
 | `EVEO_FAKE_DENY` | In demo mode, pretend a permission is missing: `screen`, `ax` or `screen,ax` |
 | `EVEO_FAKE_STOP_AFTER` | In demo mode, pretend the user stopped the second client's capture after this many seconds |
 | `EVEO_SETTINGS_PAGE` | Open a settings page directly on launch, such as `previews` |
+| `EVEO_LOG_DIR` | Write the log files to another folder (default `~/Library/Logs/EVE-O Preview/`) |
+| `EVEO_STATE_DIR` | Keep `state.json` and `session.json` in another folder |
+| `EVEO_LOG_PRIVATE` | `1` shows private values in the system log (Console) only; log files always contain `<private>` |
+| `EVEO_UPDATE_FEED_URL` | Check this address for updates instead of GitHub; only `https` or `http` on a loopback host. Builds signed with a local certificate may install from it; the signature check is not relaxed |
+| `EVEO_UPDATE_UI_STATE` | In demo mode, show the update UI in a sample state: `available`, `notifyonly`, `downloading`, `ready`, `failed` or `uptodate` |
+| `EVEO_FAKE_CRASH` | `1` in demo mode pretends the previous run crashed, to show the crash report prompt |
 
 The source has 3 modules: `EVEOPreviewCore` is the pure logic layer, `EVEOPreviewPlatform` wraps AppKit, ScreenCaptureKit, Accessibility and Carbon hotkeys, and `EVEOPreview` is the app itself. The architecture is described in [docs/architecture.md](docs/architecture.md) (in Chinese).
 
@@ -216,11 +266,15 @@ The source has 3 modules: `EVEOPreviewCore` is the pure logic layer, `EVEOPrevie
 - Every pull request to `main`, and every push to `main`, runs the quality gate and the unit tests, then builds a universal dmg and the source archives. They are uploaded as a workflow artifact named `EVE-O-Preview-<version>-pr.<number>.<commit>` (or `-dev.<commit>` for pushes) and kept for 30 days.
 - Pushing a `v*` tag builds the same files and publishes them as a GitHub Release. The tag must match the `VERSION` file. If `docs/release-notes/<tag>.md` exists, it becomes the release notes.
 
-To release a new version, change the `VERSION` file in a pull request, merge it, then tag `main`: `git tag v<version> && git push origin v<version>`.
+To release a new version, change the `VERSION` file and add `docs/release-notes/v<version>.md` in a pull request, merge it, then tag `main`: `git tag v<version> && git push origin v<version>`.
+
+The asset names (`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), the dmg layout, the signing certificate and the release-notes format are a contract with the in-app updater; CI checks them on every build. Release notes put English first between `<!-- lang:en -->` and `<!-- /lang:en -->`, followed by collapsible zh, ja, ko and ru blocks marked the same way; `scripts/check_release_notes.py` checks the markers. Details are in sections 9.5 to 9.7 of [docs/architecture.md](docs/architecture.md).
 
 ## Disclaimer
 
 This tool only switches window focus. It does not broadcast input to multiple clients and does not read or modify game memory, the same boundary as upstream. Read the EVE Online End User License Agreement before using it.
+
+The app connects to GitHub only to check for and download updates, and sends no personal data (see [Privacy](#privacy)).
 
 EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP.
 
