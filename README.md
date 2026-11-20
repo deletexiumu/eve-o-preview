@@ -184,7 +184,7 @@ When a new version is available, a window shows the release notes in your interf
 
 Install Update downloads the dmg, checks it against `SHA256SUMS.txt`, verifies that the new app is signed with the same certificate as the running one, replaces the app and restarts it. If any step fails, the installed app is left unchanged. With "Install updates automatically" turned on, the update is downloaded in the background and installed when you quit EVE-O Preview, or when you choose "Restart to Update to X.Y.Z" in the menu bar menu; the app never restarts by itself.
 
-Some builds can only show the reason and an "Open Release Page" button instead of installing: ad-hoc or locally signed builds, an app running from a disk image or from a translocated location, an app in a folder you cannot write to, and an app on a FAT or exFAT volume.
+Some builds can only show the reason and an "Open Release Page" button instead of installing: ad-hoc or locally signed builds, an app running from a disk image or from a translocated location, an app in a folder you cannot write to, and an app on a volume that is not APFS, such as an external HFS+, exFAT or FAT disk.
 
 ### Reporting a problem
 

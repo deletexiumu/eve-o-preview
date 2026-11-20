@@ -1935,7 +1935,7 @@ README 的卸载说明应列出这 4 个位置。
 | U13 | 本仓库的 v1.0.0 发布说明已带语言标记；没有标记时显示全文的规则保留，有测试覆盖 |
 | 6.2 | 实测 `.ips` 文件名是 `<可执行文件名>-YYYY-MM-DD-HHMMSS.ips`（本地时间），同一秒的第二份加 `.000`；第一行是单行 JSON，正文里的路径写成 `\/` |
 | 6.3 | 启动时遗留的崩溃只由 `SessionTracker` 经 `onCrashDetected` 重放一次，问题报告一侧不再从 `state.json` 触发 |
-| 9.3 | 应用在 FAT 或 exFAT 卷上时，交换返回 `ENOTEMPTY`，按 `swapFailed` 处理，旧应用不变；这类卷上只能手动安装 |
+| 9.3 | 只在 `renamex_np(RENAME_SWAP)` 可用（APFS）时自动安装，去掉「两次改名」的后备做法。实测 HFS+ 与 exFAT 返回 `ENOTSUP`，FAT 返回 `ENOTEMPTY`，一律按 `swapFailed` 处理，旧应用不变，这些卷上只能手动安装。替换后的复核失败且换回也失败时，保留存放旧应用的暂存目录并记录其位置，不删除（审查 B1） |
 | 9.5 | 用户手动安装时下载失败，记为该版本安装失败，之后不自动安装该版本 |
 | 8.6 | 「重新启动失败」不新增阶段或提示原因：`UpdateController.relaunchFailed` 为真时窗口与「通用」页显示 `reopenManually`，并重新弹出窗口 |
 | 13.1 | 「通用」页的两组在 WP-0 是 `EmptyView`，不显示空的组 |
