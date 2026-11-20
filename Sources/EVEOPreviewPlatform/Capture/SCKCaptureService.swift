@@ -30,7 +30,7 @@ import os
     /// `stopAll()` 已调用（应用正在退出）。之后的对账、恢复、重建都不再建流。
     private var isStopped = false
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "Capture")
+    private let log = PlatformLog.logger("Capture")
 
     /// 建一个捕获服务。
     ///

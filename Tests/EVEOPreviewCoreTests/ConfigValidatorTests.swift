@@ -270,4 +270,33 @@ extension ConfigValidatorTests {
         let kept = ConfigValidator.normalized(path)
         #expect(kept.clamped.isEmpty && kept.config.general.eveLogDirectory == "~/EVE/logs")
     }
+
+    /// `logLevel` 是 notice、error、fault 时改回 info，并记下字段路径（v1.1 设计 3.1 节）。
+    @Test(arguments: [LogLevel.notice, .error, .fault])
+    func unsupportedLogLevelBecomesInfo(level: LogLevel) {
+        var input = config { _ in }
+        input.general.logLevel = level
+        let (result, clamped) = ConfigValidator.normalized(input)
+        #expect(result.general.logLevel == .info)
+        #expect(clamped == ["general.logLevel"])
+    }
+
+    /// info 与 debug 原样保留。
+    @Test(arguments: [LogLevel.info, .debug])
+    func supportedLogLevelKept(level: LogLevel) {
+        var input = config { _ in }
+        input.general.logLevel = level
+        let (result, clamped) = ConfigValidator.normalized(input)
+        #expect(result.general.logLevel == level && clamped.isEmpty)
+    }
+
+    /// 「自动安装」打开而「自动检查」关闭时不改值（界面置灰，行为按不检查处理）。
+    @Test func autoInstallWithoutCheckIsKept() {
+        var input = config { _ in }
+        input.general.checkForUpdates = false
+        input.general.autoInstallUpdates = true
+        let (result, clamped) = ConfigValidator.normalized(input)
+        #expect(!result.general.checkForUpdates && result.general.autoInstallUpdates)
+        #expect(clamped.isEmpty)
+    }
 }

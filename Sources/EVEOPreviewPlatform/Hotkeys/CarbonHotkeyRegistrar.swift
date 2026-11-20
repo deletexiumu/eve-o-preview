@@ -31,7 +31,7 @@ import os
     /// 已安装的事件处理器。
     private var handlerRef: EventHandlerRef?
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "Hotkeys")
+    private let log = PlatformLog.logger("Hotkeys")
 
     /// 建一个键盘后端，并在应用事件目标上安装热键事件处理器。
     init() {

@@ -67,7 +67,7 @@ final class MouseEventTap: Sendable {
     /// 上层随后重新读权限并调 `checkHealth()`，把失败显示到设置窗口。
     private let onProblem: @MainActor @Sendable () -> Void
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "MouseTap")
+    private let log = PlatformLog.logger("MouseTap")
 
     /// 等监听线程启动或结束的最长时间。超时只记日志，不让主线程一直卡住。
     private static let threadTimeout: DispatchTimeInterval = .seconds(1)

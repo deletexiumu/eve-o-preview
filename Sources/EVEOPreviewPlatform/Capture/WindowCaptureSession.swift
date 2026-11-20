@@ -58,7 +58,7 @@ import os
     private var stopTask: Task<Void, Never>?
     fileprivate var watchdogTask: Task<Void, Never>?
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "CaptureSession")
+    private let log = PlatformLog.logger("CaptureSession")
 
     /// 建一个会话，不立即建流。
     init(windowID: WindowID, spec: CaptureSpec, cache: ShareableContentCache, watchdogEnabled: Bool) {

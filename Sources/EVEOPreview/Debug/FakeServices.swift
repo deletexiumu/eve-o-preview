@@ -9,7 +9,8 @@
 // 可选的环境变量：
 // - `EVEO_FAKE_DENY=screen,ax`：假装缺少屏幕录制或辅助功能权限，用来查看占位与置灰的菜单项。
 // - `EVEO_FAKE_STOP_AFTER=<秒>`：到时把第二个客户端的捕获置为「用户已停止」，用来查看「恢复捕获」。
-// 捕获服务的假实现在 FakeCaptureService.swift，游戏日志服务的假实现在 FakeCombatLogMonitor.swift。
+// 捕获服务的假实现在 FakeCaptureService.swift，游戏日志服务的假实现在 FakeCombatLogMonitor.swift，
+// 问题报告与更新服务的假实现在 FakeDiagnosticsService.swift、FakeUpdateService.swift（v1.1）。
 
 import AppKit
 import EVEOPreviewCore
@@ -38,7 +39,8 @@ enum FakeServices {
             activator: FakeWindowActivator(world: world, workspace: workspace, permissions: permissions),
             hotkeys: FakeHotkeyRegistrar(), permissions: permissions,
             capture: FakeCaptureService(world: world, stopSecondClientAfter: stopAfter),
-            combatLog: FakeCombatLogMonitor(world: world))
+            combatLog: FakeCombatLogMonitor(world: world),
+            diagnostics: FakeDiagnosticsService(), updates: FakeUpdateService())
     }
 }
 

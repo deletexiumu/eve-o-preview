@@ -269,6 +269,9 @@ protocol SettingsStrings: Sendable {
     var focusOnlyText: String { get }
     /// 战斗提醒只读游戏日志（反馈文档 R17）。
     var gameLogText: String { get }
+    /// 联网说明：只在检查和下载更新时访问 GitHub，可在「通用」页关闭；问题报告不会自动发送（v1.1 设计 10.1 节）。
+    /// 「通用」用该语言下通用页的页名（`pageGeneral`）。
+    var networkText: String { get }
     /// CCP 的商标声明。
     var eveIPText: String { get }
 }

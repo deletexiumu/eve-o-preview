@@ -57,7 +57,7 @@ public final class CombatLogTailer: @unchecked Sendable {
     private let onEvents: @MainActor @Sendable ([CombatLogEvent]) -> Void
     private let onStatus: @MainActor @Sendable (CombatLogStatus) -> Void
     private let onLines: (@MainActor @Sendable ([LineRecord]) -> Void)?
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "CombatLog")
+    private let log = PlatformLog.logger("CombatLog")
 
     // 以下状态只在 queue 上访问。
     /// `stop()` 之后为真，所有排队中的回调到这里直接返回。

@@ -2,6 +2,7 @@
 //
 // 设置窗口的「关于」页（架构文档 7.4 节）：版本、上游项目与许可证（GPL-3.0）、
 // EVE 知识产权声明，以及「本工具只切换窗口焦点，不向多个客户端广播输入」「战斗提醒只读游戏日志」的说明。
+// v1.1 加一句联网说明：只在检查和下载更新时访问 GitHub，问题报告不会自动发送（v1.1 设计 10.1 节）。
 
 import SwiftUI
 
@@ -43,6 +44,7 @@ struct AboutPage: View {
             Section(L10n.settings.disclaimerHeader) {
                 Text(L10n.settings.focusOnlyText).fixedSize(horizontal: false, vertical: true)
                 Text(L10n.settings.gameLogText).fixedSize(horizontal: false, vertical: true)
+                Text(L10n.settings.networkText).fixedSize(horizontal: false, vertical: true)
                 Text(L10n.settings.eveIPText).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -5,6 +5,9 @@
 // 用代码画矢量，不放图片资源：SwiftPM 的资源包放进手工组装的 .app 后查找路径有问题（架构文档 7.4 节），
 // 矢量图在任何缩放比例下都清晰。图像标记为模板图（isTemplate），由系统按菜单栏的深浅色自动着色，
 // 所以这里只用黑色加透明度绘制。
+//
+// v1.1（v1.1 设计 11.1 节）：`make(attention: true)` 在右上角画一个直径 5 点的实心圆点，
+// 圆点周围清出 1 点宽的透明环，与八边形框分开，深浅色菜单栏上都看得清。
 
 import AppKit
 
@@ -24,17 +27,37 @@ enum StatusBarIcon {
         (0.64, 0.68, 0.15),    // 右下的大原子
     ]
 
+    /// 圆点的直径，单位是点。
+    static let attentionDotDiameter: CGFloat = 5
+    /// 圆点外围清出的透明环的宽度，单位是点。
+    static let attentionDotGap: CGFloat = 1
+
     /// 生成图标。每次调用都返回新的 NSImage；绘制在 drawingHandler 里按需进行，适配 Retina。
-    static func make() -> NSImage {
+    ///
+    /// - Parameter attention: 为真时在右上角画圆点（`AppCoordinator.attention` 不为空）。
+    static func make(attention: Bool = false) -> NSImage {
         let size = NSSize(width: side, height: side)
         // flipped 为 true：绘制坐标原点在左上角，与上面的归一化坐标一致。
         let image = NSImage(size: size, flipped: true) { rect in
             draw(in: rect)
+            if attention { drawAttentionDot(in: rect) }
             return true
         }
         image.isTemplate = true
         image.accessibilityDescription = L10n.appName
         return image
+    }
+
+    /// 在右上角画圆点：先清出比圆点大一圈的透明区域，再画实心圆。
+    private static func drawAttentionDot(in rect: NSRect) {
+        let d = attentionDotDiameter
+        let dot = NSRect(x: rect.maxX - d, y: rect.minY, width: d, height: d)
+        let gap = dot.insetBy(dx: -attentionDotGap, dy: -attentionDotGap)
+        NSGraphicsContext.current?.compositingOperation = .clear
+        NSBezierPath(ovalIn: gap).fill()
+        NSGraphicsContext.current?.compositingOperation = .sourceOver
+        NSColor.black.setFill()
+        NSBezierPath(ovalIn: dot).fill()
     }
 
     /// 在给定矩形里画八边形框与分子。

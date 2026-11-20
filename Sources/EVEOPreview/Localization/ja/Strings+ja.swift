@@ -244,6 +244,10 @@ struct SettingsStringsJA: SettingsStrings {
         "戦闘アラートは、EVEクライアントが書き出すゲームログのファイルを読むだけです。"
             + "ゲームのメモリは読まず、ファイルを変更せず、入力も送りません。"
     }
+    var networkText: String {
+        "EVE-O PreviewがGitHubに接続するのは、アップデートの確認とダウンロードのときだけです。「一般」でオフにできます。"
+            + "問題のレポートが自動で送信されることはありません。"
+    }
     var eveIPText: String {
         "EVE Onlineおよび関連するロゴはCCP ehf.の商標です。このプロジェクトはCCPとは関係がなく、CCPの承認も受けていません。"
     }

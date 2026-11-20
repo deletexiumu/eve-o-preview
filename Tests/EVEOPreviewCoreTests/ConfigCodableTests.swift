@@ -76,12 +76,14 @@ struct ConfigCodableTests {
         let object = try jsonObject(AppConfig.makeDefault())
         #expect(Set(object.keys) == ["schemaVersion", "activeProfileID", "profiles", "general"])
         let general = try #require(object["general"] as? [String: Any])
-        // eveLogDirectory 为 nil 时不写进 JSON。
-        #expect(Set(general.keys) == ["pollIntervalMs", "onboardingCompleted", "language"])
+        // eveLogDirectory 为 nil 时不写进 JSON。v1.1 加了 3 个键（v1.1 设计 3.1 节）。
+        let v11Keys: Set<String> = ["checkForUpdates", "autoInstallUpdates", "logLevel"]
+        #expect(Set(general.keys) == Set(["pollIntervalMs", "onboardingCompleted", "language"]).union(v11Keys))
         var withDirectory = AppConfig.makeDefault()
         withDirectory.general.eveLogDirectory = "~/EVE/logs"
         let generalWithDirectory = try #require(try jsonObject(withDirectory)["general"] as? [String: Any])
-        #expect(Set(generalWithDirectory.keys) == ["pollIntervalMs", "onboardingCompleted", "language", "eveLogDirectory"])
+        #expect(Set(generalWithDirectory.keys)
+            == Set(["pollIntervalMs", "onboardingCompleted", "language", "eveLogDirectory"]).union(v11Keys))
         #expect(general["language"] as? String == "en")
     }
 
@@ -206,5 +208,90 @@ extension ConfigCodableTests {
         }
         let data = try JSONEncoder().encode(config)
         #expect(try JSONDecoder().decode(AppConfig.self, from: data) == config)
+    }
+}
+
+// MARK: - v1.1 的新键（v1.1 设计 3.1 节、3.2 节）
+
+extension ConfigCodableTests {
+    /// 1.0.0 写的文件没有 3 个新键：取默认值（检查更新开、自动安装关、级别 info）。
+    @Test func v100FileGetsUpdateAndLogDefaults() throws {
+        let json = #"""
+        {"schemaVersion":1,"activeProfileID":"p1",
+         "general":{"pollIntervalMs":800,"onboardingCompleted":true,"language":"zh"},
+         "profiles":[{"id":"p1","name":"Main"}]}
+        """#
+        let config = try decode(AppConfig.self, json)
+        #expect(config.general.checkForUpdates)
+        #expect(!config.general.autoInstallUpdates)
+        #expect(config.general.logLevel == .info)
+        #expect(config.general.pollIntervalMs == 800 && config.general.language == .zh)
+    }
+
+    /// 3 个新键的键名、类型与默认值和 3.1 节一致。
+    @Test func v11KeyNamesAndDefaults() throws {
+        let general = try #require(try jsonObject(AppConfig.makeDefault())["general"] as? [String: Any])
+        #expect(general["checkForUpdates"] as? Bool == true)
+        #expect(general["autoInstallUpdates"] as? Bool == false)
+        #expect(general["logLevel"] as? String == "info")
+        let defaults = GeneralSettings()
+        #expect(defaults.checkForUpdates && !defaults.autoInstallUpdates && defaults.logLevel == .info)
+    }
+
+    /// 新键的取值能读出来。
+    @Test func v11KeysDecode() throws {
+        let json = #"{"general":{"checkForUpdates":false,"autoInstallUpdates":true,"logLevel":"debug"}}"#
+        let general = try decode(AppConfig.self, json).general
+        #expect(!general.checkForUpdates && general.autoInstallUpdates && general.logLevel == .debug)
+    }
+
+    /// `logLevel` 是不认识的值或类型不对时取 info，不抛错，其余字段照常解码。
+    @Test(arguments: [#""verbose""#, #""INFO""#, "5", "null", "true", #"{"x":1}"#])
+    func unknownLogLevelFallsBack(raw: String) throws {
+        let json = #"{"general":{"logLevel":\#(raw),"checkForUpdates":false,"pollIntervalMs":700}}"#
+        let general = try decode(AppConfig.self, json).general
+        #expect(general.logLevel == .info)
+        #expect(!general.checkForUpdates && general.pollIntervalMs == 700)
+    }
+
+    /// 合法但不在 info 与 debug 之列的级别（如 error）解码时照原样读出，由 ConfigValidator 改回 info。
+    @Test func otherLogLevelsDecodeAsIs() throws {
+        let general = try decode(AppConfig.self, #"{"general":{"logLevel":"error"}}"#).general
+        #expect(general.logLevel == .error)
+    }
+
+    /// 改过 3 个新键的配置编码再解码，结果相同。
+    @Test func v11KeysRoundTrip() throws {
+        var config = AppConfig.makeDefault()
+        config.general.checkForUpdates = false
+        config.general.autoInstallUpdates = true
+        config.general.logLevel = .debug
+        let data = try JSONEncoder().encode(config)
+        #expect(try JSONDecoder().decode(AppConfig.self, from: data) == config)
+    }
+
+    /// 1.1.0 写出的文件被 1.0.0 保存过（3 个新键丢失）后再读：新键回到默认值，其余字段不变。
+    @Test func downgradeRoundTripKeepsOtherFields() throws {
+        var config = AppConfig.makeDefault()
+        config.general.pollIntervalMs = 1500
+        config.general.language = .ko
+        config.general.eveLogDirectory = "~/EVE/logs"
+        config.general.checkForUpdates = false
+        config.general.autoInstallUpdates = true
+        config.general.logLevel = .debug
+        config.updateActiveProfile { $0.layouts = ["Pilot": ThumbnailLayout(x: 1, y: 2)] }
+        var object = try jsonObject(config)
+        var general = try #require(object["general"] as? [String: Any])
+        for key in ["checkForUpdates", "autoInstallUpdates", "logLevel"] {
+            general[key] = nil
+        }
+        object["general"] = general
+        let stripped = try JSONSerialization.data(withJSONObject: object)
+        let reloaded = try JSONDecoder().decode(AppConfig.self, from: stripped)
+        var expected = config
+        expected.general.checkForUpdates = true
+        expected.general.autoInstallUpdates = false
+        expected.general.logLevel = .info
+        #expect(reloaded == expected)
     }
 }

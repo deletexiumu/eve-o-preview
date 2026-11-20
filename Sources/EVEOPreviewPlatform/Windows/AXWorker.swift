@@ -76,7 +76,7 @@ public actor AXWorker {
     private nonisolated let latestRaiseRequest = OSAllocatedUnfairLock(initialState: UInt64(0))
 
     /// 日志，角色名按 `.private` 记录。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "AXWorker")
+    private let log = PlatformLog.logger("AXWorker")
 
     /// 建一个 AX 执行者。第一次调用时设置系统级的消息超时。
     public init() {

@@ -5,6 +5,9 @@
 // 选项依次是 English、中文、Русский、日本語、한국어，最后是「跟随系统」。前 5 项用各语言的自称
 // （AppLanguage.autonym），不随界面语言变化，这样选错语言后仍认得出自己的语言。
 // 选择写入 `general.language`，对全部配置方案生效；协调器在配置变化时切换界面语言，不用重启（5.4 节）。
+//
+// v1.1（v1.1 设计 11.2 节）：语言一组之后是「更新」与「诊断」两组，分别在
+// UpdateSettingsSection.swift 与 DiagnosticsSettingsSection.swift 里，本页只放两行。
 
 import SwiftUI
 import EVEOPreviewCore
@@ -27,6 +30,8 @@ struct GeneralPage: View {
             } header: {
                 PageHeader(title: L10n.settings.pageGeneral, subtitle: L10n.settings.generalSubtitle)
             }
+            UpdateSettingsSection(model: model)
+            DiagnosticsSettingsSection(model: model)
         }
         .formStyle(.grouped)
     }

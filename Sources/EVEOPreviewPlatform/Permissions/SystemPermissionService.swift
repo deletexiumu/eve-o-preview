@@ -23,7 +23,7 @@ import os
         URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders")!
 
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "Permissions")
+    private let log = PlatformLog.logger("Permissions")
 
     /// 建一个权限服务。
     public init() {}

@@ -236,6 +236,10 @@ struct SettingsStringsEN: SettingsStrings {
         "Combat alerts only read the game log files that the EVE client writes. "
             + "They never read game memory, modify files or send input."
     }
+    var networkText: String {
+        "EVE-O Preview contacts GitHub only to check for and download updates; you can turn this off under General. "
+            + "Problem reports are never sent automatically."
+    }
     var eveIPText: String {
         "EVE Online and related logos are trademarks of CCP ehf. "
             + "This project is not affiliated with or endorsed by CCP."
