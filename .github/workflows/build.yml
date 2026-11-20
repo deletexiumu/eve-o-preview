@@ -186,6 +186,8 @@ jobs:
               echo "::error::指定要求没有钉在发布证书 ${CERT_SHA1} 上"
               exit 1
             fi
+            # 语义核对：不比字符串写法，直接让 codesign 判断签名是否满足「本标识符 + 这张证书」。
+            codesign --verify -R="identifier \"io.github.deletexiumu.eveopreview-macos\" and certificate leaf = H\"${CERT_SHA1}\"" "$APP"
           fi
 
       # 删掉临时钥匙串，即使前面的步骤失败也执行。
@@ -194,6 +196,33 @@ jobs:
         env:
           KC: ${{ steps.signing.outputs.keychain }}
         run: security delete-keychain "$KC" || true
+
+      # 删掉签名钥匙串后，模拟没有发布证书的用户机器核对签名：新应用应满足上一个正式版的指定要求，
+      # 这正是应用内更新在安装前做的核对（v1.1 设计 9.3 节）。用探针调用应用里同一段核对代码。
+      - name: 无证书环境核对签名
+        if: steps.signing.outputs.identity != '-'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ steps.version.outputs.label }}
+        run: |
+          swift build --product EVEOProbe
+          PROBE="$(swift build --show-bin-path)/EVEOProbe"
+          WORK="$(mktemp -d)"
+          NEW_MOUNT="$WORK/new"
+          OLD_MOUNT="$WORK/old"
+          mkdir -p "$NEW_MOUNT" "$OLD_MOUNT"
+          hdiutil attach -nobrowse -readonly -mountpoint "$NEW_MOUNT" "dist/release/EVE-O-Preview-${LABEL}.dmg" > /dev/null
+          trap 'hdiutil detach "$NEW_MOUNT" -quiet || true; hdiutil detach "$OLD_MOUNT" -quiet || true' EXIT
+          "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$NEW_MOUNT/EVE-O Preview.app"
+          # 不带 tag 时 gh release download 取最新的正式版；还没有正式版时跳过这一项。
+          if gh release download --repo "$GITHUB_REPOSITORY" --pattern 'EVE-O-Preview-*.dmg' --dir "$WORK"; then
+            OLD_DMG="$(ls "$WORK"/EVE-O-Preview-*.dmg | head -1)"
+            echo "上一个正式版：$(basename "$OLD_DMG")"
+            hdiutil attach -nobrowse -readonly -mountpoint "$OLD_MOUNT" "$OLD_DMG" > /dev/null
+            "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$OLD_MOUNT/EVE-O Preview.app"
+          else
+            echo "::notice::还没有正式版，跳过与上一个正式版的核对"
+          fi
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
