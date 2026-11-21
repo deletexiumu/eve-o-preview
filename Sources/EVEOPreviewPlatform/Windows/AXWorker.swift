@@ -136,15 +136,20 @@ public actor AXWorker {
         guard isLatest(request) else { return .superseded }
         let app = applicationElement(pid)
         var found = window(of: pid, app: app, title: title)
-        if found == nil, allowPrivate, let windowID, windowID != 0 {
+        if found == nil, allowPrivate, let windowID, windowID != 0, !isKnownMissing(pid: pid, windowID: windowID) {
             // 先设前台进程与关键窗口，再取远程 AX 元素；后面的 AXRaise 让系统切到它所在的空间。
             let front = PrivateActivation.bringToFront(pid: pid, windowID: windowID)
             let key = PrivateActivation.makeKeyWindow(pid: pid, windowID: windowID)
             let hint = remoteElementIDs[RemoteKey(pid: pid, windowID: windowID)] ?? lastRemoteElementID
-            if let (element, elementID) = PrivateActivation.remoteWindowElement(pid: pid, windowID: windowID,
-                                                                                hint: hint) {
+            let deadline = ContinuousClock.now + AXWorker.remoteSearchBudget
+            if let (element, elementID) = PrivateActivation.remoteWindowElement(
+                pid: pid, windowID: windowID, hint: hint, deadline: deadline,
+                shouldContinue: { isLatest(request) }) {
                 found = element
                 rememberRemoteElement(elementID, pid: pid, windowID: windowID)
+            } else if isLatest(request) {
+                // 没被取代却没找到（窗口已关闭或超出时限）：一段时间内不再查，免得每次点击都卡几秒。
+                missingRemoteWindows[RemoteKey(pid: pid, windowID: windowID)] = ContinuousClock.now
             }
             log.info("AX 列表里没有窗口 \(windowID)，切换空间：前台 \(String(describing: front), privacy: .public)，关键窗口 \(String(describing: key), privacy: .public)，远程元素 \(found != nil)")
         }
@@ -192,6 +197,20 @@ public actor AXWorker {
     private var remoteElementIDs: [RemoteKey: UInt64] = [:]
     /// 最近一次找到的编号：同一程序的窗口编号往往相同（EVE 各客户端都是 42），没有缓存时先试它。
     private var lastRemoteElementID: UInt64?
+
+    /// 远程查找的时间上限。实测从 0 找到编号 42 约 1 秒。
+    static let remoteSearchBudget: Duration = .seconds(3)
+    /// 没找到的窗口多久内不再查。
+    static let missingRemoteWindowLifetime: Duration = .seconds(30)
+    /// 没找到的窗口 → 记下的时刻。
+    private var missingRemoteWindows: [RemoteKey: ContinuousClock.Instant] = [:]
+
+    /// 这个窗口最近是否查过而没找到。过期的记录顺便清掉。
+    private func isKnownMissing(pid: Int32, windowID: UInt32) -> Bool {
+        let now = ContinuousClock.now
+        missingRemoteWindows = missingRemoteWindows.filter { now - $0.value < AXWorker.missingRemoteWindowLifetime }
+        return missingRemoteWindows[RemoteKey(pid: pid, windowID: windowID)] != nil
+    }
 
     /// 记下找到的编号。
     private func rememberRemoteElement(_ elementID: UInt64, pid: Int32, windowID: UInt32) {

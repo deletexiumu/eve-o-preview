@@ -130,12 +130,17 @@ extension PrivateActivation {
     /// 每试一个编号是一次进程间消息，EVE 上实测约 22 毫秒，主窗口编号是 42，从 0 找要 1 秒左右，
     /// 所以调用方应记住找到的编号作为下次的提示。应在 AXWorker 上调用（AX 调用不占主线程）。
     ///
-    /// - Returns: 窗口元素与它的编号；找不到时返回 nil。
-    static func remoteWindowElement(pid: Int32, windowID: UInt32, hint: UInt64?) -> (AXUIElement, UInt64)? {
+    /// - Parameters:
+    ///   - deadline: 查找的截止时刻；到点还没找到就放弃，免得窗口已关闭时逐个试完（最坏约 22 秒）堵住 AXWorker。
+    ///   - shouldContinue: 每试一个编号前调用；返回假时放弃（请求已被新的激活取代）。
+    /// - Returns: 窗口元素与它的编号；找不到或放弃时返回 nil。
+    static func remoteWindowElement(pid: Int32, windowID: UInt32, hint: UInt64?, deadline: ContinuousClock.Instant,
+                                    shouldContinue: () -> Bool) -> (AXUIElement, UInt64)? {
         guard let (_, createWithToken, getWindow) = spaceFunctions else { return nil }
         var token = Data(count: 20)
         let order = (hint.map { [$0] } ?? []) + Array(0..<remoteElementSearchLimit).filter { $0 != hint }
         for elementID in order {
+            guard ContinuousClock.now < deadline, shouldContinue() else { return nil }
             token.withUnsafeMutableBytes { raw in
                 raw.storeBytes(of: pid, toByteOffset: 0, as: Int32.self)
                 raw.storeBytes(of: Int32(0), toByteOffset: 4, as: Int32.self)
