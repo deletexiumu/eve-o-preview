@@ -53,6 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LogBootstrap.apply(level: config.config.general.logLevel)
         let state = StateController(store: JSONStateStore(
             fileURL: StateController.fileURL(baseName: "state", isFakeMode: isFake)))
+        // 后来新增的默认值（如「全部隐藏」的 ⌃⌥⌘H）补进已有配置，每项只补一次；要在建协调器之前。
+        config.applyOneTimeDefaults(state: state)
         // 界面语言要在建主菜单、菜单栏与设置窗口之前定下，它们建好后不会自己换语言。
         L10n.setLanguage(L10n.resolve(config.config.general.language))
         installMainMenu()

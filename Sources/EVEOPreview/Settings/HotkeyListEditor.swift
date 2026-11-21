@@ -16,6 +16,11 @@ struct HotkeyListEditor: View {
     let model: SettingsViewModel
     /// 热键在配置里的位置。
     let slot: HotkeySlot
+    /// 每一行是否显示作用范围菜单。「客户端」页用一个统一的范围选择代替逐行的菜单，传 false。
+    var showsScopeMenu = true
+    /// 新添加的一行写成的作用范围；nil 时按 `SettingsViewModel.recordedHotkeyText` 的规则
+    /// （键盘不写后缀、鼠标写 `@game`）。「客户端」页传它统一的范围，新录的一行与其余各行一致。
+    var newHotkeyScope: HotkeyScope?
 
     var body: some View {
         let list = model.hotkeys(for: slot)
@@ -30,7 +35,10 @@ struct HotkeyListEditor: View {
                 // 追加到提交时刻的列表上。
                 let current = model.hotkeys(for: slot)
                 if case .recorded(let hotkey) = outcome, !model.hotkeyList(current, contains: hotkey) {
-                    model.setHotkeys(current + [model.recordedHotkeyText(hotkey, replacing: nil)], for: slot)
+                    // 指定了统一的作用范围时直接写成这个范围，否则按默认规则。
+                    let text = newHotkeyScope.map { HotkeySpec(hotkey: hotkey, scope: $0).stringValue() }
+                        ?? model.recordedHotkeyText(hotkey, replacing: nil)
+                    model.setHotkeys(current + [text], for: slot)
                 }
             }
         }
@@ -65,8 +73,8 @@ struct HotkeyListEditor: View {
                     return
                 }
             }
-            // 解析不了的一条没有作用范围可改，只能重录或删除。
-            if let spec = HotkeySpec(string: text) {
+            // 解析不了的一条没有作用范围可改，只能重录或删除；关掉逐行菜单时由页面统一选择范围。
+            if showsScopeMenu, let spec = HotkeySpec(string: text) {
                 HotkeyScopeMenu(model: model, spec: spec) { scope in
                     model.setHotkeyScope(scope, of: text, for: slot)
                 }

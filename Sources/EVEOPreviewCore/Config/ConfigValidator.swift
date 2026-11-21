@@ -56,7 +56,7 @@ public enum ConfigValidator {
         }
 
         if result.profiles.isEmpty {
-            result.profiles = [Profile(name: Profile.defaultName)]
+            result.profiles = [Profile.makeNew(name: Profile.defaultName)]
             fixer.record("profiles")
         }
         var seenIDs = Set<String>()

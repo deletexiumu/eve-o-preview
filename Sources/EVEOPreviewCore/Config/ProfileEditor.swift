@@ -21,11 +21,12 @@ public enum ProfileEditor {
         }
     }
 
-    /// 新建一个全部取默认值的配置方案，追加到末尾，不切换当前方案。名称非法时返回 nil。
+    /// 新建一个全部取默认值的配置方案（见 `Profile.makeNew`），追加到末尾，不切换当前方案。名称非法时返回 nil。
     public static func add(named name: String, to config: AppConfig) -> AppConfig? {
         guard isValidName(name, in: config, excluding: nil) else { return nil }
         var result = config
-        result.profiles.append(Profile(name: trimmed(name)))
+        // 新方案带默认的全局热键（如「全部隐藏」的 ⌃⌥⌘H），与新建配置文件时一致。
+        result.profiles.append(Profile.makeNew(name: trimmed(name)))
         return result
     }
 

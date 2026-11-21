@@ -83,6 +83,12 @@ protocol SettingsStrings: Sendable {
     var clientsSubtitle: String { get }
     /// 「全部隐藏」开关。
     var hideAllThumbnails: String { get }
+    /// 「全部隐藏」的快捷键一行的标题。
+    var hideAllHotkeyLabel: String { get }
+    /// 「全部隐藏」快捷键的生效范围（全局或仅游戏内）一行的标题。
+    var hideAllScopeLabel: String { get }
+    /// 「全部隐藏」一组下方的说明：快捷键可以是键盘组合或修饰键加鼠标按键，范围作用于这一组全部快捷键。
+    var hideAllHotkeyFooter: String { get }
     /// 角色列表的组标题。
     var charactersHeader: String { get }
     /// 角色列表下方的说明：每行的颜色是该角色活动时的高亮颜色。

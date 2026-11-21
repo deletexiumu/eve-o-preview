@@ -73,6 +73,12 @@ public struct Profile: Sendable, Equatable, Codable, Identifiable {
         self.combatAlert = combatAlert
     }
 
+    /// 新建一个配置方案：除了 `init(name:)` 的默认值，全局热键取 `GeneralHotkeys.newProfileDefaults`。
+    /// 新建配置文件、在设置窗口里新建方案、校验时补出的方案都用它；`init(name:)` 保持全部为空，便于测试构造。
+    public static func makeNew(name: String) -> Profile {
+        Profile(name: name, hotkeys: GeneralHotkeys.newProfileDefaults)
+    }
+
     /// 登录客户端缩略图的默认起始位置 (5, 40)，单位是点。
     public static let defaultLoginPosition = ScreenPoint(x: 5, y: 40)
 

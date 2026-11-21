@@ -18,16 +18,19 @@ public struct AppState: Sendable, Equatable, Codable {
     public var updates: UpdateState
     /// 诊断功能的记录。
     public var diagnostics: DiagnosticsState
+    /// 已经补到配置里的一次性默认值（`OneTimeDefaults` 的 id），v1.2 新增，缺键时为空。
+    public var appliedDefaults: [String]
 
     /// 当前的状态文件版本。
     public static let currentVersion = 1
 
     /// 用各字段建状态；全部取默认值时就是默认状态。
     public init(stateVersion: Int = AppState.currentVersion, updates: UpdateState = UpdateState(),
-                diagnostics: DiagnosticsState = DiagnosticsState()) {
+                diagnostics: DiagnosticsState = DiagnosticsState(), appliedDefaults: [String] = []) {
         self.stateVersion = stateVersion
         self.updates = updates
         self.diagnostics = diagnostics
+        self.appliedDefaults = appliedDefaults
     }
 
     /// 缺键取默认值。
@@ -36,6 +39,7 @@ public struct AppState: Sendable, Equatable, Codable {
         stateVersion = try c.decodeIfPresent(Int.self, forKey: .stateVersion) ?? AppState.currentVersion
         updates = try c.decodeIfPresent(UpdateState.self, forKey: .updates) ?? UpdateState()
         diagnostics = try c.decodeIfPresent(DiagnosticsState.self, forKey: .diagnostics) ?? DiagnosticsState()
+        appliedDefaults = try c.decodeIfPresent([String].self, forKey: .appliedDefaults) ?? []
     }
 }
 

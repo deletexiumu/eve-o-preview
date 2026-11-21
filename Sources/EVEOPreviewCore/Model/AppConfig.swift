@@ -28,9 +28,9 @@ public struct AppConfig: Sendable, Equatable, Codable {
         self.general = general
     }
 
-    /// 默认配置：一个名为 `Default` 的配置方案，其余取默认值。每次调用生成新的 UUID。
+    /// 默认配置：一个名为 `Default` 的新配置方案（见 `Profile.makeNew`），其余取默认值。每次调用生成新的 UUID。
     public static func makeDefault() -> AppConfig {
-        let profile = Profile(name: Profile.defaultName)
+        let profile = Profile.makeNew(name: Profile.defaultName)
         return AppConfig(activeProfileID: profile.id, profiles: [profile])
     }
 

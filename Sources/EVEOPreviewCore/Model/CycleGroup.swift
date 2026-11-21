@@ -48,6 +48,14 @@ public struct GeneralHotkeys: Sendable, Equatable, Codable {
     /// 在登录客户端之间循环（按 PID 升序）。
     public var cycleLoginClients: [String]
 
+    /// 「全部隐藏」的默认热键：⌃⌥⌘H，明确写成全局生效。
+    /// 三个修饰键一起按不容易误触，也很少与游戏或其他应用的快捷键冲突。
+    public static let defaultToggleHideAll = "ctrl+opt+cmd+H@global"
+
+    /// 新建配置方案时使用的全局热键：只给「全部隐藏」绑定默认热键，其余不绑定。
+    /// 与 `init()` 的「都不绑定」分开：解码缺键、手工构造时仍是空列表，只有新建的方案带默认值。
+    public static let newProfileDefaults = GeneralHotkeys(toggleHideAll: [defaultToggleHideAll])
+
     /// 用各字段建全局热键，默认都不绑定。
     public init(toggleHideAll: [String] = [], minimizeAll: [String] = [], cycleLoginClients: [String] = []) {
         self.toggleHideAll = toggleHideAll
