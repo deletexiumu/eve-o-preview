@@ -32,24 +32,10 @@ EVE-O Preview for macOS 给每个运行中的 EVE Online 客户端显示一个�
 - 设置窗口共 10 页：客户端、预览与布局、切换与热键、提醒、预警、翻译、配置方案、通用、权限、关于。
 - 界面语言：英文（默认）、中文、俄文、日文、韩文、法文、德文、西班牙文，在「通用」页切换，也可以选「跟随系统」，切换后立即生效。俄、日、韩、法、德、西文的译文由机器生成，欢迎指正。
 
-## 未移植的上游功能
-
-| 上游功能 | 原因 |
-| --- | --- |
-| 帧率限制、选择性静音（Robin 注入） | 上游向 Windows 进程注入 DLL 实现，macOS 没有对应的公开机制 |
-| CPU 亲和性 | 依赖 Windows CPU Sets；Apple Silicon 没有按进程指定核心的公开接口 |
-| 战斗日志增强（Augments）中的伤害数字、DPS、维修量、星系叠层，FC 静态数据 | 独立的大型子系统，不属于「预览与切换」；只移植了「受到攻击时闪烁」 |
-| 主题、Legacy 界面、自定义右键菜单样式 | macOS 版跟随系统外观 |
-| 兼容捕获模式（`PrintWindow`） | ScreenCaptureKit 是唯一的捕获方式 |
-| 低级键盘钩子 | 键盘热键用 Carbon 全局热键；只有绑定了鼠标按键时才建立鼠标事件监听 |
-
-区域（Regions）与拖放停靠、多选与成组移动、撤销、吸附参考线、导入 Windows 版配置、登录时启动，计划在 v1 之后再做。
-
 ## 运行要求
 
 - macOS 14 或更高版本，Apple Silicon 或 Intel 均可。发布的 dmg 内是通用二进制。
 - EVE 客户端宜使用窗口模式。1.1.1 起支持原生全屏的客户端（打开「缩略图置顶」时缩略图显示在全屏画面上），但每个客户端在独立的空间里，切换时会有空间切换动画。
-- 从源码构建需要 Xcode 或 Command Line Tools（Swift 6）。
 
 ## 安装
 
@@ -72,27 +58,13 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 **注意：** 每个发布版都用同一张证书签名，升级后系统保留屏幕录制与辅助功能权限。如果升级后权限失效，用[权限](#权限)一节末尾的 `tccutil` 命令清除后重新授予。
 
-从 1.1.0 起应用可以自行更新（见[更新](#更新)）。1.0.0 没有更新功能，要手动装一次 1.1.0：下载 dmg，替换「应用程序」里的应用。1.0.0 与之后的版本用同一张证书签名，权限会保留。
+应用会自行更新：定期检查 GitHub 上的新版本，并在应用内安装（见[更新](#更新)）。
 
 每个发布版还附带 `.tar.gz` 与 `.zip` 两种源码包和 `SHA256SUMS.txt`。要核对下载的文件，在下载目录里运行 `shasum -a 256 --ignore-missing -c SHA256SUMS.txt`。
 
 ### 从源码构建
 
-1. 在仓库根目录运行 `scripts/build-app.sh`。脚本编译发布版，组装并签名 `dist/EVE-O Preview.app`。
-2. 把 `dist/EVE-O Preview.app` 拖进「应用程序」文件夹。
-3. 打开应用。
-
-脚本读以下环境变量：
-
-| 变量 | 作用 | 默认值 |
-| --- | --- | --- |
-| `VERSION` | 写进 `Info.plist` 的版本号 | `VERSION` 文件的内容 |
-| `SIGN_IDENTITY` | 代码签名身份 | 钥匙串里有 `EVEO Preview Dev` 时用它，否则 ad-hoc 签名（`-`） |
-| `UNIVERSAL` | 设为 `1` 时分别编译 arm64 与 x86_64，再用 `lipo` 合成通用二进制 | 不设：只编译本机架构 |
-
-如果 `packaging/AppIcon.png` 存在，脚本会用它生成应用图标。
-
-`scripts/package-release.sh` 先运行 `build-app.sh`，再把 dmg、源码包和 `SHA256SUMS.txt` 写到 `dist/release/`。CI 用的就是这个脚本。
+想自己构建应用，请看 [docs/development.md](docs/development.md)（英文），其中也介绍了调试工具、CI 和发布流程。
 
 ## 权限
 
@@ -106,15 +78,6 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 | 本地网络（macOS 15 起） | 连接局域网里另一台电脑上的翻译服务，如 Ollama | 只在翻译服务位于局域网里的另一台电脑时请求，本机与公网服务不请求；可以先在「翻译」页点「测试」，让这个提示先出现。拒绝后，发往那台电脑的请求以网络错误失败。「权限」页不显示这一项 |
 
 授予屏幕录制权限后，通常要重新启动应用才生效，「权限」页有「重新启动」按钮。辅助功能权限授予后立即生效。
-
-### 用自签名证书签名
-
-系统按代码签名识别应用并记录授权。ad-hoc 签名没有稳定的身份，每次重新构建后，系统都把它当成另一个应用，两项授权都会失效。自己构建时宜用自签名证书：
-
-1. 打开「钥匙串访问」，选菜单「钥匙串访问 > 证书助理 > 创建证书」。
-2. 名称填 `EVEO Preview Dev`，身份类型选「自签名根证书」，证书类型选「代码签名」，然后创建。
-3. 运行 `scripts/build-app.sh`。脚本在钥匙串里找到这个证书时自动使用它；也可以用 `SIGN_IDENTITY="EVEO Preview Dev" scripts/build-app.sh` 指定。
-4. 如果系统询问是否允许 `codesign` 使用钥匙串里的私钥，选「始终允许」。
 
 如果授权记录错乱，运行以下两条命令，再重新授权：
 
@@ -245,7 +208,7 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 
 ## 隐私
 
-1.0.0 不发任何网络请求。从 1.1.0 起应用为了更新访问 GitHub；除非你打开列表之后说明的可选功能，否则不发其他网络请求：
+应用为了更新访问 GitHub；除非你打开列表之后说明的可选功能，否则不发其他网络请求：
 
 - 检查更新：「自动检查更新」打开时，在启动后与每天请求一次 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest`；你点「检查更新…」时也请求一次。
 - 有新版本要提示时，再请求一次 Release 列表 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`（请求头相同），用来显示你跳过的中间版本的更新内容。
@@ -282,62 +245,18 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 
 「配置方案」页有「在访达中显示」按钮。
 
-## 开发
+## 未移植的上游功能
 
-| 命令 | 作用 |
+| 上游功能 | 原因 |
 | --- | --- |
-| `swift build` | 编译全部目标 |
-| `swift test` | 运行 Core 的单元测试（swift-testing） |
-| `EVEO_FAKE=1 swift run EVEOPreview` | 演示模式：3 个假客户端与生成的动画画面，不需要 EVE 与任何权限 |
-| `python3 scripts/check_quality.py` | 检查注释率、文件行数与函数行数 |
-| `scripts/build-app.sh` | 组装并签名 `.app` |
-| `scripts/package-release.sh` | 在 `dist/release/` 下生成 dmg、源码包与校验和 |
-| `swift run EVEOProbe gamelog [目录] [--follow 秒数]` | 统计游戏日志各类战斗行的数量，诊断战斗提醒 |
-| `swift run EVEOProbe mousetap <秒数> [--swallow <按钮号>]` | 打印鼠标按键编号，诊断鼠标热键 |
-| `swift run EVEOProbe update feed [地址]` | 获取并解析发布信息 |
-| `swift run EVEOProbe update verify <新应用> <基准应用>` | 核对新应用是否满足基准应用的指定要求 |
-| `swift run EVEOProbe update prepare <地址> [--cache 目录]` | 下载并核对更新，不安装 |
-| `scripts/make-update-test-feed.sh [版本号]` | 由 `dist/release/` 生成本地更新测试用的 `feed.json` |
-| `swift run EVEOProbe staticdata` | 显示星图数据文件的来源、SDE 版本、各类记录的数量，以及算一次 15 跳跳数表的耗时 |
-| `swift run EVEOProbe chatlog [目录] [--follow 秒数]` | 显示聊天日志目录、频道种类、消息与位置线索的数量，不打印名字与消息内容 |
-| `swift run EVEOProbe intel [目录] [--resolve-sample] [--resolve]` | 统计最近聊天日志里情报消息、星系、舰船与人名的数量；`--resolve-sample` 向 ESI 发 3 个编造的名字，`--resolve` 把日志里的人名发给 ESI |
-| `swift run EVEOProbe translate [--provider 编号] [--model 模型] [--base-url 地址] [--target 语言] [--dry-run]` | 向模型服务发一条固定的样例，Key 只取自 `EVEO_TRANSLATION_API_KEY`。不带 `--dry-run` 时发真实的请求，可能产生费用 |
-| `python3 scripts/build-sde-data.py [--check]` | 下载 CCP 的 SDE，重新生成 `packaging/eve-static.json`；`--check` 只比较 SDE 版本 |
+| 帧率限制、选择性静音（Robin 注入） | 上游向 Windows 进程注入 DLL 实现，macOS 没有对应的公开机制 |
+| CPU 亲和性 | 依赖 Windows CPU Sets；Apple Silicon 没有按进程指定核心的公开接口 |
+| 战斗日志增强（Augments）中的伤害数字、DPS、维修量、星系叠层，FC 静态数据 | 独立的大型子系统，不属于「预览与切换」；只移植了「受到攻击时闪烁」 |
+| 主题、Legacy 界面、自定义右键菜单样式 | macOS 版跟随系统外观 |
+| 兼容捕获模式（`PrintWindow`） | ScreenCaptureKit 是唯一的捕获方式 |
+| 低级键盘钩子 | 键盘热键用 Carbon 全局热键；只有绑定了鼠标按键时才建立鼠标事件监听 |
 
-演示模式的配置写到同目录下的 `config-fake.json`，不影响正式配置。演示模式还提供两个假的聊天频道 `intel.Demo` 与 `chat.Demo`，用一个在每行前加「〔译〕」的假服务翻译，人名核对不联网。以下环境变量用于调试：
-
-| 变量 | 作用 |
-| --- | --- |
-| `EVEO_CONFIG_PATH` | 使用指定的配置文件 |
-| `EVEO_LANG` | `en`、`zh`、`ru`、`ja`、`ko`、`fr`、`de` 或 `es`，覆盖配置里的界面语言 |
-| `EVEO_FAKE_DENY` | 演示模式下假装缺少权限，取值 `screen`、`ax` 或 `screen,ax` |
-| `EVEO_FAKE_STOP_AFTER` | 演示模式下，到指定秒数时假装用户停止了第二个客户端的捕获 |
-| `EVEO_SETTINGS_PAGE` | 启动后直接打开设置窗口的某一页，如 `previews` |
-| `EVEO_LOG_DIR` | 把日志文件写到另一个文件夹（默认 `~/Library/Logs/EVE-O Preview/`） |
-| `EVEO_STATE_DIR` | 把 `state.json` 与 `session.json` 放到另一个文件夹 |
-| `EVEO_LOG_PRIVATE` | 设为 `1` 时，私有值只在系统日志（控制台）里显示原文；日志文件里一律是 `<private>` |
-| `EVEO_UPDATE_FEED_URL` | 改为向这个地址检查更新；只接受 `https`，或回环主机的 `http`。本机证书签名的构建可以从它安装，签名核对不放宽 |
-| `EVEO_UPDATE_UI_STATE` | 演示模式下，把更新界面设成样例状态：`available`、`notifyonly`、`downloading`、`ready`、`failed` 或 `uptodate` |
-| `EVEO_FAKE_CRASH` | 演示模式下设为 `1`，假装上次运行崩溃，用来查看崩溃报告的提示 |
-| `EVEO_STATIC_DATA` | 改用指定的星图数据文件，不用应用内的那份 |
-| `EVEO_TRANSLATION_API_KEY` | 只给 `EVEOProbe translate` 用的 API Key，应用本身不读它 |
-
-预警浮窗与翻译浮窗用到的星图与舰船数据（星系、星域、星门连接、舰船分组与舰船，含 8 种界面语言的名称）由 `scripts/build-sde-data.py` 从 CCP 的静态数据（SDE）生成，存为 `packaging/eve-static.json`，`scripts/build-app.sh` 把它复制进应用。应用运行时不下载这份数据。想不重新构建就试用更新的文件，可以把它放到 `~/Library/Application Support/EVE-O Preview/eve-static.json`。
-
-源码分 3 个模块：`EVEOPreviewCore` 是纯逻辑层，`EVEOPreviewPlatform` 封装 AppKit、ScreenCaptureKit、辅助功能与 Carbon 热键，`EVEOPreview` 是应用本体。架构说明见 [docs/architecture.md](docs/architecture.md)。
-
-**注意：** 用 `swift run` 直接运行可执行文件时，系统把权限记在终端应用名下，不记在 `EVE-O Preview.app` 名下。
-
-### CI 与发布
-
-`.github/workflows/build.yml` 跑在 GitHub 托管的 macOS 运行器上：
-
-- 每个向 `main` 发起的 PR 和每次推送到 `main`，都会运行质量门禁与单元测试，再打包通用二进制的 dmg 和源码包。产物作为工作流制品上传，名为 `EVE-O-Preview-<版本号>-pr.<编号>.<提交>`（推送时为 `-dev.<提交>`），保留 30 天。
-- 推送 `v*` tag 时打包同样的文件，并发布为 GitHub Release。tag 应与 `VERSION` 文件一致。如果 `docs/release-notes/<tag>.md` 存在，它就是 Release 的说明。
-
-发布新版本时，在 PR 里修改 `VERSION` 文件并新增 `docs/release-notes/v<版本号>.md`，合并后在 `main` 上打 tag：`git tag v<版本号> && git push origin v<版本号>`。
-
-附件名（`EVE-O-Preview-<版本号>.dmg`、`SHA256SUMS.txt`）、dmg 的结构、签名证书与发布说明的格式是与应用内更新之间的约定，CI 每次构建都会核对。发布说明英文在前，包在 `<!-- lang:en -->` 与 `<!-- /lang:en -->` 之间，之后是用同样方式标记的 zh、ja、ko、ru 折叠块；`scripts/check_release_notes.py` 检查这些标记。细节见 [docs/architecture.md](docs/architecture.md) 的 9.5～9.7 节。
+区域（Regions）与拖放停靠、多选与成组移动、撤销、吸附参考线、导入 Windows 版配置、登录时启动，计划在 v1 之后再做。
 
 ## 声明
 

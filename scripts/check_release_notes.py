@@ -8,6 +8,8 @@
 - 每个 `<!-- lang:xx -->` 后面有对应的 `<!-- /lang:xx -->`，不嵌套、不重复。
 - 语言代码只能是 en、zh、ja、ko、ru、fr、de、es，且 en 块存在。
 - 除 en 外，每块里的 `<details>` 与 `</details>` 成对。
+- 不写「升级」小节：怎么升级由应用内更新和 README 说明，发布说明只讲本版本的变化。
+  应用会把跳过的各版本说明拼在一起显示，每版都带一段升级说明会反复出现。
 
 用法：python3 scripts/check_release_notes.py [文件 ...]，默认检查 docs/release-notes/*.md。
 任一文件不合格时退出码为 1。
@@ -22,6 +24,14 @@ LANGUAGES = ("en", "zh", "ja", "ko", "ru", "fr", "de", "es")
 
 # 标记的写法：<!-- lang:xx --> 与 <!-- /lang:xx -->，注释两端的空白可有可无。
 MARKER = re.compile(r"<!--\s*(/?)lang:([A-Za-z-]+)\s*-->")
+
+# 各语言「升级」小节的标题写法（二、三级标题），出现即不合格。
+# 列的是此前发布说明实际用过的标题，新增语言时一并补上。
+UPGRADE_HEADING = re.compile(
+    r"^#{2,3}\s+(Upgrading\b.*|升级|从 .* 升级|アップグレード|.*からのアップグレード|업그레이드|.*에서 업그레이드"
+    r"|Обновление\b.*|Mise à jour|Aktualisieren|Actualizar)\s*$",
+    re.MULTILINE,
+)
 
 
 def check(path: Path) -> list[str]:
@@ -57,6 +67,10 @@ def check(path: Path) -> list[str]:
         problems.append(f"{open_code} 块没有关闭标记")
     if "en" not in seen:
         problems.append("缺少 en 块")
+    # 升级说明不进发布说明，见文件头的规则。
+    for match in UPGRADE_HEADING.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        problems.append(f"第 {line} 行：发布说明不写升级小节（{match.group(0).strip()}）")
     return problems
 
 

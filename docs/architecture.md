@@ -1025,7 +1025,7 @@ v1.1 起菜单新增「检查更新…」「报告问题…」，有可用更新
 | --- | --- | --- |
 | `Package.swift` | 包定义 | 第 0 步 |
 | `.gitignore` | 增加 `.build/`、`dist/`、`.swiftpm/`，删除 Windows 专属条目 | 第 0 步 |
-| `README.md` | macOS 版的用户说明与构建说明 | WP-C |
+| `README.md`、`docs/development.md` | macOS 版的用户说明；构建、调试、CI 与发布说明 | WP-C |
 | `docs/architecture.md` | 本文 | 主会话 |
 | `scripts/build-app.sh`、`packaging/Info.plist` | 构建与打包 | WP-C |
 | `scripts/check_quality.py` | 质量检查（已存在，见 9.3 节） | 主会话 |

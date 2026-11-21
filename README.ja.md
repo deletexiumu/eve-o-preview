@@ -34,24 +34,10 @@ EVE-O Preview for macOS は、実行中のすべての EVE Online クライア�
 - 10 ページの設定ウインドウ：「クライアント」「プレビューとレイアウト」「切り替えとホットキー」「アラート」「偵察」「翻訳」「プロファイル」「一般」「権限」「情報」。
 - UI の言語：英語（デフォルト）、中国語、ロシア語、日本語、韓国語、フランス語、ドイツ語、スペイン語。「一般」ページで切り替えるか、「システムに合わせる」を選びます。変更はすぐに反映されます。ロシア語、日本語、韓国語、フランス語、ドイツ語、スペイン語の翻訳は機械翻訳です。修正を歓迎します。
 
-## 移植していない上流の機能
-
-| 上流の機能 | 理由 |
-| --- | --- |
-| フレームレート制限と選択的ミュート（Robin インジェクション） | 上流は Windows のプロセスに DLL を注入しています。macOS には同等の公開された仕組みがありません |
-| CPU アフィニティ | Windows の CPU Sets に依存しています。Apple Silicon にはプロセスを特定のコアに固定する公開 API がありません |
-| 戦闘ログの Augments：ダメージの数値、DPS、リペア量、星系オーバーレイ、FC 用の静的データ | 「プレビューと切り替え」の範囲外にある、大規模な別のサブシステムです。移植したのは「攻撃されたら点滅」だけです |
-| テーマ、レガシー UI、右クリックメニューのカスタムスタイル | macOS 版はシステムの外観に従います |
-| 互換キャプチャモード（`PrintWindow`） | キャプチャ方法は ScreenCaptureKit だけです |
-| 低レベルキーボードフック | キーボードのホットキーには Carbon のグローバルホットキーを使います。マウスのイベントタップは、マウスボタンが割り当てられたときだけ作成します |
-
-ドラッグ＆ドロップでドッキングできるリージョン、複数選択とグループ移動、取り消し、スナップガイド、Windows 版の設定のインポート、ログイン時の起動は、v1 のリリース後に予定しています。
-
 ## 動作環境
 
 - macOS 14 以降（Apple Silicon または Intel）。リリース版の dmg にはユニバーサルバイナリが含まれています。
 - EVE クライアントはウインドウモードでの実行をお勧めします。1.1.1 以降はネイティブのフルスクリーンのクライアントにも対応しています（「サムネイルを常に手前に表示」がオンのとき、サムネイルはフルスクリーンの画面の上に表示されます）が、各クライアントは専用の操作スペースにあるため、切り替えると操作スペースの切り替えアニメーションが再生されます。
-- ソースからビルドするには、Xcode または Command Line Tools（Swift 6）が必要です。
 
 ## インストール
 
@@ -74,27 +60,13 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 **注意：** すべてのリリースは同じ証明書で署名されているため、アップグレードしても macOS は画面収録とアクセシビリティの許可を保持します。アップグレード後に許可が機能しなくなった場合は、[権限](#権限)の最後にある `tccutil` コマンドでリセットしてから、もう一度許可してください。
 
-1.1.0 以降、アプリは自身をアップデートできます（[アップデート](#アップデート)を参照）。バージョン 1.0.0 にはアップデート機能がないため、1.1.0 は一度だけ手動でインストールしてください。dmg をダウンロードし、「アプリケーション」フォルダ内のアプリを置き換えます。1.0.0 以降は同じ証明書で署名されているため、許可は保持されます。
+アプリは自動で最新の状態に保たれます。GitHub で新しいバージョンを確認し、アプリ内でインストールします（[アップデート](#アップデート)を参照）。
 
 各リリースには、ソースコードの `.tar.gz` と `.zip`、および `SHA256SUMS.txt` ファイルも含まれています。ダウンロードしたファイルを検証するには、ダウンロードフォルダで `shasum -a 256 --ignore-missing -c SHA256SUMS.txt` を実行します。
 
 ### ソースからビルド
 
-1. リポジトリのルートで `scripts/build-app.sh` を実行します。スクリプトはリリース構成でビルドしてから、`dist/EVE-O Preview.app` を組み立てて署名します。
-2. `dist/EVE-O Preview.app` を「アプリケーション」フォルダにドラッグします。
-3. アプリを開きます。
-
-スクリプトは次の環境変数を読み取ります。
-
-| 変数 | 用途 | デフォルト |
-| --- | --- | --- |
-| `VERSION` | `Info.plist` に書き込むバージョン番号 | `VERSION` ファイルの内容 |
-| `SIGN_IDENTITY` | コード署名に使う ID | キーチェーンにあれば `EVEO Preview Dev`、なければ ad-hoc（`-`） |
-| `UNIVERSAL` | `1` にすると arm64 と x86_64 を個別にビルドし、`lipo` でユニバーサルバイナリに結合します | 未設定：ネイティブアーキテクチャのみ |
-
-`packaging/AppIcon.png` がある場合、スクリプトはそれを使ってアプリのアイコンを生成します。
-
-`scripts/package-release.sh` は `build-app.sh` を実行してから、dmg、ソースアーカイブ、`SHA256SUMS.txt` を `dist/release/` に書き出します。CI はこのスクリプトを使います。
+アプリを自分でビルドする方法は [docs/development.md](docs/development.md)（英語）を参照してください。デバッグ用ツール、CI、リリース手順もそこで説明しています。
 
 ## 権限
 
@@ -108,15 +80,6 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 | ローカルネットワーク（macOS 15 以降） | ローカルネットワーク内の別のコンピュータで動く翻訳サービス（Ollama など）への接続 | 翻訳サービスがローカルネットワーク内の別のコンピュータにあるときだけ要求されます。この Mac や公開サービスでは要求されません。「翻訳」ページの「テスト」をクリックすると、先にこの確認を表示できます。拒否した場合、そのコンピュータへのリクエストはネットワークエラーで失敗します。「権限」ページには表示されません |
 
 画面収録を許可した後、反映するには通常アプリの再起動が必要です。「権限」ページに「再起動」ボタンがあります。アクセシビリティはすぐに反映されます。
-
-### 自己署名証明書で署名する
-
-macOS は権限を記録するとき、コード署名でアプリを識別します。ad-hoc 署名には固定された ID がないため、再ビルドのたびに macOS はアプリを別のアプリとして扱い、両方の権限が失われます。自分でビルドする場合は、自己署名証明書を使ってください。
-
-1. キーチェーンアクセスを開き、「キーチェーンアクセス」>「証明書アシスタント」>「証明書を作成」を選択します。
-2. 名前に `EVEO Preview Dev` と入力し、「固有名のタイプ」を「自己署名ルート」、「証明書のタイプ」を「コード署名」に設定して作成します。
-3. `scripts/build-app.sh` を実行します。スクリプトはキーチェーンにこの証明書を見つけると、自動的に使います。`SIGN_IDENTITY="EVEO Preview Dev" scripts/build-app.sh` と実行することもできます。
-4. `codesign` がキーチェーン内の秘密鍵を使ってよいか macOS に尋ねられたら、「常に許可」を選択します。
 
 権限の記録がおかしな状態になった場合は、次の 2 つのコマンドを実行してから、権限を再度許可してください。
 
@@ -247,7 +210,7 @@ macOS のユーザー名、フルネーム、ホームフォルダのパス、�
 
 ## プライバシー
 
-バージョン 1.0.0 はネットワークリクエストを一切行いませんでした。1.1.0 以降、アプリはアップデートのために GitHub に接続します。このリストの後で説明するオプション機能をオンにしない限り、ほかの接続は行いません。
+アプリはアップデートのために GitHub に接続します。このリストの後で説明するオプション機能をオンにしない限り、ほかの接続は行いません。
 
 - アップデートの確認：「アップデートを自動的に確認」がオンの間は起動時と 1 日に 1 回、また「アップデートを確認…」を選んだときに、`api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` をリクエストします。
 - 新しいバージョンを案内するときは、スキップしたバージョンの変更内容を表示するため、同じヘッダーでリリース一覧 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases` を 1 回リクエストします。
@@ -284,62 +247,18 @@ macOS のユーザー名、フルネーム、ホームフォルダのパス、�
 
 「プロファイル」ページに「Finderに表示」ボタンがあります。
 
-## 開発
+## 移植していない上流の機能
 
-| コマンド | 用途 |
+| 上流の機能 | 理由 |
 | --- | --- |
-| `swift build` | すべてのターゲットをビルド |
-| `swift test` | Core のユニットテストを実行（swift-testing） |
-| `EVEO_FAKE=1 swift run EVEOPreview` | デモモード：生成したアニメーション画像を使うダミークライアントが 3 つ。EVE も権限も不要 |
-| `python3 scripts/check_quality.py` | コメントの比率、ファイルの長さ、関数の長さをチェック |
-| `scripts/build-app.sh` | `.app` を組み立てて署名 |
-| `scripts/package-release.sh` | `dist/release/` に dmg、ソースアーカイブ、チェックサムを作成 |
-| `swift run EVEOProbe gamelog [dir] [--follow seconds]` | ゲームログ内の戦闘の行を種類ごとに数え、戦闘アラートの問題を診断 |
-| `swift run EVEOProbe mousetap <seconds> [--swallow <button>]` | マウスボタンの番号を表示し、マウスのホットキーの問題を診断 |
-| `swift run EVEOProbe update feed [url]` | リリースフィードを取得して解析 |
-| `swift run EVEOProbe update verify <new app> <base app>` | 新しいアプリがベースのアプリの指定要件（designated requirement）を満たすかどうかを確認 |
-| `swift run EVEOProbe update prepare <url> [--cache dir]` | アップデートをインストールせずにダウンロードして検証 |
-| `scripts/make-update-test-feed.sh [version]` | `dist/release/` から、ローカルでのアップデートテスト用の `feed.json` を書き出す |
-| `swift run EVEOProbe staticdata` | 星図データファイルが見つかった場所、SDE のビルド、レコード数、15 ジャンプの距離表を 1 回計算する時間を表示する |
-| `swift run EVEOProbe chatlog [dir] [--follow seconds]` | チャットログのフォルダ、チャンネルの種類、メッセージと現在地の行の数を表示する（名前とメッセージ本文は表示しない） |
-| `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | 最近のチャットログの偵察メッセージ、星系、艦船、パイロット名を数える。`--resolve-sample` は架空の名前 3 つを ESI に送り、`--resolve` はログのパイロット名を ESI に送る |
-| `swift run EVEOProbe translate [--provider id] [--model name] [--base-url url] [--target language] [--dry-run]` | モデルサービスに固定のサンプルを 1 つ送る。キーは `EVEO_TRANSLATION_API_KEY` からだけ取る。`--dry-run` を付けないと実際のリクエストになり、料金がかかる場合がある |
-| `python3 scripts/build-sde-data.py [--check]` | CCP の SDE をダウンロードして `packaging/eve-static.json` を作り直す。`--check` は SDE のビルドを比べるだけ |
+| フレームレート制限と選択的ミュート（Robin インジェクション） | 上流は Windows のプロセスに DLL を注入しています。macOS には同等の公開された仕組みがありません |
+| CPU アフィニティ | Windows の CPU Sets に依存しています。Apple Silicon にはプロセスを特定のコアに固定する公開 API がありません |
+| 戦闘ログの Augments：ダメージの数値、DPS、リペア量、星系オーバーレイ、FC 用の静的データ | 「プレビューと切り替え」の範囲外にある、大規模な別のサブシステムです。移植したのは「攻撃されたら点滅」だけです |
+| テーマ、レガシー UI、右クリックメニューのカスタムスタイル | macOS 版はシステムの外観に従います |
+| 互換キャプチャモード（`PrintWindow`） | キャプチャ方法は ScreenCaptureKit だけです |
+| 低レベルキーボードフック | キーボードのホットキーには Carbon のグローバルホットキーを使います。マウスのイベントタップは、マウスボタンが割り当てられたときだけ作成します |
 
-デモモードは設定を同じフォルダの `config-fake.json` に書き込み、実際の設定には触れません。また、架空のチャットチャンネル `intel.Demo` と `chat.Demo` を流し、各行の先頭に 〔译〕 を付ける架空のサービスで翻訳し、パイロット名はネットワークに接続せずに確認します。デバッグには次の環境変数が役立ちます。
-
-| 変数 | 用途 |
-| --- | --- |
-| `EVEO_CONFIG_PATH` | 指定した設定ファイルを使います |
-| `EVEO_LANG` | `en`、`zh`、`ru`、`ja`、`ko`、`fr`、`de`、`es` のいずれか。設定ファイルの UI 言語より優先されます |
-| `EVEO_FAKE_DENY` | デモモードで、権限が不足しているものとして動作します：`screen`、`ax`、`screen,ax` |
-| `EVEO_FAKE_STOP_AFTER` | デモモードで、指定した秒数が経過した後、ユーザーが 2 番目のクライアントのキャプチャを停止したものとして動作します |
-| `EVEO_SETTINGS_PAGE` | 起動時に設定ページを直接開きます（例：`previews`） |
-| `EVEO_LOG_DIR` | ログファイルを別のフォルダに書き込みます（デフォルトは `~/Library/Logs/EVE-O Preview/`） |
-| `EVEO_STATE_DIR` | `state.json` と `session.json` を別のフォルダに保存します |
-| `EVEO_LOG_PRIVATE` | `1` にすると、非公開の値をシステムログ（コンソール）でだけ表示します。ログファイルには常に `<private>` と書かれます |
-| `EVEO_UPDATE_FEED_URL` | GitHub の代わりにこのアドレスでアップデートを確認します。`https`、またはループバックホストの `http` だけを受け付けます。ローカルの証明書で署名されたビルドは、ここからインストールできます。署名の検証は緩和されません |
-| `EVEO_UPDATE_UI_STATE` | デモモードで、アップデートの UI をサンプルの状態で表示します：`available`、`notifyonly`、`downloading`、`ready`、`failed`、`uptodate` |
-| `EVEO_FAKE_CRASH` | デモモードで `1` にすると、前回の実行がクラッシュしたものとして動作し、クラッシュレポートの確認を表示します |
-| `EVEO_STATIC_DATA` | アプリ内のものの代わりに、指定した星図データファイルを使います |
-| `EVEO_TRANSLATION_API_KEY` | `EVEOProbe translate` 専用の API キー。アプリ本体は読みません |
-
-偵察オーバーレイと翻訳オーバーレイが使う星図と艦船のデータ（星系、リージョン、スターゲート、艦船グループ、艦船と、8 つの UI 言語での名前）は、`scripts/build-sde-data.py` が CCP の静的データ（SDE）から生成し、`packaging/eve-static.json` としてアプリに同梱します。`scripts/build-app.sh` がこのファイルをアプリにコピーします。アプリは実行時にこのデータをダウンロードしません。再ビルドせずに新しいファイルを試すには、`~/Library/Application Support/EVE-O Preview/eve-static.json` に置きます。
-
-ソースは 3 つのモジュールで構成されています。`EVEOPreviewCore` は純粋なロジック層、`EVEOPreviewPlatform` は AppKit、ScreenCaptureKit、アクセシビリティ、Carbon ホットキーのラッパー、`EVEOPreview` はアプリ本体です。アーキテクチャは [docs/architecture.md](docs/architecture.md)（中国語）で説明しています。
-
-**注意：** `swift run` で実行ファイルを直接実行すると、macOS は権限を `EVE-O Preview.app` ではなく、使っているターミナルアプリに記録します。
-
-### CI とリリース
-
-`.github/workflows/build.yml` は、GitHub がホストする macOS ランナーで実行されます。
-
-- `main` へのすべてのプルリクエストと、`main` へのすべてのプッシュで、品質チェックとユニットテストを実行してから、ユニバーサル dmg とソースアーカイブをビルドします。これらは `EVE-O-Preview-<version>-pr.<number>.<commit>`（プッシュの場合は `-dev.<commit>`）という名前のワークフローアーティファクトとしてアップロードされ、30 日間保持されます。
-- `v*` タグをプッシュすると、同じファイルをビルドし、GitHub Release として公開します。タグは `VERSION` ファイルと一致している必要があります。`docs/release-notes/<tag>.md` がある場合は、それがリリースノートになります。
-
-新しいバージョンをリリースするには、プルリクエストで `VERSION` ファイルを変更して `docs/release-notes/v<version>.md` を追加し、マージしてから `main` にタグを付けます：`git tag v<version> && git push origin v<version>`。
-
-アセット名（`EVE-O-Preview-<version>.dmg`、`SHA256SUMS.txt`）、dmg の構成、署名証明書、リリースノートの形式は、アプリ内のアップデート機能との取り決めであり、CI がビルドのたびにチェックします。リリースノートでは、英語を最初に `<!-- lang:en -->` と `<!-- /lang:en -->` の間に置き、その後に同じ方法で示した zh、ja、ko、ru の折りたたみブロックを続けます。`scripts/check_release_notes.py` がこれらのマーカーをチェックします。詳細は [docs/architecture.md](docs/architecture.md) の 9.5〜9.7 節を参照してください。
+ドラッグ＆ドロップでドッキングできるリージョン、複数選択とグループ移動、取り消し、スナップガイド、Windows 版の設定のインポート、ログイン時の起動は、v1 のリリース後に予定しています。
 
 ## 免責事項
 
