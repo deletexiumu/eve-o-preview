@@ -116,7 +116,9 @@ struct SettingsStringsEN: SettingsStrings {
     var hideAllThumbnails: String { "Hide all thumbnails" }
     var hideAllHotkeyLabel: String { "Hotkey" }
     var hideAllScopeLabel: String { "Scope" }
-    var hideAllHotkeyFooter: String { "Use a modifier combination with a key (such as ⌃⌥⌘H), or with the middle or a side mouse button. The scope applies to every hotkey above." }
+    var hideAllHotkeyFooter: String {
+        "Use a modifier combination with a key (such as ⌃⌥⌘H), or with the middle or a side mouse button. All hotkeys above use the one scope chosen here."
+    }
     var charactersHeader: String { "Characters" }
     var charactersFooter: String { "The color is used for the highlight border when this character is active." }
     var noCharacters: String { "No characters yet. Start EVE and log in a character." }

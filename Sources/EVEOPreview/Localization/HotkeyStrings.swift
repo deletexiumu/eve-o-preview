@@ -60,6 +60,12 @@ protocol HotkeyStrings: Sendable {
     var scopeGlobal: String { get }
     /// 作用范围 game 的名称。
     var scopeGame: String { get }
+    /// 单选按钮里 global 一项的文字：名称加一句说明，讲清全局也包括游戏内。
+    var scopeGlobalOption: String { get }
+    /// 单选按钮里 game 一项的文字：名称加一句说明，讲清只在 EVE 窗口位于前台时生效。
+    var scopeGameOption: String { get }
+    /// 「切换与热键」页首默认范围下方的说明：每个热键只有一种范围，热键旁的标记显示并可单独修改它。
+    var defaultScopeFooter: String { get }
     /// 每行作用范围菜单的第 1 项「跟随默认」，参数是当前默认范围的名称。
     func scopeFollowDefault(_ current: String) -> String
     /// 作用范围菜单的提示文字，参数是这一行已解析的作用范围名称。

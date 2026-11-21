@@ -4,7 +4,7 @@
 // - 循环组：新建、改名、删除；成员顺序（从已知角色添加、上下移动、删除）；前进与后退热键。
 // - 每角色直达热键。
 // - 通用热键：全部隐藏、全部最小化、登录客户端循环。
-// - 页首：热键的默认作用范围（反馈文档 6.8 节），没有后缀的热键跟随它。
+// - 页首：热键的默认作用范围（反馈文档 6.8 节），没有后缀的热键跟随它；用单选按钮，表明只能选一种。
 // 每条热键旁显示它的问题（无法解析、重复、被拒绝、不能生效）与作用范围菜单，
 // 问题来自协调器当前生效的热键规划与注册器的失败项。
 
@@ -19,20 +19,27 @@ struct SwitchingPage: View {
     var body: some View {
         Form {
             Section {
-                // 默认作用范围：分段选择，写入当前配置方案的 hotkeyDefaultScope。
-                Picker(L10n.hotkeys.defaultScopeLabel, selection: model.binding(\.hotkeyDefaultScope)) {
-                    Text(L10n.hotkeys.scopeGlobal).tag(HotkeyScope.global)
-                    Text(L10n.hotkeys.scopeGame).tag(HotkeyScope.game)
-                }
-                .pickerStyle(.segmented)
+                // 默认作用范围：单选按钮，写入当前配置方案的 hotkeyDefaultScope。
+                // 不用分段控件：分段控件像两个可以同时打开的开关，让人以为一个热键能在两种范围里都设置。
+                // 单选按钮一眼看出只能选一项，选项文字再讲清「全局」也包括游戏内。
+                ScopeRadioPicker(label: L10n.hotkeys.defaultScopeLabel,
+                                 selection: model.binding(\.hotkeyDefaultScope))
+            } header: {
+                PageHeader(title: L10n.settings.pageSwitching, subtitle: L10n.hotkeys.switchingSubtitle)
+            } footer: {
+                // 说明每个热键只有一种范围，以及热键旁的标记可以单独修改它。
+                // 默认范围单独一组，说明紧贴在它下面，不与循环组混在一起。
+                Text(L10n.hotkeys.defaultScopeFooter)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section {
                 LabeledContent(L10n.hotkeys.cycleGroupsHeader) {
                     Button(L10n.hotkeys.addGroup) { model.addCycleGroup() }
                 }
                 if model.profile.cycleGroups.isEmpty {
                     Text(L10n.hotkeys.noGroups).foregroundStyle(.secondary)
                 }
-            } header: {
-                PageHeader(title: L10n.settings.pageSwitching, subtitle: L10n.hotkeys.switchingSubtitle)
             }
             // 每个循环组单独一组，组标题是循环组名称。
             ForEach(model.profile.cycleGroups) { group in

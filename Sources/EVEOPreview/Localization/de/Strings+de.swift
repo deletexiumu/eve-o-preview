@@ -146,8 +146,7 @@ struct SettingsStringsDE: SettingsStrings {
     // 「作用范围」写 Bereich，与热键域的 scopeMenuHelp 一致。
     var hideAllScopeLabel: String { "Bereich" }
     var hideAllHotkeyFooter: String {
-        "Möglich ist eine Kombination aus Sondertasten mit einer Taste (etwa ⌃⌥⌘H) oder mit der mittleren "
-            + "bzw. einer seitlichen Maustaste. Der Bereich gilt für alle Hotkeys oben."
+        "Möglich ist eine Kombination aus Sondertasten mit einer Taste (etwa ⌃⌥⌘H) oder mit der mittleren bzw. einer seitlichen Maustaste. Alle Hotkeys oben gelten in dem einen hier gewählten Bereich."
     }
     var charactersHeader: String { "Charaktere" }
     var charactersFooter: String { "Diese Farbe hat der Hervorhebungsrahmen, wenn der Charakter aktiv ist." }

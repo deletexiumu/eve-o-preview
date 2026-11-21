@@ -10,7 +10,7 @@ import Foundation
 struct HotkeyStringsZH: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
-    var switchingSubtitle: String { "循环组与热键。每个热键可以全局生效，或只在 EVE 内生效。" }
+    var switchingSubtitle: String { "循环组与热键。每个热键只按一种范围生效：全局（包括游戏内）或仅游戏内。" }
     var cycleGroupsHeader: String { "循环组" }
     var addGroup: String { "新建循环组" }
     var noGroups: String { "还没有循环组。" }
@@ -40,11 +40,14 @@ struct HotkeyStringsZH: HotkeyStrings {
 
     // MARK: 作用范围
 
-    var defaultScopeLabel: String { "热键的默认作用范围" }
+    var defaultScopeLabel: String { "热键的默认生效范围" }
     var scopeGlobal: String { "全局" }
     var scopeGame: String { "仅游戏内" }
+    var scopeGlobalOption: String { "全局：在任何应用里都生效（包括游戏内）" }
+    var scopeGameOption: String { "仅游戏内：只在 EVE 窗口位于前台时生效" }
+    var defaultScopeFooter: String { "每个热键只按一种范围生效，不会两种同时生效。热键右侧的标记显示它实际的范围，点它可以把这一个热键单独改为全局、仅游戏内，或跟随这里的默认。" }
     func scopeFollowDefault(_ current: String) -> String { "跟随默认（当前：\(current)）" }
-    func scopeMenuHelp(_ resolved: String) -> String { "作用范围：\(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "生效范围：\(resolved)。点击可单独修改这个热键。" }
     var menuHotkeysOnlyInEVE: String { "热键只在 EVE 内生效" }
 
     // MARK: 录制器

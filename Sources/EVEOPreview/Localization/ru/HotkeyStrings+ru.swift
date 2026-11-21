@@ -12,7 +12,7 @@ struct HotkeyStringsRU: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
     var switchingSubtitle: String {
-        "Группы переключения и горячие клавиши. Каждая клавиша работает везде или только в EVE."
+        "Группы переключения и горячие клавиши. У каждой клавиши одна область действия: везде (включая EVE) или только в EVE."
     }
     var cycleGroupsHeader: String { "Группы переключения" }
     var addGroup: String { "Новая группа переключения" }
@@ -48,8 +48,13 @@ struct HotkeyStringsRU: HotkeyStrings {
     var defaultScopeLabel: String { "Область действия по умолчанию" }
     var scopeGlobal: String { "Везде" }
     var scopeGame: String { "Только в EVE" }
+    var scopeGlobalOption: String { "Везде: работает в любом приложении, включая EVE" }
+    var scopeGameOption: String { "Только в EVE: работает, только когда окно EVE на переднем плане" }
+    var defaultScopeFooter: String {
+        "У каждой горячей клавиши одна область действия, а не обе сразу. Метка справа от клавиши показывает её действующую область. Нажмите на метку, чтобы выбрать для этой клавиши «Везде», «Только в EVE» или значение по умолчанию отсюда."
+    }
     func scopeFollowDefault(_ current: String) -> String { "По умолчанию (сейчас: \(current))" }
-    func scopeMenuHelp(_ resolved: String) -> String { "Область действия: \(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "Область действия: \(resolved). Нажмите, чтобы изменить её для этой клавиши." }
     var menuHotkeysOnlyInEVE: String { "Горячие клавиши только в EVE" }
 
     // MARK: 录制器

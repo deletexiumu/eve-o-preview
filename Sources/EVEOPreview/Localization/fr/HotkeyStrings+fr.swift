@@ -13,7 +13,7 @@ struct HotkeyStringsFR: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
     var switchingSubtitle: String {
-        "Groupes de cycle et raccourcis. Chaque raccourci fonctionne partout ou seulement dans EVE."
+        "Groupes de cycle et raccourcis. Chaque raccourci a une seule portée : Global (y compris dans EVE) ou Seulement dans EVE."
     }
     var cycleGroupsHeader: String { "Groupes de cycle" }
     var addGroup: String { "Nouveau groupe de cycle" }
@@ -51,8 +51,15 @@ struct HotkeyStringsFR: HotkeyStrings {
     var defaultScopeLabel: String { "Portée par défaut des raccourcis" }
     var scopeGlobal: String { "Global" }
     var scopeGame: String { "Seulement dans EVE" }
+    var scopeGlobalOption: String { "Global : fonctionne dans toutes les apps, y compris EVE" }
+    var scopeGameOption: String {
+        "Seulement dans EVE : fonctionne uniquement quand une fenêtre EVE est au premier plan"
+    }
+    var defaultScopeFooter: String {
+        "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici."
+    }
     func scopeFollowDefault(_ current: String) -> String { "Par défaut (\(current))" }
-    func scopeMenuHelp(_ resolved: String) -> String { "Portée : \(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "Portée : \(resolved). Cliquez pour la modifier pour ce raccourci." }
     var menuHotkeysOnlyInEVE: String { "Raccourcis seulement dans EVE" }
 
     // MARK: 录制器

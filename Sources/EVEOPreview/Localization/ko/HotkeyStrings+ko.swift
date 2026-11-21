@@ -10,7 +10,7 @@ import Foundation
 struct HotkeyStringsKO: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
-    var switchingSubtitle: String { "순환 그룹과 단축키. 각 단축키는 어디서나 또는 EVE 안에서만 작동합니다." }
+    var switchingSubtitle: String { "순환 그룹과 단축키. 각 단축키의 범위는 하나뿐입니다: 전역(EVE 안 포함) 또는 EVE 안에서만." }
     var cycleGroupsHeader: String { "순환 그룹" }
     var addGroup: String { "새 순환 그룹" }
     var noGroups: String { "아직 순환 그룹이 없습니다." }
@@ -43,8 +43,13 @@ struct HotkeyStringsKO: HotkeyStrings {
     var defaultScopeLabel: String { "단축키 기본 범위" }
     var scopeGlobal: String { "전역" }
     var scopeGame: String { "EVE 안에서만" }
+    var scopeGlobalOption: String { "전역: 모든 앱에서 작동(EVE 안 포함)" }
+    var scopeGameOption: String { "EVE 안에서만: EVE 창이 맨 앞에 있을 때만 작동" }
+    var defaultScopeFooter: String {
+        "각 단축키는 범위를 하나만 가지며 두 범위가 동시에 적용되지 않습니다. 단축키 오른쪽의 표시가 실제 범위를 보여 줍니다. 표시를 클릭하면 그 단축키만 전역, EVE 안에서만 또는 여기의 기본값으로 바꿀 수 있습니다."
+    }
     func scopeFollowDefault(_ current: String) -> String { "기본값 따르기(현재: \(current))" }
-    func scopeMenuHelp(_ resolved: String) -> String { "범위: \(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "범위: \(resolved). 클릭하면 이 단축키의 범위를 바꿀 수 있습니다." }
     var menuHotkeysOnlyInEVE: String { "단축키를 EVE 안에서만 사용" }
 
     // MARK: 录制器

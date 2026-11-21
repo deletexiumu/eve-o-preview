@@ -13,7 +13,9 @@ import Foundation
 struct HotkeyStringsES: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
-    var switchingSubtitle: String { "Grupos de ciclo y atajos. Cada atajo funciona en todas partes o solo en EVE." }
+    var switchingSubtitle: String {
+        "Grupos de ciclo y atajos. Cada atajo tiene un solo ámbito: Global (incluido EVE) o Solo en EVE."
+    }
     var cycleGroupsHeader: String { "Grupos de ciclo" }
     var addGroup: String { "Nuevo grupo de ciclo" }
     var noGroups: String { "Aún no hay grupos de ciclo." }
@@ -47,8 +49,13 @@ struct HotkeyStringsES: HotkeyStrings {
     var defaultScopeLabel: String { "Ámbito predeterminado de los atajos" }
     var scopeGlobal: String { "Global" }
     var scopeGame: String { "Solo en EVE" }
+    var scopeGlobalOption: String { "Global: funciona en cualquier app, incluido EVE" }
+    var scopeGameOption: String { "Solo en EVE: funciona solo mientras una ventana de EVE está al frente" }
+    var defaultScopeFooter: String {
+        "Cada atajo tiene un solo ámbito, nunca los dos. La etiqueta a la derecha de cada atajo muestra el ámbito que usa de verdad. Haz clic en ella para poner ese atajo en Global, Solo en EVE o el predeterminado elegido aquí."
+    }
     func scopeFollowDefault(_ current: String) -> String { "Usar predeterminado (\(current))" }
-    func scopeMenuHelp(_ resolved: String) -> String { "Ámbito: \(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "Ámbito: \(resolved). Haz clic para cambiarlo en este atajo." }
     var menuHotkeysOnlyInEVE: String { "Atajos solo en EVE" }
 
     // MARK: 录制器

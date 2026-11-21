@@ -10,7 +10,7 @@ import Foundation
 struct HotkeyStringsJA: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
-    var switchingSubtitle: String { "サイクルグループとホットキー。各ホットキーはどこでも、または EVE 内だけで使えます。" }
+    var switchingSubtitle: String { "サイクルグループとホットキー。各ホットキーの範囲は 1 つだけです：グローバル（EVE 内を含む）または EVE 内のみ。" }
     var cycleGroupsHeader: String { "サイクルグループ" }
     var addGroup: String { "新規サイクルグループ" }
     var noGroups: String { "サイクルグループはまだありません。" }
@@ -43,8 +43,13 @@ struct HotkeyStringsJA: HotkeyStrings {
     var defaultScopeLabel: String { "ホットキーの既定の範囲" }
     var scopeGlobal: String { "グローバル" }
     var scopeGame: String { "EVE 内のみ" }
+    var scopeGlobalOption: String { "グローバル：どのアプリでも有効（EVE 内を含む）" }
+    var scopeGameOption: String { "EVE 内のみ：EVE のウインドウが最前面のときだけ有効" }
+    var defaultScopeFooter: String {
+        "各ホットキーの範囲は 1 つだけで、両方が同時に有効になることはありません。ホットキーの右のタグが実際の範囲を示します。タグをクリックすると、そのホットキーだけをグローバル、EVE 内のみ、またはここの既定に変更できます。"
+    }
     func scopeFollowDefault(_ current: String) -> String { "既定に従う（現在：\(current)）" }
-    func scopeMenuHelp(_ resolved: String) -> String { "範囲：\(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "範囲：\(resolved)。クリックするとこのホットキーの範囲を変更できます。" }
     var menuHotkeysOnlyInEVE: String { "ホットキーを EVE 内のみで有効にする" }
 
     // MARK: 录制器

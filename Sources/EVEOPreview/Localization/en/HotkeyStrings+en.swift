@@ -9,7 +9,9 @@ import Foundation
 struct HotkeyStringsEN: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
-    var switchingSubtitle: String { "Cycle groups and hotkeys. Each hotkey works everywhere or only in EVE." }
+    var switchingSubtitle: String {
+        "Cycle groups and hotkeys. Each hotkey has exactly one scope: Global (including in EVE) or Only in EVE."
+    }
     var cycleGroupsHeader: String { "Cycle groups" }
     var addGroup: String { "New Cycle Group" }
     var noGroups: String { "No cycle groups yet." }
@@ -42,8 +44,13 @@ struct HotkeyStringsEN: HotkeyStrings {
     var defaultScopeLabel: String { "Default hotkey scope" }
     var scopeGlobal: String { "Global" }
     var scopeGame: String { "Only in EVE" }
+    var scopeGlobalOption: String { "Global: works in every app, including EVE" }
+    var scopeGameOption: String { "Only in EVE: works only while an EVE window is in front" }
+    var defaultScopeFooter: String {
+        "Each hotkey uses one scope, never both. The tag next to each hotkey shows the scope it actually uses. Click the tag to set that hotkey to Global, Only in EVE, or the default chosen here."
+    }
     func scopeFollowDefault(_ current: String) -> String { "Use Default (\(current))" }
-    func scopeMenuHelp(_ resolved: String) -> String { "Scope: \(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "Scope: \(resolved). Click to change it for this hotkey." }
     var menuHotkeysOnlyInEVE: String { "Hotkeys Only in EVE" }
 
     // MARK: 录制器
