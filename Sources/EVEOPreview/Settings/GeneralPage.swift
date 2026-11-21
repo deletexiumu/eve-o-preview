@@ -52,6 +52,9 @@ struct GeneralPage: View {
         case .ru: return AppLanguage.ru.autonym
         case .ja: return AppLanguage.ja.autonym
         case .ko: return AppLanguage.ko.autonym
+        case .fr: return AppLanguage.fr.autonym
+        case .de: return AppLanguage.de.autonym
+        case .es: return AppLanguage.es.autonym
         case .system: return L10n.settings.followSystem
         }
     }

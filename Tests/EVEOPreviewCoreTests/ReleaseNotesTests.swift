@@ -9,7 +9,7 @@ import EVEOPreviewCore
 
 /// 发布说明的选取与切块。
 struct ReleaseNotesTests {
-    /// 8.2 节格式的完整样例：英文在前，zh、ja、ko、ru 各一个可折叠的块。
+    /// 8.2 节格式的完整样例：英文在前，zh、ja、ko、ru、fr、de、es 各一个可折叠的块。
     static let sample = """
     <!-- lang:en -->
     ## What's new
@@ -56,6 +56,36 @@ struct ReleaseNotesTests {
 
     </details>
     <!-- /lang:ru -->
+
+    <!-- lang:fr -->
+    <details><summary>Français</summary>
+
+    ## Nouveautés
+
+    - Élément en français.
+
+    </details>
+    <!-- /lang:fr -->
+
+    <!-- lang:de -->
+    <details><summary>Deutsch</summary>
+
+    ## Neu
+
+    - Deutscher Eintrag.
+
+    </details>
+    <!-- /lang:de -->
+
+    <!-- lang:es -->
+    <details><summary>Español</summary>
+
+    ## Novedades
+
+    - Elemento en español.
+
+    </details>
+    <!-- /lang:es -->
     """
 
     /// 各语言应取到的正文。
@@ -65,6 +95,9 @@ struct ReleaseNotesTests {
         .ja: "## 新機能\n\n- 日本語の項目。",
         .ko: "## 새로운 기능\n\n- 한국어 항목.",
         .ru: "## Что нового\n\n- Русский пункт.",
+        .fr: "## Nouveautés\n\n- Élément en français.",
+        .de: "## Neu\n\n- Deutscher Eintrag.",
+        .es: "## Novedades\n\n- Elemento en español.",
     ]
 
     // MARK: - section(for:in:)
@@ -189,6 +222,9 @@ struct ReleaseNotesTests {
             .en: "First release of EVE-O Preview for macOS", .zh: "EVE-O Preview for macOS 的首个正式版",
             .ja: "EVE-O Preview for macOS の最初のリリース", .ko: "EVE-O Preview for macOS의 첫 정식 릴리스",
             .ru: "Первый выпуск EVE-O Preview for macOS",
+            // 1.0.0 的说明没有法、德、西文的块，这三种语言退回英文的块。
+            .fr: "First release of EVE-O Preview for macOS", .de: "First release of EVE-O Preview for macOS",
+            .es: "First release of EVE-O Preview for macOS",
         ]
         #expect(text.hasPrefix(try #require(openings[language])))
         #expect(!ReleaseNotes.blocks(from: text).isEmpty)

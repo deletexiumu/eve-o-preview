@@ -2,7 +2,7 @@
 
 # EVE-O Preview for macOS
 
-[English](README.md) | **简体中文** | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md)
+[English](README.md) | **简体中文** | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 EVE-O Preview for macOS 给每个运行中的 EVE Online 客户端显示一个实时缩略图。点击缩略图或按全局热键，即可切换到对应的客户端。
 
@@ -28,7 +28,7 @@ EVE-O Preview for macOS 给每个运行中的 EVE Online 客户端显示一个�
 - 报告问题：生成脱敏的诊断 zip，并打开预填好的 GitHub Issue；应用意外退出后，下次启动时提示报告（见[报告问题](#报告问题)）。
 - 菜单栏图标，代替 Windows 版的托盘图标。
 - 设置窗口共 8 页：客户端、预览与布局、切换与热键、提醒、配置方案、通用、权限、关于。
-- 界面语言：英文（默认）、中文、俄文、日文、韩文，在「通用」页切换，也可以选「跟随系统」，切换后立即生效。俄、日、韩文的译文由机器生成，欢迎指正。
+- 界面语言：英文（默认）、中文、俄文、日文、韩文、法文、德文、西班牙文，在「通用」页切换，也可以选「跟随系统」，切换后立即生效。俄、日、韩、法、德、西文的译文由机器生成，欢迎指正。
 
 ## 未移植的上游功能
 
@@ -246,7 +246,7 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 | 变量 | 作用 |
 | --- | --- |
 | `EVEO_CONFIG_PATH` | 使用指定的配置文件 |
-| `EVEO_LANG` | `en`、`zh`、`ru`、`ja` 或 `ko`，覆盖配置里的界面语言 |
+| `EVEO_LANG` | `en`、`zh`、`ru`、`ja`、`ko`、`fr`、`de` 或 `es`，覆盖配置里的界面语言 |
 | `EVEO_FAKE_DENY` | 演示模式下假装缺少权限，取值 `screen`、`ax` 或 `screen,ax` |
 | `EVEO_FAKE_STOP_AFTER` | 演示模式下，到指定秒数时假装用户停止了第二个客户端的捕获 |
 | `EVEO_SETTINGS_PAGE` | 启动后直接打开设置窗口的某一页，如 `previews` |

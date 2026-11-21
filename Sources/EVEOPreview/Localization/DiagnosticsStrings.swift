@@ -99,6 +99,9 @@ extension L10n {
         case .ru: return DiagnosticsStringsRU()
         case .ja: return DiagnosticsStringsJA()
         case .ko: return DiagnosticsStringsKO()
+        case .fr: return DiagnosticsStringsFR()
+        case .de: return DiagnosticsStringsDE()
+        case .es: return DiagnosticsStringsES()
         }
     }
 }

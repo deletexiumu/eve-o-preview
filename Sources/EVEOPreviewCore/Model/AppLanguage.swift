@@ -18,8 +18,14 @@ public enum AppLanguage: String, Sendable, Codable, CaseIterable {
     case ja
     /// 韩文。
     case ko
+    /// 法文。
+    case fr
+    /// 德文。
+    case de
+    /// 西班牙文。
+    case es
 
-    /// 语言的自称，不随界面语言变化：English、中文、Русский、日本語、한국어。
+    /// 语言的自称，不随界面语言变化：English、中文、Русский、日本語、한국어、Français、Deutsch、Español。
     public var autonym: String {
         switch self {
         case .en: return "English"
@@ -27,13 +33,16 @@ public enum AppLanguage: String, Sendable, Codable, CaseIterable {
         case .ru: return "Русский"
         case .ja: return "日本語"
         case .ko: return "한국어"
+        case .fr: return "Français"
+        case .de: return "Deutsch"
+        case .es: return "Español"
         }
     }
 
     /// 按语言代码的第一个子标签找语言：去掉首尾空白并转小写，取第一个 `-` 或 `_` 之前的部分，
     /// 与某个受支持的代码完全相同时返回它。
     ///
-    /// 例如 `zh-Hans-CN` 对应 `zh`，`ru-RU` 对应 `ru`，`zh_CN` 对应 `zh`；`de-DE` 与空串返回 nil。
+    /// 例如 `zh-Hans-CN` 对应 `zh`，`ru-RU` 对应 `ru`，`zh_CN` 对应 `zh`，`de-DE` 对应 `de`；`it-IT` 与空串返回 nil。
     /// 只比子标签、不比前缀：`kok-IN`（孔卡尼语）、`rue`（卢森尼亚语）、`jam`、`zha` 不会被当成 ko、ru、ja、zh。
     static func matching(prefixOf code: String) -> AppLanguage? {
         let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -54,6 +63,12 @@ public enum LanguagePreference: String, Sendable, Codable, CaseIterable {
     case ja
     /// 韩文。
     case ko
+    /// 法文。
+    case fr
+    /// 德文。
+    case de
+    /// 西班牙文。
+    case es
     /// 跟随系统的首选语言。
     case system
 
@@ -75,6 +90,9 @@ public enum LanguagePreference: String, Sendable, Codable, CaseIterable {
         case .ru: return .ru
         case .ja: return .ja
         case .ko: return .ko
+        case .fr: return .fr
+        case .de: return .de
+        case .es: return .es
         case .system:
             for code in preferredLanguages {
                 if let language = AppLanguage.matching(prefixOf: code) { return language }

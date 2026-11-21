@@ -107,6 +107,9 @@ extension L10n {
         case .ru: return HotkeyStringsRU()
         case .ja: return HotkeyStringsJA()
         case .ko: return HotkeyStringsKO()
+        case .fr: return HotkeyStringsFR()
+        case .de: return HotkeyStringsDE()
+        case .es: return HotkeyStringsES()
         }
     }
 }

@@ -6,7 +6,7 @@
 
 规则：
 - 每个 `<!-- lang:xx -->` 后面有对应的 `<!-- /lang:xx -->`，不嵌套、不重复。
-- 语言代码只能是 en、zh、ja、ko、ru，且 en 块存在。
+- 语言代码只能是 en、zh、ja、ko、ru、fr、de、es，且 en 块存在。
 - 除 en 外，每块里的 `<details>` 与 `</details>` 成对。
 
 用法：python3 scripts/check_release_notes.py [文件 ...]，默认检查 docs/release-notes/*.md。
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 # 应用支持的界面语言代码，与发布说明的语言块一一对应。
-LANGUAGES = ("en", "zh", "ja", "ko", "ru")
+LANGUAGES = ("en", "zh", "ja", "ko", "ru", "fr", "de", "es")
 
 # 标记的写法：<!-- lang:xx --> 与 <!-- /lang:xx -->，注释两端的空白可有可无。
 MARKER = re.compile(r"<!--\s*(/?)lang:([A-Za-z-]+)\s*-->")

@@ -2,7 +2,7 @@
 
 # EVE-O Preview for macOS
 
-**English** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md)
+**English** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 EVE-O Preview for macOS shows a live thumbnail of every running EVE Online client. Click a thumbnail or press a global hotkey to switch to that client.
 
@@ -28,7 +28,7 @@ This repository started as a GitHub fork of EveOPlus/eve-o-preview and was moved
 - Problem reports: builds a redacted diagnostics zip and opens a prefilled GitHub issue; after an unexpected quit, the next launch offers to report it (see [Reporting a problem](#reporting-a-problem)).
 - A menu bar icon in place of the Windows tray icon.
 - An 8-page settings window: Clients, Previews & Layout, Switching & Hotkeys, Alerts, Profiles, General, Permissions and About.
-- UI languages: English (default), Chinese, Russian, Japanese and Korean. Switch on the General page, or choose "Follow System"; the change takes effect immediately. The Russian, Japanese and Korean translations are machine-generated; corrections are welcome.
+- UI languages: English (default), Chinese, Russian, Japanese, Korean, French, German and Spanish. Switch on the General page, or choose "Follow System"; the change takes effect immediately. The Russian, Japanese, Korean, French, German and Spanish translations are machine-generated; corrections are welcome.
 
 ## Upstream features not ported
 
@@ -246,7 +246,7 @@ Demo mode writes its configuration to `config-fake.json` in the same folder, lea
 | Variable | Purpose |
 | --- | --- |
 | `EVEO_CONFIG_PATH` | Use the given configuration file |
-| `EVEO_LANG` | `en`, `zh`, `ru`, `ja` or `ko`; overrides the UI language in the configuration |
+| `EVEO_LANG` | `en`, `zh`, `ru`, `ja`, `ko`, `fr`, `de` or `es`; overrides the UI language in the configuration |
 | `EVEO_FAKE_DENY` | In demo mode, pretend a permission is missing: `screen`, `ax` or `screen,ax` |
 | `EVEO_FAKE_STOP_AFTER` | In demo mode, pretend the user stopped the second client's capture after this many seconds |
 | `EVEO_SETTINGS_PAGE` | Open a settings page directly on launch, such as `previews` |

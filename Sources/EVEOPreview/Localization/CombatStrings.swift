@@ -91,6 +91,9 @@ extension L10n {
         case .ru: return CombatStringsRU()
         case .ja: return CombatStringsJA()
         case .ko: return CombatStringsKO()
+        case .fr: return CombatStringsFR()
+        case .de: return CombatStringsDE()
+        case .es: return CombatStringsES()
         }
     }
 }
