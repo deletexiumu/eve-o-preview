@@ -2,11 +2,13 @@
 //
 // 两个浮窗面板的管理器（docs/design-intel-translate.md 8.7 节）：按规划器给出的呈现建、改、关面板，
 // 把内容交给面板，把拖动与右键菜单的结果交给委托（协调器）。面板不知道预警与翻译的区别。
-// WP-0 的骨架：方法不做事，没有面板。面板、列表、手势与菜单归 WP-A。
+// - apply：呈现里没有的浮窗（功能没启用）关掉面板；有的建或更新。拖动中的浮窗不应用 frame。
+// - setContent：只交给已有的面板；协调器在浮窗变成可见时会再补一次内容，所以没有面板时直接丢弃。
+// - visibleFrames：作为缩略图与另一个浮窗拖动时的吸附目标。
 
 import EVEOPreviewCore
 
-/// 浮窗右键菜单里交给协调器处理的动作（「滚动到最新」「复制这一条」由面板自己处理）。
+/// 浮窗右键菜单里交给协调器处理的动作（「滚动到最新」「复制这一条」「在浏览器中打开」由面板与菜单自己处理）。
 enum OverlayMenuAction {
     /// 清空活动角色在这个浮窗里的缓冲。
     case clear
@@ -46,24 +48,53 @@ struct OverlayDragContext {
 
 /// 浮窗面板的管理器。全部方法在主线程调用。
 @MainActor final class InfoOverlayManager {
-    /// 委托。
-    weak var delegate: InfoOverlayDelegate?
+    /// 委托；变了时同步给已有的面板。
+    weak var delegate: InfoOverlayDelegate? {
+        didSet {
+            for controller in controllers.values { controller.delegate = delegate }
+        }
+    }
+    /// 已建的面板控制器，按种类存放。
+    private var controllers: [OverlayKind: InfoOverlayController] = [:]
 
-    /// 按呈现建、改、关面板。interacting 里的浮窗正在拖动，不应用 frame。骨架：不做事。
-    func apply(_ presentations: [OverlayPresentation], interacting: Set<OverlayKind>) {}
+    /// 按呈现建、改、关面板。interacting 里的浮窗正在拖动，不应用 frame。
+    func apply(_ presentations: [OverlayPresentation], interacting: Set<OverlayKind>) {
+        let wanted = Set(presentations.map(\.kind))
+        for (kind, controller) in controllers where !wanted.contains(kind) {
+            controller.close()
+            controllers[kind] = nil
+        }
+        for presentation in presentations {
+            let controller = controllers[presentation.kind]
+                ?? InfoOverlayController(presentation: presentation, delegate: delegate)
+            controllers[presentation.kind] = controller
+            controller.apply(presentation, isInteracting: interacting.contains(presentation.kind))
+        }
+    }
 
-    /// 把内容交给某个浮窗的面板。骨架：不做事。
-    func setContent(_ content: OverlayContent, for kind: OverlayKind) {}
+    /// 把内容交给某个浮窗的面板；没有面板时丢弃。
+    func setContent(_ content: OverlayContent, for kind: OverlayKind) {
+        controllers[kind]?.setContent(content)
+    }
 
-    /// 当前可见的浮窗。骨架：没有。
-    func visibleKinds() -> Set<OverlayKind> { [] }
+    /// 当前可见的浮窗。
+    func visibleKinds() -> Set<OverlayKind> {
+        Set(controllers.values.filter(\.isVisible).map(\.kind))
+    }
 
-    /// 可见浮窗当前的 frame，作为吸附目标；excluding 为 nil 时全部列出。骨架：没有。
-    func visibleFrames(excluding kind: OverlayKind?) -> [ScreenRect] { [] }
+    /// 可见浮窗当前的 frame，作为吸附目标；excluding 为 nil 时全部列出。
+    func visibleFrames(excluding kind: OverlayKind?) -> [ScreenRect] {
+        controllers.values.filter { $0.isVisible && $0.kind != kind }.map(\.currentFrame)
+    }
 
-    /// 某个浮窗面板当前的 frame（拖动的起点）；没有面板时为 nil。骨架：总是 nil。
-    func currentFrame(for kind: OverlayKind) -> ScreenRect? { nil }
+    /// 某个浮窗面板当前的 frame（拖动的起点）；没有面板时为 nil。
+    func currentFrame(for kind: OverlayKind) -> ScreenRect? {
+        controllers[kind]?.currentFrame
+    }
 
-    /// 关闭全部面板。退出前调用。骨架：不做事。
-    func closeAll() {}
+    /// 关闭全部面板。退出前调用。
+    func closeAll() {
+        for controller in controllers.values { controller.close() }
+        controllers.removeAll()
+    }
 }
