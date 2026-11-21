@@ -11,7 +11,23 @@ public enum ClientWindowSelector {
     /// 500×500 的辅助窗口面积大于 640×360，但宽度不足 640，应排除。
     public static let minimumUntitledSize = ScreenSize(width: 640, height: 360)
 
-    /// 每个 PID 选出一个主窗口。输入是该 bundle id 下全部 layer 0 窗口。
+    /// 状态栏的窗口层级（`kCGStatusWindowLevel`）。
+    public static let statusWindowLevel = 25
+
+    /// 窗口层级是否可能是客户端主窗口（v1.1.1）：普通窗口在 layer 0。EVE 用原生全屏时，前台（关键）客户端的
+    /// 主窗口在 layer 25（状态栏层级），实测 2026-11-21；只认 layer 0 时它会从列表里消失，缩略图跟着收起。
+    /// 所以也接受 1 到状态栏层级之间、不透明的窗口。全屏时那个透明的 44 点高辅助窗口按透明度排除，
+    /// 其余辅助窗口由 `mainWindows(from:)` 按标题与尺寸排除。
+    ///
+    /// - Parameters:
+    ///   - layer: `kCGWindowLayer`。
+    ///   - alpha: `kCGWindowAlpha`；读不到时传 0。
+    public static func isCandidateLayer(_ layer: Int, alpha: Double) -> Bool {
+        if layer == 0 { return true }
+        return layer > 0 && layer <= statusWindowLevel && alpha > 0
+    }
+
+    /// 每个 PID 选出一个主窗口。输入是该 bundle id 下层级符合 `isCandidateLayer` 的全部窗口。
     ///
     /// 同一 PID 下：
     /// 1. 先取标题能解析成角色或登录的窗口。

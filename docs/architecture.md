@@ -776,7 +776,7 @@ public struct CapturedFrame: @unchecked Sendable {
 `CGWindowProvider`（`actor`）每次调用做以下事情：
 
 1. 调 `CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID)`。
-2. 只留 `kCGWindowLayer == 0` 的窗口。对每个 `kCGWindowOwnerPID`，用 `NSRunningApplication(processIdentifier:)?.bundleIdentifier` 判断是不是 `com.ccpgames.eveonline`，肯定结果按 PID 缓存到 PID 消失；否定结果缓存 30 秒；取不到 bundle id 时不缓存，下一轮重查。
+2. 只留 `ClientWindowSelector.isCandidateLayer` 认可的窗口：`kCGWindowLayer == 0`，或层级在 1～25（状态栏层级）且不透明。v1.1.1 起加后一种：EVE 原生全屏时，前台客户端的主窗口在 layer 25，只认 layer 0 时它会从列表里消失、缩略图跟着收起。对每个 `kCGWindowOwnerPID`，用 `NSRunningApplication(processIdentifier:)?.bundleIdentifier` 判断是不是 `com.ccpgames.eveonline`，肯定结果按 PID 缓存到 PID 消失；否定结果缓存 30 秒；取不到 bundle id 时不缓存，下一轮重查。
 3. 填 `WindowInfo`：`title` 取 `kCGWindowName`，空串记为 `nil`；`frame` 取 `kCGWindowBounds`；`isOnScreen` 取 `kCGWindowIsOnscreen`，缺失记为 `false`。
 4. 如果有辅助功能权限，经 `AXWorker` 读每个 PID 的 AX 窗口的 `kAXTitleAttribute` 与 `kAXMinimizedAttribute`。结果写到该 PID 下标题相同的窗口；没有标题相同的窗口时，写到面积最大的窗口（补上 `title`，填 `isMinimized`）。AX 超时或失败时保留上一轮的值。
 
@@ -865,6 +865,8 @@ macOS 14 起应用激活是协作式的，系统不保证后台应用的激活�
 `minimize(_:)` 经 `AXWorker` 把窗口的 `kAXMinimizedAttribute` 设为真；没有权限返回 `.failure(.accessibilityDenied)`。
 
 用户已同意（Q2）把私有接口 `_SLPSSetFrontProcessWithOptions` 作为后备：第 5 步核对仍不在前台时，用 `GetProcessForPID` 取 `ProcessSerialNumber`，经 `dlsym` 在 SkyLight 框架里查找该符号并调用（`kCPSUserGenerated`），再核对一次。符号查找失败时跳过这一步，不崩溃。后备方案放在 `Windows/PrivateActivation.swift` 一个文件里，便于以后移除。
+
+v1.1.1 起，AX 窗口列表里找不到目标窗口时（窗口在其他空间里，典型情况是原生全屏的客户端），`AXWorker.raise` 用同一个文件里的私有接口切到它所在的空间：`_SLPSSetFrontProcessWithOptions` 指定窗口、`SLPSPostEventRecordTo` 把它设为关键窗口、`_AXUIElementCreateWithRemoteToken` 按元素编号取出它的 AX 元素，再照常还原、提升。按编号查找每次约 22 毫秒，`AXWorker` 记住找到的编号，下次先试它。实测（2026-11-21，两个全屏客户端）第一次切换约 2.1 秒，空间在约 430 毫秒时开始切换；之后约 0.3 秒。
 
 ### 6.5 热键
 
@@ -1315,7 +1317,7 @@ WP-C 用 `FakeServices` 代替 Platform，不等 WP-B。
 | R1 | ad-hoc 签名导致每次构建后重新授权 | 9.2 节的自签名证书 |
 | R2 | 运行捕获时系统在菜单栏显示录制指示器，用户可能从那里停止捕获 | `stoppedByUser` 状态、占位画面、菜单里的「恢复捕获」 |
 | R3 | EVE 窗口被销毁重建（切换显示模式）时窗口 ID 变化 | 运行时按新客户端处理；布局按角色名保存，不受影响 |
-| R4 | EVE 用原生全屏时，切换客户端会带来空间切换动画 | 在 README 里说明宜用窗口模式；面板已设 `fullScreenAuxiliary` |
+| R4 | EVE 用原生全屏时，切换客户端会带来空间切换动画 | 在 README 里说明宜用窗口模式；面板已设 `fullScreenAuxiliary`；v1.1.1 起能切到其他全屏空间里的客户端（6.4 节） |
 | R5 | AX 调用在客户端卡顿时变慢 | AX 全部走 `AXWorker`，超时 0.25 秒，激活的第 3 步不等 AX |
 | R6 | 客户端数量多时的能耗 | 分辨率跟随缩略图、隐藏即停流、帧率可调；10.3 节第 14 项实测 |
 | R7 | EVE 的最终用户许可协议 | 本工具只切换焦点，不广播输入，与上游的边界相同；「关于」页写明 |

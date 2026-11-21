@@ -126,12 +126,29 @@ public actor AXWorker {
     ///   - title: 目标窗口标题，进程有多个 AX 窗口时用来匹配；nil 时不按标题匹配。
     ///   - request: `beginRaiseRequest()` 领到的序号。开始前和每次写操作前核对，
     ///     已不是最新的请求时返回 `.superseded`；nil 时不核对。
+    ///   - windowID: 目标窗口的 `CGWindowID`。AX 窗口列表里找不到目标（窗口在其他空间，如全屏客户端）
+    ///     且 `allowPrivate` 为真时，用私有接口切到它所在的空间（见 PrivateActivation.swift）。
+    ///   - allowPrivate: 是否允许上面的私有接口后备。
     /// - Returns: 各子步骤的结果；没有权限或找不到窗口时返回对应的错误。
-    public func raise(pid: Int32, title: String?, request: UInt64? = nil) -> AXRaiseResult {
+    public func raise(pid: Int32, title: String?, request: UInt64? = nil, windowID: UInt32? = nil,
+                      allowPrivate: Bool = false) -> AXRaiseResult {
         guard AXWorker.isTrusted else { return .failed(.accessibilityDenied) }
         guard isLatest(request) else { return .superseded }
         let app = applicationElement(pid)
-        guard let window = window(of: pid, app: app, title: title) else { return .failed(.windowNotFound) }
+        var found = window(of: pid, app: app, title: title)
+        if found == nil, allowPrivate, let windowID, windowID != 0 {
+            // 先设前台进程与关键窗口，再取远程 AX 元素；后面的 AXRaise 让系统切到它所在的空间。
+            let front = PrivateActivation.bringToFront(pid: pid, windowID: windowID)
+            let key = PrivateActivation.makeKeyWindow(pid: pid, windowID: windowID)
+            let hint = remoteElementIDs[RemoteKey(pid: pid, windowID: windowID)] ?? lastRemoteElementID
+            if let (element, elementID) = PrivateActivation.remoteWindowElement(pid: pid, windowID: windowID,
+                                                                                hint: hint) {
+                found = element
+                rememberRemoteElement(elementID, pid: pid, windowID: windowID)
+            }
+            log.info("AX 列表里没有窗口 \(windowID)，切换空间：前台 \(String(describing: front), privacy: .public)，关键窗口 \(String(describing: key), privacy: .public)，远程元素 \(found != nil)")
+        }
+        guard let window = found else { return .failed(.windowNotFound) }
         let wasMinimized = boolAttribute(window, kAXMinimizedAttribute)
         var unminimize: AXError?
         if wasMinimized == true {
@@ -161,6 +178,26 @@ public actor AXWorker {
         }
         let status = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
         return status == .success ? .success(()) : .failure(.axFailure(code: status.rawValue))
+    }
+
+    // MARK: - 远程元素编号
+
+    /// 远程令牌缓存的键。
+    private struct RemoteKey: Hashable {
+        var pid: Int32
+        var windowID: UInt32
+    }
+
+    /// 已找到的远程元素编号，下次直接先试它。最多记 64 条，超过时清空重记。
+    private var remoteElementIDs: [RemoteKey: UInt64] = [:]
+    /// 最近一次找到的编号：同一程序的窗口编号往往相同（EVE 各客户端都是 42），没有缓存时先试它。
+    private var lastRemoteElementID: UInt64?
+
+    /// 记下找到的编号。
+    private func rememberRemoteElement(_ elementID: UInt64, pid: Int32, windowID: UInt32) {
+        if remoteElementIDs.count >= 64 { remoteElementIDs.removeAll() }
+        remoteElementIDs[RemoteKey(pid: pid, windowID: windowID)] = elementID
+        lastRemoteElementID = elementID
     }
 
     // MARK: - 私有

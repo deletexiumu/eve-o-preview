@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 窗口枚举（架构文档 6.2 节）。用 CGWindowList 找出 EVE 客户端进程的全部 layer 0 窗口，
+// 窗口枚举（架构文档 6.2 节）。用 CGWindowList 找出 EVE 客户端进程的候选窗口（layer 0，全屏时另有 layer 25），
 // 再用 AX 补全标题与最小化状态。actor 隔离，查询不占主线程。
 // PID 一律取自 kCGWindowOwnerPID：NSRunningApplication.processIdentifier 对 EVE 进程返回 -1（事实 E5）。
 
@@ -39,7 +39,7 @@ public actor CGWindowProvider: WindowProvider {
         self.bundleIdentifier = bundleIdentifier
     }
 
-    /// 返回 EVE 客户端进程的全部 layer 0 窗口，有辅助功能权限时已用 AX 补全标题与最小化状态。
+    /// 返回 EVE 客户端进程的全部候选窗口（层级规则见 `isCandidateLayer`），有辅助功能权限时已用 AX 补全标题与最小化状态。
     /// 出错时返回空数组并记日志，不抛错。
     public func candidateWindows() async -> [WindowInfo] {
         var windows = cgWindows()
@@ -64,8 +64,8 @@ public actor CGWindowProvider: WindowProvider {
         for entry in raw {
             guard let pid = (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value else { continue }
             seenPIDs.insert(pid)
-            guard (entry[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
-                  isTargetProcess(pid), let window = windowInfo(from: entry, pid: pid) else { continue }
+            guard Self.isCandidateLayer(entry), isTargetProcess(pid),
+                  let window = windowInfo(from: entry, pid: pid) else { continue }
             result.append(window)
         }
         // 进程退出后清掉它的缓存；PID 以后被别的进程复用时会重新判断。
@@ -73,6 +73,13 @@ public actor CGWindowProvider: WindowProvider {
         nonTargetCheckedAt = nonTargetCheckedAt.filter { seenPIDs.contains($0.key) }
         lastAXStates = lastAXStates.filter { seenPIDs.contains($0.key) }
         return result
+    }
+
+    /// 窗口层级是否可能是客户端主窗口，规则见 `ClientWindowSelector.isCandidateLayer`（含全屏时的 layer 25）。
+    static func isCandidateLayer(_ entry: [String: Any]) -> Bool {
+        guard let layer = (entry[kCGWindowLayer as String] as? NSNumber)?.intValue else { return false }
+        let alpha = (entry[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 0
+        return ClientWindowSelector.isCandidateLayer(layer, alpha: alpha)
     }
 
     /// 判断 PID 是否属于目标 bundle id。
