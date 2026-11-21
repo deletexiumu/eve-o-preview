@@ -1732,7 +1732,7 @@ public protocol TranslationCacheStore: Sendable {
 1. 地址取 `settings.baseURL`，为空时取预设地址；模型同理。地址为空返回 `missingBaseURL`，模型为空返回 `missingModel`。
 2. 地址应能解析成 URL，协议是 `http` 或 `https`，有主机，不带用户名、密码、查询串与片段。否则返回 `invalidURL`。
 3. 协议是 `http` 且 `isLocalHost(主机)` 为假时返回 `insecureRemoteHTTP`。
-4. `isLocalHost`：`localhost`；以 `.local` 结尾；不含 `.` 且不是 IP 的主机名；IPv4 的 `127.0.0.0/8`、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`169.254.0.0/16`；IPv6 的 `::1`、`fc00::/7`、`fe80::/10`。
+4. `isLocalHost`：先把全角句点 `。`、`．`、`｡` 换成 `.`；`localhost`；以 `.local` 结尾；不含 `.`、只由 ASCII 字母、数字与 `-` 组成的主机名；IPv4 的 `127.0.0.0/8`、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`169.254.0.0/16`；IPv6 的 `::1`、`fc00::/7`、`fe80::/10`。
 
 ### 7.4 请求与答复
 
@@ -1749,7 +1749,7 @@ Anthropic 接口：
 
 - 地址：`baseURL` 的路径以 `/v1` 结尾时是 `<baseURL>/messages`，否则是 `<baseURL>/v1/messages`。
 - 请求头：`Content-Type: application/json`、`x-api-key: <Key>`、`anthropic-version: 2026-10-21`。
-- 请求体：`{"model": …, "max_tokens": 8192, "system": …, "messages": [{"role": "user", "content": …}]}`。`max_tokens` 取 8,192：默认模型会先思考，思考的输出也计入这个上限（A1）。
+- 请求体：`{"model": …, "max_tokens": 16000, "system": …, "messages": [{"role": "user", "content": …}]}`。`max_tokens` 取 16,000：默认模型会先思考，思考的输出也计入这个上限（A1）。2026 年 11 月 21 日按审查意见由 8,192 调高。
 - 答复：`stop_reason` 是 `refusal` 时是 `refused`，是 `max_tokens` 时是 `truncated`。其余情况把 `content` 里 `type` 是 `text` 的各块的 `text` 连起来，别的块（如思考）忽略。没有文字时是 `malformedAnswer`。
 
 两种接口共同的规则：
@@ -1767,13 +1767,15 @@ Anthropic 接口：
 | 401、403 | `unauthorized` | 是 | 暂停，等用户改 Key 或点重试 |
 | 404 | `notFound` | 是 | 暂停 |
 | 402 | `insufficientBalance` | 是 | 暂停 |
-| 429 | `rateLimited(retryAfter:)`。取 `retry-after` 头里的秒数，夹到 5～600；没有这个头或解析不了时取 30 | 否 | 到时自动重试 |
+| 429 | `rateLimited(retryAfter:)`。取 `retry-after` 头里的秒数，夹到 5～600；没有这个头或解析不了时为 `nil`，由队列按 30、60、120 秒直到 600 秒加倍等待，成功一次后复位 | 否 | 到时自动重试 |
 | 408、409、5xx | `server(status:)` | 否 | 30 秒后重试；连续失败时每次加倍，上限 300 秒 |
 | 3xx 与其他 4xx | `rejected(status:message:)`，`message` 取答复里 `error.message`（没有时取 `message`）的前 200 个字符 | 是 | 暂停 |
 | 发送失败（连不上、超时） | `network` | 否 | 同 `server` |
 
 - `notConfigured`、`missingKey`、`keychainUnavailable` 在发请求之前判断，都是致命的。
-- `malformedAnswer`、`refused`、`truncated` 只影响这一批：这一批消息标成 `failed`，不重试同一批，队列继续处理后面的消息。
+- `malformedAnswer`、`refused` 只影响这一批：这一批消息标成 `failed`，不重试同一批，队列继续处理后面的消息。
+- `truncated`：这一批多于 1 条时退回 `pending`，之后每批的上限减半；只有 1 条时标成 `failed`。每成功一批，上限加倍，最多回到 20 条。
+- 模型返回的译文与原文的比较键相同，或目标是英、法、德、西班牙文而模型判断的原文语言就是目标语言时，这条记为 `skipped(.sameLanguage)`，不重复显示原文。
 - 致命的失败让队列进入 `blocked`。接口设置或 Key 变了、或用户点「立即重试」时调 `reset`。
 - 失败的原因显示在两处：翻译浮窗的状态行，「翻译」页的状态行。`rejected` 的 `message` 只显示在界面上，不写进日志。
 
@@ -1806,7 +1808,7 @@ Anthropic 接口：
 - `takeBatch(now:)` 在以下任一情况返回 `nil`：状态是 `blocked`；状态是 `waiting` 且还没到时刻；有一批在途；没有 `pending` 的消息；最早的 `pending` 消息进入队列还不足 1 秒。同一时刻只有一批在途。
 - `nextBatch`：按进入队列的顺序看 `pending` 的消息。`cacheKey` 相同的只取第一条。每条送去翻译的文字至多 500 个字符。一批至多 20 条、合计至多 6,000 个字符；第一条总是能取。
 - `complete`：这一批里有结果的消息改成 `done`，没有结果的改成 `failed`。队列里 `cacheKey` 相同的其他 `pending` 消息一并改成 `done`。状态回到 `idle`。
-- `fail`：致命的失败时这一批回到 `pending`，状态改成 `blocked`。`rateLimited`、`server`、`network` 时这一批回到 `pending`，状态改成 `waiting(until: now + 等待时长)`。`malformedAnswer`、`refused`、`truncated` 时这一批改成 `failed`，状态回到 `idle`。
+- `fail`：致命的失败时这一批回到 `pending`，状态改成 `blocked`。`rateLimited`、`server`、`network` 时这一批回到 `pending`，状态改成 `waiting(until: now + 等待时长)`。`malformedAnswer`、`refused` 时这一批改成 `failed`，状态回到 `idle`；`truncated` 的处理见 7.5 节。
 - `reset(now:)`：状态回到 `idle`，连续失败的计数清零，最近 600 秒内 `failed` 的消息改回 `pending`。
 - 目标语言变了：`TranslationController` 调 `removeAll()`，再把缓冲里的消息按新的目标语言重新判断一遍。
 
