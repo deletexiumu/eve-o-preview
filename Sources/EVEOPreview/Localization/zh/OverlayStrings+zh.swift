@@ -27,7 +27,10 @@ struct OverlayStringsZH: OverlayStrings {
     var opacity: String { "背景不透明度" }
     var fontSize: String { "字号" }
     var resetFrame: String { "恢复默认位置" }
-    var gestureHelp: String { "右键拖动或按住 Option 用左键拖动可移动浮窗，从边缘拖动可缩放，滚轮可滚动列表。" }
+    var gestureHelp: String { "右键拖动或按住 Option 用左键拖动可移动浮窗；鼠标移到边缘后直接用左键拖动可缩放；滚轮可滚动列表。" }
+    var positionLabel: String { "位置" }
+    var sizeLabel: String { "尺寸" }
+    var frameHelp: String { "位置以主屏左上角为原点，单位是点。尺寸限 220×120 到 900×900；移出屏幕时会被拉回。" }
 
     // MARK: 频道列表
     var channelsHeader: String { "频道" }

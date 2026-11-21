@@ -112,8 +112,7 @@ public enum OverlayPlanner {
         var presentations: [OverlayPresentation] = []
         for kind in OverlayKind.allCases {
             guard let settings = enabledSettings(kind, profile: input.profile) else { continue }
-            let frame = settings.frame.map { clampedFrame($0, screens: input.screens) }
-                ?? defaultFrame(kind: kind, screens: input.screens)
+            let frame = resolvedFrame(settings.frame, kind: kind, screens: input.screens)
             presentations.append(OverlayPresentation(
                 kind: kind, isVisible: !hidden, frame: frame,
                 opacity: clamp(settings.opacity, to: OverlayPanelSettings.opacityRange, fallback: 0.75),
@@ -171,6 +170,46 @@ public enum OverlayPlanner {
         result.x = min(max(result.x, target.minX - width + margin), max(target.minX, target.maxX - margin))
         result.y = min(max(result.y, target.minY - height + margin), max(target.minY, target.maxY - margin))
         return result
+    }
+
+    /// 浮窗实际使用的 frame：保存过时取 `clampedFrame` 的结果，否则取 `defaultFrame`。
+    /// 规划与设置页的数字框共用它，设置页显示的数值与浮窗实际位置一致。
+    public static func resolvedFrame(_ saved: ScreenRect?, kind: OverlayKind, screens: [ScreenInfo]) -> ScreenRect {
+        saved.map { clampedFrame($0, screens: screens) } ?? defaultFrame(kind: kind, screens: screens)
+    }
+
+    /// 设置页可以手工填写的 frame 字段（v1.2.1）。
+    public enum FrameField: Sendable, CaseIterable {
+        /// 左边的 x 坐标。
+        case x
+        /// 上边的 y 坐标（y 轴向下）。
+        case y
+        /// 宽度。
+        case width
+        /// 高度。
+        case height
+    }
+
+    /// 在设置页改了一个字段后的新 frame：取整后写进该字段，再经 `clampedFrame` 夹尺寸、拉回屏幕。
+    ///
+    /// - Parameters:
+    ///   - base: 改之前的 frame，一般是 `resolvedFrame` 的结果（没保存过时就是默认位置，写入后即保存下来）。
+    ///   - field: 改的字段。
+    ///   - value: 用户填写的数值。
+    ///   - screens: 当前屏幕。
+    /// - Returns: 新 frame；数值不是有限值时为 nil，调用方不写配置。
+    public static func editedFrame(_ base: ScreenRect, field: FrameField, value: Double,
+                                   screens: [ScreenInfo]) -> ScreenRect? {
+        guard value.isFinite else { return nil }
+        var frame = base
+        let rounded = value.rounded()
+        switch field {
+        case .x: frame.x = rounded
+        case .y: frame.y = rounded
+        case .width: frame.width = rounded
+        case .height: frame.height = rounded
+        }
+        return clampedFrame(frame, screens: screens)
     }
 
     // MARK: - 内部

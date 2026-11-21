@@ -28,7 +28,10 @@ struct OverlayStringsKO: OverlayStrings {
     var opacity: String { "배경 불투명도" }
     var fontSize: String { "글자 크기" }
     var resetFrame: String { "위치를 기본값으로 되돌리기" }
-    var gestureHelp: String { "오른쪽 버튼으로 드래그하거나 Option을 누른 채 왼쪽 버튼으로 드래그해 이동하고, 가장자리를 드래그해 크기를 바꾸며, 스크롤해 목록을 넘깁니다." }
+    var gestureHelp: String { "오른쪽 버튼으로 드래그하거나 Option을 누른 채 왼쪽 버튼으로 드래그해 이동하고, 포인터를 가장자리에 놓고 왼쪽 버튼으로 드래그해 크기를 바꾸며, 스크롤해 목록을 넘깁니다." }
+    var positionLabel: String { "위치" }
+    var sizeLabel: String { "크기" }
+    var frameHelp: String { "위치는 주 디스플레이의 왼쪽 위를 기준으로 한 포인트 단위입니다. 크기는 220×120에서 900×900까지이며, 화면 밖의 위치는 화면 안으로 되돌립니다." }
 
     // MARK: 频道列表
     var channelsHeader: String { "채널" }

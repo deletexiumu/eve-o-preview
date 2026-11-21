@@ -43,7 +43,9 @@ struct OneTimeDefaultsTests {
     /// 还没补过的项按 `all` 的顺序列出；补过的不再列出。
     @Test func pendingSkipsApplied() {
         #expect(OneTimeDefaults.pending(applied: []) == OneTimeDefaults.all)
-        #expect(OneTimeDefaults.pending(applied: [OneTimeDefaults.toggleHideAllHotkey]).isEmpty)
+        #expect(OneTimeDefaults.pending(applied: [OneTimeDefaults.toggleHideAllHotkey])
+                == [OneTimeDefaults.highlightActiveClient])
+        #expect(OneTimeDefaults.pending(applied: OneTimeDefaults.all).isEmpty)
         #expect(OneTimeDefaults.pending(applied: ["unknown"]) == OneTimeDefaults.all)
     }
 
@@ -72,6 +74,24 @@ struct OneTimeDefaultsTests {
 
         let result = OneTimeDefaults.apply([OneTimeDefaults.toggleHideAllHotkey], to: config)
         #expect(result.profiles.allSatisfy { $0.hotkeys.toggleHideAll.isEmpty })
+    }
+
+    /// 「高亮活动客户端」：每个配置方案都打开，颜色与粗细不动；重复补一次结果不变；不影响热键。
+    @Test func applyTurnsOnHighlightForAllProfiles() {
+        var off = Profile(id: "a", name: "A")
+        off.overlay.highlightEnabled = false
+        off.overlay.highlightColor = "#123456"
+        off.overlay.highlightThickness = 5
+        var alsoOff = Profile(id: "b", name: "B")
+        alsoOff.overlay.highlightEnabled = false
+        let config = AppConfig(activeProfileID: "a", profiles: [off, alsoOff])
+
+        let result = OneTimeDefaults.apply([OneTimeDefaults.highlightActiveClient], to: config)
+        #expect(result.profiles.allSatisfy { $0.overlay.highlightEnabled })
+        #expect(result.profiles[0].overlay.highlightColor == "#123456")
+        #expect(result.profiles[0].overlay.highlightThickness == 5)
+        #expect(result.profiles.map(\.hotkeys) == config.profiles.map(\.hotkeys))
+        #expect(OneTimeDefaults.apply([OneTimeDefaults.highlightActiveClient], to: result) == result)
     }
 
     /// 补过的项记在 state.json 的 appliedDefaults 里；旧的状态文件没有这个键时为空。

@@ -47,6 +47,12 @@ protocol OverlayStrings: Sendable {
     var resetFrame: String { get }
     /// 手势说明。
     var gestureHelp: String { get }
+    /// 「位置」一行的标签（X、Y 两个数字框），v1.2.1。
+    var positionLabel: String { get }
+    /// 「尺寸」一行的标签（宽、高两个数字框），v1.2.1。
+    var sizeLabel: String { get }
+    /// 位置与尺寸的说明：坐标原点、单位、尺寸上下限与拉回屏幕的规则，v1.2.1。
+    var frameHelp: String { get }
 
     // MARK: 频道列表（ChannelListEditor）
     /// 一组的标题。

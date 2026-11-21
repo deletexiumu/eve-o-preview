@@ -41,14 +41,14 @@ struct ThumbnailPlannerTests {
         #expect(result.presentations[2].frame.origin == ScreenPoint(x: 5, y: 40))
     }
 
-    /// 活动高亮：前台客户端高亮，用全局颜色；高亮关闭时不画。
+    /// 活动高亮：前台客户端高亮，用全局颜色；高亮关闭时不画（v1.2.1 起默认打开，这里显式关掉）。
     @Test func activeHighlight() {
         let enabled = profile { $0.overlay.highlightEnabled = true }
         let result = plan(frontmost: .client(pid: Fixtures.pidA), profile: enabled)
         #expect(result.presentations.map(\.isActive) == [true, false])
         #expect(result.presentations.map(\.highlightColor) == ["#ADFF2F", nil])
         #expect(result.presentations[0].highlightThickness == 3)
-        let disabled = plan(frontmost: .client(pid: Fixtures.pidA))
+        let disabled = plan(frontmost: .client(pid: Fixtures.pidA), profile: profile { $0.overlay.highlightEnabled = false })
         #expect(disabled.presentations[0].isActive && disabled.presentations[0].highlightColor == nil)
     }
 

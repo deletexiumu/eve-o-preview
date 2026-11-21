@@ -47,7 +47,8 @@ struct IntelPage: View {
             referenceSection(strings)
             displaySection(strings)
             pilotSection(strings)
-            OverlaySettingsSection(settings: model.intelBinding(\.overlay))
+            OverlaySettingsSection(settings: model.intelBinding(\.overlay), kind: .intel,
+                                   screens: model.coordinator.screens)
             Section {
                 LabeledContent(strings.staticDataLabel) {
                     Text(model.staticDataText).foregroundStyle(.secondary).textSelection(.enabled)

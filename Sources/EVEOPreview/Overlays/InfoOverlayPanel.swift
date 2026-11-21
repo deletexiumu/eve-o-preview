@@ -26,6 +26,8 @@ final class InfoOverlayPanel: NSPanel {
         // 面板由 InfoOverlayController 持有；不设为 false 时 close() 会额外释放一次。
         isReleasedWhenClosed = false
         animationBehavior = .none
+        // 收鼠标移动事件：停在边缘带上时内容视图据此显示缩放光标（v1.2.1）。
+        acceptsMouseMovedEvents = true
         isOpaque = false
         backgroundColor = .clear
         level = .floating

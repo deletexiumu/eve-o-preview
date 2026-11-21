@@ -13,8 +13,12 @@ public enum OneTimeDefaults {
     /// 「全部隐藏」的默认热键 ⌃⌥⌘H（`GeneralHotkeys.defaultToggleHideAll`），v1.2 新增。
     public static let toggleHideAllHotkey = "hotkeys.toggleHideAll.ctrlOptCmdH"
 
+    /// 「高亮活动客户端」默认打开（`OverlaySettings.highlightEnabled`），v1.2.1 新增。
+    /// 旧版默认关闭，已有配置文件里写的是 false，所以要补开一次；之后用户关掉不会再被打开。
+    public static let highlightActiveClient = "overlay.highlightEnabled.on"
+
     /// 全部的项，按加入的先后。以后新增的一次性默认值追加在末尾。
-    public static let all: [String] = [toggleHideAllHotkey]
+    public static let all: [String] = [toggleHideAllHotkey, highlightActiveClient]
 
     /// 还没补过的项，保持 `all` 里的顺序。
     public static func pending(applied: [String]) -> [String] {
@@ -24,9 +28,14 @@ public enum OneTimeDefaults {
     /// 把 ids 里的各项补到配置的每个配置方案上；不认识的 id 忽略。配置原本就满足时原样返回。
     public static func apply(_ ids: [String], to config: AppConfig) -> AppConfig {
         var result = config
-        for id in ids where id == toggleHideAllHotkey {
+        for id in ids {
             for index in result.profiles.indices {
-                addDefaultToggleHideAll(to: &result.profiles[index])
+                switch id {
+                case toggleHideAllHotkey: addDefaultToggleHideAll(to: &result.profiles[index])
+                // 每个配置方案都打开高亮；颜色与粗细保留用户原来的设置。
+                case highlightActiveClient: result.profiles[index].overlay.highlightEnabled = true
+                default: break
+                }
             }
         }
         return result

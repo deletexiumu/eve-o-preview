@@ -28,7 +28,10 @@ struct OverlayStringsES: OverlayStrings {
     var opacity: String { "Opacidad del fondo" }
     var fontSize: String { "Tamaño de letra" }
     var resetFrame: String { "Restablecer posición" }
-    var gestureHelp: String { "Arrastra con el botón derecho, o con Opción y el botón izquierdo, para mover la superposición; arrastra un borde para cambiar el tamaño; desplázate para recorrer la lista." }
+    var gestureHelp: String { "Arrastra con el botón derecho, o con Opción y el botón izquierdo, para mover la superposición; coloca el puntero en un borde y arrastra con el botón izquierdo para cambiar el tamaño; desplázate para recorrer la lista." }
+    var positionLabel: String { "Posición" }
+    var sizeLabel: String { "Tamaño" }
+    var frameHelp: String { "La posición se mide en puntos desde la esquina superior izquierda de la pantalla principal. El tamaño se limita de 220×120 a 900×900; una posición fuera de la pantalla se devuelve a ella." }
 
     // MARK: 频道列表
     var channelsHeader: String { "Canales" }

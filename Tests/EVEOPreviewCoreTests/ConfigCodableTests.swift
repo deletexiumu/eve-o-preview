@@ -127,7 +127,7 @@ struct ConfigCodableTests {
         #expect(t.snapEnabled && !t.lockAspectRatio)
         let o = OverlaySettings()
         #expect(o.showTitle && o.titleFontSize == 12 && o.titleColor == "#FFFFFF")
-        #expect(!o.highlightEnabled && o.highlightColor == "#ADFF2F" && o.highlightThickness == 3)
+        #expect(o.highlightEnabled && o.highlightColor == "#ADFF2F" && o.highlightThickness == 3)
         #expect(o.borderEnabled && o.borderColor == "#C0C0C0" && o.borderThickness == 2)
         let a = CombatAlertSettings()
         #expect(!a.enabled && a.color == "#FF3B30" && a.durationSeconds == 3.0 && a.style == .both)

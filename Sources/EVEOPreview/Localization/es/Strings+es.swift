@@ -192,8 +192,8 @@ struct SettingsStringsES: SettingsStrings {
     var lockAspectRatio: String { "Mantener la proporción al redimensionar" }
     var lockLayout: String { "Bloquear disposición" }
     var gestureHint: String {
-        "Arrastra con el botón derecho o con Opción para mover; arrastra un borde para redimensionar; "
-            + "mantén pulsada la tecla Mayúsculas para no ajustar."
+        "Arrastra con el botón derecho o con Opción para mover; coloca el puntero en un borde y arrastra con el botón "
+            + "izquierdo para redimensionar; mantén pulsada la tecla Mayúsculas para no ajustar."
     }
     // 这一组的控件是滑块，标签可以稍长。
     var captureHeader: String { "Captura y posición" }

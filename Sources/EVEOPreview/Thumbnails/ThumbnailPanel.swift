@@ -21,6 +21,8 @@ final class ThumbnailPanel: NSPanel {
         isReleasedWhenClosed = false
         backgroundColor = .black
         animationBehavior = .none
+        // 收鼠标移动事件：停在边缘带上时内容视图据此显示缩放光标（v1.2.1）。
+        acceptsMouseMovedEvents = true
         level = .floating
     }
 

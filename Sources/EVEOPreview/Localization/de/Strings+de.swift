@@ -189,8 +189,8 @@ struct SettingsStringsDE: SettingsStrings {
     var lockLayout: String { "Layout sperren" }
     // 键名用 macOS 德文的叫法，括号里附符号，方便与键盘对照。
     var gestureHint: String {
-        "Zum Bewegen mit der rechten Maustaste oder mit gedrückter Wahltaste (⌥) ziehen, zum Skalieren am Rand "
-            + "ziehen. Mit gedrückter Umschalttaste (⇧) wird nicht eingerastet."
+        "Zum Bewegen mit der rechten Maustaste oder mit gedrückter Wahltaste (⌥) ziehen; zum Skalieren den Zeiger "
+            + "an den Rand bewegen und mit der linken Maustaste ziehen. Mit gedrückter Umschalttaste (⇧) wird nicht eingerastet."
     }
     var captureHeader: String { "Aufnahme & Position" }
     var frameRate: String { "Bildrate" }

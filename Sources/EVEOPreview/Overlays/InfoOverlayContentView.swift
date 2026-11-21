@@ -42,6 +42,10 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     private(set) var scrollState = OverlayScrollState.initial
     /// 程序正在调整内容或滚动位置：这期间剪裁视图的移动不算用户滚动。
     private var isAdjusting = false
+    /// 鼠标停在浮窗上时应显示缩放光标的边，由控制器接到 OverlayInteraction.hoverEdges（v1.2.1）。
+    var cursorEdges: (() -> ResizeEdges)?
+    /// 光标用的跟踪区域；activeAlways，因为本应用几乎不在前台。
+    private var cursorTrackingArea: NSTrackingArea?
 
     /// 一行的高度缓存。
     private struct CachedHeight {
@@ -85,6 +89,31 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
 
     /// 视图翻转：y 轴向下，从上往下摆放。
     override var isFlipped: Bool { true }
+
+    // MARK: - 缩放光标
+
+    /// 重建光标用的跟踪区域。inVisibleRect 让区域随视图尺寸自动变化（拖边缩放时面板会变大变小）。
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let cursorTrackingArea { removeTrackingArea(cursorTrackingArea) }
+        let area = NSTrackingArea(rect: .zero,
+                                  options: [.mouseEnteredAndExited, .mouseMoved, .cursorUpdate, .activeAlways,
+                                            .inVisibleRect],
+                                  owner: self, userInfo: nil)
+        addTrackingArea(area)
+        cursorTrackingArea = area
+    }
+
+    // 鼠标在浮窗上移动时按边缘带显示缩放光标，离开时恢复箭头。
+    override func mouseEntered(with event: NSEvent) { updateCursor() }
+    override func mouseMoved(with event: NSEvent) { updateCursor() }
+    override func cursorUpdate(with event: NSEvent) { updateCursor() }
+    override func mouseExited(with event: NSEvent) { ResizeCursor.reset() }
+
+    /// 按鼠标是否停在边缘带上显示或恢复缩放光标。
+    private func updateCursor() {
+        ResizeCursor.update(for: cursorEdges?() ?? [])
+    }
 
     /// 光标在标题、状态行、说明或新消息条上时，滚轮事件沿响应链到这里；转给列表，让整个浮窗都能滚动列表。
     override func scrollWheel(with event: NSEvent) {
@@ -336,7 +365,10 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
             statusLabel.frame = NSRect(x: inset, y: top, width: max(0, width - 2 * inset), height: height)
             top += height + 4
         }
-        scrollView.frame = NSRect(x: 2, y: top, width: max(0, width - 4), height: max(0, bounds.height - top - 4))
+        // 右侧与底部各留 6 点：悬浮滚动条整个落在 EdgeGrip 的 6 点边缘带之内侧，左键拖滚动条不会变成缩放。
+        let edgeBand = CGFloat(EdgeGrip.bandWidth)
+        scrollView.frame = NSRect(x: 2, y: top, width: max(0, width - 2 - edgeBand),
+                                  height: max(0, bounds.height - top - edgeBand))
         // 单列占满列表的宽度：悬浮滚动条不占宽度，所以列宽就是剪裁视图的宽度。
         let columnWidth = scrollView.contentSize.width
         if let column = tableView.tableColumns.first, column.width != columnWidth { column.width = columnWidth }

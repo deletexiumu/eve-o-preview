@@ -157,7 +157,7 @@ struct SettingsStringsEN: SettingsStrings {
     var lockAspectRatio: String { "Keep aspect ratio when resizing" }
     var lockLayout: String { "Lock layout" }
     var gestureHint: String {
-        "Right-drag or Option-drag to move; drag an edge to resize; hold Shift to bypass snapping."
+        "Right-drag or Option-drag to move; move the pointer to an edge and left-drag to resize; hold Shift to bypass snapping."
     }
     var captureHeader: String { "Capture & Position" }
     var frameRate: String { "Frame rate" }

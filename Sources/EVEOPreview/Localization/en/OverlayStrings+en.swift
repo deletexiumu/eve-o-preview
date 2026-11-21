@@ -27,7 +27,10 @@ struct OverlayStringsEN: OverlayStrings {
     var opacity: String { "Background Opacity" }
     var fontSize: String { "Font Size" }
     var resetFrame: String { "Reset Position" }
-    var gestureHelp: String { "Right-drag or Option-drag to move the overlay, drag an edge to resize, and scroll to browse the list." }
+    var gestureHelp: String { "Right-drag or Option-drag to move the overlay, move the pointer to an edge and left-drag to resize, and scroll to browse the list." }
+    var positionLabel: String { "Position" }
+    var sizeLabel: String { "Size" }
+    var frameHelp: String { "Position is measured in points from the top-left corner of the main display. Size is limited to 220×120 through 900×900; an off-screen position is pulled back." }
 
     // MARK: 频道列表
     var channelsHeader: String { "Channels" }

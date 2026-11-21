@@ -45,6 +45,8 @@ final class InfoOverlayController {
         interaction.setLiveFrame = { [weak self] rect in self?.setLiveFrame(rect) }
         interaction.showMenu = { [weak self] event in self?.showMenu(for: event) }
         interaction.plainClick = { [weak self] event in self?.handlePlainClick(event) ?? false }
+        // 鼠标停在边缘带上时显示缩放光标；规则与左键按下时相同（布局锁定时不显示）。
+        contentView.cursorEdges = { [weak self] in self?.interaction.hoverEdges() ?? [] }
         contentView.applyAppearance(opacity: presentation.opacity, fontSize: presentation.fontSize)
     }
 
@@ -122,6 +124,8 @@ final class InfoOverlayController {
 
     /// 关闭面板：浮窗被关掉或退出时调用。
     func close() {
+        contentView.cursorEdges = nil
+        ResizeCursor.reset()
         interaction.cancel()
         panel.interaction = nil
         panel.orderOut(nil)

@@ -164,7 +164,7 @@ struct SettingsStringsKO: SettingsStrings {
     var lockAspectRatio: String { "크기 조절 시 가로세로 비율 유지" }
     var lockLayout: String { "레이아웃 잠금" }
     var gestureHint: String {
-        "오른쪽 드래그 또는 Option-드래그로 이동하고, 가장자리를 드래그하여 크기를 조절합니다. "
+        "오른쪽 드래그 또는 Option-드래그로 이동하고, 포인터를 가장자리에 놓고 왼쪽 드래그하여 크기를 조절합니다. "
             + "Shift를 누른 채 드래그하면 자석 맞춤을 하지 않습니다."
     }
     var captureHeader: String { "캡처 및 위치" }

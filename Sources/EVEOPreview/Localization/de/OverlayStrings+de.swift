@@ -28,7 +28,10 @@ struct OverlayStringsDE: OverlayStrings {
     var opacity: String { "Deckkraft des Hintergrunds" }
     var fontSize: String { "Schriftgröße" }
     var resetFrame: String { "Position zurücksetzen" }
-    var gestureHelp: String { "Mit der rechten Maustaste oder mit Wahltaste und linker Maustaste ziehen, um das Overlay zu bewegen; am Rand ziehen, um die Größe zu ändern; scrollen, um die Liste zu durchblättern." }
+    var gestureHelp: String { "Mit der rechten Maustaste oder mit Wahltaste und linker Maustaste ziehen, um das Overlay zu bewegen; den Zeiger an den Rand bewegen und mit der linken Maustaste ziehen, um die Größe zu ändern; scrollen, um die Liste zu durchblättern." }
+    var positionLabel: String { "Position" }
+    var sizeLabel: String { "Größe" }
+    var frameHelp: String { "Die Position wird in Punkten ab der linken oberen Ecke des Hauptbildschirms angegeben. Die Größe ist auf 220×120 bis 900×900 begrenzt; eine Position außerhalb des Bildschirms wird zurückgeholt." }
 
     // MARK: 频道列表
     var channelsHeader: String { "Kanäle" }
