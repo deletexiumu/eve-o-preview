@@ -368,7 +368,7 @@
   3. 俄文下把报告窗口缩到最小宽度。预期：四个按钮完整可见。
   4. 解压一个报告 zip。预期：只有一个顶层文件夹；`manifest.json` 与勾选的文件一致；取消勾选日志时没有 `logs/`；连续生成 4 次只留 3 个 zip。
 - 第 4 组补充（更新界面）：
-  1. 依次用 `EVEO_FAKE=1 EVEO_UPDATE_UI_STATE=<取值> EVEO_LANG=<语言> swift run EVEOPreview` 启动，取值是 `available`、`notifyonly`、`downloading`、`ready`、`failed`、`uptodate`，语言是 en、zh、ja、ko、ru。每次点菜单项「检查更新…」。预期：窗口出现并成为 key 窗口；发布说明按界面语言显示，没有 `<details>` 字样；标题、列表、粗体、行内代码与链接正常；按钮与 `UpdateView.swift` 文件头的表一致；文字没有被截断。
+  1. 依次用 `EVEO_FAKE=1 EVEO_UPDATE_UI_STATE=<取值> EVEO_LANG=<语言> swift run EVEOPreview` 启动，取值是 `available`、`notifyonly`、`downloading`、`ready`、`failed`、`uptodate`，语言是 en、zh、ja、ko、ru、fr、de、es。每次点菜单项「检查更新…」。预期：窗口出现并成为 key 窗口；发布说明按界面语言显示，没有 `<details>` 字样；标题、列表、粗体、行内代码与链接正常；按钮与 `UpdateView.swift` 文件头的表一致；文字没有被截断。
   2. 接上一项，取值为 `available`、`notifyonly`、`ready` 时看菜单顶部。预期：前两种有「有可用更新：1.1.1…」，点击打开同一个窗口；`ready` 有「重新启动以更新到 1.1.1」。
   3. 接上一项，打开「通用」页的「更新」一组。预期：`notifyonly` 时「自动安装更新」置灰，下方写明 ad-hoc 签名的原因；`downloading` 时状态行显示按界面语言格式化的大小；`uptodate` 时状态行是「已是最新版本」。
   4. 不设 `EVEO_LANG` 启动，打开更新窗口后在「通用」页切换语言。预期：窗口标题与内容立即换成新语言。

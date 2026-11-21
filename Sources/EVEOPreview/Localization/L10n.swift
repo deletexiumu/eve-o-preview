@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 界面文字的入口（反馈文档 5.3 节）。界面有英、中、俄、日、韩 5 种语言，默认英文。
+// 界面文字的入口（反馈文档 5.3 节）。界面有英、中、俄、日、韩、法、德、西 8 种语言，默认英文。
 //
 // 组织方式：每个域一个协议（Strings.swift、SettingsStrings.swift，热键与战斗提醒的协议由各自的工作包定义），
 // 每种语言对每个协议各有一个不含存储属性的结构体实现，放在 `Localization/<语言>/` 下。
@@ -58,6 +58,9 @@ enum L10n {
         case .ru: return MenuStringsRU()
         case .ja: return MenuStringsJA()
         case .ko: return MenuStringsKO()
+        case .fr: return MenuStringsFR()
+        case .de: return MenuStringsDE()
+        case .es: return MenuStringsES()
         }
     }
 
@@ -69,6 +72,9 @@ enum L10n {
         case .ru: return EditMenuStringsRU()
         case .ja: return EditMenuStringsJA()
         case .ko: return EditMenuStringsKO()
+        case .fr: return EditMenuStringsFR()
+        case .de: return EditMenuStringsDE()
+        case .es: return EditMenuStringsES()
         }
     }
 
@@ -80,6 +86,9 @@ enum L10n {
         case .ru: return ThumbnailStringsRU()
         case .ja: return ThumbnailStringsJA()
         case .ko: return ThumbnailStringsKO()
+        case .fr: return ThumbnailStringsFR()
+        case .de: return ThumbnailStringsDE()
+        case .es: return ThumbnailStringsES()
         }
     }
 
@@ -91,6 +100,9 @@ enum L10n {
         case .ru: return SettingsStringsRU()
         case .ja: return SettingsStringsJA()
         case .ko: return SettingsStringsKO()
+        case .fr: return SettingsStringsFR()
+        case .de: return SettingsStringsDE()
+        case .es: return SettingsStringsES()
         }
     }
 }

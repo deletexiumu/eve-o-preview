@@ -96,8 +96,9 @@ struct ClientsPage: View {
 /// 列从左到右：在线状态、角色名、高亮颜色、「显示缩略图」文字与开关。角色名占满剩余宽度，
 /// 其余各列宽度固定并靠右，所以不论角色名多长，各行的颜色块、「默认」与开关都上下对齐。
 private struct CharacterRow: View {
-    /// 颜色列的宽度：放得下颜色块加「默认」或「重置」按钮（各语言里最长的是俄语的「По умолчанию」，约 130 点）。
-    static let colorColumnWidth: CGFloat = 140
+    /// 颜色列的宽度：放得下颜色块加「默认」或「重置」按钮（各语言里最长的是俄语的「По умолчанию」与法语的「Réinitialiser」，约 130 点；
+    /// 西班牙文的「默认」用较短的「Por defecto」）。留出余量取 150 点。
+    static let colorColumnWidth: CGFloat = 150
 
     /// 视图模型。
     let model: SettingsViewModel

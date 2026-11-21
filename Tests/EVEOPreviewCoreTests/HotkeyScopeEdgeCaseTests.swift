@@ -176,7 +176,8 @@ struct MouseHotkeyMatcherEdgeCaseTests {
 struct AppLanguageEdgeCaseTests {
     /// 下划线写法、只有语言代码、带脚本与地区：都按开头的语言代码匹配。
     @Test(arguments: [("zh_CN", AppLanguage.zh), ("ja", .ja), ("ru-UA", .ru), ("ko-Kore-KR", .ko),
-                      ("en-GB", .en), ("  zh-Hant-HK ", .zh)])
+                      ("en-GB", .en), ("  zh-Hant-HK ", .zh), ("fr_BE", .fr),
+                      ("de-Latn-DE", .de), ("es-MX", .es)])
     func codeForms(code: String, expected: AppLanguage) {
         #expect(LanguagePreference.system.resolved(preferredLanguages: [code], override: nil) == expected)
     }
@@ -245,7 +246,7 @@ struct LenientDecodingEdgeCaseTests {
         let store = JSONFileConfigStore(fileURL: directory.appendingPathComponent("config.json"))
         let json = #"""
         {"schemaVersion":1,"activeProfileID":"p1",
-         "general":{"pollIntervalMs":900,"onboardingCompleted":true,"language":"de"},
+         "general":{"pollIntervalMs":900,"onboardingCompleted":true,"language":"it"},
          "profiles":[{"id":"p1","name":"Main","hotkeyDefaultScope":"everywhere",
                       "combatAlert":{"enabled":true,"style":"strobe","minimumDamage":20}}]}
         """#

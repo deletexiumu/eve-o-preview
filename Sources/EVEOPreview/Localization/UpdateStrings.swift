@@ -193,6 +193,9 @@ extension L10n {
         case .ru: return UpdateStringsRU()
         case .ja: return UpdateStringsJA()
         case .ko: return UpdateStringsKO()
+        case .fr: return UpdateStringsFR()
+        case .de: return UpdateStringsDE()
+        case .es: return UpdateStringsES()
         }
     }
 }
@@ -209,6 +212,9 @@ enum UpdateTextFormat {
         case .ru: return Locale(identifier: "ru")
         case .ja: return Locale(identifier: "ja")
         case .ko: return Locale(identifier: "ko")
+        case .fr: return Locale(identifier: "fr")
+        case .de: return Locale(identifier: "de")
+        case .es: return Locale(identifier: "es")
         }
     }
 

@@ -69,7 +69,7 @@ extension FakeUpdateService {
         }
     }
 
-    /// 样例版本 1.1.1。正文按 8.2 节的格式写 5 种语言，供核对按界面语言取段落与 Markdown 的显示。
+    /// 样例版本 1.1.1。正文按 8.2 节的格式写 8 种语言，供核对按界面语言取段落与 Markdown 的显示。
     static var sampleRelease: ReleaseInfo {
         let prefix = UpdateFeed.productionAssetPrefix
         return ReleaseInfo(version: "1.1.1", tagName: "v1.1.1", title: "EVE-O Preview 1.1.1", notes: sampleNotes,
@@ -135,5 +135,32 @@ extension FakeUpdateService {
 
     </details>
     <!-- /lang:ru -->
+    <!-- lang:fr -->
+    <details><summary>Français</summary>
+
+    ## Nouveautés
+
+    - Les vignettes conservent la **couleur de la bordure** après un changement de profil.
+
+    </details>
+    <!-- /lang:fr -->
+    <!-- lang:de -->
+    <details><summary>Deutsch</summary>
+
+    ## Neu
+
+    - Miniaturen behalten die **Rahmenfarbe** nach dem Wechsel des Profils.
+
+    </details>
+    <!-- /lang:de -->
+    <!-- lang:es -->
+    <details><summary>Español</summary>
+
+    ## Novedades
+
+    - Las miniaturas conservan el **color del borde** al cambiar de perfil.
+
+    </details>
+    <!-- /lang:es -->
     """
 }

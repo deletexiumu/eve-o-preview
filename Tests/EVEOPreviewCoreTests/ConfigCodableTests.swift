@@ -181,7 +181,7 @@ extension ConfigCodableTests {
     }
 
     /// 3 个枚举键的值不认识或类型不对时取默认值，不抛错，整个文件照常解码。
-    @Test(arguments: [#""de""#, "5", "null", "true", #"{"x":1}"#])
+    @Test(arguments: [#""it""#, "5", "null", "true", #"{"x":1}"#])
     func unknownEnumValuesFallBack(raw: String) throws {
         let json = """
         {"general":{"language":\(raw),"pollIntervalMs":700},
