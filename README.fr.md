@@ -34,24 +34,10 @@ Ce dépôt a commencé comme un fork GitHub d'EveOPlus/eve-o-preview et a été 
 - Une fenêtre de réglages de 10 pages : « Clients », « Vignettes », « Raccourcis », « Alertes », « Renseignement », « Traduction », « Profils », « Général », « Autorisations » et « À propos ».
 - Langues de l'interface : anglais (par défaut), chinois, russe, japonais, coréen, français, allemand et espagnol. Changez de langue dans la page « Général », ou choisissez « Selon le système » ; le changement prend effet immédiatement. Les traductions russe, japonaise, coréenne, française, allemande et espagnole sont générées automatiquement ; les corrections sont les bienvenues.
 
-## Fonctionnalités du projet d'origine non portées
-
-| Fonctionnalité du projet d'origine | Raison |
-| --- | --- |
-| Limitation de la fréquence d'images et coupure sélective du son (injection Robin) | Le projet d'origine injecte une DLL dans les processus Windows ; macOS n'a pas de mécanisme public équivalent |
-| Affinité processeur | Repose sur les CPU Sets de Windows ; Apple Silicon n'a pas d'API publique pour attacher un processus à des cœurs |
-| Augments du journal de combat : chiffres de dégâts, DPS, quantités de réparation, superposition du système, données statiques pour FC | Un vaste sous-système séparé, hors du périmètre « aperçu et bascule » ; seul le « clignotement en cas d'attaque » a été porté |
-| Thèmes, ancienne interface, styles personnalisés du menu contextuel | La version macOS suit l'apparence du système |
-| Mode de capture de compatibilité (`PrintWindow`) | ScreenCaptureKit est la seule méthode de capture |
-| Hook clavier de bas niveau | Les raccourcis clavier utilisent les raccourcis globaux Carbon ; une interception des événements souris n'est créée que lorsqu'un bouton de souris est attribué |
-
-Les régions avec ancrage par glisser-déposer, la sélection multiple et le déplacement groupé, l'annulation, les guides d'aimantation, l'importation des configurations Windows et le lancement à l'ouverture de session sont prévus après la v1.
-
 ## Configuration requise
 
 - macOS 14 ou ultérieur, sur Apple Silicon ou Intel. Le dmg de la version contient un binaire universel.
 - Les clients EVE fonctionnent le mieux en mode fenêtré. Les clients en plein écran natif sont pris en charge depuis la 1.1.1 (les vignettes s'affichent par-dessus tant que « Garder les vignettes au premier plan » est activé), mais chacun occupe son propre Space, si bien que basculer vers l'un d'eux lance l'animation de changement de Space.
-- La compilation depuis les sources nécessite Xcode ou les Command Line Tools (Swift 6).
 
 ## Installation
 
@@ -74,27 +60,13 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 **Remarque :** chaque version est signée avec le même certificat, donc macOS conserve les autorisations « Enregistrement de l'écran » et « Accessibilité » lors d'une mise à niveau. Si les autorisations ne fonctionnent plus après une mise à niveau, réinitialisez-les avec les commandes `tccutil` à la fin de la section [Autorisations](#autorisations), puis accordez-les de nouveau.
 
-Depuis la 1.1.0, l'app peut se mettre à jour elle-même (voir [Mises à jour](#mises-à-jour)). La version 1.0.0 n'a pas de système de mise à jour : installez donc la 1.1.0 une fois à la main en téléchargeant le dmg et en remplaçant l'app dans Applications. Les autorisations sont conservées, car la 1.0.0 et les versions suivantes sont signées avec le même certificat.
+L'app se tient à jour elle-même : elle recherche les nouvelles versions sur GitHub et les installe depuis l'app (voir [Mises à jour](#mises-à-jour)).
 
 Chaque version inclut aussi le code source au format `.tar.gz` et `.zip`, ainsi qu'un fichier `SHA256SUMS.txt`. Pour vérifier les téléchargements, exécutez `shasum -a 256 --ignore-missing -c SHA256SUMS.txt` dans le dossier de téléchargement.
 
 ### Compiler depuis les sources
 
-1. À la racine du dépôt, exécutez `scripts/build-app.sh`. Le script compile la configuration release, puis assemble et signe `dist/EVE-O Preview.app`.
-2. Faites glisser `dist/EVE-O Preview.app` dans le dossier Applications.
-3. Ouvrez l'app.
-
-Le script lit les variables d'environnement suivantes :
-
-| Variable | Rôle | Valeur par défaut |
-| --- | --- | --- |
-| `VERSION` | Numéro de version écrit dans `Info.plist` | Contenu du fichier `VERSION` |
-| `SIGN_IDENTITY` | Identité de signature de code | `EVEO Preview Dev` s'il se trouve dans le trousseau, sinon ad hoc (`-`) |
-| `UNIVERSAL` | `1` compile arm64 et x86_64 séparément et les fusionne avec `lipo` en un binaire universel | Non définie : architecture native uniquement |
-
-Si `packaging/AppIcon.png` existe, le script l'utilise pour générer l'icône de l'app.
-
-`scripts/package-release.sh` exécute `build-app.sh`, puis écrit le dmg, les archives des sources et `SHA256SUMS.txt` dans `dist/release/`. La CI utilise ce script.
+Pour compiler l'app vous-même, suivez [docs/development.md](docs/development.md) (en anglais). Ce document décrit aussi les outils de débogage, la CI et la publication des versions.
 
 ## Autorisations
 
@@ -108,15 +80,6 @@ L'app utilise les autorisations système ci-dessous, toutes accordées dans Rég
 | Réseau local (macOS 15 et ultérieur) | Se connecter à un service de traduction sur un autre ordinateur du réseau local, par exemple Ollama | Demandée uniquement quand le service de traduction tourne sur un autre ordinateur du réseau local, pas pour ce Mac ni pour les services publics ; cliquez sur « Tester » dans la page « Traduction » pour faire apparaître la demande à l'avance. En cas de refus, les requêtes vers cet ordinateur échouent avec une erreur réseau. N'apparaît pas dans la page « Autorisations » |
 
 Après avoir accordé « Enregistrement de l'écran », il faut généralement relancer l'app pour que l'autorisation prenne effet ; la page « Autorisations » propose un bouton « Relancer ». « Accessibilité » prend effet immédiatement.
-
-### Signer avec un certificat auto-signé
-
-macOS identifie une app par sa signature de code lorsqu'il enregistre les autorisations. Une signature ad hoc n'a pas d'identité stable : après chaque recompilation, macOS considère l'app comme une autre app et les deux autorisations sont perdues. Si vous compilez vous-même l'app, utilisez un certificat auto-signé :
-
-1. Ouvrez Trousseau d'accès et choisissez Trousseau d'accès > Assistant de certification > Créer un certificat.
-2. Saisissez le nom `EVEO Preview Dev`, réglez « Type d'identité » sur « Racine auto-signée » et « Type de certificat » sur « Signature de code », puis créez le certificat.
-3. Exécutez `scripts/build-app.sh`. Le script utilise automatiquement ce certificat s'il le trouve dans le trousseau ; vous pouvez aussi exécuter `SIGN_IDENTITY="EVEO Preview Dev" scripts/build-app.sh`.
-4. Si macOS demande si `codesign` peut utiliser la clé privée du trousseau, choisissez « Toujours autoriser ».
 
 Si les enregistrements d'autorisation se retrouvent dans un mauvais état, exécutez ces deux commandes et accordez de nouveau les autorisations :
 
@@ -247,7 +210,7 @@ L'app conserve jusqu'à 5 fichiers journaux de 1 Mio chacun dans `~/Library/Logs
 
 ## Confidentialité
 
-La version 1.0.0 n'effectuait aucune requête réseau. Depuis la 1.1.0, l'app se connecte à GitHub pour les mises à jour et n'établit aucune autre connexion, sauf si vous activez l'une des fonctionnalités facultatives décrites après cette liste :
+L'app se connecte à GitHub pour les mises à jour et n'établit aucune autre connexion, sauf si vous activez l'une des fonctionnalités facultatives décrites après cette liste :
 
 - La recherche de mises à jour interroge `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` au lancement et une fois par jour tant que « Rechercher automatiquement les mises à jour » est activé, ainsi qu'à chaque fois que vous choisissez « Rechercher les mises à jour… ».
 - Lorsqu'une nouvelle version est proposée, l'app interroge aussi une fois la liste des versions `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`, avec les mêmes en-têtes, pour afficher les notes des versions que vous avez sautées.
@@ -284,62 +247,18 @@ La configuration est enregistrée dans `~/Library/Application Support/EVE-O Prev
 
 La page « Profils » comporte un bouton « Afficher dans le Finder ».
 
-## Développement
+## Fonctionnalités du projet d'origine non portées
 
-| Commande | Rôle |
+| Fonctionnalité du projet d'origine | Raison |
 | --- | --- |
-| `swift build` | Compiler toutes les cibles |
-| `swift test` | Exécuter les tests unitaires de Core (swift-testing) |
-| `EVEO_FAKE=1 swift run EVEOPreview` | Mode démo : 3 clients fictifs avec des images animées générées, sans EVE ni aucune autorisation |
-| `python3 scripts/check_quality.py` | Vérifier le taux de commentaires, la longueur des fichiers et la longueur des fonctions |
-| `scripts/build-app.sh` | Assembler et signer le `.app` |
-| `scripts/package-release.sh` | Produire le dmg, les archives des sources et les sommes de contrôle dans `dist/release/` |
-| `swift run EVEOProbe gamelog [dir] [--follow seconds]` | Compter chaque type de ligne de combat dans les journaux de jeu, pour diagnostiquer les alertes de combat |
-| `swift run EVEOProbe mousetap <seconds> [--swallow <button>]` | Afficher les numéros des boutons de souris, pour diagnostiquer les raccourcis souris |
-| `swift run EVEOProbe update feed [url]` | Récupérer et analyser le flux des versions |
-| `swift run EVEOProbe update verify <new app> <base app>` | Vérifier si une nouvelle app satisfait l'exigence désignée de l'app de base |
-| `swift run EVEOProbe update prepare <url> [--cache dir]` | Télécharger et vérifier une mise à jour sans l'installer |
-| `scripts/make-update-test-feed.sh [version]` | Écrire un `feed.json` pour un test de mise à jour local à partir de `dist/release/` |
-| `swift run EVEOProbe staticdata` | Afficher où le fichier de données de carte a été trouvé, sa version de SDE, le nombre d'enregistrements et le temps de calcul d'une table de distances sur 15 sauts |
-| `swift run EVEOProbe chatlog [dir] [--follow seconds]` | Afficher le dossier des journaux de discussion, les types de canaux, le nombre de messages et de lignes de position, sans noms ni texte de message |
-| `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | Compter les messages de renseignement, systèmes, vaisseaux et noms de pilotes des journaux de discussion récents ; `--resolve-sample` envoie trois noms inventés à l'ESI, `--resolve` envoie à l'ESI les noms de pilotes de vos journaux |
-| `swift run EVEOProbe translate [--provider id] [--model name] [--base-url url] [--target language] [--dry-run]` | Envoyer un exemple fixe à un service de modèle, avec la clé lue uniquement dans `EVEO_TRANSLATION_API_KEY`. Sans `--dry-run`, c'est une vraie requête qui peut être payante |
-| `python3 scripts/build-sde-data.py [--check]` | Télécharger le SDE de CCP et régénérer `packaging/eve-static.json` ; `--check` compare seulement la version du SDE |
+| Limitation de la fréquence d'images et coupure sélective du son (injection Robin) | Le projet d'origine injecte une DLL dans les processus Windows ; macOS n'a pas de mécanisme public équivalent |
+| Affinité processeur | Repose sur les CPU Sets de Windows ; Apple Silicon n'a pas d'API publique pour attacher un processus à des cœurs |
+| Augments du journal de combat : chiffres de dégâts, DPS, quantités de réparation, superposition du système, données statiques pour FC | Un vaste sous-système séparé, hors du périmètre « aperçu et bascule » ; seul le « clignotement en cas d'attaque » a été porté |
+| Thèmes, ancienne interface, styles personnalisés du menu contextuel | La version macOS suit l'apparence du système |
+| Mode de capture de compatibilité (`PrintWindow`) | ScreenCaptureKit est la seule méthode de capture |
+| Hook clavier de bas niveau | Les raccourcis clavier utilisent les raccourcis globaux Carbon ; une interception des événements souris n'est créée que lorsqu'un bouton de souris est attribué |
 
-Le mode démo écrit sa configuration dans `config-fake.json` dans le même dossier, sans toucher à la vraie configuration. Il fournit aussi deux canaux de discussion fictifs, `intel.Demo` et `chat.Demo`, traduit avec un service fictif qui préfixe chaque ligne par 〔译〕, et vérifie les noms de pilotes sans connexion réseau. Ces variables d'environnement aident au débogage :
-
-| Variable | Rôle |
-| --- | --- |
-| `EVEO_CONFIG_PATH` | Utiliser le fichier de configuration indiqué |
-| `EVEO_LANG` | `en`, `zh`, `ru`, `ja`, `ko`, `fr`, `de` ou `es` ; remplace la langue de l'interface définie dans la configuration |
-| `EVEO_FAKE_DENY` | En mode démo, simuler l'absence d'une autorisation : `screen`, `ax` ou `screen,ax` |
-| `EVEO_FAKE_STOP_AFTER` | En mode démo, simuler l'arrêt par l'utilisateur de la capture du deuxième client après ce nombre de secondes |
-| `EVEO_SETTINGS_PAGE` | Ouvrir directement une page de réglages au lancement, par exemple `previews` |
-| `EVEO_LOG_DIR` | Écrire les fichiers journaux dans un autre dossier (par défaut `~/Library/Logs/EVE-O Preview/`) |
-| `EVEO_STATE_DIR` | Conserver `state.json` et `session.json` dans un autre dossier |
-| `EVEO_LOG_PRIVATE` | `1` affiche les valeurs privées dans le journal système (Console) uniquement ; les fichiers journaux contiennent toujours `<private>` |
-| `EVEO_UPDATE_FEED_URL` | Rechercher les mises à jour à cette adresse au lieu de GitHub ; uniquement `https`, ou `http` sur un hôte de bouclage. Les builds signées avec un certificat local peuvent installer depuis cette adresse ; la vérification de signature n'est pas assouplie |
-| `EVEO_UPDATE_UI_STATE` | En mode démo, afficher l'interface de mise à jour dans un état d'exemple : `available`, `notifyonly`, `downloading`, `ready`, `failed` ou `uptodate` |
-| `EVEO_FAKE_CRASH` | `1` en mode démo simule un plantage de la session précédente, pour afficher la proposition de rapport de plantage |
-| `EVEO_STATIC_DATA` | Utiliser ce fichier de données de carte au lieu de celui fourni dans l'app |
-| `EVEO_TRANSLATION_API_KEY` | Clé d'API pour `EVEOProbe translate` uniquement ; l'app ne la lit jamais |
-
-Les données de carte et de vaisseaux des overlays de renseignement et de traduction (systèmes, régions, portails stellaires, groupes de vaisseaux et vaisseaux, avec leurs noms dans les 8 langues de l'interface) sont générées à partir de l'export de données statiques de CCP (SDE) par `scripts/build-sde-data.py` et livrées dans l'app sous la forme de `packaging/eve-static.json` ; `scripts/build-app.sh` copie ce fichier dans l'app. L'app ne télécharge pas ces données à l'exécution. Pour essayer un fichier plus récent sans recompiler, placez-le dans `~/Library/Application Support/EVE-O Preview/eve-static.json`.
-
-Le code source comporte 3 modules : `EVEOPreviewCore` est la couche de logique pure, `EVEOPreviewPlatform` encapsule AppKit, ScreenCaptureKit, l'Accessibilité et les raccourcis Carbon, et `EVEOPreview` est l'app elle-même. L'architecture est décrite dans [docs/architecture.md](docs/architecture.md) (en chinois).
-
-**Remarque :** quand vous exécutez directement l'exécutable avec `swift run`, macOS enregistre les autorisations au nom de votre app de terminal, et non de `EVE-O Preview.app`.
-
-### CI et publication des versions
-
-`.github/workflows/build.yml` s'exécute sur des runners macOS hébergés par GitHub :
-
-- Chaque pull request vers `main`, et chaque push sur `main`, exécute le contrôle de qualité et les tests unitaires, puis produit un dmg universel et les archives des sources. Ils sont téléversés comme artefact de workflow nommé `EVE-O-Preview-<version>-pr.<number>.<commit>` (ou `-dev.<commit>` pour les push) et conservés 30 jours.
-- Pousser un tag `v*` produit les mêmes fichiers et les publie comme GitHub Release. Le tag doit correspondre au fichier `VERSION`. Si `docs/release-notes/<tag>.md` existe, il devient les notes de version.
-
-Pour publier une nouvelle version, modifiez le fichier `VERSION` et ajoutez `docs/release-notes/v<version>.md` dans une pull request, fusionnez-la, puis posez un tag sur `main` : `git tag v<version> && git push origin v<version>`.
-
-Les noms des fichiers publiés (`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), la disposition du dmg, le certificat de signature et le format des notes de version constituent un contrat avec le système de mise à jour intégré ; la CI les vérifie à chaque build. Les notes de version placent d'abord l'anglais entre `<!-- lang:en -->` et `<!-- /lang:en -->`, suivi de blocs repliables zh, ja, ko et ru balisés de la même façon ; `scripts/check_release_notes.py` vérifie les balises. Les détails figurent dans les sections 9.5 à 9.7 de [docs/architecture.md](docs/architecture.md).
+Les régions avec ancrage par glisser-déposer, la sélection multiple et le déplacement groupé, l'annulation, les guides d'aimantation, l'importation des configurations Windows et le lancement à l'ouverture de session sont prévus après la v1.
 
 ## Avertissement
 

@@ -123,7 +123,7 @@ echo
 echo "产物：${APP}"
 if [[ "$IDENTITY" == "-" ]]; then
     echo "签名：ad-hoc"
-    echo "提示：ad-hoc 签名没有稳定身份，每次重新构建后都要重新授予屏幕录制与辅助功能权限（见 README）。"
+    echo "提示：ad-hoc 签名没有稳定身份，每次重新构建后都要重新授予屏幕录制与辅助功能权限（见 docs/development.md）。"
 else
     echo "签名：${IDENTITY}"
 fi

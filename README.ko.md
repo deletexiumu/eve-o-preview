@@ -34,24 +34,10 @@ EVE-O Preview for macOS는 실행 중인 모든 EVE Online 클라이언트의 �
 - 10개 페이지로 된 설정 윈도우: 클라이언트, 썸네일 및 레이아웃, 전환 및 단축키, 알림, 정찰, 번역, 프로필, 일반, 권한, 정보.
 - UI 언어: 영어(기본값), 중국어, 러시아어, 일본어, 한국어, 프랑스어, 독일어, 스페인어. 일반 페이지에서 전환하거나 "시스템 설정 따르기"를 선택할 수 있으며, 변경 사항은 즉시 적용됩니다. 러시아어, 일본어, 한국어, 프랑스어, 독일어, 스페인어 번역은 기계 번역이며, 수정 제안을 환영합니다.
 
-## 이식하지 않은 원본 프로젝트 기능
-
-| 원본 프로젝트 기능 | 이유 |
-| --- | --- |
-| 프레임 속도 제한 및 선택적 음소거(Robin 인젝션) | 원본 프로젝트는 Windows 프로세스에 DLL을 주입합니다. macOS에는 이에 해당하는 공개 메커니즘이 없습니다 |
-| CPU 선호도 | Windows CPU Sets에 의존합니다. Apple Silicon에는 프로세스를 특정 코어에 고정하는 공개 API가 없습니다 |
-| 전투 로그 Augments: 피해량 수치, DPS, 수리량, 시스템 오버레이, FC 정적 데이터 | "미리 보기와 전환" 범위를 벗어나는 별도의 큰 하위 시스템입니다. "공격받으면 깜박이기"만 이식했습니다 |
-| 테마, 레거시 UI, 사용자 지정 오른쪽 클릭 메뉴 스타일 | macOS 버전은 시스템 모양을 따릅니다 |
-| 호환성 캡처 모드(`PrintWindow`) | 캡처 방식은 ScreenCaptureKit 하나뿐입니다 |
-| 저수준 키보드 후크 | 키보드 단축키는 Carbon 전역 단축키를 사용합니다. 마우스 이벤트 탭은 마우스 버튼이 할당된 경우에만 생성됩니다 |
-
-드래그 앤 드롭 도킹을 지원하는 영역, 다중 선택과 그룹 이동, 실행 취소, 자석 맞춤 안내선, Windows 설정 가져오기, 로그인 시 실행은 v1 이후에 계획되어 있습니다.
-
 ## 요구 사항
 
 - macOS 14 이상, Apple Silicon 또는 Intel. 릴리스 dmg에는 유니버설 바이너리가 들어 있습니다.
 - EVE 클라이언트는 창 모드로 실행하는 것이 좋습니다. 1.1.1부터 네이티브 전체 화면 클라이언트도 지원하지만("썸네일을 항상 위에 표시"가 켜져 있으면 썸네일이 전체 화면 위에 표시됩니다), 각 클라이언트가 자체 Space에 있으므로 전환할 때 Space 전환 애니메이션이 재생됩니다.
-- 소스에서 빌드하려면 Xcode 또는 Command Line Tools(Swift 6)가 필요합니다.
 
 ## 설치
 
@@ -74,27 +60,13 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 **참고:** 모든 릴리스는 같은 인증서로 서명되므로 업그레이드해도 macOS가 화면 기록과 손쉬운 사용 권한을 유지합니다. 업그레이드 후 권한이 동작하지 않으면 [권한](#권한) 섹션 끝에 있는 `tccutil` 명령으로 초기화한 뒤 다시 허용하십시오.
 
-1.1.0부터는 앱이 스스로 업데이트할 수 있습니다([업데이트](#업데이트) 참고). 1.0.0 버전에는 업데이트 기능이 없으므로 1.1.0은 한 번 직접 설치하십시오. dmg를 다운로드하여 응용 프로그램 폴더의 앱을 교체하면 됩니다. 1.0.0과 그 이후 버전은 같은 인증서로 서명되므로 권한이 유지됩니다.
+앱은 스스로 최신 상태를 유지합니다. GitHub에서 새 버전을 확인하고 앱 안에서 설치합니다([업데이트](#업데이트) 참고).
 
 각 릴리스에는 `.tar.gz`와 `.zip` 형식의 소스 코드, 그리고 `SHA256SUMS.txt` 파일도 포함되어 있습니다. 다운로드한 파일을 검증하려면 다운로드 폴더에서 `shasum -a 256 --ignore-missing -c SHA256SUMS.txt`를 실행합니다.
 
 ### 소스에서 빌드
 
-1. 저장소 루트에서 `scripts/build-app.sh`를 실행합니다. 이 스크립트는 릴리스 구성으로 빌드한 다음 `dist/EVE-O Preview.app`을 조립하고 서명합니다.
-2. `dist/EVE-O Preview.app`을 응용 프로그램 폴더로 드래그합니다.
-3. 앱을 엽니다.
-
-스크립트는 다음 환경 변수를 읽습니다.
-
-| 변수 | 용도 | 기본값 |
-| --- | --- | --- |
-| `VERSION` | `Info.plist`에 기록되는 버전 번호 | `VERSION` 파일의 내용 |
-| `SIGN_IDENTITY` | 코드 서명 신원 | 키체인에 `EVEO Preview Dev`가 있으면 그것을 사용하고, 없으면 ad-hoc(`-`) |
-| `UNIVERSAL` | `1`이면 arm64와 x86_64를 따로 빌드한 뒤 `lipo`로 합쳐 유니버설 바이너리를 만듭니다 | 설정하지 않음: 네이티브 아키텍처만 |
-
-`packaging/AppIcon.png`가 있으면 스크립트가 이 파일로 앱 아이콘을 생성합니다.
-
-`scripts/package-release.sh`는 `build-app.sh`를 실행한 다음 dmg, 소스 아카이브, `SHA256SUMS.txt`를 `dist/release/`에 씁니다. CI는 이 스크립트를 사용합니다.
+앱을 직접 빌드하려면 [docs/development.md](docs/development.md)(영어)를 참고하십시오. 디버깅 도구, CI, 릴리스 절차도 그곳에 설명되어 있습니다.
 
 ## 권한
 
@@ -108,15 +80,6 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 | 로컬 네트워크(macOS 15 이상) | 로컬 네트워크의 다른 컴퓨터에서 실행되는 번역 서비스(Ollama 등)에 연결 | 번역 서비스가 로컬 네트워크의 다른 컴퓨터에 있을 때만 요청하며, 이 Mac이나 공개 서비스에는 요청하지 않습니다. 번역 페이지에서 "테스트"를 클릭하면 이 확인 창을 먼저 띄울 수 있습니다. 거부하면 그 컴퓨터로 보내는 요청이 네트워크 오류로 실패합니다. 권한 페이지에는 표시되지 않습니다 |
 
 화면 기록을 허용한 뒤에는 보통 앱을 다시 시작해야 적용됩니다. 권한 페이지에 다시 실행 버튼이 있습니다. 손쉬운 사용은 즉시 적용됩니다.
-
-### 자체 서명 인증서로 서명하기
-
-macOS는 권한을 기록할 때 코드 서명으로 앱을 식별합니다. ad-hoc 서명에는 고정된 신원이 없으므로, 다시 빌드할 때마다 macOS가 앱을 다른 앱으로 취급하여 두 권한이 모두 사라집니다. 직접 빌드할 때는 자체 서명 인증서를 사용하십시오.
-
-1. 키체인 접근을 열고 키체인 접근 > 인증서 지원 > 인증서 생성을 선택합니다.
-2. 이름에 `EVEO Preview Dev`를 입력하고, 신원 유형을 "자체 서명 루트"로, 인증서 유형을 "코드 서명"으로 설정한 다음 생성합니다.
-3. `scripts/build-app.sh`를 실행합니다. 스크립트는 키체인에서 이 인증서를 찾으면 자동으로 사용합니다. `SIGN_IDENTITY="EVEO Preview Dev" scripts/build-app.sh`를 실행해도 됩니다.
-4. macOS가 `codesign`이 키체인의 개인 키를 사용하도록 허용할지 물으면 "항상 허용"을 선택합니다.
 
 권한 기록이 잘못된 상태가 되면 다음 두 명령을 실행한 뒤 권한을 다시 허용하십시오.
 
@@ -247,7 +210,7 @@ macOS 사용자 이름, 전체 이름, 홈 폴더 경로, 컴퓨터 이름은 `[
 
 ## 개인정보 보호
 
-1.0.0 버전은 네트워크 요청을 보내지 않았습니다. 1.1.0부터 앱은 업데이트를 위해 GitHub에 연결하며, 이 목록 뒤에 설명하는 선택 기능을 켜지 않는 한 다른 연결은 하지 않습니다.
+앱은 업데이트를 위해 GitHub에 연결하며, 이 목록 뒤에 설명하는 선택 기능을 켜지 않는 한 다른 연결은 하지 않습니다.
 
 - 업데이트를 확인할 때 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest`를 요청합니다. "자동으로 업데이트 확인"이 켜져 있으면 실행할 때와 하루에 한 번 요청하며, "업데이트 확인…"을 선택할 때마다 요청합니다.
 - 새 버전을 안내할 때는 건너뛴 버전의 변경 내용을 보여 주기 위해 같은 헤더로 릴리스 목록 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`를 한 번 요청합니다.
@@ -284,62 +247,18 @@ macOS 사용자 이름, 전체 이름, 홈 폴더 경로, 컴퓨터 이름은 `[
 
 프로필 페이지에 "Finder에서 보기" 버튼이 있습니다.
 
-## 개발
+## 이식하지 않은 원본 프로젝트 기능
 
-| 명령 | 용도 |
+| 원본 프로젝트 기능 | 이유 |
 | --- | --- |
-| `swift build` | 모든 타깃 빌드 |
-| `swift test` | Core 단위 테스트 실행(swift-testing) |
-| `EVEO_FAKE=1 swift run EVEOPreview` | 데모 모드: 생성된 애니메이션 이미지를 쓰는 가상 클라이언트 3개. EVE도 권한도 필요하지 않음 |
-| `python3 scripts/check_quality.py` | 주석 비율, 파일 길이, 함수 길이 검사 |
-| `scripts/build-app.sh` | `.app` 조립 및 서명 |
-| `scripts/package-release.sh` | `dist/release/`에 dmg, 소스 아카이브, 체크섬 빌드 |
-| `swift run EVEOProbe gamelog [dir] [--follow seconds]` | 게임 로그의 전투 줄을 종류별로 세어 전투 알림 진단 |
-| `swift run EVEOProbe mousetap <seconds> [--swallow <button>]` | 마우스 버튼 번호를 출력하여 마우스 단축키 진단 |
-| `swift run EVEOProbe update feed [url]` | 릴리스 피드를 가져와 파싱 |
-| `swift run EVEOProbe update verify <new app> <base app>` | 새 앱이 기준 앱의 지정 요구 사항(designated requirement)을 충족하는지 확인 |
-| `swift run EVEOProbe update prepare <url> [--cache dir]` | 업데이트를 설치하지 않고 다운로드하여 검증 |
-| `scripts/make-update-test-feed.sh [version]` | `dist/release/`의 파일로 로컬 업데이트 테스트용 `feed.json` 작성 |
-| `swift run EVEOProbe staticdata` | 성도 데이터 파일을 찾은 위치, SDE 빌드, 레코드 수, 15점프 거리표 한 번의 계산 시간을 표시 |
-| `swift run EVEOProbe chatlog [dir] [--follow seconds]` | 채팅 로그 폴더, 채널 종류, 메시지와 위치 줄 수를 표시(이름과 메시지 본문은 표시하지 않음) |
-| `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | 최근 채팅 로그의 정찰 메시지, 성계, 함선, 파일럿 이름 수를 셈. `--resolve-sample`은 지어낸 이름 3개를 ESI에 보내고, `--resolve`는 로그의 파일럿 이름을 ESI에 보냄 |
-| `swift run EVEOProbe translate [--provider id] [--model name] [--base-url url] [--target language] [--dry-run]` | 모델 서비스에 고정된 예문 하나를 보냄. 키는 `EVEO_TRANSLATION_API_KEY`에서만 가져옴. `--dry-run` 없이 실행하면 실제 요청이며 비용이 발생할 수 있음 |
-| `python3 scripts/build-sde-data.py [--check]` | CCP의 SDE를 내려받아 `packaging/eve-static.json`을 다시 생성. `--check`는 SDE 빌드만 비교 |
+| 프레임 속도 제한 및 선택적 음소거(Robin 인젝션) | 원본 프로젝트는 Windows 프로세스에 DLL을 주입합니다. macOS에는 이에 해당하는 공개 메커니즘이 없습니다 |
+| CPU 선호도 | Windows CPU Sets에 의존합니다. Apple Silicon에는 프로세스를 특정 코어에 고정하는 공개 API가 없습니다 |
+| 전투 로그 Augments: 피해량 수치, DPS, 수리량, 시스템 오버레이, FC 정적 데이터 | "미리 보기와 전환" 범위를 벗어나는 별도의 큰 하위 시스템입니다. "공격받으면 깜박이기"만 이식했습니다 |
+| 테마, 레거시 UI, 사용자 지정 오른쪽 클릭 메뉴 스타일 | macOS 버전은 시스템 모양을 따릅니다 |
+| 호환성 캡처 모드(`PrintWindow`) | 캡처 방식은 ScreenCaptureKit 하나뿐입니다 |
+| 저수준 키보드 후크 | 키보드 단축키는 Carbon 전역 단축키를 사용합니다. 마우스 이벤트 탭은 마우스 버튼이 할당된 경우에만 생성됩니다 |
 
-데모 모드는 설정을 같은 폴더의 `config-fake.json`에 기록하며, 실제 설정은 건드리지 않습니다. 또한 가짜 채팅 채널 `intel.Demo`와 `chat.Demo`를 제공하고, 각 줄 앞에 〔译〕를 붙이는 가짜 서비스로 번역하며, 파일럿 이름은 네트워크 연결 없이 확인합니다. 다음 환경 변수는 디버깅에 도움이 됩니다.
-
-| 변수 | 용도 |
-| --- | --- |
-| `EVEO_CONFIG_PATH` | 지정한 설정 파일 사용 |
-| `EVEO_LANG` | `en`, `zh`, `ru`, `ja`, `ko`, `fr`, `de` 또는 `es`. 설정의 UI 언어보다 우선함 |
-| `EVEO_FAKE_DENY` | 데모 모드에서 권한이 없는 것처럼 동작: `screen`, `ax` 또는 `screen,ax` |
-| `EVEO_FAKE_STOP_AFTER` | 데모 모드에서 지정한 초가 지나면 사용자가 두 번째 클라이언트의 캡처를 중지한 것처럼 동작 |
-| `EVEO_SETTINGS_PAGE` | 실행할 때 설정 페이지를 바로 엶(예: `previews`) |
-| `EVEO_LOG_DIR` | 로그 파일을 다른 폴더에 기록(기본값 `~/Library/Logs/EVE-O Preview/`) |
-| `EVEO_STATE_DIR` | `state.json`과 `session.json`을 다른 폴더에 보관 |
-| `EVEO_LOG_PRIVATE` | `1`이면 비공개 값을 시스템 로그(콘솔)에서만 그대로 표시함. 로그 파일에는 항상 `<private>`로 기록됨 |
-| `EVEO_UPDATE_FEED_URL` | GitHub 대신 이 주소에서 업데이트 확인. `https` 또는 루프백 호스트의 `http`만 허용. 로컬 인증서로 서명한 빌드는 이 주소에서 설치할 수 있으며, 서명 검사는 완화되지 않음 |
-| `EVEO_UPDATE_UI_STATE` | 데모 모드에서 업데이트 UI를 샘플 상태로 표시: `available`, `notifyonly`, `downloading`, `ready`, `failed` 또는 `uptodate` |
-| `EVEO_FAKE_CRASH` | 데모 모드에서 `1`이면 이전 실행이 충돌한 것처럼 동작하여 충돌 보고서 안내를 표시 |
-| `EVEO_STATIC_DATA` | 앱 안의 파일 대신 지정한 성도 데이터 파일을 사용 |
-| `EVEO_TRANSLATION_API_KEY` | `EVEOProbe translate` 전용 API 키. 앱 자체는 읽지 않음 |
-
-정찰 오버레이와 번역 오버레이가 쓰는 성도와 함선 데이터(성계, 성역, 스타게이트, 함선 그룹, 함선과 8개 인터페이스 언어의 이름)는 `scripts/build-sde-data.py`가 CCP의 정적 데이터(SDE)에서 생성하며, `packaging/eve-static.json`으로 앱에 포함됩니다. `scripts/build-app.sh`가 이 파일을 앱에 복사합니다. 앱은 실행 중에 이 데이터를 내려받지 않습니다. 다시 빌드하지 않고 더 새로운 파일을 써 보려면 `~/Library/Application Support/EVE-O Preview/eve-static.json`에 두십시오.
-
-소스는 3개 모듈로 되어 있습니다. `EVEOPreviewCore`는 순수 로직 계층이고, `EVEOPreviewPlatform`은 AppKit, ScreenCaptureKit, 손쉬운 사용, Carbon 단축키를 감싸며, `EVEOPreview`는 앱 자체입니다. 아키텍처는 [docs/architecture.md](docs/architecture.md)(중국어)에 설명되어 있습니다.
-
-**참고:** `swift run`으로 실행 파일을 직접 실행하면 macOS는 권한을 `EVE-O Preview.app`이 아니라 사용 중인 터미널 앱에 기록합니다.
-
-### CI 및 릴리스
-
-`.github/workflows/build.yml`은 GitHub 호스팅 macOS 러너에서 실행됩니다.
-
-- `main`에 대한 모든 풀 리퀘스트와 `main`으로의 모든 푸시에서 품질 게이트와 단위 테스트를 실행한 다음, 유니버설 dmg와 소스 아카이브를 빌드합니다. 이 파일들은 `EVE-O-Preview-<version>-pr.<number>.<commit>`(푸시의 경우 `-dev.<commit>`)라는 이름의 워크플로 아티팩트로 업로드되어 30일 동안 보관됩니다.
-- `v*` 태그를 푸시하면 같은 파일을 빌드하여 GitHub Release로 게시합니다. 태그는 `VERSION` 파일과 일치해야 합니다. `docs/release-notes/<tag>.md`가 있으면 그 내용이 릴리스 노트가 됩니다.
-
-새 버전을 릴리스하려면 풀 리퀘스트에서 `VERSION` 파일을 변경하고 `docs/release-notes/v<version>.md`를 추가하여 병합한 다음, `main`에 태그를 지정합니다: `git tag v<version> && git push origin v<version>`.
-
-에셋 이름(`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), dmg 구조, 서명 인증서, 릴리스 노트 형식은 앱 내 업데이트 기능과의 약속이며, CI가 빌드할 때마다 이를 확인합니다. 릴리스 노트는 영어를 맨 앞의 `<!-- lang:en -->`과 `<!-- /lang:en -->` 사이에 두고, 그 뒤에 같은 방식으로 표시한 접을 수 있는 zh, ja, ko, ru 블록을 둡니다. `scripts/check_release_notes.py`가 이 표시를 검사합니다. 자세한 내용은 [docs/architecture.md](docs/architecture.md)의 9.5절부터 9.7절까지를 참고하십시오.
+드래그 앤 드롭 도킹을 지원하는 영역, 다중 선택과 그룹 이동, 실행 취소, 자석 맞춤 안내선, Windows 설정 가져오기, 로그인 시 실행은 v1 이후에 계획되어 있습니다.
 
 ## 면책 조항
 
