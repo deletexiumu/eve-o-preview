@@ -29,10 +29,30 @@ extension UpdateController {
     }
 
     /// 中间版本是否没有列全（窗口据此在最后提示到发布页看更早的版本）。缓存不是为这个版本取的时候是假。
+    ///
+    /// 记录的 `hasMore` 指比存下的最旧一项更早的版本。显示前的过滤去掉了最旧那一项时（用户已手动装了某个中间版本），
+    /// 没列出的那些都不比正在运行的版本新，不再提示。
     func hasMoreEarlierNotes(for release: ReleaseInfo) -> Bool {
-        guard let record = intermediateNotes, SemanticVersion(record.latestVersion) == SemanticVersion(release.version)
-        else { return false }
-        return record.hasMore
+        guard let record = intermediateNotes, record.hasMore,
+              SemanticVersion(record.latestVersion) == SemanticVersion(release.version) else { return false }
+        if debugUIState != nil { return true }
+        guard let running = UpdatePolicy.comparableVersion(of: environment) else { return false }
+        if let oldest = record.entries.last {
+            return earlierNotes(for: release).last?.version == oldest.version
+        }
+        return SemanticVersion(record.runningVersion).map { running <= $0 } ?? false
+    }
+
+    /// 启动时丢掉已经没用的中间版本缓存：`cachedRelease` 没有了或换了版本，或最新版已不比正在运行的版本新
+    /// （更新已装好）。只改本地状态，不发请求。
+    func discardStaleIntermediateNotes() {
+        guard let record = intermediateNotes else { return }
+        let latest = SemanticVersion(record.latestVersion)
+        let cached = state.state.updates.cachedRelease.flatMap { SemanticVersion($0.version) }
+        let running = UpdatePolicy.comparableVersion(of: environment)
+        if let latest, cached == latest, let running, running < latest { return }
+        intermediateNotes = nil
+        state.update { $0.updates.intermediateNotes = nil }
     }
 
     /// 缓存不合用时，在后台取 release 与正在运行的版本之间各版本的说明。可以随意多调，不会重复请求。

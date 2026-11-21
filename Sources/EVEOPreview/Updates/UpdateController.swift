@@ -168,6 +168,7 @@ import EVEOPreviewPlatform
             intermediateNotes = nil
         }
         if let prepared = state.state.updates.prepared, !isUsable(prepared) { discardPrepared() }
+        discardStaleIntermediateNotes()
         rederivePhaseFromState()
     }
 
