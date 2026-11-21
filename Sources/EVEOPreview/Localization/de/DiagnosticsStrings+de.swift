@@ -42,7 +42,7 @@ struct DiagnosticsStringsDE: DiagnosticsStrings {
     // MARK: 报告窗口的文件列表与预览
     var itemsHeader: String { "Im Bericht enthalten" }
     var itemSummary: String { "Umgebungsübersicht" }
-    var itemConfig: String { "Einstellungsübersicht (ohne Namen)" }
+    var itemConfig: String { "Einstellungen (ohne Namen)" }
     var itemLog: String { "App-Protokoll" }
     func itemCrash(_ number: Int) -> String { "Absturzbericht \(number)" }
     var itemManifest: String { "Dateiliste" }

@@ -84,7 +84,7 @@ struct SettingsStringsES: SettingsStrings {
     var windowTitle: String { "Ajustes de EVE-O Preview" }
     var points: String { "pt" }
     var reset: String { "Restablecer" }
-    var defaultColor: String { "Predeterminado" }
+    var defaultColor: String { "Por defecto" }
     var cancel: String { "Cancelar" }
     // 确定按钮用 Apple 西班牙文的 Aceptar。
     var confirm: String { "Aceptar" }

@@ -41,7 +41,7 @@ struct DiagnosticsStringsFR: DiagnosticsStrings {
     // MARK: 报告窗口的文件列表与预览
     var itemsHeader: String { "Contenu du rapport" }
     var itemSummary: String { "Résumé de l'environnement" }
-    var itemConfig: String { "Résumé des réglages (sans noms)" }
+    var itemConfig: String { "Réglages (sans noms)" }
     var itemLog: String { "Journal de l'app" }
     func itemCrash(_ number: Int) -> String { "Rapport de plantage \(number)" }
     var itemManifest: String { "Liste des fichiers" }
