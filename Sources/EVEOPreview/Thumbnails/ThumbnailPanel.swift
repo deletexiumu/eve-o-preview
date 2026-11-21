@@ -13,7 +13,7 @@ final class ThumbnailPanel: NSPanel {
                    backing: .buffered, defer: false)
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         hidesOnDeactivate = false
-        // 显示 Dock 图标时应用可被 Cmd+H 或其他应用的「隐藏其他」隐藏；缩略图不跟着隐藏。
+        // 显示 Dock 图标时，应用可被 Dock 菜单的「隐藏」或其他应用的「隐藏其他」（Option+Cmd+H）隐藏；缩略图不跟着隐藏。
         canHide = false
         hasShadow = false
         isMovable = false

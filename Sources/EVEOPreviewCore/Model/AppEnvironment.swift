@@ -73,11 +73,13 @@ public struct AppEnvironment: Sendable, Equatable {
     public var location: InstallLocationKind
     /// 包所在目录与包本身对当前用户是否都可写。
     public var isLocationWritable: Bool
+    /// 包所在的卷是否支持原子交换（`RENAME_SWAP`，APFS 支持）。查不到时按支持处理，由安装时的预检兜底。
+    public var volumeSupportsSwap: Bool
 
     /// 用各字段建运行环境。测试与假服务用；真实值由 `AppEnvironmentProvider.current()` 读取。
     public init(bundleIdentifier: String, version: String, buildLabel: String, buildCommit: String?,
                 bundlePath: String?, executableName: String, signature: CodeSignatureInfo,
-                location: InstallLocationKind, isLocationWritable: Bool) {
+                location: InstallLocationKind, isLocationWritable: Bool, volumeSupportsSwap: Bool = true) {
         self.bundleIdentifier = bundleIdentifier
         self.version = version
         self.buildLabel = buildLabel
@@ -87,6 +89,7 @@ public struct AppEnvironment: Sendable, Equatable {
         self.signature = signature
         self.location = location
         self.isLocationWritable = isLocationWritable
+        self.volumeSupportsSwap = volumeSupportsSwap
     }
 }
 

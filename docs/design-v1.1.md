@@ -1951,3 +1951,5 @@ README 的卸载说明应列出这 4 个位置。
 | 3.1、11.2（用户在手工测试后要求） | 新增 `general.showDockIcon`，默认 true：激活策略为 `.regular`，Dock 与 Cmd+Tab 里有图标，点 Dock 图标打开设置窗口。为 false 时是 `.accessory`。Info.plist 仍写 LSUIElement，读完配置再切换，关掉的用户启动时不闪图标。主菜单补上应用菜单（设置 Cmd+,、退出 Cmd+Q）；缩略图面板 `canHide = false`，不被 Cmd+H 或「隐藏其他」隐藏。配置摘要加 `showDockIcon` |
 | 7.1（手工测试发现） | `relaunch` 的 `openApplication` 回调在后台队列执行，原先被推断为主线程隔离，Swift 6 运行时检查失败使旧进程崩溃；改为 `@Sendable`。SIGTERM 处理与 `relaunch` 在主队列任务里直接调 `NSApp.terminate` 会死锁，改为 `RunLoop.main.perform` |
 | 6（待改进，v1.1.0 不做） | 新旧实例重叠时（重新启动），旧进程的崩溃报告会按时间算到新会话头上。可改为再核对 `.ips` 里的 PID 与会话标记的 PID |
+| 9.1、9.5（独立审查后修订） | 新增 `InstallBlocker.unsupportedVolume`：`AppEnvironment.volumeSupportsSwap` 为假（卷不支持 `RENAME_SWAP`）时只提示，开关下方写明原因，不再下载后在预检时失败。上面「非 APFS 卷在第 1 步预检时返回 `swapFailed`」一行由此取代，预检保留作兜底 |
+| 第 19 节空闲安装（独立审查后修订） | 空闲检查改为一个运行到退出的循环，阶段暂时离开 `.readyToInstall` 只清零计数；退出开始时 `prepareForTermination` 停掉它，之后的安装不重新启动。安装失败（含空闲与菜单项触发的）经推迟弹出机制显示更新窗口。`relaunch` 设 `activates = false`，不抢焦点。点 Dock 图标时按本应用带标题栏的可见窗口判断，不用 `hasVisibleWindows`（会把缩略图算进去）。「已下载」状态行改为「没有 EVE 客户端运行时或退出时安装」 |

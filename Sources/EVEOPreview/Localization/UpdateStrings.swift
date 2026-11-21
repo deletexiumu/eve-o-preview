@@ -112,6 +112,8 @@ protocol UpdateStrings: Sendable {
     var blockerReadOnlyVolume: String { get }
     /// `locationNotWritable`。
     var blockerLocationNotWritable: String { get }
+    /// `unsupportedVolume`。
+    var blockerUnsupportedVolume: String { get }
     /// `adHocSignature`。
     var blockerAdHocSignature: String { get }
     /// `developmentSignature`。
@@ -150,6 +152,7 @@ extension UpdateStrings {
         case .translocated: return blockerTranslocated
         case .readOnlyVolume: return blockerReadOnlyVolume
         case .locationNotWritable: return blockerLocationNotWritable
+        case .unsupportedVolume: return blockerUnsupportedVolume
         case .adHocSignature: return blockerAdHocSignature
         case .developmentSignature: return blockerDevelopmentSignature
         case .unsigned: return blockerUnsigned

@@ -39,6 +39,17 @@ struct UpdatePolicyTests {
         #expect(cap(F.environment(location: .other), false) == .canInstall)
     }
 
+    /// 卷不支持原子交换（不是 APFS）时只提示；位置不可写的原因排在它前面（设计第 19 节）。
+    @Test func capabilityUnsupportedVolume() {
+        var environment = F.environment()
+        environment.volumeSupportsSwap = false
+        #expect(UpdatePolicy.capability(for: environment, isTestFeed: false) == .notifyOnly(.unsupportedVolume))
+        var readOnlyFolder = F.environment(writable: false)
+        readOnlyFolder.volumeSupportsSwap = false
+        #expect(UpdatePolicy.capability(for: readOnlyFolder, isTestFeed: false) == .notifyOnly(.locationNotWritable))
+        #expect(F.environment().volumeSupportsSwap)
+    }
+
     /// 开发证书在测试地址下可装；ad-hoc 与未签名在测试地址下仍不可装。
     @Test func capabilityWithTestFeed() {
         let cap = UpdatePolicy.capability

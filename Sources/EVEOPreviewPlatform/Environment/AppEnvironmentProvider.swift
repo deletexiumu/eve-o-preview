@@ -21,7 +21,8 @@ public enum AppEnvironmentProvider {
         let version = nonEmpty(info["CFBundleShortVersionString"]) ?? "0.0.0"
         let bundleURL = bundle.bundleURL
         let bundlePath = bundleURL.pathExtension == "app" ? bundleURL.path : nil
-        let isReadOnly = (try? bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly ?? false
+        let volume = try? bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey, .volumeSupportsSwapRenamingKey])
+        let isReadOnly = volume?.volumeIsReadOnly ?? false
         let location = AppEnvironmentRules.locationKind(bundlePath: bundlePath, homeDirectory: NSHomeDirectory(),
                                                         isReadOnlyVolume: isReadOnly)
         let executable = nonEmpty(info["CFBundleExecutable"]) ?? bundle.executableURL?.lastPathComponent
@@ -34,7 +35,8 @@ public enum AppEnvironmentProvider {
                               executableName: executable,
                               signature: signatureInfo(),
                               location: location,
-                              isLocationWritable: bundlePath.map(isWritable(bundlePath:)) ?? false)
+                              isLocationWritable: bundlePath.map(isWritable(bundlePath:)) ?? false,
+                              volumeSupportsSwap: volume?.volumeSupportsSwapRenaming ?? true)
     }
 
     /// Info.plist 里的字符串值；不是字符串或为空时返回 nil。

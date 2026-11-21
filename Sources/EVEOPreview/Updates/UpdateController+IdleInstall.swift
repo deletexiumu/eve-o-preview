@@ -10,7 +10,8 @@
 // - 本应用没有打开的普通窗口（设置、更新、问题报告）：用户正在用的窗口不该被重启关掉。
 //
 // 连续 3 次的要求是为了不在用户重开客户端的间隙里抢着重启。任一次不空闲，计数清零。
-// 阶段离开 `.readyToInstall`（用户已点安装、关掉开关、出错）后，下一次检查时停止。
+// 阶段不是 `.readyToInstall` 或开关关着时计数清零；循环一直运行到退出（`prepareForTermination`）。
+// 安装失败的版本不会再进入 `.readyToInstall`，所以不会反复重试。
 
 import AppKit
 import EVEOPreviewCore
@@ -22,25 +23,36 @@ extension UpdateController {
     /// 连续空闲多少次才安装。
     static let idleChecksRequired = 3
 
-    /// 开始（或重新开始）空闲检查。进入 `.readyToInstall` 时调用。
+    /// 开始空闲检查；已在检查时什么也不做。进入 `.readyToInstall` 时调用。
+    ///
+    /// 循环一直运行到退出：阶段暂时离开 `.readyToInstall`（用户点「立即检查」时的检查中、开关关了又开）
+    /// 只把计数清零，回到 `.readyToInstall` 后接着数，不会因此停掉。
     func startIdleInstallWatch() {
-        idleInstallTask?.cancel()
+        guard idleInstallTask == nil else { return }
         idleInstallTask = Task { [weak self] in
             var idleCount = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: UpdateController.idleCheckInterval)
-                guard !Task.isCancelled, let self, self.shouldKeepIdleWatch else { return }
-                idleCount = self.isIdleForInstall ? idleCount + 1 : 0
+                guard !Task.isCancelled, let self, !self.isTerminating else { return }
+                idleCount = self.isWaitingToInstall && self.isIdleForInstall ? idleCount + 1 : 0
                 guard idleCount >= UpdateController.idleChecksRequired else { continue }
+                idleCount = 0
                 self.log.info("没有 EVE 客户端在运行，自动安装更新并重新启动")
                 self.restartToInstall()
-                return
             }
         }
     }
 
-    /// 是否还要继续检查：仍在等待安装，两个开关都打开。
-    private var shouldKeepIdleWatch: Bool {
+    /// 退出开始时由 AppDelegate 调用：停止空闲检查与定时检查，之后的安装都不重新启动。
+    func prepareForTermination() {
+        isTerminating = true
+        idleInstallTask?.cancel()
+        idleInstallTask = nil
+        loopTask?.cancel()
+    }
+
+    /// 是否在等待安装：已下载好，两个开关都打开。
+    private var isWaitingToInstall: Bool {
         guard case .readyToInstall = phase else { return false }
         return general.checkForUpdates && general.autoInstallUpdates
     }

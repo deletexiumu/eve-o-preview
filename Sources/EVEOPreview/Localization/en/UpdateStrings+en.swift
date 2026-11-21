@@ -30,7 +30,7 @@ struct UpdateStringsEN: UpdateStrings {
     var statusUpToDate: String { "EVE-O Preview is up to date." }
     func statusAvailable(_ version: String) -> String { "Version \(version) is available." }
     func statusReady(_ version: String) -> String {
-        "Version \(version) is downloaded and will be installed when you quit."
+        "Version \(version) is downloaded. It will be installed when no EVE client is running, or when you quit."
     }
     func statusRateLimited(_ time: String) -> String { "GitHub is limiting requests. Try again after \(time)." }
     var statusRateLimitedLater: String { "GitHub is limiting requests. Try again later." }
@@ -66,6 +66,7 @@ struct UpdateStringsEN: UpdateStrings {
     var blockerTranslocated: String {
         "macOS is running the app from a temporary read-only location. Move it to the Applications folder, then open it again."
     }
+    var blockerUnsupportedVolume: String { "The app is on a disk that is not formatted as APFS, so updates cannot be installed in the app. Download the new version from the release page." }
     var blockerReadOnlyVolume: String { "The app is on a read-only disk. Copy it to the Applications folder first." }
     var blockerLocationNotWritable: String { "You don't have permission to change the folder that contains the app." }
     var blockerAdHocSignature: String {

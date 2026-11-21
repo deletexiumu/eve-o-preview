@@ -34,7 +34,7 @@ struct UpdateStringsJA: UpdateStrings {
     var statusUpToDate: String { "EVE-O Preview は最新です。" }
     func statusAvailable(_ version: String) -> String { "バージョン \(version) が利用可能です。" }
     func statusReady(_ version: String) -> String {
-        "バージョン \(version) はダウンロード済みです。終了時にインストールされます。"
+        "バージョン \(version) はダウンロード済みです。EVE クライアントが起動していないとき、または終了時にインストールされます。"
     }
     func statusRateLimited(_ time: String) -> String {
         "GitHub がリクエストを制限しています。\(time) 以降にもう一度お試しください。"
@@ -73,6 +73,7 @@ struct UpdateStringsJA: UpdateStrings {
         "macOS がアプリを一時的な読み取り専用の場所から実行しています。"
             + "アプリを「アプリケーション」フォルダに移動してから、もう一度開いてください。"
     }
+    var blockerUnsupportedVolume: String { "アプリが APFS 以外の形式のディスクにあるため、アプリ内でアップデートをインストールできません。リリースページから新しいバージョンをダウンロードしてください。" }
     var blockerReadOnlyVolume: String {
         "アプリは読み取り専用のディスク上にあります。先に「アプリケーション」フォルダにコピーしてください。"
     }

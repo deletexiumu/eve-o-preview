@@ -85,6 +85,7 @@ public enum UpdatePolicy {
         if environment.location == .translocated { return .notifyOnly(.translocated) }
         if environment.location == .readOnlyVolume { return .notifyOnly(.readOnlyVolume) }
         if !environment.isLocationWritable { return .notifyOnly(.locationNotWritable) }
+        if !environment.volumeSupportsSwap { return .notifyOnly(.unsupportedVolume) }
         return .canInstall
     }
 

@@ -131,6 +131,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !isTerminating else { return .terminateLater }
         isTerminating = true
+        // 先停掉更新的空闲安装与定时检查：退出过程中不该再开始安装并重新启动。
+        coordinator?.updates?.prepareForTermination()
         // 配置先同步写盘：即使停止捕获时出问题，用户的改动也不会丢。
         configController?.flush()
         let coordinator = self.coordinator
@@ -169,9 +171,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 关掉设置窗口后应用继续在菜单栏运行。
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
-    /// 点 Dock 图标，或在访达里再次打开正在运行的应用：没有可见窗口时打开设置窗口。
+    /// 点 Dock 图标，或在访达里再次打开正在运行的应用：本应用没有打开的普通窗口时打开设置窗口。
+    /// 不用系统给的 hasVisibleWindows：它把缩略图面板也算进去，玩游戏时点 Dock 图标会没有反应。
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { coordinator?.openSettings?(.clients) }
+        let hasTitledWindow = NSApp.windows.contains { $0.isVisible && $0.styleMask.contains(.titled) }
+        if !hasTitledWindow { coordinator?.openSettings?(.clients) }
         return true
     }
 

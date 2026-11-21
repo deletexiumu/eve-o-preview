@@ -74,6 +74,9 @@ import os
         let configuration = NSWorkspace.OpenConfiguration()
         // 新实例与旧实例会短暂并存，所以要求系统另开一个实例，而不是激活旧实例。
         configuration.createsNewApplicationInstance = true
+        // 不把新实例带到前台：空闲时自动更新后的重新启动不该抢走焦点。要显示窗口时，
+        // 设置窗口等界面会自己激活应用。
+        configuration.activates = false
         configuration.arguments = [SystemPermissionService.relaunchedFromArgument, String(getpid())]
         // 只在确有调试开关时才设：正式使用时没有 EVEO_ 变量，不改动新实例的环境。
         let debugEnvironment = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("EVEO_") }

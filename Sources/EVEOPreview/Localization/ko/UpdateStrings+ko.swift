@@ -35,7 +35,7 @@ struct UpdateStringsKO: UpdateStrings {
     var statusChecking: String { "확인 중…" }
     var statusUpToDate: String { "EVE-O Preview가 최신 버전입니다." }
     func statusAvailable(_ version: String) -> String { "\(version) 버전을 사용할 수 있습니다." }
-    func statusReady(_ version: String) -> String { "\(version) 버전이 다운로드되었으며 종료할 때 설치됩니다." }
+    func statusReady(_ version: String) -> String { "\(version) 버전이 다운로드되었습니다. EVE 클라이언트가 실행 중이 아닐 때나 종료할 때 설치됩니다." }
     func statusRateLimited(_ time: String) -> String {
         "GitHub가 요청을 제한하고 있습니다. \(time) 이후에 다시 시도하십시오."
     }
@@ -72,6 +72,7 @@ struct UpdateStringsKO: UpdateStrings {
     var blockerTranslocated: String {
         "macOS가 임시 읽기 전용 위치에서 앱을 실행하고 있습니다. 앱을 응용 프로그램 폴더로 옮긴 후 다시 여십시오."
     }
+    var blockerUnsupportedVolume: String { "앱이 APFS 형식이 아닌 디스크에 있어 앱 안에서 업데이트를 설치할 수 없습니다. 릴리스 페이지에서 새 버전을 다운로드하십시오." }
     var blockerReadOnlyVolume: String { "앱이 읽기 전용 디스크에 있습니다. 먼저 응용 프로그램 폴더로 복사하십시오." }
     var blockerLocationNotWritable: String { "앱이 들어 있는 폴더를 변경할 권한이 없습니다." }
     var blockerAdHocSignature: String { "이 빌드에는 고정된 서명이 없어 새 버전을 검증할 수 없습니다." }

@@ -43,7 +43,7 @@ extension UpdateController {
 
     /// 自动安装已下载好时，由菜单项「重新启动以更新到 <版本>」调用。
     func restartToInstall() {
-        guard canRunInstaller, !isBusy, case .readyToInstall(let release) = phase else { return }
+        guard canRunInstaller, !isBusy, !isTerminating, case .readyToInstall(let release) = phase else { return }
         startInstall(release)
     }
 
@@ -186,11 +186,17 @@ extension UpdateController {
         guard case .success(let outcome) = apply(result, prepared: prepared) else {
             if case .failure(let error) = result { setPhase(.failed(error, release: release)) }
             coordinator.setAttention(.updateReady, on: false)
+            // 空闲时自动安装或菜单项触发的安装失败时，更新窗口可能没开；经推迟弹出机制显示失败原因
+            // （EVE 客户端在前台时等它切走）。窗口已开着时 show 只是把它放到前面。
+            coordinator.presenter.present(key: UpdateController.presenterKey) { [weak self] in
+                self?.presentWindow?(false)
+            }
             return
         }
         coordinator.setAttention(.updateReady, on: false)
         coordinator.setAttention(.updateAvailable, on: false)
-        guard relaunch else { return }
+        // 用户已在退出（`prepareForTermination`）时只安装不重新启动：退出后不该又自己起来。
+        guard relaunch, !isTerminating else { return }
         setPhase(.relaunching)
         log.info("已安装 \(outcome.installedVersion, privacy: .public)，重新启动")
         coordinator.services.permissions.relaunch()

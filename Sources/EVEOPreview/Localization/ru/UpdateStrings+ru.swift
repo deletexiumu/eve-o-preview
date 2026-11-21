@@ -35,7 +35,7 @@ struct UpdateStringsRU: UpdateStrings {
     var statusChecking: String { "Проверка…" }
     var statusUpToDate: String { "У вас последняя версия EVE-O Preview." }
     func statusAvailable(_ version: String) -> String { "Доступна версия \(version)." }
-    func statusReady(_ version: String) -> String { "Версия \(version) загружена и будет установлена при выходе." }
+    func statusReady(_ version: String) -> String { "Версия \(version) загружена и будет установлена, когда клиент EVE не запущен, или при выходе." }
     func statusRateLimited(_ time: String) -> String { "GitHub ограничивает запросы. Повторите попытку после \(time)." }
     var statusRateLimitedLater: String { "GitHub ограничивает запросы. Повторите попытку позже." }
     var statusUnavailable: String { "В этой сборке обновления недоступны." }
@@ -73,6 +73,7 @@ struct UpdateStringsRU: UpdateStrings {
         "macOS запускает приложение из временного места только для чтения. "
             + "Переместите его в папку «Программы» и откройте снова."
     }
+    var blockerUnsupportedVolume: String { "Приложение находится на диске, отформатированном не в APFS, поэтому обновления нельзя установить из приложения. Скачайте новую версию со страницы выпуска." }
     var blockerReadOnlyVolume: String {
         "Приложение находится на диске только для чтения. Сначала скопируйте его в папку «Программы»."
     }

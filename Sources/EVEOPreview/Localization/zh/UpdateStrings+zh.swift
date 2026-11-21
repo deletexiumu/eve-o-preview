@@ -32,7 +32,7 @@ struct UpdateStringsZH: UpdateStrings {
     var statusChecking: String { "检查中…" }
     var statusUpToDate: String { "EVE-O Preview 已是最新版本。" }
     func statusAvailable(_ version: String) -> String { "新版本 \(version) 可用。" }
-    func statusReady(_ version: String) -> String { "新版本 \(version) 已下载，将在退出时安装。" }
+    func statusReady(_ version: String) -> String { "新版本 \(version) 已下载，将在没有 EVE 客户端运行时或退出时安装。" }
     func statusRateLimited(_ time: String) -> String { "GitHub 限制了请求次数，请在 \(time) 之后再试。" }
     var statusRateLimitedLater: String { "GitHub 限制了请求次数，请稍后再试。" }
     var statusUnavailable: String { "这个构建不能使用更新功能。" }
@@ -65,6 +65,7 @@ struct UpdateStringsZH: UpdateStrings {
     // MARK: 不能自动安装的原因
 
     var blockerTranslocated: String { "系统在临时的只读位置运行这个应用。请把应用移到「应用程序」文件夹后重新打开。" }
+    var blockerUnsupportedVolume: String { "应用所在的磁盘不是 APFS 格式，不能在应用内安装更新。请从发布页下载新版本。" }
     var blockerReadOnlyVolume: String { "应用在只读的磁盘上。请先拷贝到「应用程序」文件夹。" }
     var blockerLocationNotWritable: String { "当前用户没有权限改动应用所在的文件夹。" }
     var blockerAdHocSignature: String { "这个构建没有稳定的签名，无法核对新版本。" }

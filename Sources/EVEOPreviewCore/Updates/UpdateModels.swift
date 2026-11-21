@@ -66,6 +66,8 @@ public enum InstallBlocker: String, Sendable, Equatable, Codable, CaseIterable {
     case readOnlyVolume
     /// 当前用户不能改动应用所在的文件夹。
     case locationNotWritable
+    /// 应用所在的卷不支持原子交换（`RENAME_SWAP`，不是 APFS），只能手动安装（v1.1 设计第 19 节）。
+    case unsupportedVolume
     /// ad-hoc 签名，没有稳定的指定要求。
     case adHocSignature
     /// 本机证书签名的开发构建（使用测试地址时除外）。
