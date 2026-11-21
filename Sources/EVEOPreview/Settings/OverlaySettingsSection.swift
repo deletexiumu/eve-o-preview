@@ -6,6 +6,7 @@
 // 位置与尺寸：数字框显示浮窗实际使用的 frame（没保存过时是默认位置），回车或失去焦点时提交；
 // 提交经 OverlayPlanner.editedFrame 取整、夹到尺寸上下限并拉回屏幕，再写成 frame（没保存过的也随之保存）。
 // 布局锁定时也允许在这里改：锁定只防误拖，这里是明确的手工输入。
+// 显示范围（v1.2.1）：竖排单选「始终显示 / 仅游戏内」，写法与热键的作用范围一致，立即写入。
 // 文字取自 L10n.overlay。
 
 import SwiftUI
@@ -33,6 +34,11 @@ struct OverlaySettingsSection: View {
         // 浮窗实际使用的 frame，与规划器的取法相同，拖动浮窗后这里随配置更新。
         let frame = OverlayPlanner.resolvedFrame(settings.frame, kind: kind, screens: screens)
         Section {
+            Picker(strings.visibilityLabel, selection: $settings.visibility) {
+                Text(strings.visibilityAlways).tag(OverlayVisibility.always)
+                Text(strings.visibilityGameOnly).tag(OverlayVisibility.gameOnly)
+            }
+            .pickerStyle(.radioGroup)
             SliderRow(label: strings.opacity, value: $settings.opacity, range: OverlayPanelSettings.opacityRange,
                       step: 0.05, format: { "\(Int(($0 * 100).rounded()))%" })
             SliderRow(label: strings.fontSize, value: $settings.fontSize, range: OverlayPanelSettings.fontSizeRange,

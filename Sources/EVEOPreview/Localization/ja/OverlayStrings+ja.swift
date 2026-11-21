@@ -29,6 +29,9 @@ struct OverlayStringsJA: OverlayStrings {
     var fontSize: String { "文字サイズ" }
     var resetFrame: String { "位置をデフォルトに戻す" }
     var gestureHelp: String { "右ドラッグまたは Option を押しながら左ドラッグで移動、端にポインタを合わせて左ドラッグでサイズ変更、スクロールでリストを送ります。" }
+    var visibilityLabel: String { "表示範囲" }
+    var visibilityAlways: String { "常に表示" }
+    var visibilityGameOnly: String { "EVE 内のみ：どの EVE ウインドウも最前面でないときは隠す" }
     var positionLabel: String { "位置" }
     var sizeLabel: String { "サイズ" }
     var frameHelp: String { "位置はメインディスプレイの左上を原点とするポイント単位です。サイズは 220×120〜900×900 に制限され、画面外の位置は画面内に戻されます。" }

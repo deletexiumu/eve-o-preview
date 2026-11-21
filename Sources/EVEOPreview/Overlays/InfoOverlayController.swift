@@ -70,6 +70,8 @@ final class InfoOverlayController {
             if panel.isVisible {
                 // 拖动中被隐藏时取消拖动：协调器同时清掉它的交互状态，松开鼠标时不再提交。
                 interaction.cancel()
+                // 隐藏的面板收不到 mouseExited：鼠标正停在它的边缘带上时，缩放光标要在这里恢复。
+                ResizeCursor.reset()
                 panel.orderOut(nil)
             }
             return

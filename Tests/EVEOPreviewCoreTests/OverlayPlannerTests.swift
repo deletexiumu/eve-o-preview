@@ -3,6 +3,7 @@
 // OverlayPlanner 的用例（docs/design-intel-translate.md 8.6 节、14.1 节）。
 // 角色名用 Fixtures 里虚构的名字。
 
+import Foundation
 import Testing
 import EVEOPreviewCore
 
@@ -225,5 +226,30 @@ struct OverlayPlannerTests {
         #expect(beyondLeft.x == -1920 - 300 + 40)
         let none = OverlayPlanner.clampedFrame(ScreenRect(x: 9000, y: 9000, width: 1, height: 1), screens: [])
         #expect(none == ScreenRect(x: 9000, y: 9000, width: 220, height: 120))
+    }
+
+    // MARK: - 显示范围（v1.2.1）
+
+    /// 「仅游戏内」：前台是其他应用时立即隐藏（不等延迟、也不看「离开 EVE 时隐藏」）；前台是客户端或本应用时显示。
+    /// 「始终显示」的另一个浮窗不受影响。
+    @Test func gameOnlyHidesWhenEVENotFrontmost() {
+        let edit: (inout Profile) -> Void = { $0.intel.overlay.visibility = .gameOnly }
+        let away = OverlayPlanner.plan(input(frontmost: .other, profile: edit))
+        #expect(away.presentations.map(\.isVisible) == [false, true])
+        for frontmost in [FrontmostContext.client(pid: Fixtures.pidA), .selfApp] {
+            let plan = OverlayPlanner.plan(input(frontmost: frontmost, profile: edit))
+            #expect(plan.presentations.map(\.isVisible) == [true, true])
+        }
+    }
+
+    /// 没有客户端时两种显示范围都不可见；不认识的显示范围解码成默认值，不让配置读取失败。
+    @Test func visibilityEdgeCases() throws {
+        let none = OverlayPlanner.plan(input(clients: [], frontmost: .selfApp,
+                                             profile: { $0.translation.overlay.visibility = .gameOnly }))
+        #expect(none.presentations.allSatisfy { !$0.isVisible })
+        let decoded = try JSONDecoder().decode(OverlayPanelSettings.self,
+                                               from: Data(#"{"visibility":"someday"}"#.utf8))
+        #expect(decoded.visibility == .always)
+        #expect(OverlayPanelSettings().visibility == .always)
     }
 }

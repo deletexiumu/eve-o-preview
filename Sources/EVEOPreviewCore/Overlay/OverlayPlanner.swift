@@ -3,7 +3,8 @@
 // 浮窗的规划（docs/design-intel-translate.md 8.6 节）：由客户端、前台、配置与屏幕算出每个已启用浮窗的
 // 可见性、位置、层级与外观，以及活动角色。纯函数，由协调器在每次重算时调用。
 // 类型与 activeCharacter 由 WP-0 写完整；plan 的可见性规则与 clampedFrame 由 WP-A 完成。
-// 可见性只有两条（8.6 节）：没有任何客户端时不可见；「离开 EVE 时隐藏」到期后不可见，开关与延迟与缩略图共用。
+// 可见性（8.6 节）：没有任何客户端时不可见；「离开 EVE 时隐藏」到期后不可见，开关与延迟与缩略图共用；
+// v1.2.1 起每个浮窗还可选「仅游戏内」：前台既不是客户端也不是本应用时立即不可见。
 // 「全部隐藏」（session.hideAll）只管缩略图，不影响浮窗（Q23）。
 
 import Foundation
@@ -98,7 +99,8 @@ public enum OverlayPlanner {
 
     /// 规划全部浮窗：每个已启用的浮窗一个呈现，按 intel、translation 的顺序；没启用的不出现。
     ///
-    /// - 可见：有客户端，且「离开 EVE 时隐藏」没有到期（前台是本应用时不算离开）。
+    /// - 可见：有客户端，且「离开 EVE 时隐藏」没有到期（前台是本应用时不算离开）；
+    ///   设为「仅游戏内」的浮窗另要求前台是客户端或本应用（`isInEVEContext`），不等延迟。
     /// - frame：保存过时取 `clampedFrame` 的结果，否则取 `defaultFrame`。
     /// - 层级：`isAlwaysOnTop` 取 `behavior.alwaysOnTop`；置顶且前台是原生全屏的客户端时 `isOverFullScreen` 为真。
     /// - `nextWakeAt`：有启用的浮窗、有客户端、隐藏延迟还没到期时是到期时刻，否则为 nil。
@@ -108,13 +110,14 @@ public enum OverlayPlanner {
                                      lastActivePID: input.session.lastActivePID)
         let behavior = input.profile.behavior
         let hidden = input.clients.isEmpty || isHiddenAwayFromEVE(input)
+        let inEVE = isInEVEContext(input.frontmost)
         let overFullScreen = behavior.alwaysOnTop && isFrontmostFullScreen(input)
         var presentations: [OverlayPresentation] = []
         for kind in OverlayKind.allCases {
             guard let settings = enabledSettings(kind, profile: input.profile) else { continue }
             let frame = resolvedFrame(settings.frame, kind: kind, screens: input.screens)
             presentations.append(OverlayPresentation(
-                kind: kind, isVisible: !hidden, frame: frame,
+                kind: kind, isVisible: !hidden && (settings.visibility == .always || inEVE), frame: frame,
                 opacity: clamp(settings.opacity, to: OverlayPanelSettings.opacityRange, fallback: 0.75),
                 fontSize: clamp(settings.fontSize, to: OverlayPanelSettings.fontSizeRange, fallback: 12),
                 isAlwaysOnTop: behavior.alwaysOnTop, isOverFullScreen: overFullScreen,
@@ -228,6 +231,12 @@ public enum OverlayPlanner {
         let behavior = input.profile.behavior
         return behavior.hideWhenEVENotFrontmost && input.frontmost == .other
             && input.now - input.session.lastEVEContextAt >= behavior.hideDelaySeconds
+    }
+
+    /// 前台是客户端或本应用（设置窗口等）时算在 EVE 环境内；「仅游戏内」的浮窗只在这时显示。
+    /// 本应用算在内：在设置页调整浮窗时要能看到它；点浮窗本身不会激活本应用。
+    public static func isInEVEContext(_ frontmost: FrontmostContext) -> Bool {
+        frontmost != .other
     }
 
     /// 隐藏延迟还没到期时返回到期时刻，否则返回 nil。

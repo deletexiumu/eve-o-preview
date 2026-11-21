@@ -29,6 +29,9 @@ struct OverlayStringsRU: OverlayStrings {
     var fontSize: String { "Размер шрифта" }
     var resetFrame: String { "Вернуть положение по умолчанию" }
     var gestureHelp: String { "Перетаскивайте правой кнопкой или левой с Option, чтобы переместить оверлей; наведите указатель на край и тяните левой кнопкой, чтобы изменить размер; прокручивайте колесом, чтобы листать список." }
+    var visibilityLabel: String { "Показывать" }
+    var visibilityAlways: String { "Всегда" }
+    var visibilityGameOnly: String { "Только в EVE: скрывать, когда ни одно окно EVE не на переднем плане" }
     var positionLabel: String { "Положение" }
     var sizeLabel: String { "Размер" }
     var frameHelp: String { "Положение отсчитывается в пунктах от левого верхнего угла основного дисплея. Размер ограничен от 220×120 до 900×900; положение за пределами экрана возвращается на экран." }

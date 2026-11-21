@@ -324,7 +324,8 @@ struct ChatConfigCodableTests {
         #expect(profile.intel.windowMinutes == 30 && profile.intel.maxJumps == 15 && profile.intel.alertJumps == 5)
         #expect(profile.intel.showOriginal && profile.intel.referenceSystem == nil)
         #expect(profile.intel.resolvePilotNames)
-        #expect(profile.intel.overlay == OverlayPanelSettings(frame: nil, opacity: 0.75, fontSize: 12))
+        #expect(profile.intel.overlay == OverlayPanelSettings(frame: nil, opacity: 0.75, fontSize: 12,
+                                                              visibility: .always))
         #expect(profile.translation.targetLanguage == .ui && profile.translation.showOriginal)
         #expect(!profile.translation.foreignOnly)
         #expect(config.general.translationEndpoint == TranslationEndpointSettings(provider: .deepseek))
@@ -340,7 +341,7 @@ struct ChatConfigCodableTests {
         #expect(Set(intel.keys) == ["enabled", "channels", "windowMinutes", "maxJumps", "alertJumps", "showOriginal",
                                     "referenceSystem", "resolvePilotNames", "overlay"])
         let overlay = try #require(intel["overlay"] as? [String: Any])
-        #expect(Set(overlay.keys) == ["frame", "opacity", "fontSize"])
+        #expect(Set(overlay.keys) == ["frame", "opacity", "fontSize", "visibility"])
         #expect(Set((overlay["frame"] as? [String: Any])?.keys ?? [:].keys) == ["x", "y", "width", "height"])
         let translation = try #require(object["translation"] as? [String: Any])
         #expect(Set(translation.keys) == ["enabled", "channels", "targetLanguage", "showOriginal", "foreignOnly",

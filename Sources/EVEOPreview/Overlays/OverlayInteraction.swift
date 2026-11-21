@@ -153,6 +153,8 @@ final class OverlayInteraction {
         case .dragging(let pressed, _, let drag) where pressed == button:
             phase = .idle
             delegate?.overlayDragEnded(kind, frame: drag.current)
+            // 松开时鼠标可能已不在边缘（尺寸上下限、吸附），按当前位置刷新光标。
+            ResizeCursor.update(for: hoverEdges())
             return true
         case .suppressed(let pressed) where pressed == button:
             phase = .idle

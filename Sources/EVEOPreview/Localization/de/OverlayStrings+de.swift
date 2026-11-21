@@ -29,6 +29,9 @@ struct OverlayStringsDE: OverlayStrings {
     var fontSize: String { "Schriftgröße" }
     var resetFrame: String { "Position zurücksetzen" }
     var gestureHelp: String { "Mit der rechten Maustaste oder mit Wahltaste und linker Maustaste ziehen, um das Overlay zu bewegen; den Zeiger an den Rand bewegen und mit der linken Maustaste ziehen, um die Größe zu ändern; scrollen, um die Liste zu durchblättern." }
+    var visibilityLabel: String { "Anzeigen" }
+    var visibilityAlways: String { "Immer" }
+    var visibilityGameOnly: String { "Nur in EVE: ausblenden, wenn kein EVE-Fenster im Vordergrund ist" }
     var positionLabel: String { "Position" }
     var sizeLabel: String { "Größe" }
     var frameHelp: String { "Die Position wird in Punkten ab der linken oberen Ecke des Hauptbildschirms angegeben. Die Größe ist auf 220×120 bis 900×900 begrenzt; eine Position außerhalb des Bildschirms wird zurückgeholt." }
