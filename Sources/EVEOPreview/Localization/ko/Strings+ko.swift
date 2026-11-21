@@ -203,6 +203,8 @@ struct SettingsStringsKO: SettingsStrings {
     var interfaceLanguage: String { "표시 언어" }
     var followSystem: String { "시스템 설정 따르기" }
     var machineTranslationNote: String { "일부 번역은 기계 번역입니다. 수정 제안을 환영합니다." }
+    var showDockIcon: String { "Dock에 아이콘 표시" }
+    var showDockIconHelp: String { "끄면 메뉴 막대 아이콘만 표시됩니다." }
 
     // 权限页。
     var permissionsSubtitle: String { "두 권한 모두 ‘시스템 설정 > 개인정보 보호 및 보안’에서 허용합니다." }
@@ -243,6 +245,10 @@ struct SettingsStringsKO: SettingsStrings {
     var gameLogText: String {
         "전투 알림은 EVE 클라이언트가 직접 기록한 게임 로그 파일만 읽습니다. "
             + "게임 메모리를 읽지 않고, 파일을 수정하지 않으며, 입력을 보내지 않습니다."
+    }
+    var networkText: String {
+        "EVE-O Preview는 업데이트를 확인하고 다운로드할 때만 GitHub에 연결합니다. '일반'에서 끌 수 있습니다. "
+            + "문제 보고서는 자동으로 전송되지 않습니다."
     }
     var eveIPText: String {
         "EVE Online 및 관련 로고는 CCP ehf.의 상표입니다. 이 프로젝트는 CCP와 관련이 없으며 CCP의 승인을 받지 않았습니다."

@@ -1,0 +1,2 @@
+# 应用里「报告问题…」生成的地址不带 template 参数，靠空白 Issue 的入口预填正文（v1.1 设计 7.6 节），所以保留空白 Issue。
+blank_issues_enabled: true

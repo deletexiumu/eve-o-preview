@@ -40,7 +40,7 @@ import os
     /// 其余情况为 nil。巡检据此每隔 `MouseTapRetry.interval` 秒重建一次监听。
     private var mouseTapFailedAt: Double?
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "Hotkeys")
+    private let log = PlatformLog.logger("Hotkeys")
 
     /// 建一个注册器。键盘后端在这时安装 Carbon 事件处理器；鼠标后端等有鼠标绑定时再建。
     public init() {

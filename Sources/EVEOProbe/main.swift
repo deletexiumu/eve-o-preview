@@ -14,6 +14,8 @@
 //   hotkey [秒数]                          注册 ctrl+shift+F13 与 opt+F13，打印触发记录（默认 15 秒）
 //   mousetap [秒数] [--swallow 按钮号]      建鼠标事件监听，打印中键与侧键事件（反馈文档 6.9 节，MouseTapProbe.swift）
 //   gamelog [目录] [--follow 秒数]          游戏日志目录的解析统计，可跟踪新增内容（反馈文档 7.12 节，GameLogProbe.swift）
+//   update feed [地址] | verify <新应用> <基准应用> | prepare <地址>
+//                                          更新的检查、签名核对与下载（v1.1 设计 9.6 节，UpdateProbe.swift）
 // 「手段」用逗号分隔：appkit、ax、private，例如 --only appkit,ax。
 
 import AppKit
@@ -42,6 +44,7 @@ import EVEOPreviewPlatform
         case "hotkey": return await hotkey(rest)
         case "mousetap": return await MouseTapProbe.run(rest)
         case "gamelog": return await GameLogProbe.run(rest)
+        case "update": return await UpdateProbe.run(rest)
         default: return usage()
         }
     }
@@ -53,6 +56,7 @@ import EVEOPreviewPlatform
               | minimize <pid> [保持秒数] | capture <windowID> <秒数> --out 路径 [--width 像素] [--fps 帧率] [--watchdog]
               | reconcile <windowID> | hotkey [秒数] | mousetap [秒数] [--swallow 按钮号]
               | gamelog [目录] [--follow 秒数]
+              | update feed [地址] | update verify <新应用> <基准应用> | update prepare <地址>
         """)
         return 2
     }

@@ -27,7 +27,7 @@ public actor CGWindowProvider: WindowProvider {
     /// PID → 上一轮 AX 读到的窗口状态。AX 超时或失败时沿用。
     private var lastAXStates: [Int32: [AXWindowState]] = [:]
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "CGWindowProvider")
+    private let log = PlatformLog.logger("CGWindowProvider")
 
     /// 建一个窗口枚举器。
     ///

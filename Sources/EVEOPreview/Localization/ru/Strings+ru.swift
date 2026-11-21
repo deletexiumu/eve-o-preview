@@ -221,6 +221,8 @@ struct SettingsStringsRU: SettingsStrings {
     var interfaceLanguage: String { "Язык интерфейса" }
     var followSystem: String { "Как в системе" }
     var machineTranslationNote: String { "Часть переводов выполнена машинным переводом. Будем рады исправлениям." }
+    var showDockIcon: String { "Показывать значок в Dock" }
+    var showDockIconHelp: String { "Если выключено, EVE-O Preview показывает только значок в строке меню." }
 
     // 权限页。
     var permissionsSubtitle: String {
@@ -269,6 +271,10 @@ struct SettingsStringsRU: SettingsStrings {
     var gameLogText: String {
         "Боевые оповещения только читают файлы игрового журнала, которые пишет клиент EVE. "
             + "Они не читают память игры, не изменяют файлы и не отправляют ввод."
+    }
+    var networkText: String {
+        "EVE-O Preview обращается к GitHub только для проверки и загрузки обновлений; это можно отключить "
+            + "в разделе «Общие». Отчёты о проблемах никогда не отправляются автоматически."
     }
     var eveIPText: String {
         "EVE Online и связанные с ней логотипы являются товарными знаками CCP ehf. "

@@ -45,7 +45,7 @@ public enum PrivateActivation {
         guard let getPSN = dlsym(defaultHandle, "GetProcessForPID"),
               let skyLight = dlopen(skyLightPath, RTLD_LAZY),
               let setFront = dlsym(skyLight, "_SLPSSetFrontProcessWithOptions") else {
-            Logger(subsystem: PlatformLog.subsystem, category: "PrivateActivation")
+            PlatformLog.logger("PrivateActivation")
                 .error("私有接口符号查找失败，后备不可用")
             return nil
         }

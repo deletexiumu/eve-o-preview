@@ -31,7 +31,7 @@ import os
     /// 最近一次查询的错误；成功时为 nil。
     private var lastError: LookupError?
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "ShareableContent")
+    private let log = PlatformLog.logger("ShareableContent")
 
     /// 取窗口 ID 对应的 `SCWindow`。缓存里没有时查询一次（与其他请求合并）。
     func window(for id: WindowID) async -> Result<SCWindow, LookupError> {

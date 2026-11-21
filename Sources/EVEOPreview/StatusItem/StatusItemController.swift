@@ -4,6 +4,10 @@
 // 常驻的菜单项依次是：显示或隐藏全部缩略图、配置方案子菜单、全部最小化、热键只在 EVE 内生效、设置、退出。
 // 有客户端的捕获被用户停止时多「恢复捕获」，缺权限时多一项权限提示。
 // 菜单在每次打开前按当前状态重建（NSMenuDelegate.menuNeedsUpdate），不需要另外订阅状态变化。
+//
+// v1.1（v1.1 设计 11.1 节）：顶部加诊断与更新的提示项，退出前加「检查更新…」「报告问题…」，
+// 这 4 组菜单项由 StatusItemController+Diagnostics.swift 与 StatusItemController+Updates.swift 返回。
+// `coordinator.attention` 不为空时图标右上角显示圆点，`onAttentionChanged` 触发时重画图标。
 
 import AppKit
 import EVEOPreviewCore
@@ -11,8 +15,8 @@ import EVEOPreviewCore
 /// 菜单栏图标的控制器。
 @MainActor
 final class StatusItemController: NSObject, NSMenuDelegate {
-    /// 协调器：菜单项的状态从它读，动作也交给它。
-    private let coordinator: AppCoordinator
+    /// 协调器：菜单项的状态从它读，动作也交给它。扩展文件（诊断、更新的菜单项）也要读它，所以不是 private。
+    let coordinator: AppCoordinator
     /// 菜单栏图标；系统只在它存活时显示图标，所以由控制器一直持有。
     private let statusItem: NSStatusItem
     /// 图标的菜单，内容每次打开前重建。
@@ -25,19 +29,26 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         super.init()
         if let button = statusItem.button {
             // 与应用图标一致的分子模板图（见 StatusBarIcon），由系统按菜单栏深浅色着色。
-            button.image = StatusBarIcon.make()
+            button.image = StatusBarIcon.make(attention: !coordinator.attention.isEmpty)
             button.toolTip = L10n.appName
         }
+        coordinator.onAttentionChanged = { [weak self] in self?.refreshIcon() }
         // 关掉自动启用：菜单项用闭包而不是响应链，置灰由各项的 isEnabled 决定。
         menu.autoenablesItems = false
         menu.delegate = self
         statusItem.menu = menu
     }
 
+    /// 按 `coordinator.attention` 重画图标：有原因时带圆点。
+    func refreshIcon() {
+        statusItem.button?.image = StatusBarIcon.make(attention: !coordinator.attention.isEmpty)
+    }
+
     /// 菜单打开前按当前状态重建。
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         addHeader(to: menu)
+        addAttentionItems(to: menu)
         addPermissionAndCaptureItems(to: menu)
         // 「全部隐藏」的文字随状态切换，点击即取反。
         let hideAll = coordinator.session.hideAll
@@ -50,6 +61,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             [weak coordinator] in coordinator?.minimizeAll()
         })
         menu.addItem(hotkeyScopeItem())
+        // 「检查更新…」「报告问题…」一组；骨架阶段没有菜单项时不加分隔线，菜单与 1.0.0 相同。
+        let tools = updateMenuItems() + diagnosticsMenuItems()
+        if !tools.isEmpty {
+            menu.addItem(.separator())
+            tools.forEach(menu.addItem)
+        }
         menu.addItem(.separator())
         menu.addItem(ClosureMenuItem(L10n.menu.settings) { [weak coordinator] in
             coordinator?.openSettings?(.clients)
@@ -67,6 +84,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if coordinator.isFakeMode {
             menu.addItem(ClosureMenuItem(L10n.menu.fakeMode, isEnabled: false) {})
         }
+        menu.addItem(.separator())
+    }
+
+    /// 诊断与更新的提示项（崩溃待报告、更新待安装、有可用更新），有时后面加一条分隔线。
+    private func addAttentionItems(to menu: NSMenu) {
+        let items = diagnosticsAttentionItems() + updateAttentionItems()
+        guard !items.isEmpty else { return }
+        items.forEach(menu.addItem)
         menu.addItem(.separator())
     }
 

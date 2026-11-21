@@ -27,6 +27,7 @@ public enum ConfigValidator {
     /// - 循环组成员去掉重复项，保留第一次出现的位置（架构文档 5.4 节）。
     /// - 战斗提醒的持续时间、最小伤害夹到范围内，非法颜色改回默认值；
     ///   `eveLogDirectory` 去掉首尾空白后是空串时改成 nil（反馈文档 3.2 节）。
+    /// - `general.logLevel` 不是 info 或 debug 时改成 info（v1.1 设计 3.1 节）。
     /// - 配置方案的 id 为空或重复时换新 UUID；名称去掉首尾空白，为空时用 `Profile`，
     ///   超长时截断，不区分大小写重名时追加 ` 2`、` 3` 等序号。循环组 id 同理。
     /// - 没有配置方案时补一个 `Default`；activeProfileID 无效时取第一个配置方案。
@@ -46,6 +47,12 @@ public enum ConfigValidator {
            directory.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             result.general.eveLogDirectory = nil
             fixer.record("general.eveLogDirectory")
+        }
+        // 文件日志只提供 info 与 debug 两档（v1.1 设计 3.1 节）；手工改成别的级别时改回 info。
+        // autoInstallUpdates 与 checkForUpdates 的组合不在这里改，界面按「不检查」处理。
+        if result.general.logLevel != .info && result.general.logLevel != .debug {
+            result.general.logLevel = .info
+            fixer.record("general.logLevel")
         }
 
         if result.profiles.isEmpty {

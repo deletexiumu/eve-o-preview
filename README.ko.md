@@ -26,6 +26,8 @@ EVE-O Preview for macOS는 실행 중인 모든 EVE Online 클라이언트의 �
 - 순환 그룹: 앞으로 단축키와 뒤로 단축키, 현재 세션 동안 건너뛰기, 캐릭터별 단축키, 로그인 화면 클라이언트를 순환하는 단축키, 모두 가리기 단축키와 모두 최소화 단축키. 단축키에는 마우스 가운데 버튼과 측면 버튼을 쓸 수 있으며, 각 단축키는 전역으로 또는 EVE 안에서만 작동하도록 설정할 수 있습니다.
 - 전투 알림(기본값은 꺼짐): 게임 로그를 읽어, 캐릭터가 공격받으면 해당 캐릭터의 썸네일을 깜박입니다.
 - 프로필: 생성, 복제, 이름 변경, 삭제, 전환.
+- 업데이트: GitHub에서 새 릴리스를 확인하고, 다운로드한 파일과 코드 서명을 검증한 뒤 앱 안에서 설치합니다([업데이트](#업데이트) 참고).
+- 문제 보고서: 민감한 정보를 가린 진단 zip을 만들고 미리 채워진 GitHub 이슈를 엽니다. 앱이 예기치 않게 종료되면 다음 실행 때 신고할지 묻습니다([문제 신고](#문제-신고) 참고).
 - Windows 트레이 아이콘 대신 메뉴 막대 아이콘.
 - 8개 페이지로 된 설정 윈도우: 클라이언트, 썸네일 및 레이아웃, 전환 및 단축키, 알림, 프로필, 일반, 권한, 정보.
 - UI 언어: 영어(기본값), 중국어, 러시아어, 일본어, 한국어. 일반 페이지에서 전환하거나 "시스템 설정 따르기"를 선택할 수 있으며, 변경 사항은 즉시 적용됩니다. 러시아어, 일본어, 한국어 번역은 기계 번역이며, 수정 제안을 환영합니다.
@@ -69,6 +71,8 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 ```
 
 **참고:** 모든 릴리스는 같은 인증서로 서명되므로 업그레이드해도 macOS가 화면 기록과 손쉬운 사용 권한을 유지합니다. 업그레이드 후 권한이 동작하지 않으면 [권한](#권한) 섹션 끝에 있는 `tccutil` 명령으로 초기화한 뒤 다시 허용하십시오.
+
+1.1.0부터는 앱이 스스로 업데이트할 수 있습니다([업데이트](#업데이트) 참고). 1.0.0 버전에는 업데이트 기능이 없으므로 1.1.0은 한 번 직접 설치하십시오. dmg를 다운로드하여 응용 프로그램 폴더의 앱을 교체하면 됩니다. 1.0.0과 그 이후 버전은 같은 인증서로 서명되므로 권한이 유지됩니다.
 
 각 릴리스에는 `.tar.gz`와 `.zip` 형식의 소스 코드, 그리고 `SHA256SUMS.txt` 파일도 포함되어 있습니다. 다운로드한 파일을 검증하려면 다운로드 폴더에서 `shasum -a 256 --ignore-missing -c SHA256SUMS.txt`를 실행합니다.
 
@@ -172,7 +176,45 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 
 ### 메뉴 막대
 
-메뉴 막대 아이콘은 앱 아이콘과 같으며, 팔각형 안의 분자 모양입니다. 메뉴에는 모든 썸네일 보기/가리기, 프로필 전환, 모든 클라이언트 최소화, 단축키를 EVE 안에서만 사용, 설정, 종료가 있습니다. 권한이 없으면 메뉴에 이에 관한 항목이 하나 더 표시됩니다. 시스템의 화면 기록 표시기에서 클라이언트 캡처를 중지하면 메뉴에 "캡처 재개" 항목이 추가됩니다.
+메뉴 막대 아이콘은 앱 아이콘과 같으며, 팔각형 안의 분자 모양입니다. 메뉴에는 모든 썸네일 보기/가리기, 프로필 전환, 모든 클라이언트 최소화, 단축키를 EVE 안에서만 사용, 업데이트 확인…, 문제 신고…, 설정, 종료가 있습니다. 업데이트가 있거나 이전 실행이 예기치 않게 종료되었으면 아이콘에 점이 표시되고, 메뉴 맨 위에 해당 항목이 추가됩니다. 권한이 없으면 메뉴에 이에 관한 항목이 하나 더 표시됩니다. 시스템의 화면 기록 표시기에서 클라이언트 캡처를 중지하면 메뉴에 "캡처 재개" 항목이 추가됩니다.
+
+EVE-O Preview는 Dock에도 아이콘을 표시하며, 클릭하면 설정 창이 열립니다. 메뉴 막대 아이콘만 남기려면 설정 > 일반에서 "Dock에 아이콘 표시"를 끄십시오.
+
+### 업데이트
+
+EVE-O Preview는 실행할 때와 하루에 한 번 GitHub에서 새 릴리스를 확인합니다. 이 기능을 끄려면 설정 > 일반 > 업데이트에서 "자동으로 업데이트 확인"을 해제하십시오. 해제한 뒤에도 메뉴 막대 메뉴의 "업데이트 확인…"으로 필요할 때 직접 확인할 수 있습니다.
+
+새 버전이 있으면 윈도우가 열려 UI 언어로 된 릴리스 노트(번역이 없으면 영어)를 보여 주고, "업데이트 설치", "이 버전 건너뛰기", "나중에"를 제공합니다. EVE 클라이언트가 앞에 있는 동안에는 다른 곳으로 전환할 때까지 윈도우가 기다리며, 스스로 키보드 포커스를 가져가지 않습니다. 메뉴 막대 아이콘의 점은 업데이트가 대기 중임을 나타냅니다. "이 버전 건너뛰기"는 해당 버전의 자동 알림만 멈추며, "업데이트 확인…"을 선택하면 그 버전이 계속 표시됩니다.
+
+"업데이트 설치"는 dmg를 다운로드하고, `SHA256SUMS.txt`와 대조하여 확인하고, 새 앱이 실행 중인 앱과 같은 인증서로 서명되었는지 검증한 다음, 앱을 교체하고 다시 실행합니다. 어느 단계에서든 실패하면 설치된 앱은 바뀌지 않습니다. "자동으로 업데이트 설치"는 기본으로 켜져 있습니다. 업데이트를 백그라운드에서 다운로드하고, EVE 클라이언트가 약 1분 동안 실행되지 않고 EVE-O Preview 창도 열려 있지 않으면 설치한 뒤 앱을 다시 실행합니다. 그렇지 않으면 EVE-O Preview를 종료하거나 메뉴 막대 메뉴에서 "다시 실행하여 X.Y.Z 버전으로 업데이트"를 선택할 때 설치합니다. EVE 클라이언트가 실행 중일 때 앱이 스스로 다시 실행되는 일은 없습니다. 먼저 창에서 확인받으려면 설정 > 일반 > 업데이트에서 끄십시오.
+
+일부 빌드는 설치하지 않고 이유와 "릴리스 페이지 열기" 버튼만 표시합니다. ad-hoc 서명이나 로컬에서 서명한 빌드, 디스크 이미지에서 실행하거나 macOS가 임시 위치로 옮겨(translocation) 실행한 앱, 쓰기 권한이 없는 폴더에 있는 앱, APFS가 아닌 볼륨(HFS+, exFAT, FAT 형식의 외장 디스크 등)에 있는 앱이 이에 해당합니다.
+
+### 문제 신고
+
+메뉴 막대 메뉴나 일반 페이지에서 "문제 신고…"를 선택하거나, EVE-O Preview가 예기치 않게 종료된 뒤 나타나는 안내에 응답합니다. 윈도우에는 보고서에 들어갈 모든 파일이 나열되고, 민감한 정보를 가린 뒤의 내용이 표시됩니다. 환경 요약, 이름을 뺀 설정 요약, 앱 로그(최대 2 MiB), 최대 3개의 macOS 충돌 보고서가 들어갑니다. "보고서만 만들기" 또는 "보고서 만들고 GitHub 열기"를 클릭하기 전에는 아무것도 만들어지지 않습니다. zip은 `~/Library/Application Support/EVE-O Preview/Reports/`에 저장되고(최신 3개를 보관) Finder에 표시됩니다. "보고서 만들고 GitHub 열기"는 브라우저에서 미리 채워진 이슈도 엽니다. zip은 직접 첨부해야 하며, 앱은 아무것도 업로드하지 않습니다.
+
+macOS 사용자 이름, 전체 이름, 홈 폴더 경로, 컴퓨터 이름은 `[user]`와 `[host]`로 바뀝니다. EVE 캐릭터 이름은 `[character-1]`, `[character-2]` 등으로 바뀌고, 충돌 보고서의 기기 식별자는 `[redacted]`로 바뀝니다. 앱이 알고 있는 이름만 바뀝니다. 설정에 나온 적도 없고 실행 중인 클라이언트로 나타난 적도 없는 캐릭터의 이름은 바뀌지 않습니다. 이름이 흔한 단어이면 로그의 다른 곳에 있는 같은 단어도 바뀝니다. 보고서를 만들기 전에 모든 파일을 읽어 볼 수 있으며, 포함하고 싶지 않은 파일은 선택을 해제할 수 있습니다.
+
+앱은 `~/Library/Logs/EVE-O Preview/`에 1 MiB짜리 로그 파일을 최대 5개 보관합니다. 캐릭터 이름과 윈도우 제목은 `<private>`로 기록됩니다. 일반 페이지에서 "상세 로그"를 켜면 디버그 줄도 기록되며, "Finder에서 로그 보기"는 해당 폴더를 엽니다. 충돌 후 안내가 나타나지 않으면 `~/Library/Logs/DiagnosticReports/EVEOPreview-<date>.ips`를 직접 이슈에 첨부하십시오.
+
+## 개인정보 보호
+
+1.0.0 버전은 네트워크 요청을 보내지 않았습니다. 1.1.0부터 앱은 GitHub에만 연결하며, 업데이트를 위해서만 연결합니다.
+
+- 업데이트를 확인할 때 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest`를 요청합니다. "자동으로 업데이트 확인"이 켜져 있으면 실행할 때와 하루에 한 번 요청하며, "업데이트 확인…"을 선택할 때마다 요청합니다.
+- 업데이트를 설치할 때 릴리스에서 `SHA256SUMS.txt`와 dmg를 다운로드합니다.
+
+요청에는 `User-Agent` 헤더에 담긴 앱 버전, 고정된 `Accept-Language: en`, 캐시 태그만 들어 있습니다. 캐릭터 이름, 설정, 로그, 하드웨어 정보, 시스템 버전, 식별자는 전송하지 않으며 쿠키도 사용하지 않습니다. GitHub는 사용자의 IP 주소와 요청 시각을 알 수 있습니다. 원격 측정이나 충돌 정보 자동 업로드는 없습니다. "문제 신고…"는 Mac에 zip을 만들고 웹 페이지를 열 뿐이며, 제출할지는 사용자가 결정합니다.
+
+앱은 다음 위치에 데이터를 저장합니다. 완전히 제거하려면 앱과 함께 이 위치들과 `~/Library/Application Support/EVE-O Preview/config.json`을 삭제하십시오.
+
+| 위치 | 내용 |
+| --- | --- |
+| `~/Library/Logs/EVE-O Preview/` | 앱 로그, 최대 약 5 MiB |
+| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | 세션 마커; 업데이트 및 진단 기록 |
+| `~/Library/Application Support/EVE-O Preview/Reports/` | 직접 만든 문제 보고서 zip, 민감한 정보를 가린 상태(최신 3개) |
+| `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/` | 다운로드한 업데이트 파일, 설치 후 삭제됨 |
 
 ## 설정 파일
 
@@ -196,6 +238,10 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 | `scripts/package-release.sh` | `dist/release/`에 dmg, 소스 아카이브, 체크섬 빌드 |
 | `swift run EVEOProbe gamelog [dir] [--follow seconds]` | 게임 로그의 전투 줄을 종류별로 세어 전투 알림 진단 |
 | `swift run EVEOProbe mousetap <seconds> [--swallow <button>]` | 마우스 버튼 번호를 출력하여 마우스 단축키 진단 |
+| `swift run EVEOProbe update feed [url]` | 릴리스 피드를 가져와 파싱 |
+| `swift run EVEOProbe update verify <new app> <base app>` | 새 앱이 기준 앱의 지정 요구 사항(designated requirement)을 충족하는지 확인 |
+| `swift run EVEOProbe update prepare <url> [--cache dir]` | 업데이트를 설치하지 않고 다운로드하여 검증 |
+| `scripts/make-update-test-feed.sh [version]` | `dist/release/`의 파일로 로컬 업데이트 테스트용 `feed.json` 작성 |
 
 데모 모드는 설정을 같은 폴더의 `config-fake.json`에 기록하며, 실제 설정은 건드리지 않습니다. 다음 환경 변수는 디버깅에 도움이 됩니다.
 
@@ -206,6 +252,12 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 | `EVEO_FAKE_DENY` | 데모 모드에서 권한이 없는 것처럼 동작: `screen`, `ax` 또는 `screen,ax` |
 | `EVEO_FAKE_STOP_AFTER` | 데모 모드에서 지정한 초가 지나면 사용자가 두 번째 클라이언트의 캡처를 중지한 것처럼 동작 |
 | `EVEO_SETTINGS_PAGE` | 실행할 때 설정 페이지를 바로 엶(예: `previews`) |
+| `EVEO_LOG_DIR` | 로그 파일을 다른 폴더에 기록(기본값 `~/Library/Logs/EVE-O Preview/`) |
+| `EVEO_STATE_DIR` | `state.json`과 `session.json`을 다른 폴더에 보관 |
+| `EVEO_LOG_PRIVATE` | `1`이면 비공개 값을 시스템 로그(콘솔)에서만 그대로 표시함. 로그 파일에는 항상 `<private>`로 기록됨 |
+| `EVEO_UPDATE_FEED_URL` | GitHub 대신 이 주소에서 업데이트 확인. `https` 또는 루프백 호스트의 `http`만 허용. 로컬 인증서로 서명한 빌드는 이 주소에서 설치할 수 있으며, 서명 검사는 완화되지 않음 |
+| `EVEO_UPDATE_UI_STATE` | 데모 모드에서 업데이트 UI를 샘플 상태로 표시: `available`, `notifyonly`, `downloading`, `ready`, `failed` 또는 `uptodate` |
+| `EVEO_FAKE_CRASH` | 데모 모드에서 `1`이면 이전 실행이 충돌한 것처럼 동작하여 충돌 보고서 안내를 표시 |
 
 소스는 3개 모듈로 되어 있습니다. `EVEOPreviewCore`는 순수 로직 계층이고, `EVEOPreviewPlatform`은 AppKit, ScreenCaptureKit, 손쉬운 사용, Carbon 단축키를 감싸며, `EVEOPreview`는 앱 자체입니다. 아키텍처는 [docs/architecture.md](docs/architecture.md)(중국어)에 설명되어 있습니다.
 
@@ -218,11 +270,15 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 - `main`에 대한 모든 풀 리퀘스트와 `main`으로의 모든 푸시에서 품질 게이트와 단위 테스트를 실행한 다음, 유니버설 dmg와 소스 아카이브를 빌드합니다. 이 파일들은 `EVE-O-Preview-<version>-pr.<number>.<commit>`(푸시의 경우 `-dev.<commit>`)라는 이름의 워크플로 아티팩트로 업로드되어 30일 동안 보관됩니다.
 - `v*` 태그를 푸시하면 같은 파일을 빌드하여 GitHub Release로 게시합니다. 태그는 `VERSION` 파일과 일치해야 합니다. `docs/release-notes/<tag>.md`가 있으면 그 내용이 릴리스 노트가 됩니다.
 
-새 버전을 릴리스하려면 풀 리퀘스트에서 `VERSION` 파일을 변경하고 병합한 다음, `main`에 태그를 지정합니다: `git tag v<version> && git push origin v<version>`.
+새 버전을 릴리스하려면 풀 리퀘스트에서 `VERSION` 파일을 변경하고 `docs/release-notes/v<version>.md`를 추가하여 병합한 다음, `main`에 태그를 지정합니다: `git tag v<version> && git push origin v<version>`.
+
+에셋 이름(`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), dmg 구조, 서명 인증서, 릴리스 노트 형식은 앱 내 업데이트 기능과의 약속이며, CI가 빌드할 때마다 이를 확인합니다. 릴리스 노트는 영어를 맨 앞의 `<!-- lang:en -->`과 `<!-- /lang:en -->` 사이에 두고, 그 뒤에 같은 방식으로 표시한 접을 수 있는 zh, ja, ko, ru 블록을 둡니다. `scripts/check_release_notes.py`가 이 표시를 검사합니다. 자세한 내용은 [docs/architecture.md](docs/architecture.md)의 9.5절부터 9.7절까지를 참고하십시오.
 
 ## 면책 조항
 
 이 도구는 윈도우 포커스만 전환합니다. 여러 클라이언트에 입력을 동시에 보내지 않으며 게임 메모리를 읽거나 수정하지 않습니다. 이는 원본 프로젝트와 같은 경계입니다. 사용하기 전에 EVE Online 최종 사용자 라이선스 계약을 읽으십시오.
+
+앱은 업데이트를 확인하고 다운로드할 때만 GitHub에 연결하며, 개인 데이터는 전송하지 않습니다([개인정보 보호](#개인정보-보호) 참고).
 
 EVE Online 및 관련 로고는 CCP ehf.의 상표입니다. 이 프로젝트는 CCP와 관련이 없으며 CCP의 승인을 받지 않았습니다.
 

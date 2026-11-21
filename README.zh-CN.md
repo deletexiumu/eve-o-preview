@@ -24,6 +24,8 @@ EVE-O Preview for macOS 给每个运行中的 EVE Online 客户端显示一个�
 - 循环组：前进与后退热键、本次会话内跳过；每角色直达热键；登录客户端循环热键；全部隐藏与全部最小化热键。热键可以用鼠标中键与侧键，每条热键可设为全局生效或只在 EVE 内生效。
 - 战斗提醒（默认关闭）：读取游戏日志，角色受到攻击时它的缩略图闪烁。
 - 配置方案：新建、克隆、改名、删除、切换。
+- 更新：检查 GitHub 上的新版本，核对下载文件与代码签名后在应用内安装（见[更新](#更新)）。
+- 报告问题：生成脱敏的诊断 zip，并打开预填好的 GitHub Issue；应用意外退出后，下次启动时提示报告（见[报告问题](#报告问题)）。
 - 菜单栏图标，代替 Windows 版的托盘图标。
 - 设置窗口共 8 页：客户端、预览与布局、切换与热键、提醒、配置方案、通用、权限、关于。
 - 界面语言：英文（默认）、中文、俄文、日文、韩文，在「通用」页切换，也可以选「跟随系统」，切换后立即生效。俄、日、韩文的译文由机器生成，欢迎指正。
@@ -67,6 +69,8 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 ```
 
 **注意：** 每个发布版都用同一张证书签名，升级后系统保留屏幕录制与辅助功能权限。如果升级后权限失效，用[权限](#权限)一节末尾的 `tccutil` 命令清除后重新授予。
+
+从 1.1.0 起应用可以自行更新（见[更新](#更新)）。1.0.0 没有更新功能，要手动装一次 1.1.0：下载 dmg，替换「应用程序」里的应用。1.0.0 与之后的版本用同一张证书签名，权限会保留。
 
 每个发布版还附带 `.tar.gz` 与 `.zip` 两种源码包和 `SHA256SUMS.txt`。要核对下载的文件，在下载目录里运行 `shasum -a 256 --ignore-missing -c SHA256SUMS.txt`。
 
@@ -170,7 +174,45 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 
 ### 菜单栏
 
-菜单栏图标与应用图标同为八边形框里的分子图案。菜单提供：显示或隐藏全部缩略图、切换配置方案、全部最小化、热键只在 EVE 内生效、设置、退出。缺少权限时多一项权限提示。如果你在系统的录制指示器里停止了某个客户端的捕获，菜单里会多一项「恢复捕获」。
+菜单栏图标与应用图标同为八边形框里的分子图案。菜单提供：显示或隐藏全部缩略图、切换配置方案、全部最小化、热键只在 EVE 内生效、检查更新…、报告问题…、设置、退出。有可用的更新或上次运行意外退出时，图标上出现一个圆点，菜单顶部多出对应的一项。缺少权限时多一项权限提示。如果你在系统的录制指示器里停止了某个客户端的捕获，菜单里会多一项「恢复捕获」。
+
+应用同时在 Dock 里显示图标，点它打开设置窗口。只想保留菜单栏图标时，在「设置 > 通用」里关掉「在 Dock 中显示图标」。
+
+### 更新
+
+应用在启动时和每天检查一次 GitHub 上的新版本。要关掉自动检查，在「设置 > 通用 > 更新」里关掉「自动检查更新」；菜单栏菜单的「检查更新…」仍可随时手动检查。
+
+有新版本时，窗口按界面语言显示发布说明（没有对应译文时显示英文），提供「安装更新」「跳过此版本」「稍后」。EVE 客户端在前台时，窗口等你切走后才出现，也不会自己抢键盘焦点；菜单栏图标上的圆点表示有更新在等待。「跳过此版本」只停止该版本的自动提醒，「检查更新…」仍会显示它。
+
+「安装更新」下载 dmg，按 `SHA256SUMS.txt` 核对，确认新应用与正在运行的应用用同一张证书签名，然后替换应用并重新启动。任何一步失败，已安装的应用都保持不变。「自动安装更新」默认打开：更新在后台下载；没有 EVE 客户端运行满约 1 分钟、也没有打开 EVE-O Preview 的窗口时，自动安装并重新启动。否则等你退出应用，或在菜单栏菜单里点「重新启动以更新到 X.Y.Z」时安装。有 EVE 客户端在运行时，应用不会自己重新启动。想先由窗口询问，在「设置 > 通用 > 更新」里关掉它。
+
+以下构建只显示原因和「打开发布页」按钮，不能在应用内安装：ad-hoc 或本机证书签名的构建、从磁盘映像或被系统转移到随机位置运行的应用、所在文件夹没有写权限的应用、装在非 APFS 卷上的应用（如 HFS+、exFAT 或 FAT 格式的外置磁盘）。
+
+### 报告问题
+
+在菜单栏菜单或「通用」页选「报告问题…」，或者在应用意外退出后的提示里选择报告。窗口列出报告里的每个文件，并显示脱敏后的内容：环境摘要、不含名字的配置摘要、应用日志（最多 2 MiB）和最多 3 份 macOS 崩溃报告。点「只生成报告」或「生成报告并打开 GitHub」之前，不会生成任何文件。zip 存到 `~/Library/Application Support/EVE-O Preview/Reports/`（保留最新的 3 个），并在访达中显示；「生成报告并打开 GitHub」还会在浏览器里打开预填好的 Issue。zip 由你自己拖进 Issue，应用不上传任何文件。
+
+macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[host]`。EVE 角色名替换为 `[character-1]`、`[character-2]` 等，崩溃报告里的设备标识替换为 `[redacted]`。只替换应用知道的名字：没在配置里出现过、也没作为运行中的客户端出现过的角色名不会被替换。如果某个名字是常用词，日志里其他地方的同一个词也会被替换。生成报告前可以阅读每个文件，取消勾选不想附上的文件。
+
+应用在 `~/Library/Logs/EVE-O Preview/` 下最多保留 5 个日志文件，每个 1 MiB。角色名与窗口标题记为 `<private>`。在「通用」页打开「详细日志」可记录调试信息，「在访达中显示日志」打开日志文件夹。如果崩溃后没有出现提示，可以手动把 `~/Library/Logs/DiagnosticReports/EVEOPreview-<日期>.ips` 附到 Issue 里。
+
+## 隐私
+
+1.0.0 不发任何网络请求。从 1.1.0 起应用只访问 GitHub，并且只为了更新：
+
+- 检查更新：「自动检查更新」打开时，在启动后与每天请求一次 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest`；你点「检查更新…」时也请求一次。
+- 安装更新：从 Release 下载 `SHA256SUMS.txt` 与 dmg。
+
+请求里只有 `User-Agent` 请求头里的应用版本号、固定的 `Accept-Language: en` 和一个缓存标签；不发送角色名、配置、日志、硬件信息、系统版本或任何标识符，不用 cookie。GitHub 能看到的是你的 IP 地址和请求时间。应用没有遥测，也不自动上传崩溃信息：「报告问题…」只在本机生成 zip，并打开一个网页，提交与否由你决定。
+
+应用在以下位置存放数据。要完全卸载，删除应用时一并删除它们和 `~/Library/Application Support/EVE-O Preview/config.json`：
+
+| 位置 | 内容 |
+| --- | --- |
+| `~/Library/Logs/EVE-O Preview/` | 应用日志，最多约 5 MiB |
+| `~/Library/Application Support/EVE-O Preview/session.json`、`state.json` | 会话标记；更新与诊断的记录 |
+| `~/Library/Application Support/EVE-O Preview/Reports/` | 你生成的问题报告 zip，已脱敏（保留最新的 3 个） |
+| `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/` | 下载的更新文件，安装后删除 |
 
 ## 配置文件
 
@@ -194,6 +236,10 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 | `scripts/package-release.sh` | 在 `dist/release/` 下生成 dmg、源码包与校验和 |
 | `swift run EVEOProbe gamelog [目录] [--follow 秒数]` | 统计游戏日志各类战斗行的数量，诊断战斗提醒 |
 | `swift run EVEOProbe mousetap <秒数> [--swallow <按钮号>]` | 打印鼠标按键编号，诊断鼠标热键 |
+| `swift run EVEOProbe update feed [地址]` | 获取并解析发布信息 |
+| `swift run EVEOProbe update verify <新应用> <基准应用>` | 核对新应用是否满足基准应用的指定要求 |
+| `swift run EVEOProbe update prepare <地址> [--cache 目录]` | 下载并核对更新，不安装 |
+| `scripts/make-update-test-feed.sh [版本号]` | 由 `dist/release/` 生成本地更新测试用的 `feed.json` |
 
 演示模式的配置写到同目录下的 `config-fake.json`，不影响正式配置。以下环境变量用于调试：
 
@@ -204,6 +250,12 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 | `EVEO_FAKE_DENY` | 演示模式下假装缺少权限，取值 `screen`、`ax` 或 `screen,ax` |
 | `EVEO_FAKE_STOP_AFTER` | 演示模式下，到指定秒数时假装用户停止了第二个客户端的捕获 |
 | `EVEO_SETTINGS_PAGE` | 启动后直接打开设置窗口的某一页，如 `previews` |
+| `EVEO_LOG_DIR` | 把日志文件写到另一个文件夹（默认 `~/Library/Logs/EVE-O Preview/`） |
+| `EVEO_STATE_DIR` | 把 `state.json` 与 `session.json` 放到另一个文件夹 |
+| `EVEO_LOG_PRIVATE` | 设为 `1` 时，私有值只在系统日志（控制台）里显示原文；日志文件里一律是 `<private>` |
+| `EVEO_UPDATE_FEED_URL` | 改为向这个地址检查更新；只接受 `https`，或回环主机的 `http`。本机证书签名的构建可以从它安装，签名核对不放宽 |
+| `EVEO_UPDATE_UI_STATE` | 演示模式下，把更新界面设成样例状态：`available`、`notifyonly`、`downloading`、`ready`、`failed` 或 `uptodate` |
+| `EVEO_FAKE_CRASH` | 演示模式下设为 `1`，假装上次运行崩溃，用来查看崩溃报告的提示 |
 
 源码分 3 个模块：`EVEOPreviewCore` 是纯逻辑层，`EVEOPreviewPlatform` 封装 AppKit、ScreenCaptureKit、辅助功能与 Carbon 热键，`EVEOPreview` 是应用本体。架构说明见 [docs/architecture.md](docs/architecture.md)。
 
@@ -216,11 +268,15 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 - 每个向 `main` 发起的 PR 和每次推送到 `main`，都会运行质量门禁与单元测试，再打包通用二进制的 dmg 和源码包。产物作为工作流制品上传，名为 `EVE-O-Preview-<版本号>-pr.<编号>.<提交>`（推送时为 `-dev.<提交>`），保留 30 天。
 - 推送 `v*` tag 时打包同样的文件，并发布为 GitHub Release。tag 应与 `VERSION` 文件一致。如果 `docs/release-notes/<tag>.md` 存在，它就是 Release 的说明。
 
-发布新版本时，在 PR 里修改 `VERSION` 文件，合并后在 `main` 上打 tag：`git tag v<版本号> && git push origin v<版本号>`。
+发布新版本时，在 PR 里修改 `VERSION` 文件并新增 `docs/release-notes/v<版本号>.md`，合并后在 `main` 上打 tag：`git tag v<版本号> && git push origin v<版本号>`。
+
+附件名（`EVE-O-Preview-<版本号>.dmg`、`SHA256SUMS.txt`）、dmg 的结构、签名证书与发布说明的格式是与应用内更新之间的约定，CI 每次构建都会核对。发布说明英文在前，包在 `<!-- lang:en -->` 与 `<!-- /lang:en -->` 之间，之后是用同样方式标记的 zh、ja、ko、ru 折叠块；`scripts/check_release_notes.py` 检查这些标记。细节见 [docs/architecture.md](docs/architecture.md) 的 9.5～9.7 节。
 
 ## 声明
 
 本工具只切换窗口焦点，不向多个客户端广播输入，不读取或修改游戏内存，与上游的边界相同。使用前请自行阅读 EVE Online 的最终用户许可协议。
+
+应用只在检查和下载更新时访问 GitHub，不发送个人数据（见[隐私](#隐私)）。
 
 EVE Online 及相关标志是 CCP ehf. 的商标。本项目与 CCP 没有关联，也未获其认可。
 

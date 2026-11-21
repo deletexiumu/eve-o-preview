@@ -4,6 +4,7 @@
 本项目按上游 [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)（GPL-3.0）的功能重新实现，不移植 C# 代码。
 文中的 Swift 片段只有类型与协议签名，已在 2026 年 11 月 20 日用 Swift 6.0.3 的 Swift 6 语言模式编译通过。
 v1 试用后的第一轮反馈（缩略图边框、多语言、鼠标按键热键与热键作用范围、战斗提醒）的设计在 [design-feedback-round1.md](design-feedback-round1.md)，下称「反馈文档」。本文已同步改动后的类型签名、默认值和范围表，规则与流程的细节以反馈文档为准。
+v1.1（文件日志与异常退出检测、问题报告、更新检查与应用内安装）的设计在 [design-v1.1.md](design-v1.1.md)，下称「v1.1 设计」。本文各节只加一句增量说明与指向，类型、流程与文件清单以 v1.1 设计为准。
 
 ## 1 已核实的环境事实
 
@@ -28,6 +29,8 @@ v1 试用后的第一轮反馈（缩略图边框、多语言、鼠标按键热�
 ## 2 产品范围
 
 ### 2.1 v1 范围
+
+v1.1 在本节范围之外新增 3 项：文件日志与问题报告（v1.1 设计第 5～7 节）、更新检查（第 8 节）、应用内安装（第 9 节）。
 
 1. 客户端发现：自动找到 EVE 客户端窗口，客户端启动、退出、登录后改名时更新。
 2. 实时缩略图：每个客户端一条 ScreenCaptureKit 流，尺寸和帧率可配置。
@@ -81,6 +84,8 @@ v1 试用后的第一轮反馈（缩略图边框、多语言、鼠标按键热�
 
 ### 3.1 模块
 
+v1.1 起，三个模块各增加日志、诊断与更新的部分，职责划分见 v1.1 设计 4.1 节：纯规则（版本比较、脱敏、发布说明选取等）在 Core，文件、网络、签名核对与磁盘映像在 Platform，窗口与控制器在 App。
+
 ```text
 EVEOPreview（可执行，AppKit + SwiftUI）
    ├── EVEOPreviewPlatform（AppKit、ScreenCaptureKit、ApplicationServices、Carbon）
@@ -100,6 +105,8 @@ EVEOPreviewCoreTests（swift-testing）── EVEOPreviewCore
 `Package.swift` 用 `swift-tools-version: 6.0`，`platforms: [.macOS(.v14)]`，`swiftLanguageModes: [.v6]`，没有第三方依赖，没有资源文件。
 
 ### 3.2 线程与隔离
+
+v1.1 新增两处隔离的例外：`FileLogSink` 用锁保护，可从任意线程写日志；更新的下载、哈希、挂载与签名核对在后台任务里执行，结果回到主线程（v1.1 设计 4.3 节）。
 
 - Core 的模型都是 `Sendable` 值类型，纯函数没有隔离要求。
 - Platform 的服务和 App 的全部类型都是 `@MainActor`，只有 5 处例外：
@@ -259,6 +266,8 @@ public struct CombatAlertWindow: Sendable, Equatable { public var startedAt: Dou
 ```
 
 ### 5.2 配置模型
+
+v1.1 起 `GeneralSettings` 新增 3 个键：`checkForUpdates`（默认开）、`autoInstallUpdates`（默认关）、`logLevel`。`schemaVersion` 仍是 1，旧版本读到新键时忽略。跳过的版本、上次检查时间、ETag、待报告的崩溃等运行记录不放在配置里，放在单独的状态文件 `state.json` 与会话标记 `session.json`，见 v1.1 设计第 3 节。
 
 配置文件是 `~/Library/Application Support/EVE-O Preview/config.json`，一个文件装下全部配置方案，`schemaVersion` 当前是 1。
 
@@ -654,6 +663,8 @@ public enum HexColor {
 
 ### 6.1 协议
 
+v1.1 起 `PlatformServices` 新增 `diagnostics`（`DiagnosticsService`）与 `updates`（`UpdateService`）两个成员，协议定义在 Core 的 `Contracts/DiagnosticsContracts.swift` 与 `Contracts/UpdateContracts.swift`（v1.1 设计第 4 节）。
+
 以下协议只含值类型，定义在 Core 的 `Contracts/PlatformContracts.swift`，由 Platform 实现。
 
 ```swift
@@ -899,6 +910,8 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 
 ### 6.7 探针
 
+v1.1 起探针新增 `update` 子命令：`update feed [地址]`、`update verify <新应用> <基准应用>`、`update prepare <地址> [--cache 目录]`、`update install <dmg> <应用副本> --version 版本`（只用于临时副本）。
+
 `EVEOProbe` 是 WP-B 的第一项产出，用来在 3 个真实客户端上验证 Platform。它从终端运行，权限记在终端应用名下。
 
 | 命令 | 作用 |
@@ -915,7 +928,9 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 
 ### 7.1 生命周期
 
-- `main.swift` 建 `NSApplication`，设 `AppDelegate`，激活策略为 `.accessory`（Info.plist 同时写 `LSUIElement`）。
+v1.1 起启动顺序加入日志初始化、会话标记、状态文件与更新检查，退出时先写会话标记，再在需要时安装已下载的更新（最多等 10.5 秒）。顺序见 v1.1 设计 4.4 节，会话标记的规则见第 6 节。
+
+- `main.swift` 建 `NSApplication`，设 `AppDelegate`，激活策略先设为 `.accessory`（Info.plist 同时写 `LSUIElement`）。v1.1 起 `AppDelegate` 读完配置后按 `general.showDockIcon` 改策略：为真（默认）时是 `.regular`，Dock 里有图标（`Support/DockIconPolicy.swift`）。
 - 启动时如果同 bundle id 的实例已在运行，退出自己。例外：权限页的「重新启动」以参数 `--relaunched-from <pid>` 打开新实例，新实例最多等 8 秒让该 PID 退出，并在单实例检查中排除它（`Support/InstanceGuard.swift`）。
 - `AppDelegate` 建 `ConfigController`、`PlatformServices`、`AppCoordinator`、`StatusItemController`。环境变量 `EVEO_FAKE=1` 时改用 `FakeServices`（假客户端与生成的画面），供界面开发在没有 EVE 和权限的机器上运行。
 - 首次启动（`onboardingCompleted == false`）或缺权限时，打开设置窗口的权限页。
@@ -966,6 +981,8 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 
 ### 7.4 菜单栏与设置窗口
 
+v1.1 起菜单新增「检查更新…」「报告问题…」，有可用更新、更新已就绪或上次运行意外退出时，图标上出现圆点，菜单顶部多出对应的一项；「通用」页新增「更新」「诊断」两组（v1.1 设计第 11 节）。
+
 菜单栏图标是 `StatusBarIcon` 画出的模板图像（八边形框里的分子，与应用图标同一图案），不用 SF Symbol。常驻的菜单项依次是：显示或隐藏全部缩略图、配置方案子菜单、全部最小化、「热键只在 EVE 内生效」（带勾选，切换当前配置方案的 `hotkeyDefaultScope`，第一轮反馈新增）、设置、退出。
 有客户端处于 `stoppedByUser` 时多一项「恢复捕获」，缺权限时多一项权限提示。
 
@@ -993,7 +1010,7 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 - 单个文件不超过 1,000 行，宜在 400 行以内；单个函数不超过 500 行，宜在 60 行以内。超过 400 行的文件按职责拆成扩展文件（`类型名+职责.swift`）。
 - 注释率高于 20%，注释写中文。每个 `public` 声明有文档注释，写清语义、单位和边界情况；实现里解释原因，不复述代码。
 - 每个源文件首行是 `// SPDX-License-Identifier: GPL-3.0-or-later`。
-- 日志用 `os.Logger`，subsystem 是 bundle id，category 取模块名；角色名按 `.private` 记录；不用 `print`（`EVEOProbe` 除外）。
+- 日志经 `PlatformLog.logger("<分类>")` 或 `AppLog.logger("<分类>")` 取得的 `LogChannel` 写，不直接建 `os.Logger`（v1.1 起，同时写系统日志与日志文件）；subsystem 是 bundle id，category 取模块名；角色名按 `.private` 记录；不用 `print`（`EVEOProbe` 除外）。v1.1 新增目录与文件的清单见 v1.1 设计第 12 节。
 - 新建的文档与脚本文件名用小写英文加连字符。
 
 以下路径相对于 `app/`。下面各表是 v1 的文件与当时的归属；第一轮反馈新增和改动的文件、它们的归属列在反馈文档第 8 节。
@@ -1079,7 +1096,7 @@ Carbon 热键触发后，按键不再传给前台应用，与上游「吞掉匹�
 1. 运行 `swift build -c release --product EVEOPreview`。环境变量 `UNIVERSAL=1` 时改为按 `arm64-apple-macosx14.0` 与 `x86_64-apple-macosx14.0` 两个三元组各编译一次，再用 `lipo -create` 合成通用二进制。不用 `swift build --arch arm64 --arch x86_64`，因为那条路径依赖 Xcode 的 xcbuild，只装 Command Line Tools 时不可用。
 2. 建 `dist/EVE-O Preview.app/Contents/{MacOS,Resources}`，把可执行文件复制为 `Contents/MacOS/EVEOPreview`。
 3. 用 `packaging/Info.plist` 生成 `Contents/Info.plist`，把版本号换成环境变量 `VERSION`（默认取仓库根目录 `VERSION` 文件的内容），并用 `plutil -lint` 检查。
-4. 如果存在 `packaging/AppIcon.png`，用 `sips` 与 `iconutil` 生成 `Contents/Resources/AppIcon.icns`。
+4. 如果存在 `packaging/AppIcon.png`，用 `sips` 与 `iconutil` 生成 `Contents/Resources/AppIcon.icns`。随后写入两个附加键：`EVEOBuildLabel` 取环境变量 `LABEL`（默认等于 `VERSION`）；`EVEOBuildCommit` 取 `git rev-parse --short=7 HEAD`，不在 git 仓库里时不写。自动更新用这两个键区分正式版与 PR、`main` 的构建（v1.1 设计 8.3 节）。
 5. 选签名身份：`SIGN_IDENTITY` 有值时用它；否则钥匙串里有 `EVEO Preview Dev` 时用它；都没有时用 `-`（ad-hoc）。运行 `codesign --force --sign "$身份" --identifier io.github.deletexiumu.eveopreview-macos "dist/EVE-O Preview.app"`，再用 `codesign --verify --strict` 检查。
 6. 打印产物路径和签名方式。使用 ad-hoc 签名时多打印一行提示：重新构建后要重新授权。
 
@@ -1099,6 +1116,7 @@ Info.plist 的键：
 | `CFBundleIconFile` | `AppIcon`（有图标时） |
 | `NSHumanReadableCopyright` | GPL-3.0 说明 |
 | `NSDocumentsFolderUsageDescription` | 读「文稿」下游戏日志的用途说明，英文（第一轮反馈新增，反馈文档 7.9 节） |
+| `EVEOBuildLabel`、`EVEOBuildCommit` | 构建标签与提交号（v1.1 新增，见上文第 4 步） |
 
 不启用 App Sandbox（沙盒内不能用辅助功能控制别的应用），不启用 hardened runtime（本机使用，不做公证）。屏幕录制与辅助功能没有用途说明键（4.4 节）。
 
@@ -1127,6 +1145,8 @@ Info.plist 的键：
 
 ### 9.4 `scripts/package-release.sh`
 
+附件名是 CI 与应用内更新之间的契约，见 v1.1 设计 8.1 节与本文 9.5 节。
+
 脚本在 `dist/release/` 下生成发布文件：
 
 | 文件 | 内容 |
@@ -1143,9 +1163,11 @@ Info.plist 的键：
 
 | 触发 | 做的事 | 产物 |
 | --- | --- | --- |
-| 向 `main` 发起或更新 PR、推送到 `main`、手动运行 | 质量门禁、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 检查其中应用的架构、签名、指定要求、版本号与「应用程序」替身 | 工作流制品，保留 30 天；标签为 `<VERSION>-pr.<编号>.<提交>` 或 `<VERSION>-dev.<提交>` |
+| 向 `main` 发起或更新 PR、推送到 `main`、手动运行 | 质量门禁、发布说明标记检查（`scripts/check_release_notes.py`）、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 核对架构、签名、指定要求、「应用程序」替身与发布契约 | 工作流制品，保留 30 天；标签为 `<VERSION>-pr.<编号>.<提交>` 或 `<VERSION>-dev.<提交>` |
 | 推送 `v*` tag | 同上，另外核对 tag 与 `VERSION` 文件一致，再建 GitHub Release | Release 附件：dmg、两个源码包、`SHA256SUMS.txt` |
 | 手动运行并勾选「演练发布」（`rehearse_release`） | 同第一行，再建一个草稿 Release，名为 `v<VERSION>-rehearsal.<运行编号>` | 草稿 Release，不打 tag、不公开，检查完在 Releases 页面删掉 |
+
+发布契约是 CI 与应用自动更新之间的约定（v1.1 设计 8.1 节）：`dist/release/` 只有 4 个附件且名字固定，`SHA256SUMS.txt` 有 dmg 那一行，dmg 顶层的 `EVE-O Preview.app` 是真实目录，`Info.plist` 的 `CFBundleIdentifier`、`CFBundleExecutable`、`CFBundleShortVersionString`、`EVEOBuildLabel`、`EVEOBuildCommit` 取值正确。改动其中任何一项，已安装的版本就只能提示更新、不能自动安装。
 
 PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以制品名里的提交号与内容一致。只有建 Release 的任务有 `contents: write` 权限。tag 名带 `-`（如 `v1.1.0-beta.1`）时，Release 标为预发布。Release 已存在时任务失败，不覆盖附件：已经发出去的文件与校验和不应被悄悄替换，要重发按本节末尾的步骤重打 tag。签名见 9.6 节，发布说明的格式见 9.7 节。
 
@@ -1173,11 +1195,22 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 | 维护者本机 `~/Documents/dev/ai/eve-o-preview/signing-backup/` | p12 与证书的备份，不在仓库里 |
 | 维护者本机登录钥匙串，服务名 `EVE-O Preview Release p12` | p12 密码的备份 |
 
+自签名证书只有一级，`codesign` 生成的要求可能写成 `certificate root` 或 `certificate leaf`，两种写法指同一张证书，CI 都接受。
+
 工作流把 p12 导入一个临时钥匙串，用 `set-key-partition-list` 允许 `codesign` 直接用私钥，打包后删掉钥匙串。没有 secret 时，tag 构建与演练发布直接失败；其他构建（如来自 fork 的 PR）退回 ad-hoc 签名并给出警告。检查产物时，用固定证书签名的构建要求指定要求里含 `certificate root = H"<SHA-1>"`。
 
 **警告：** 不应更换这张证书，除非私钥泄露。换证书后指定要求改变，所有用户升级后都要重新授权，自动更新的签名核对也会拒绝新版本。
 
 证书没有经过 Apple 公证，用户首次下载后 Gatekeeper 仍会拦截，处理办法写在 README 的安装一节。
+
+备份：p12 与证书在维护者本机的 `signing-backup/` 目录，密码在登录钥匙串里。宜另外把这两样存一份到离线介质或密码管理器。两处都丢失时，只能换证书。
+
+如果私钥泄露或丢失，按以下步骤换证书：
+
+1. 生成新证书（代码签名用途），导出为 p12，用 `security import` 导入临时钥匙串并签一个应用，确认能用。
+2. 更新两个 Actions secret 与 `packaging/release-cert-sha1.txt`。
+3. 在发布说明里写明：这个版本换了签名证书，已安装的版本只会提示更新、不能自动安装，用户要手动下载安装并重新授予屏幕录制与辅助功能权限。
+4. 演练发布，确认指定要求钉在新证书上，再打 tag。
 
 ### 9.7 发布说明格式
 
@@ -1200,6 +1233,8 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 日、韩、俄文的摘要标题分别是 `日本語`、`한국어`、`Русский`。应用内的更新提示按界面语言取对应区块，取不到时用英文，正文里没有标记时显示全文。
 
 ## 10 实施计划与测试
+
+v1.1 的工作包、测试与手工验证见 v1.1 设计第 13、14 节；风险、待用户决定的问题与术语见第 16～18 节。
 
 ### 10.1 分工
 

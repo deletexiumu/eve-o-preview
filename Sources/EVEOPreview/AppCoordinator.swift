@@ -8,6 +8,8 @@
 // 热键在 AppCoordinator+Hotkeys.swift，界面语言在 AppCoordinator+Language.swift，
 // 战斗提醒在 AppCoordinator+CombatAlerts.swift，防止 App Nap 的后台活动在 AppCoordinator+Activity.swift。第一轮反馈的接入点见反馈文档 9.1 节第 4 项，
 // 被调用的方法由各工作包在对应的扩展文件里实现，本文件只负责在固定的位置调用它们。
+// v1.1 的接入点见 v1.1 设计 4.4 节：运行环境、状态文件、推迟弹窗与菜单栏圆点在本文件；
+// 诊断与更新的配置响应在 AppCoordinator+Diagnostics.swift、AppCoordinator+Updates.swift。
 
 import AppKit
 import EVEOPreviewCore
@@ -54,6 +56,29 @@ final class AppCoordinator {
     /// 界面语言变了以后调用，由 AppDelegate 设置：重设设置窗口的标题、重建主菜单（反馈文档 5.4 节）。
     var onLanguageChanged: (() -> Void)?
 
+    // MARK: v1.1 的诊断与更新（v1.1 设计 4.4 节）
+
+    /// 启动时读到的运行环境，本次运行内不变。
+    let environment: AppEnvironment
+    /// `state.json` 的持有者。
+    let state: StateController
+    /// 自动弹出的窗口的推迟器；`refreshFrontmost()` 把前台推给它。
+    let presenter = DeferredPresenter()
+    // 以下 4 个控制器要引用协调器，所以由 AppDelegate 在建好协调器之后、调用 `start()` 之前赋值
+    // （4.4 节第 6 步）。之后不再变，菜单与设置窗口可以直接用。
+    /// 会话标记与崩溃检测。
+    var sessionTracker: SessionTracker!
+    /// 问题报告。
+    var problemReport: ProblemReportController!
+    /// 更新的检查与安装。
+    var updates: UpdateController!
+    /// 更新窗口。
+    var updateWindow: UpdateWindowController!
+    /// 菜单栏图标显示圆点的原因；不为空时显示圆点（4.5 节、11.1 节）。
+    private(set) var attention: Set<AttentionReason> = []
+    /// `attention` 变化后调用，由菜单栏控制器设置，用来重画图标。
+    var onAttentionChanged: (() -> Void)?
+
     /// 激活请求的序号，每次 `activate` 加 1。完成时序号已不是最新的，说明被后来的切换取代了。
     var activationSequence = 0
     /// `stop()` 已调用（应用正在退出）。之后的重算、轮询与回调都直接返回，不再建面板或捕获会话。
@@ -70,11 +95,14 @@ final class AppCoordinator {
     private var replanScheduled = false
     let log = AppLog.logger("Coordinator")
 
-    /// 用平台服务与配置建协调器；调用 `start()` 后才开始工作。
-    init(services: PlatformServices, config: ConfigController, isFakeMode: Bool) {
+    /// 用平台服务、配置、运行环境与状态建协调器；调用 `start()` 后才开始工作。
+    init(services: PlatformServices, config: ConfigController, isFakeMode: Bool,
+         environment: AppEnvironment, state: StateController) {
         self.services = services
         self.config = config
         self.isFakeMode = isFakeMode
+        self.environment = environment
+        self.state = state
     }
 
     /// 当前配置方案。
@@ -208,6 +236,8 @@ final class AppCoordinator {
         }
         // 轮询与前台通知两条路径都经过这里，所以只在这一处把前台推给热键注册器（反馈文档 6.7 节）。
         frontmostDidChange()
+        // 推迟中的窗口（自动发现的新版本、崩溃提示）等前台不再是 EVE 客户端时显示（v1.1 设计 4.5 节）。
+        presenter.frontmostDidChange(frontmost)
     }
 
     /// 重新读权限状态，变化时重算。权限页可见时每秒调用一次。
@@ -257,6 +287,8 @@ final class AppCoordinator {
         }
         languageSettingDidChange(old: old, new: new)
         combatSettingsDidChange(old: old, new: new)
+        diagnosticsSettingsDidChange(old: old, new: new)
+        updateSettingsDidChange(old: old, new: new)
         rebuildHotkeys()
         setNeedsReplan()
     }
@@ -272,6 +304,15 @@ final class AppCoordinator {
         guard registry.client(withID: id) != nil, captureStates[id] != state else { return }
         captureStates[id] = state
         setNeedsReplan()
+    }
+
+    // MARK: - 菜单栏圆点
+
+    /// 亮起或熄灭一个圆点的原因。集合变了时通知菜单栏重画图标。
+    func setAttention(_ reason: AttentionReason, on: Bool) {
+        let changed = on ? attention.insert(reason).inserted : attention.remove(reason) != nil
+        guard changed else { return }
+        onAttentionChanged?()
     }
 
     // MARK: - 重算

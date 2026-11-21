@@ -275,6 +275,6 @@ extension SettingsViewModel {
     /// 以新实例重新启动本应用（授权屏幕录制后通常需要）。
     func relaunch() {
         coordinator.config.flush()
-        coordinator.services.permissions.relaunch()
+        coordinator.services.permissions.relaunch(activates: true)
     }
 }

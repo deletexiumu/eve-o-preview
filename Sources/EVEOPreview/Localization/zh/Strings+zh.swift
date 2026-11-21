@@ -187,6 +187,8 @@ struct SettingsStringsZH: SettingsStrings {
     var interfaceLanguage: String { "界面语言" }
     var followSystem: String { "跟随系统" }
     var machineTranslationNote: String { "部分译文由机器生成，欢迎指正。" }
+    var showDockIcon: String { "在 Dock 中显示图标" }
+    var showDockIconHelp: String { "关掉后只在菜单栏显示图标。" }
 
     // 权限页。
     var permissionsSubtitle: String { "两项权限都在「系统设置 > 隐私与安全性」里授予。" }
@@ -215,5 +217,6 @@ struct SettingsStringsZH: SettingsStrings {
     var disclaimerHeader: String { "说明" }
     var focusOnlyText: String { "本工具只切换窗口焦点，不向多个客户端广播输入，不读取或修改游戏内存。" }
     var gameLogText: String { "战斗提醒只读取 EVE 客户端自己写出的游戏日志文件，不读游戏内存、不改文件、不发送输入。" }
+    var networkText: String { "EVE-O Preview 只在检查和下载更新时访问 GitHub，可在「通用」页关闭。问题报告不会自动发送。" }
     var eveIPText: String { "EVE Online 及相关标志是 CCP ehf. 的商标。本项目与 CCP 没有关联，也未获其认可。" }
 }

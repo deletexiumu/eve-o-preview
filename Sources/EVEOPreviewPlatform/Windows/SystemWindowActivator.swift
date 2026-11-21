@@ -59,7 +59,7 @@ public struct ActivationTraceEntry: Sendable, Equatable {
     /// 避免把前台抢回旧目标。
     private var latestToken = 0
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "Activator")
+    private let log = PlatformLog.logger("Activator")
 
     /// 建一个激活器。
     ///

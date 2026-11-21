@@ -41,7 +41,7 @@ final class TailedLogFile {
     private let attachedAt: Double
     /// 读取出错的错误已经记过一次日志，下一次成功读取后清除。
     private var readErrorLogged = false
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "CombatLog")
+    private let log = PlatformLog.logger("CombatLog")
 
     /// 文件描述符；关闭由事件源的取消回调负责。
     private let fd: Int32

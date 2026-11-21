@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// App 的日志入口（架构文档第 8 节约定）：subsystem 取 bundle id，category 取模块名。
-// 用 `swift run` 直接运行可执行文件时没有 bundle id，退回到固定的 bundle id 字符串。
+// App 的日志入口（架构文档第 8 节约定，v1.1 设计 5.1 节）：category 取模块名。
+// v1.1 起返回 Platform 的 `LogChannel`：方法名与 `os.Logger` 相同，调用处的写法不变，
+// 日志同时交给系统日志与 `PlatformLog.install` 装上的输出目标（文件日志）。
+// subsystem 固定为 bundle id（`PlatformLog.subsystem`），`swift run` 时也一样。
 
 import Foundation
-import os
+import EVEOPreviewPlatform
 
 /// App 层的日志工厂。
 enum AppLog {
     /// 发布包的 bundle id，与 `packaging/Info.plist` 一致。
-    static let bundleID = "io.github.deletexiumu.eveopreview-macos"
+    static let bundleID = PlatformLog.subsystem
 
-    /// 日志的 subsystem：优先取运行时的 bundle id，没有时（`swift run`）取 `bundleID`。
-    static let subsystem: String = Bundle.main.bundleIdentifier ?? bundleID
-
-    /// 按模块名建一个 Logger。
+    /// 按模块名建一个日志入口。
     ///
     /// - Parameter category: 模块名，如 `Coordinator`、`Thumbnails`。
-    static func logger(_ category: String) -> Logger {
-        Logger(subsystem: subsystem, category: category)
+    static func logger(_ category: String) -> LogChannel {
+        PlatformLog.logger(category)
     }
 }

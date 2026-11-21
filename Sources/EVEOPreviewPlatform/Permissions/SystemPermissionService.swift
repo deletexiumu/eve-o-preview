@@ -23,7 +23,7 @@ import os
         URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders")!
 
     /// 日志。
-    private let log = Logger(subsystem: PlatformLog.subsystem, category: "Permissions")
+    private let log = PlatformLog.logger("Permissions")
 
     /// 建一个权限服务。
     public init() {}
@@ -65,7 +65,7 @@ import os
     /// 新实例带 `--relaunched-from <本进程 PID>` 启动；否则它的单实例检查会看到还没退出的旧实例，
     /// 新实例退出自己，结果两个实例都没了。环境变量里以 `EVEO_` 开头的调试开关原样传给新实例。
     /// 只在作为 `.app` 运行时有效；用 `swift run` 直接运行可执行文件时没有包，只记日志不退出。
-    public func relaunch() {
+    public func relaunch(activates: Bool) {
         let bundleURL = Bundle.main.bundleURL
         guard bundleURL.pathExtension == "app" else {
             log.error("不是从 .app 运行，不能重新启动")
@@ -74,17 +74,23 @@ import os
         let configuration = NSWorkspace.OpenConfiguration()
         // 新实例与旧实例会短暂并存，所以要求系统另开一个实例，而不是激活旧实例。
         configuration.createsNewApplicationInstance = true
+        // 自动更新后的重新启动不把新实例带到前台，不抢焦点；用户点的「重新启动」照常激活，
+        // 新实例打开的权限页才不会被系统设置挡在后面。
+        configuration.activates = activates
         configuration.arguments = [SystemPermissionService.relaunchedFromArgument, String(getpid())]
         // 只在确有调试开关时才设：正式使用时没有 EVEO_ 变量，不改动新实例的环境。
         let debugEnvironment = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("EVEO_") }
         if !debugEnvironment.isEmpty { configuration.environment = debugEnvironment }
-        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { [log] _, error in
+        // 回调由 LaunchServices 在后台队列调用。本类是 @MainActor，不写 @Sendable 时闭包会被推断为主线程隔离，
+        // Swift 6 运行时检查到不在主线程就终止进程：新实例已启动，旧实例却以崩溃退出（v1.1 手工测试发现）。
+        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { @Sendable [log] _, error in
             if let error {
                 log.error("重新启动失败：\(error.localizedDescription, privacy: .public)")
                 return
             }
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
+            // 不用 DispatchQueue.main.async：在主队列任务里调 terminate 会死锁，见 `SessionTracker.installSignalSources`。
+            RunLoop.main.perform {
+                MainActor.assumeIsolated { NSApp.terminate(nil) }
             }
         }
     }

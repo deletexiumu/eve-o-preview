@@ -203,6 +203,8 @@ struct SettingsStringsJA: SettingsStrings {
     var interfaceLanguage: String { "表示言語" }
     var followSystem: String { "システムに合わせる" }
     var machineTranslationNote: String { "一部の翻訳は機械翻訳です。修正のご指摘を歓迎します。" }
+    var showDockIcon: String { "Dock にアイコンを表示" }
+    var showDockIconHelp: String { "オフにすると、メニューバーのアイコンだけが表示されます。" }
 
     // 权限页。
     var permissionsSubtitle: String { "どちらの権限も「システム設定」>「プライバシーとセキュリティ」で許可します。" }
@@ -243,6 +245,10 @@ struct SettingsStringsJA: SettingsStrings {
     var gameLogText: String {
         "戦闘アラートは、EVEクライアントが書き出すゲームログのファイルを読むだけです。"
             + "ゲームのメモリは読まず、ファイルを変更せず、入力も送りません。"
+    }
+    var networkText: String {
+        "EVE-O PreviewがGitHubに接続するのは、アップデートの確認とダウンロードのときだけです。「一般」でオフにできます。"
+            + "問題のレポートが自動で送信されることはありません。"
     }
     var eveIPText: String {
         "EVE Onlineおよび関連するロゴはCCP ehf.の商標です。このプロジェクトはCCPとは関係がなく、CCPの承認も受けていません。"
