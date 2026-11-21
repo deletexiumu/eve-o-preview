@@ -49,6 +49,10 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
         public var cycleGroups: [CycleGroupSummary]
         /// 角色热键，按角色名排序（不区分大小写）后的序号排列，只有热键。
         public var characterHotkeys: [[String]]
+        /// 预警的摘要：只有开关与数量，不含频道名与参考星系名（docs/design-intel-translate.md 3.4 节）。
+        public var intel: IntelSummary
+        /// 翻译的摘要：只有开关、数量与预设编号，不含频道名、接口地址与模型名。
+        public var translation: TranslationSummary
     }
 
     /// 一个循环组的摘要。
@@ -96,7 +100,9 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
                 CycleGroupSummary(memberCount: $0.members.count, forwardHotkeys: $0.forwardHotkeys,
                                   backwardHotkeys: $0.backwardHotkeys)
             },
-            characterHotkeys: hotkeyNames.map { profile.characterHotkeys[$0] ?? [] })
+            characterHotkeys: hotkeyNames.map { profile.characterHotkeys[$0] ?? [] },
+            intel: IntelSummary(profile.intel),
+            translation: TranslationSummary(profile.translation, endpoint: config.general.translationEndpoint))
         let general = config.general
         let customLogDirectory = !(general.eveLogDirectory ?? "").trimmingCharacters(in: .whitespaces).isEmpty
         self.general = GeneralSummary(pollIntervalMs: general.pollIntervalMs, language: general.language,
@@ -112,6 +118,64 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
     }
 }
 
+/// 预警设置的摘要（docs/design-intel-translate.md 3.4 节）。频道名与参考星系名都不进报告。
+public struct IntelSummary: Sendable, Equatable, Codable {
+    /// 是否启用。
+    public var enabled: Bool
+    /// 预警频道的个数。
+    public var channelCount: Int
+    /// 保留的分钟数。
+    public var windowMinutes: Int
+    /// 跳数的计算上限。
+    public var maxJumps: Int
+    /// 高亮距离。
+    public var alertJumps: Int
+    /// 是否设置了参考星系。
+    public var hasReferenceSystem: Bool
+    /// 浮窗是否有保存的位置。
+    public var hasCustomFrame: Bool
+    /// 是否打开了向 ESI 核对人名（6.9 节）。
+    public var resolvePilotNames: Bool
+
+    /// 由预警设置建摘要。
+    public init(_ settings: IntelSettings) {
+        enabled = settings.enabled
+        channelCount = settings.channels.count
+        windowMinutes = settings.windowMinutes
+        maxJumps = settings.maxJumps
+        alertJumps = settings.alertJumps
+        hasReferenceSystem = settings.referenceSystem != nil
+        hasCustomFrame = settings.overlay.frame != nil
+        resolvePilotNames = settings.resolvePilotNames
+    }
+}
+
+/// 翻译设置的摘要（docs/design-intel-translate.md 3.4 节）。频道名、接口地址与模型名都不进报告。
+public struct TranslationSummary: Sendable, Equatable, Codable {
+    /// 是否启用。
+    public var enabled: Bool
+    /// 翻译频道的个数。
+    public var channelCount: Int
+    /// 目标语言的选项。
+    public var targetLanguage: TranslationTarget
+    /// 服务预设的编号。
+    public var provider: TranslationProviderID
+    /// 是否改了接口地址。
+    public var hasCustomBaseURL: Bool
+    /// 是否改了模型名。
+    public var hasCustomModel: Bool
+
+    /// 由翻译设置与全局的接口设置建摘要。
+    public init(_ settings: TranslationSettings, endpoint: TranslationEndpointSettings) {
+        enabled = settings.enabled
+        channelCount = settings.channels.count
+        targetLanguage = settings.targetLanguage
+        provider = endpoint.provider
+        hasCustomBaseURL = !endpoint.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        hasCustomModel = !endpoint.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
 // MARK: - 运行时摘要
 
 /// 协调器在主线程取的运行时快照，写进 `summary.md`。
@@ -124,6 +188,14 @@ public struct RuntimeSummary: Sendable, Equatable, Codable {
     public var accessibilityGranted: Bool
     /// 游戏日志跟踪服务的状态，只有状态名与文件数，不含路径。
     public var combatLogStatus: String
+    /// 聊天日志跟踪服务的状态：`stopped`、`watching (N files)`、`directoryNotFound`、`accessDenied`，不含路径。
+    public var chatLogStatus: String
+    /// 星图数据：`build-<版本号>`、`missing`、`invalid`、`notLoaded`。
+    public var staticData: String
+    /// 翻译的状态：`off`、`idle`、`translating`、`waiting`、`blocked`。
+    public var translationStatus: String
+    /// 人名核对的状态：`off`、`idle`、`resolving`、`waiting`（6.10 节）。
+    public var pilotLookupStatus: String
     /// 已选角色的客户端数。
     public var characterClients: Int
     /// 停在登录界面的客户端数。
@@ -147,13 +219,18 @@ public struct RuntimeSummary: Sendable, Equatable, Codable {
 
     /// 用各字段建快照。
     public init(uiLanguage: String, screenRecordingGranted: Bool, accessibilityGranted: Bool,
-                combatLogStatus: String, characterClients: Int, loginClients: Int, unknownClients: Int,
+                combatLogStatus: String, chatLogStatus: String = "stopped", staticData: String = "notLoaded",
+                translationStatus: String = "off", pilotLookupStatus: String = "off", characterClients: Int, loginClients: Int, unknownClients: Int,
                 captureStates: [String: Int], hotkeyBindings: Int, hotkeyFailures: [String: Int],
                 screens: [String], uptimeSeconds: Int, previousRun: String, isFakeMode: Bool) {
         self.uiLanguage = uiLanguage
         self.screenRecordingGranted = screenRecordingGranted
         self.accessibilityGranted = accessibilityGranted
         self.combatLogStatus = combatLogStatus
+        self.chatLogStatus = chatLogStatus
+        self.staticData = staticData
+        self.translationStatus = translationStatus
+        self.pilotLookupStatus = pilotLookupStatus
         self.characterClients = characterClients
         self.loginClients = loginClients
         self.unknownClients = unknownClients
@@ -223,6 +300,10 @@ public struct EnvironmentReport: Sendable, Equatable {
             "- Hotkeys registered: \(runtime.hotkeyBindings)",
             "- Hotkey failures: \(EnvironmentReport.counts(runtime.hotkeyFailures))",
             "- Combat log: \(runtime.combatLogStatus)",
+            "- Chat log: \(runtime.chatLogStatus)",
+            "- Map data: \(runtime.staticData)",
+            "- Translation: \(runtime.translationStatus)",
+            "- Pilot lookup: \(runtime.pilotLookupStatus)",
             "- Uptime: \(runtime.uptimeSeconds) s",
             "- Previous run: \(runtime.previousRun)",
             "",

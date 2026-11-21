@@ -156,3 +156,32 @@ struct StateStoreTests {
         #expect(url.deletingLastPathComponent().lastPathComponent == "EVE-O Preview")
     }
 }
+
+/// state.json 的预警记录（docs/design-intel-translate.md 3.1 节）。角色名是虚构的。
+struct ChatStateStoreTests {
+    /// 没有 chat 键的旧 state.json 解码成空的手动位置；其余记录不受影响。
+    @Test func missingChatKey() throws {
+        let state = try JSONDecoder().decode(AppState.self, from: Data(#"{"stateVersion":1,"appliedDefaults":["a"]}"#.utf8))
+        #expect(state.chat == ChatState())
+        #expect(state.appliedDefaults == ["a"])
+    }
+
+    /// chat 的结构不符（如来源不认识）时只丢掉 chat，不连累其他记录。
+    @Test func malformedChatIsDroppedAlone() throws {
+        let json = #"{"appliedDefaults":["a"],"chat":{"manualLocations":{"Kael Doran":{"systemID":1,"time":2,"source":"x"}}}}"#
+        let state = try JSONDecoder().decode(AppState.self, from: Data(json.utf8))
+        #expect(state.chat.manualLocations.isEmpty && state.appliedDefaults == ["a"])
+    }
+
+    /// 手动位置往返一致，键名与 3.1 节相同。
+    @Test func roundTrip() throws {
+        let location = CharacterLocation(systemID: 30_000_142, time: 1_795_174_426, source: .manual)
+        let state = AppState(chat: ChatState(manualLocations: ["Kael Doran": location]))
+        let data = try JSONEncoder().encode(state)
+        #expect(try JSONDecoder().decode(AppState.self, from: data) == state)
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let chat = try #require(object["chat"] as? [String: Any])
+        let entry = try #require((chat["manualLocations"] as? [String: Any])?["Kael Doran"] as? [String: Any])
+        #expect(Set(entry.keys) == ["systemID", "time", "source"] && entry["source"] as? String == "manual")
+    }
+}

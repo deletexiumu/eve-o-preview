@@ -19,13 +19,15 @@ import EVEOPreviewCore
 import Foundation
 
 extension AppCoordinator {
-    /// 此刻是否需要后台活动：没有退出，且战斗提醒已开启或鼠标事件监听在用。
+    /// 此刻是否需要后台活动：没有退出，且战斗提醒、预警或翻译已开启，或鼠标事件监听在用。
     ///
     /// 「鼠标事件监听在用」按热键规划判断：有鼠标绑定，且鼠标绑定都没有注册失败
     /// （没有辅助功能权限、监听不可用时监听已拆除，不需要防 App Nap）。
     private var needsBackgroundActivity: Bool {
         guard !isStopped else { return false }
         if profile.combatAlert.enabled { return true }
+        // 预警与翻译：聊天日志的读取与翻译的定时都不应被 App Nap 拖慢（docs/design-intel-translate.md 9.3 节）。
+        if profile.intel.enabled || profile.translation.enabled { return true }
         let hasMouseBindings = hotkeyPlan.bindings.contains { $0.hotkey.isMouse }
         let mouseFailed = hotkeyFailures.contains { $0.binding.hotkey.isMouse }
         return hasMouseBindings && !mouseFailed
@@ -37,7 +39,7 @@ extension AppCoordinator {
         if needed, backgroundActivity == nil {
             backgroundActivity = ProcessInfo.processInfo.beginActivity(
                 options: .userInitiatedAllowingIdleSystemSleep,
-                reason: "EVE-O Preview: combat alerts and mouse hotkeys need timely timers")
+                reason: "EVE-O Preview: combat alerts, chat overlays and mouse hotkeys need timely timers")
             log.info("开始后台活动，防止 App Nap")
         } else if !needed, let activity = backgroundActivity {
             ProcessInfo.processInfo.endActivity(activity)

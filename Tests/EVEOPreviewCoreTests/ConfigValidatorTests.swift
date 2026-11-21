@@ -300,3 +300,117 @@ extension ConfigValidatorTests {
         #expect(clamped.isEmpty)
     }
 }
+
+/// 预警与翻译设置的校验（docs/design-intel-translate.md 3.2 节的 7 条规则）。频道名是虚构的。
+struct ChatConfigValidatorTests {
+    /// 只含一个配置方案的配置，便于修改后校验。
+    private func config(_ edit: (inout Profile) -> Void) -> AppConfig {
+        var profile = Profile(id: "p1", name: "Main")
+        edit(&profile)
+        return AppConfig(activeProfileID: "p1", profiles: [profile])
+    }
+
+    /// 第 1 条：整数与小数的下界、上界；非有限值改回默认值。
+    @Test func ranges() {
+        let low = ConfigValidator.normalized(config {
+            $0.intel.windowMinutes = 1; $0.intel.maxJumps = 0; $0.intel.alertJumps = -1
+            $0.intel.overlay.opacity = 0.1; $0.intel.overlay.fontSize = 2
+        })
+        let lp = low.config.profiles[0].intel
+        #expect(lp.windowMinutes == 5 && lp.maxJumps == 1 && lp.alertJumps == 0)
+        #expect(lp.overlay.opacity == 0.2 && lp.overlay.fontSize == 10)
+        #expect(low.clamped.contains("profiles[0].intel.windowMinutes"))
+        #expect(low.clamped.contains("profiles[0].intel.overlay.opacity"))
+        let high = ConfigValidator.normalized(config {
+            $0.intel.windowMinutes = 500; $0.intel.maxJumps = 99; $0.intel.alertJumps = 99
+            $0.translation.overlay.opacity = 3; $0.translation.overlay.fontSize = 99
+        })
+        let hp = high.config.profiles[0]
+        #expect(hp.intel.windowMinutes == 120 && hp.intel.maxJumps == 30 && hp.intel.alertJumps == 30)
+        #expect(hp.translation.overlay.opacity == 1.0 && hp.translation.overlay.fontSize == 24)
+        let nan = ConfigValidator.normalized(config {
+            $0.intel.overlay.opacity = .nan; $0.translation.overlay.fontSize = .infinity
+        }).config.profiles[0]
+        #expect(nan.intel.overlay.opacity == 0.75 && nan.translation.overlay.fontSize == 12)
+        let exact = config { $0.intel.windowMinutes = 5; $0.intel.maxJumps = 30; $0.intel.alertJumps = 0 }
+        #expect(ConfigValidator.normalized(exact).clamped.isEmpty)
+    }
+
+    /// 第 2 条：alertJumps 大于 maxJumps 时改成 maxJumps（maxJumps 先夹到范围内）。
+    @Test func alertJumpsCappedByMaxJumps() {
+        let result = ConfigValidator.normalized(config { $0.intel.maxJumps = 4; $0.intel.alertJumps = 9 })
+        #expect(result.config.profiles[0].intel.alertJumps == 4)
+        #expect(result.clamped == ["profiles[0].intel.alertJumps"])
+        let both = ConfigValidator.normalized(config { $0.intel.maxJumps = 0; $0.intel.alertJumps = 5 })
+        #expect(both.config.profiles[0].intel.maxJumps == 1 && both.config.profiles[0].intel.alertJumps == 1)
+    }
+
+    /// 第 3 条：去名字的首尾空白、空白 id 改成 nil、空项删除、两种情形的去重、至多 16 项。
+    @Test func channels() {
+        let input = config {
+            $0.intel.channels = [
+                ChannelRef(name: "  intel.Demo ", id: "player_1"),
+                ChannelRef(name: "renamed", id: "player_1"),          // id 相同：重复
+                ChannelRef(name: "chat.Demo", id: ""),                // 空 id 改成 nil
+                ChannelRef(name: "CHAT.demo"),                        // 都没有 id、名字相同：重复
+                ChannelRef(name: "   ", id: nil),                     // 名字与 id 都空：删除
+                ChannelRef(name: "chat.Demo", id: "player_2"),        // 有 id：不与只有名字的项去重
+            ]
+        }
+        let (result, clamped) = ConfigValidator.normalized(input)
+        #expect(result.profiles[0].intel.channels == [ChannelRef(name: "intel.Demo", id: "player_1"),
+                                                      ChannelRef(name: "chat.Demo"),
+                                                      ChannelRef(name: "chat.Demo", id: "player_2")])
+        #expect(clamped == ["profiles[0].intel.channels"])
+        let many = config { $0.translation.channels = (1...20).map { ChannelRef(name: "c\($0)") } }
+        let trimmed = ConfigValidator.normalized(many).config.profiles[0].translation.channels
+        #expect(trimmed.count == IntelSettings.maxChannels && trimmed.last?.name == "c16")
+    }
+
+    /// 第 4 条：id 以 private_ 开头的项删除。
+    @Test func privateChannelsRemoved() {
+        let input = config { $0.translation.channels = [ChannelRef(name: "Mira Voss", id: "private_9"), .local] }
+        #expect(ConfigValidator.normalized(input).config.profiles[0].translation.channels == [.local])
+    }
+
+    /// 校验不管 resolvePilotNames（6.9 节）：false 校验后仍是 false，也不记为改动。
+    @Test func resolvePilotNamesUntouched() {
+        let result = ConfigValidator.normalized(config { $0.intel.resolvePilotNames = false })
+        #expect(!result.config.profiles[0].intel.resolvePilotNames && result.clamped.isEmpty)
+    }
+
+    /// 第 5 条：空白的参考星系改成 nil；非空的原样保留。
+    @Test func referenceSystem() {
+        #expect(ConfigValidator.normalized(config { $0.intel.referenceSystem = "  " })
+                .config.profiles[0].intel.referenceSystem == nil)
+        let kept = ConfigValidator.normalized(config { $0.intel.referenceSystem = " Jita" })
+        #expect(kept.config.profiles[0].intel.referenceSystem == " Jita" && kept.clamped.isEmpty)
+    }
+
+    /// 第 6 条：宽或高不是有限的正数时 frame 改成 nil；正常的 frame 不动。
+    @Test func overlayFrame() {
+        let bad = [ScreenRect(x: 0, y: 0, width: 0, height: 100), ScreenRect(x: 0, y: 0, width: 100, height: -1),
+                   ScreenRect(x: 0, y: 0, width: .infinity, height: 100), ScreenRect(x: .nan, y: 0, width: 1, height: 1)]
+        for frame in bad {
+            let result = ConfigValidator.normalized(config { $0.intel.overlay.frame = frame })
+            #expect(result.config.profiles[0].intel.overlay.frame == nil)
+            #expect(result.clamped == ["profiles[0].intel.overlay.frame"])
+        }
+        let good = ScreenRect(x: -500, y: 20, width: 380, height: 260)
+        #expect(ConfigValidator.normalized(config { $0.translation.overlay.frame = good })
+                .config.profiles[0].translation.overlay.frame == good)
+    }
+
+    /// 第 7 条：接口地址与模型名去掉首尾空白，地址末尾的 `/` 全部去掉；结果再校验一次不变。
+    @Test func endpoint() {
+        var input = config { _ in }
+        input.general.translationEndpoint = TranslationEndpointSettings(provider: .custom,
+                                                                        baseURL: "  https://h.example/v1// ",
+                                                                        model: " m ")
+        let once = ConfigValidator.normalized(input)
+        #expect(once.config.general.translationEndpoint.baseURL == "https://h.example/v1")
+        #expect(once.config.general.translationEndpoint.model == "m")
+        #expect(once.clamped == ["general.translationEndpoint.baseURL", "general.translationEndpoint.model"])
+        #expect(ConfigValidator.normalized(once.config).clamped.isEmpty)
+    }
+}

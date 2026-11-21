@@ -20,17 +20,21 @@ public struct AppState: Sendable, Equatable, Codable {
     public var diagnostics: DiagnosticsState
     /// 已经补到配置里的一次性默认值（`OneTimeDefaults` 的 id），v1.2 新增，缺键时为空。
     public var appliedDefaults: [String]
+    /// 预警与翻译的记录（docs/design-intel-translate.md 3.1 节），缺键时为空。
+    public var chat: ChatState
 
     /// 当前的状态文件版本。
     public static let currentVersion = 1
 
     /// 用各字段建状态；全部取默认值时就是默认状态。
     public init(stateVersion: Int = AppState.currentVersion, updates: UpdateState = UpdateState(),
-                diagnostics: DiagnosticsState = DiagnosticsState(), appliedDefaults: [String] = []) {
+                diagnostics: DiagnosticsState = DiagnosticsState(), appliedDefaults: [String] = [],
+                chat: ChatState = ChatState()) {
         self.stateVersion = stateVersion
         self.updates = updates
         self.diagnostics = diagnostics
         self.appliedDefaults = appliedDefaults
+        self.chat = chat
     }
 
     /// 缺键取默认值。
@@ -40,6 +44,25 @@ public struct AppState: Sendable, Equatable, Codable {
         updates = try c.decodeIfPresent(UpdateState.self, forKey: .updates) ?? UpdateState()
         diagnostics = try c.decodeIfPresent(DiagnosticsState.self, forKey: .diagnostics) ?? DiagnosticsState()
         appliedDefaults = try c.decodeIfPresent([String].self, forKey: .appliedDefaults) ?? []
+        // 预警的记录解不出来时单独丢掉，不连累更新与诊断的记录（做法同 intermediateNotes）。
+        chat = (try? c.decodeIfPresent(ChatState.self, forKey: .chat)) ?? ChatState()
+    }
+}
+
+/// 预警与翻译的记录（docs/design-intel-translate.md 3.1 节、6.2 节）。
+public struct ChatState: Sendable, Equatable, Codable {
+    /// 手动设置的位置，角色名 → 位置。角色登录后一直停在同一个星系时没有自动线索，靠它在重启后恢复。
+    public var manualLocations: [String: CharacterLocation]
+
+    /// 用手动位置建记录，默认为空。
+    public init(manualLocations: [String: CharacterLocation] = [:]) {
+        self.manualLocations = manualLocations
+    }
+
+    /// 缺键取默认值；位置表结构不符时取空表。
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        manualLocations = (try? c.decodeIfPresent([String: CharacterLocation].self, forKey: .manualLocations)) ?? [:]
     }
 }
 

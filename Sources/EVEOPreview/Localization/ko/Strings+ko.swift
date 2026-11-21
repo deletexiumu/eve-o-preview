@@ -259,3 +259,30 @@ struct SettingsStringsKO: SettingsStrings {
         "EVE Online 및 관련 로고는 CCP ehf.의 상표입니다. 이 프로젝트는 CCP와 관련이 없으며 CCP의 승인을 받지 않았습니다."
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，韩文。
+extension MenuStringsKO {
+    var showIntelOverlay: String { "정찰 오버레이 표시" }
+    var showTranslationOverlay: String { "번역 오버레이 표시" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，韩文。
+extension SettingsStringsKO {
+    var pageIntel: String { "정찰" }
+    var pageTranslation: String { "번역" }
+    var aboutChatLogsNote: String {
+        "정찰과 번역은 채팅 로그와 게임 로그를 읽기만 합니다. 번역은 채팅 내용을 선택한 모델 서비스로 보냅니다. 「온라인 이름 확인」이 켜져 있으면 정찰 메시지에서 이어서 적힌 파일럿 이름을 CCP의 ESI API로 보냅니다."
+    }
+    var chatLogStatusStopped: String { "꺼짐" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "감시 중: \(directory) (로그 파일 \(files)개)"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "채팅 로그 폴더를 찾을 수 없음: \(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "읽기 권한 없음: \(path)" }
+    var chatLogHelp: String {
+        "EVE 클라이언트에서 채팅을 파일로 기록하는 설정을 켜야 합니다. 로그 폴더는 「알림」 페이지에서 설정합니다."
+    }
+}

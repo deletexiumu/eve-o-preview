@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 菜单栏图标与菜单（架构文档 7.4 节），代替 Windows 版的托盘图标。
-// 常驻的菜单项依次是：显示或隐藏全部缩略图、配置方案子菜单、全部最小化、热键只在 EVE 内生效、设置、退出。
+// 常驻的菜单项依次是：显示或隐藏全部缩略图、配置方案子菜单、全部最小化、热键只在 EVE 内生效、
+// 显示预警浮窗、显示翻译浮窗、设置、退出。
 // 有客户端的捕获被用户停止时多「恢复捕获」，缺权限时多一项权限提示。
 // 菜单在每次打开前按当前状态重建（NSMenuDelegate.menuNeedsUpdate），不需要另外订阅状态变化。
 //
@@ -61,6 +62,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             [weak coordinator] in coordinator?.minimizeAll()
         })
         menu.addItem(hotkeyScopeItem())
+        menu.addItem(overlayItem(.intel))
+        menu.addItem(overlayItem(.translation))
         // 「检查更新…」「报告问题…」一组；骨架阶段没有菜单项时不加分隔线，菜单与 1.0.0 相同。
         let tools = updateMenuItems() + diagnosticsMenuItems()
         if !tools.isEmpty {
@@ -123,6 +126,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let isGameOnly = coordinator.profile.hotkeyDefaultScope == .game
         return ClosureMenuItem(L10n.hotkeys.menuHotkeysOnlyInEVE, isChecked: isGameOnly) { [weak coordinator] in
             coordinator?.config.updateActiveProfile { $0.hotkeyDefaultScope = isGameOnly ? .global : .game }
+        }
+    }
+
+    /// 「显示预警浮窗」「显示翻译浮窗」：对应功能已开启时打勾，点击切换当前配置方案里的 `enabled`
+    /// （docs/design-intel-translate.md 第 10 节）。
+    private func overlayItem(_ kind: OverlayKind) -> NSMenuItem {
+        let profile = coordinator.profile
+        let isOn = kind == .intel ? profile.intel.enabled : profile.translation.enabled
+        let title = kind == .intel ? L10n.menu.showIntelOverlay : L10n.menu.showTranslationOverlay
+        return ClosureMenuItem(title, isChecked: isOn) { [weak coordinator] in
+            coordinator?.toggleOverlay(kind)
         }
     }
 

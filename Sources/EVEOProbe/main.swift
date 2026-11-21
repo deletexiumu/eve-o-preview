@@ -16,6 +16,11 @@
 //   gamelog [目录] [--follow 秒数]          游戏日志目录的解析统计，可跟踪新增内容（反馈文档 7.12 节，GameLogProbe.swift）
 //   update feed [地址] | verify <新应用> <基准应用> | prepare <地址>
 //                                          更新的检查、签名核对与下载（v1.1 设计 9.6 节，UpdateProbe.swift）
+//   staticdata                             星图数据的来源、版本、数量与耗时（docs/design-intel-translate.md 9.5 节）
+//   chatlog [目录] [--follow 秒数]          聊天日志目录的解析统计（WP-A，ChatLogProbe.swift）
+//   intel [目录]                           预警解析的统计（WP-B，IntelProbe.swift）
+//   translate [--provider …] [--model …] [--base-url …] [--target …]
+//                                          向模型服务发一次测试请求（WP-C，TranslateProbe.swift；会产生费用）
 // 「手段」用逗号分隔：appkit、ax、private，例如 --only appkit,ax。
 
 import AppKit
@@ -45,6 +50,10 @@ import EVEOPreviewPlatform
         case "mousetap": return await MouseTapProbe.run(rest)
         case "gamelog": return await GameLogProbe.run(rest)
         case "update": return await UpdateProbe.run(rest)
+        case "staticdata": return await StaticDataProbe.run(rest)
+        case "chatlog": return await ChatLogProbe.run(rest)
+        case "intel": return await IntelProbe.run(rest)
+        case "translate": return await TranslateProbe.run(rest)
         default: return usage()
         }
     }
@@ -57,6 +66,8 @@ import EVEOPreviewPlatform
               | reconcile <windowID> | hotkey [秒数] | mousetap [秒数] [--swallow 按钮号]
               | gamelog [目录] [--follow 秒数]
               | update feed [地址] | update verify <新应用> <基准应用> | update prepare <地址>
+              | staticdata | chatlog [目录] [--follow 秒数] | intel [目录]
+              | translate [--provider 编号] [--model 模型] [--base-url 地址] [--target 语言]
         """)
         return 2
     }

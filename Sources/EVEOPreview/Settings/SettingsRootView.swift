@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口的根视图（架构文档 7.4 节）：左侧是 8 个页的列表，右侧是当前页。
+// 设置窗口的根视图（架构文档 7.4 节）：左侧是 10 个页的列表，右侧是当前页。
 // 两栏用 HStack 排列，原因见 body 里的说明。
 // 配置读取有问题或处于演示模式时，在页的上方显示提示条。
 // 界面语言变了以后整个视图树按新的语言键重建（反馈文档 5.4 节），见 body 末尾的 `.id`。
@@ -18,7 +18,7 @@ struct SettingsRootView: View {
         // 结果两栏的上半部分都在窗口外：侧栏看起来是空的，页面顶部被裁掉。
         // 普通 HStack 按窗口给的尺寸布局，页内容（grouped 样式的 Form）在自己的滚动视图里滚动。
         HStack(spacing: 0) {
-            // 侧栏：8 个页，顺序见 SettingsPage 的说明（反馈文档 7.11 节）。
+            // 侧栏：10 个页，顺序见 SettingsPage 的说明（docs/design-intel-translate.md 第 10 节）。
             List(SettingsPage.allCases, selection: selection) { page in
                 Label(page.title, systemImage: page.systemImage).tag(page)
             }
@@ -69,6 +69,8 @@ struct SettingsRootView: View {
         case .previews: PreviewsPage(model: model)
         case .switching: SwitchingPage(model: model)
         case .alerts: AlertsPage(model: model)
+        case .intel: IntelPage(model: model)
+        case .translation: TranslationPage(model: model)
         case .profiles: ProfilesPage(model: model)
         case .general: GeneralPage(model: model)
         case .permissions: PermissionsPage(model: model)
@@ -85,6 +87,8 @@ extension SettingsPage {
         case .previews: return L10n.settings.pagePreviews
         case .switching: return L10n.settings.pageSwitching
         case .alerts: return L10n.settings.pageAlerts
+        case .intel: return L10n.settings.pageIntel
+        case .translation: return L10n.settings.pageTranslation
         case .profiles: return L10n.settings.pageProfiles
         case .general: return L10n.settings.pageGeneral
         case .permissions: return L10n.settings.pagePermissions
@@ -99,6 +103,8 @@ extension SettingsPage {
         case .previews: return "rectangle.3.group"
         case .switching: return "keyboard"
         case .alerts: return "bell.badge"
+        case .intel: return "dot.radiowaves.left.and.right"
+        case .translation: return "character.bubble"
         case .profiles: return "square.stack.3d.up"
         case .general: return "gearshape"
         case .permissions: return "lock.shield"

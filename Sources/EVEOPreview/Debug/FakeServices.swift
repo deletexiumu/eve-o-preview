@@ -11,6 +11,7 @@
 // - `EVEO_FAKE_STOP_AFTER=<秒>`：到时把第二个客户端的捕获置为「用户已停止」，用来查看「恢复捕获」。
 // 捕获服务的假实现在 FakeCaptureService.swift，游戏日志服务的假实现在 FakeCombatLogMonitor.swift，
 // 问题报告与更新服务的假实现在 FakeDiagnosticsService.swift、FakeUpdateService.swift（v1.1）。
+// 预警与翻译的假实现在 FakeChatLogMonitor.swift、FakeTranslationTransport.swift、FakeChatStores.swift。
 
 import AppKit
 import EVEOPreviewCore
@@ -40,7 +41,13 @@ enum FakeServices {
             hotkeys: FakeHotkeyRegistrar(), permissions: permissions,
             capture: FakeCaptureService(world: world, stopSecondClientAfter: stopAfter),
             combatLog: FakeCombatLogMonitor(world: world),
-            diagnostics: FakeDiagnosticsService(), updates: FakeUpdateService())
+            diagnostics: FakeDiagnosticsService(), updates: FakeUpdateService(),
+            // 预警与翻译：假的聊天日志与模型传输、内存里的钥匙串与缓存；星图数据用真实的提供者（9.5 节）。
+            chatLog: FakeChatLogMonitor(world: world), staticData: BundleStaticDataProvider(),
+            translationTransport: FakeTranslationTransport(), secrets: InMemorySecretStore(),
+            translationCache: InMemoryTranslationCacheStore(),
+            pilotNames: FakePilotNameResolver(),
+            pilotNameCache: InMemoryPilotNameCacheStore())
     }
 }
 

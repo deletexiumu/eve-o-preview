@@ -134,6 +134,10 @@ enum ProblemReportBuilder {
             uiLanguage: L10n.language.rawValue, screenRecordingGranted: coordinator.permissions.screenRecording,
             accessibilityGranted: coordinator.permissions.accessibility,
             combatLogStatus: combatLogStatusName(coordinator.combatLogStatus),
+            chatLogStatus: chatLogStatusName(coordinator.chat.chatLogStatus),
+            staticData: coordinator.chat.staticDataState,
+            translationStatus: translationStatusName(coordinator.chat.translation.status),
+            pilotLookupStatus: coordinator.chat.intel.pilotLookupStatus.code,
             characterClients: clients.filter { $0.characterName != nil }.count,
             loginClients: clients.filter { $0.identity == .login }.count,
             unknownClients: clients.filter { $0.identity == .unknown }.count,
@@ -178,6 +182,27 @@ enum ProblemReportBuilder {
         case .watching(_, let files): return "watching (\(files) files)"
         case .directoryNotFound: return "directoryNotFound"
         case .accessDenied: return "accessDenied"
+        }
+    }
+
+    /// 聊天日志跟踪服务的状态名，只带文件数，不带路径（docs/design-intel-translate.md 3.4 节）。
+    private static func chatLogStatusName(_ status: ChatLogStatus) -> String {
+        switch status {
+        case .stopped: return "stopped"
+        case .watching(_, let files): return "watching (\(files) files)"
+        case .directoryNotFound: return "directoryNotFound"
+        case .accessDenied: return "accessDenied"
+        }
+    }
+
+    /// 翻译队列的状态名，不带失败的说明（`rejected` 的说明可能含服务方返回的文字）。
+    private static func translationStatusName(_ status: TranslationStatus) -> String {
+        switch status {
+        case .off: return "off"
+        case .idle: return "idle"
+        case .translating: return "translating"
+        case .waiting: return "waiting"
+        case .blocked: return "blocked"
         }
     }
 

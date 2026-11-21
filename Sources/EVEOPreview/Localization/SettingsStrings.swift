@@ -67,6 +67,10 @@ protocol SettingsStrings: Sendable {
     var pageSwitching: String { get }
     /// 提醒页（页内文字属于战斗提醒域）。
     var pageAlerts: String { get }
+    /// 预警页（页内文字属于预警域 `IntelStrings`；页名留在这里，侧栏统一取）。
+    var pageIntel: String { get }
+    /// 翻译页（页内文字属于翻译域 `TranslationStrings`）。
+    var pageTranslation: String { get }
     /// 配置方案页。
     var pageProfiles: String { get }
     /// 通用页：界面语言。
@@ -284,4 +288,21 @@ protocol SettingsStrings: Sendable {
     var networkText: String { get }
     /// CCP 的商标声明。
     var eveIPText: String { get }
+    /// 预警与翻译只读聊天日志和游戏日志；翻译会把聊天内容发给用户选择的模型服务（R32、R38）；
+    /// 打开「联网核对人名」时，连在一起的人名会发给 CCP 的 ESI 接口（6.9 节）。
+    var aboutChatLogsNote: String { get }
+
+    // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）
+    // 放在设置域而不是某一个功能的域里，因为两个并行的工作包都用到（docs/design-intel-translate.md 第 11 节）。
+
+    /// 两个功能都没开、没有在读聊天日志。
+    var chatLogStatusStopped: String { get }
+    /// 正在监视聊天日志目录，跟踪 files 个文件。
+    func chatLogStatusWatching(directory: String, files: Int) -> String
+    /// 找不到聊天日志目录。
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String
+    /// 没有读取聊天日志目录的权限。
+    func chatLogStatusAccessDenied(_ path: String) -> String
+    /// 说明：EVE 客户端要开启把聊天写入文件的设置；日志目录在「提醒」页设置（用该语言的提醒页页名）。
+    var chatLogHelp: String { get }
 }

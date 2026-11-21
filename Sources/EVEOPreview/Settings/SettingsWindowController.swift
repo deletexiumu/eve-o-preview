@@ -7,10 +7,10 @@
 import AppKit
 import SwiftUI
 
-/// 设置窗口的页。顺序即侧栏顺序（反馈文档 7.11 节）：客户端、预览与布局、切换与热键、提醒、
-/// 配置方案、通用、权限、关于，共 8 页。
+/// 设置窗口的页。顺序即侧栏顺序（docs/design-intel-translate.md 第 10 节）：客户端、预览与布局、切换与热键、
+/// 提醒、预警、翻译、配置方案、通用、权限、关于，共 10 页。
 enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
-    case clients, previews, switching, alerts, profiles, general, permissions, about
+    case clients, previews, switching, alerts, intel, translation, profiles, general, permissions, about
 
     var id: String { rawValue }
 }

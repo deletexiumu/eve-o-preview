@@ -172,3 +172,70 @@ struct DiagnosticsSummaryTests {
         #expect((files.first?["replacements"] as? [String: Int])?["user"] == 1)
     }
 }
+
+/// 预警与翻译的摘要（docs/design-intel-translate.md 3.4 节）：频道名、参考星系名、接口地址与模型名都不进报告。
+struct ChatDiagnosticsSummaryTests {
+    /// 名字与地址都带特征串 `SECRET`，断言摘要的 JSON 里没有它。
+    @Test func summaryHasNoNamesOrAddresses() throws {
+        var config = AppConfig.makeDefault()
+        config.profiles[0].intel = IntelSettings(enabled: true,
+                                                 channels: [ChannelRef(name: "SECRET-CHANNEL", id: "player_SECRET")],
+                                                 referenceSystem: "SECRET-SYSTEM",
+                                                 overlay: OverlayPanelSettings(frame: ScreenRect(x: 1, y: 2, width: 300,
+                                                                                                 height: 200)))
+        config.profiles[0].translation = TranslationSettings(enabled: true, channels: [.local, .corp],
+                                                             targetLanguage: .ja)
+        config.general.translationEndpoint = TranslationEndpointSettings(provider: .custom,
+                                                                         baseURL: "https://SECRET.example",
+                                                                         model: "SECRET-MODEL")
+        let summary = ConfigSummary(config: config, loadErrorKind: nil, warningKinds: [])
+        let json = String(decoding: summary.encodedJSON(), as: UTF8.self)
+        #expect(!json.localizedCaseInsensitiveContains("SECRET"))
+        let intel = summary.activeProfile.intel
+        #expect(intel.enabled && intel.channelCount == 1 && intel.hasReferenceSystem && intel.hasCustomFrame)
+        #expect(intel.resolvePilotNames)
+        let translation = summary.activeProfile.translation
+        #expect(translation.channelCount == 2 && translation.targetLanguage == .ja && translation.provider == .custom)
+        #expect(translation.hasCustomBaseURL && translation.hasCustomModel)
+    }
+
+    /// IntelSummary 带 resolvePilotNames（6.9 节），JSON 里是同名的布尔值。
+    @Test func intelSummaryResolvePilotNames() throws {
+        let off = IntelSummary(IntelSettings(enabled: true, resolvePilotNames: false))
+        #expect(!off.resolvePilotNames && off.enabled)
+        #expect(IntelSummary(IntelSettings()).resolvePilotNames)
+        let object = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(off)) as? [String: Any])
+        #expect(object["resolvePilotNames"] as? Bool == false)
+    }
+
+    /// 默认设置的摘要：都关闭，没有自定的地址与模型。
+    @Test func defaultSummary() {
+        let summary = ConfigSummary(config: AppConfig.makeDefault(), loadErrorKind: nil, warningKinds: [])
+        #expect(summary.activeProfile.intel == IntelSummary(IntelSettings()))
+        #expect(!summary.activeProfile.translation.hasCustomBaseURL && !summary.activeProfile.translation.enabled)
+    }
+
+    /// summary.md 多出聊天日志、星图数据、翻译与人名核对 4 行；不传时取默认值。
+    @Test func runtimeLines() {
+        let runtime = RuntimeSummary(uiLanguage: "en", screenRecordingGranted: true, accessibilityGranted: true,
+                                     combatLogStatus: "stopped", chatLogStatus: "watching (3 files)",
+                                     staticData: "build-3720952", translationStatus: "blocked",
+                                     pilotLookupStatus: "resolving", characterClients: 0,
+                                     loginClients: 0, unknownClients: 0, captureStates: [:], hotkeyBindings: 0,
+                                     hotkeyFailures: [:], screens: [], uptimeSeconds: 1, previousRun: "clean",
+                                     isFakeMode: false)
+        #expect(runtime.chatLogStatus == "watching (3 files)" && runtime.translationStatus == "blocked")
+        #expect(runtime.pilotLookupStatus == "resolving")
+        let defaults = RuntimeSummary(uiLanguage: "en", screenRecordingGranted: true, accessibilityGranted: true,
+                                      combatLogStatus: "stopped", characterClients: 0, loginClients: 0,
+                                      unknownClients: 0, captureStates: [:], hotkeyBindings: 0, hotkeyFailures: [:],
+                                      screens: [], uptimeSeconds: 1, previousRun: "clean", isFakeMode: false)
+        #expect(defaults.chatLogStatus == "stopped" && defaults.staticData == "notLoaded")
+        #expect(defaults.translationStatus == "off" && defaults.pilotLookupStatus == "off")
+        let text = DiagnosticsSummaryTests.sampleReport().markdown(generatedAt: Date(timeIntervalSince1970: 0))
+        #expect(text.contains("- Chat log: stopped"))
+        #expect(text.contains("- Map data: notLoaded"))
+        #expect(text.contains("- Translation: off"))
+        #expect(text.contains("- Pilot lookup: off"))
+    }
+}

@@ -159,3 +159,21 @@ public struct HotkeyRegistrationFailure: Sendable, Equatable {
     /// 停止跟踪，关闭全部文件描述符，状态变成 `stopped`。
     func stop()
 }
+
+/// 聊天日志的跟踪服务（docs/design-intel-translate.md 5.2 节～5.6 节）。全部方法在主线程调用。
+/// 只读日志文件，不写、不改、不删 EVE 目录下的任何内容。
+@MainActor public protocol ChatLogMonitor: AnyObject {
+    /// 一批事件，按日志里的先后顺序。在主线程调用。
+    var onEvents: (@MainActor ([ChatLogEvent]) -> Void)? { get set }
+    /// 状态变化时在主线程调用。
+    var onStatusChange: (@MainActor (ChatLogStatus) -> Void)? { get set }
+    /// 当前状态。
+    var status: ChatLogStatus { get }
+    /// 开始跟踪。请求与上次相同时不做任何事，不同时按新请求重建并重新补读。
+    func start(_ request: ChatLogRequest)
+    /// 停止跟踪，关闭全部文件描述符，状态变成 `stopped`。
+    func stop()
+    /// 列出日志目录里最近 14 天出现过的频道，给设置界面挑选。可在未跟踪时调用。
+    /// 私聊频道与文件头不完整的文件不列出，结果按 `lastModified` 从新到旧排序。
+    func discoverChannels(logDirectory: String?) async -> [DiscoveredChannel]
+}
