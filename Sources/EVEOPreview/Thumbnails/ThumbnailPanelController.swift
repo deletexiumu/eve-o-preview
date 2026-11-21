@@ -69,7 +69,12 @@ final class ThumbnailPanelController {
             if panel.frame != frame { panel.setFrame(frame, display: true) }
         }
         panel.alphaValue = CGFloat(newPresentation.opacity)
-        let level: NSWindow.Level = newPresentation.isAlwaysOnTop ? ThumbnailPanel.alwaysOnTopLevel : .normal
+        let level: NSWindow.Level
+        if !newPresentation.isAlwaysOnTop {
+            level = .normal
+        } else {
+            level = newPresentation.isOverFullScreen ? ThumbnailPanel.fullScreenLevel : .floating
+        }
         if panel.level != level { panel.level = level }
         if !panel.isVisible {
             // 本应用几乎不在前台，orderFront 对非活动应用无效，所以用 orderFrontRegardless。

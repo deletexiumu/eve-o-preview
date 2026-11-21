@@ -128,7 +128,8 @@ public enum ThumbnailPlanner {
             contentsRect: CaptureMath.contentsRect(sourceSize: client.windowFrame.size,
                                                    titleBarCropHeight: cropHeight(for: client, input: input)),
             placeholder: placeholder(for: client, input: input),
-            borderColor: border, borderThickness: Double(profile.overlay.borderThickness), alert: alert)
+            borderColor: border, borderThickness: Double(profile.overlay.borderThickness), alert: alert,
+            isOverFullScreen: profile.behavior.alwaysOnTop && input.clients.contains { $0.isFullScreen == true })
     }
 
     /// 活动客户端的 PID：前台是客户端时取它，否则取最后一次处于前台的客户端。
@@ -137,8 +138,10 @@ public enum ThumbnailPlanner {
         return input.session.lastActivePID
     }
 
-    /// 标题栏裁剪高度：源窗口高度不小于所在屏幕高度时视为全屏，不裁。
+    /// 标题栏裁剪高度：原生全屏（`isFullScreen`）或源窗口高度不小于所在屏幕高度时视为全屏，不裁。
+    /// 原生全屏的窗口范围不含菜单栏那一条，高度比屏幕矮，只按高度判断会漏掉（v1.1.1 实测）。
     private static func cropHeight(for client: EVEClient, input: PlannerInput) -> Double {
+        if client.isFullScreen == true { return 0 }
         let configured = input.profile.capture.titleBarCropHeight
         let screen = input.screens.screen(containing: client.windowFrame.center) ?? input.screens.mainScreen
         if let screen, client.windowFrame.height >= screen.frame.height { return 0 }

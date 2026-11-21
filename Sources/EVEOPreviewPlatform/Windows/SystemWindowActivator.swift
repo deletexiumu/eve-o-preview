@@ -153,9 +153,7 @@ public struct ActivationTraceEntry: Sendable, Equatable {
         }
         let ax = self.ax
         return Task { @MainActor [weak self] in
-            let result = await ax.raise(pid: target.pid, title: target.title, request: request,
-                                        windowID: target.windowID.rawValue,
-                                        allowPrivate: self?.mechanisms.contains(.privateFallback) ?? false)
+            let result = await ax.raise(pid: target.pid, title: target.title, request: request)
             switch result {
             case .completed(let report):
                 self?.record("AXRaise", Self.describe(report), token: token)

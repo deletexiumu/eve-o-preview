@@ -6,6 +6,9 @@
 // 应用元素另外再设一次，作为保险。
 // 实测每个 EVE 进程在 AX 里只有 1 个 AXStandardWindow（事实 E7），所以按 PID 取窗口，
 // 不依赖私有接口 _AXUIElementGetWindow。
+// v1.1.1：客户端用原生全屏、窗口在另一个空间时，`kAXWindowsAttribute` 是空列表，但应用的
+// `kAXMainWindowAttribute` 不受空间限制，仍能取到它（实测 2026-11-21）。对它照常提升，系统就会切到它的空间，
+// 不需要私有接口。读窗口状态时同时读 `AXFullScreen`，供规划器决定是否裁标题栏、面板用多高的层级。
 
 import ApplicationServices
 import Foundation
@@ -18,11 +21,14 @@ public struct AXWindowState: Sendable, Equatable {
     public var title: String?
     /// `kAXMinimizedAttribute`；读不到时为 nil。
     public var isMinimized: Bool?
+    /// `AXFullScreen`（原生全屏）；读不到时为 nil。
+    public var isFullScreen: Bool?
 
-    /// 用标题与最小化状态建一个值。
-    public init(title: String?, isMinimized: Bool?) {
+    /// 用标题、最小化状态与全屏状态建一个值。
+    public init(title: String?, isMinimized: Bool?, isFullScreen: Bool? = nil) {
         self.title = title
         self.isMinimized = isMinimized
+        self.isFullScreen = isFullScreen
     }
 }
 
@@ -91,10 +97,14 @@ public actor AXWorker {
 
     // MARK: - 读
 
-    /// 读该进程全部 AX 窗口的标题与最小化状态。没有权限或 AX 失败时返回 nil。
+    /// 读该进程全部 AX 窗口的标题、最小化与全屏状态。没有权限或 AX 失败时返回 nil。
+    /// 窗口列表为空（窗口在另一个空间）时改读主窗口。
     public func windowStates(pid: Int32) -> [AXWindowState]? {
-        guard AXWorker.isTrusted, let windows = windows(of: pid) else { return nil }
-        return windows.map(windowState)
+        guard AXWorker.isTrusted else { return nil }
+        let app = applicationElement(pid)
+        if let windows = windows(of: pid, app: app), !windows.isEmpty { return windows.map(windowState) }
+        guard let main = elementAttribute(app, kAXMainWindowAttribute) else { return nil }
+        return [windowState(main)]
     }
 
     /// 读应用元素的 `kAXFrontmostAttribute`。没有权限或读不到时返回 nil。
@@ -126,34 +136,12 @@ public actor AXWorker {
     ///   - title: 目标窗口标题，进程有多个 AX 窗口时用来匹配；nil 时不按标题匹配。
     ///   - request: `beginRaiseRequest()` 领到的序号。开始前和每次写操作前核对，
     ///     已不是最新的请求时返回 `.superseded`；nil 时不核对。
-    ///   - windowID: 目标窗口的 `CGWindowID`。AX 窗口列表里找不到目标（窗口在其他空间，如全屏客户端）
-    ///     且 `allowPrivate` 为真时，用私有接口切到它所在的空间（见 PrivateActivation.swift）。
-    ///   - allowPrivate: 是否允许上面的私有接口后备。
     /// - Returns: 各子步骤的结果；没有权限或找不到窗口时返回对应的错误。
-    public func raise(pid: Int32, title: String?, request: UInt64? = nil, windowID: UInt32? = nil,
-                      allowPrivate: Bool = false) -> AXRaiseResult {
+    public func raise(pid: Int32, title: String?, request: UInt64? = nil) -> AXRaiseResult {
         guard AXWorker.isTrusted else { return .failed(.accessibilityDenied) }
         guard isLatest(request) else { return .superseded }
         let app = applicationElement(pid)
-        var found = window(of: pid, app: app, title: title)
-        if found == nil, allowPrivate, let windowID, windowID != 0, !isKnownMissing(pid: pid, windowID: windowID) {
-            // 先设前台进程与关键窗口，再取远程 AX 元素；后面的 AXRaise 让系统切到它所在的空间。
-            let front = PrivateActivation.bringToFront(pid: pid, windowID: windowID)
-            let key = PrivateActivation.makeKeyWindow(pid: pid, windowID: windowID)
-            let hint = remoteElementIDs[RemoteKey(pid: pid, windowID: windowID)] ?? lastRemoteElementID
-            let deadline = ContinuousClock.now + AXWorker.remoteSearchBudget
-            if let (element, elementID) = PrivateActivation.remoteWindowElement(
-                pid: pid, windowID: windowID, hint: hint, deadline: deadline,
-                shouldContinue: { isLatest(request) }) {
-                found = element
-                rememberRemoteElement(elementID, pid: pid, windowID: windowID)
-            } else if isLatest(request) {
-                // 没被取代却没找到（窗口已关闭或超出时限）：一段时间内不再查，免得每次点击都卡几秒。
-                missingRemoteWindows[RemoteKey(pid: pid, windowID: windowID)] = ContinuousClock.now
-            }
-            log.info("AX 列表里没有窗口 \(windowID)，切换空间：前台 \(String(describing: front), privacy: .public)，关键窗口 \(String(describing: key), privacy: .public)，远程元素 \(found != nil)")
-        }
-        guard let window = found else { return .failed(.windowNotFound) }
+        guard let window = window(of: pid, app: app, title: title) else { return .failed(.windowNotFound) }
         let wasMinimized = boolAttribute(window, kAXMinimizedAttribute)
         var unminimize: AXError?
         if wasMinimized == true {
@@ -185,40 +173,6 @@ public actor AXWorker {
         return status == .success ? .success(()) : .failure(.axFailure(code: status.rawValue))
     }
 
-    // MARK: - 远程元素编号
-
-    /// 远程令牌缓存的键。
-    private struct RemoteKey: Hashable {
-        var pid: Int32
-        var windowID: UInt32
-    }
-
-    /// 已找到的远程元素编号，下次直接先试它。最多记 64 条，超过时清空重记。
-    private var remoteElementIDs: [RemoteKey: UInt64] = [:]
-    /// 最近一次找到的编号：同一程序的窗口编号往往相同（EVE 各客户端都是 42），没有缓存时先试它。
-    private var lastRemoteElementID: UInt64?
-
-    /// 远程查找的时间上限。实测从 0 找到编号 42 约 1 秒。
-    static let remoteSearchBudget: Duration = .seconds(3)
-    /// 没找到的窗口多久内不再查。
-    static let missingRemoteWindowLifetime: Duration = .seconds(30)
-    /// 没找到的窗口 → 记下的时刻。
-    private var missingRemoteWindows: [RemoteKey: ContinuousClock.Instant] = [:]
-
-    /// 这个窗口最近是否查过而没找到。过期的记录顺便清掉。
-    private func isKnownMissing(pid: Int32, windowID: UInt32) -> Bool {
-        let now = ContinuousClock.now
-        missingRemoteWindows = missingRemoteWindows.filter { now - $0.value < AXWorker.missingRemoteWindowLifetime }
-        return missingRemoteWindows[RemoteKey(pid: pid, windowID: windowID)] != nil
-    }
-
-    /// 记下找到的编号。
-    private func rememberRemoteElement(_ elementID: UInt64, pid: Int32, windowID: UInt32) {
-        if remoteElementIDs.count >= 64 { remoteElementIDs.removeAll() }
-        remoteElementIDs[RemoteKey(pid: pid, windowID: windowID)] = elementID
-        lastRemoteElementID = elementID
-    }
-
     // MARK: - 私有
 
     /// 建应用元素并设消息超时。元素很轻，每次新建，不缓存（进程退出后旧元素也会失效）。
@@ -241,8 +195,9 @@ public actor AXWorker {
     }
 
     /// 按 4.1 节选目标窗口：先按标题匹配，再取第一个 `AXStandardWindow`，最后取第一个窗口。
+    /// 窗口列表为空时（窗口在另一个空间，如原生全屏）取应用的主窗口；有目标标题时要求标题相同。
     private func window(of pid: Int32, app: AXUIElement, title: String?) -> AXUIElement? {
-        guard let list = windows(of: pid, app: app), !list.isEmpty else { return nil }
+        guard let list = windows(of: pid, app: app), !list.isEmpty else { return mainWindow(of: app, title: title) }
         if let title, let match = list.first(where: { stringAttribute($0, kAXTitleAttribute) == title }) {
             return match
         }
@@ -250,21 +205,38 @@ public actor AXWorker {
         return standard ?? list.first
     }
 
-    /// 一次消息读出窗口的标题与最小化状态。
+    /// 应用的主窗口（`kAXMainWindowAttribute`，不受空间限制）。角色不是窗口，或给了标题而标题不同时返回 nil。
+    private func mainWindow(of app: AXUIElement, title: String?) -> AXUIElement? {
+        guard let main = elementAttribute(app, kAXMainWindowAttribute),
+              stringAttribute(main, kAXRoleAttribute) == kAXWindowRole else { return nil }
+        if let title, stringAttribute(main, kAXTitleAttribute) != title { return nil }
+        return main
+    }
+
+    /// 读元素类型的属性；类型不符或失败时返回 nil。
+    private func elementAttribute(_ element: AXUIElement, _ name: String) -> AXUIElement? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success, let value,
+              CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return (value as! AXUIElement)
+    }
+
+    /// 一次消息读出窗口的标题、最小化与全屏状态。
     ///
     /// 实测 EVE 每条 AX 消息要 15～20 毫秒（大约一帧），一个进程读一轮要 40～70 毫秒，
-    /// 所以用 `AXUIElementCopyMultipleAttributeValues` 把两个属性合进一条消息。
+    /// 所以用 `AXUIElementCopyMultipleAttributeValues` 把三个属性合进一条消息。
     private func windowState(_ window: AXUIElement) -> AXWindowState {
-        let names = [kAXTitleAttribute, kAXMinimizedAttribute] as CFArray
+        let names = [kAXTitleAttribute, kAXMinimizedAttribute, "AXFullScreen"] as CFArray
         var values: CFArray?
         guard AXUIElementCopyMultipleAttributeValues(window, names, AXCopyMultipleAttributeOptions(), &values) == .success,
-              let list = values as? [Any], list.count == 2 else {
+              let list = values as? [Any], list.count == 3 else {
             return AXWindowState(title: nil, isMinimized: nil)
         }
         // 某个属性读不到时，对应位置是一个 AXValue 错误值而不是字符串或数字，按读不到处理。
         let title = list[0] as? String
         return AXWindowState(title: (title?.isEmpty ?? true) ? nil : title,
-                             isMinimized: (list[1] as? NSNumber)?.boolValue)
+                             isMinimized: (list[1] as? NSNumber)?.boolValue,
+                             isFullScreen: (list[2] as? NSNumber)?.boolValue)
     }
 
     /// 读字符串属性；类型不符或失败时返回 nil。

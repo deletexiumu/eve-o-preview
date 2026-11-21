@@ -137,6 +137,7 @@ public actor CGWindowProvider: WindowProvider {
             guard let index = targetIndex(for: state, pid: pid, in: windows) else { continue }
             if windows[index].title == nil { windows[index].title = state.title }
             windows[index].isMinimized = state.isMinimized
+            windows[index].isFullScreen = state.isFullScreen
         }
     }
 

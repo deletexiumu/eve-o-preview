@@ -46,7 +46,7 @@ Regions with drag-and-drop docking, multi-select and group moves, undo, snap gui
 ## Requirements
 
 - macOS 14 or later, on Apple Silicon or Intel. The release dmg contains a universal binary.
-- EVE clients work best in windowed mode. Clients in native full screen are supported from 1.1.1, but each lives in its own Space, so switching to one plays the Space transition animation, and the first switch to a client in another Space can take about two seconds.
+- EVE clients work best in windowed mode. Clients in native full screen are supported from 1.1.1 (thumbnails show over them while "Keep thumbnails on top" is on), but each lives in its own Space, so switching to one plays the Space transition animation.
 - Building from source requires Xcode or the Command Line Tools (Swift 6).
 
 ## Installation
