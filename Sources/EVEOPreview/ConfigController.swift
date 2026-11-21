@@ -111,3 +111,20 @@ final class ConfigController {
         }
     }
 }
+
+// MARK: - 一次性默认值
+
+extension ConfigController {
+    /// 启动时把还没补过的一次性默认值（`OneTimeDefaults`）补进配置，补过的项记进 `state.json`。
+    ///
+    /// 配置读取失败（本次会话不写盘）时什么也不做，也不记下：等配置能正常读写的那次启动再补。
+    /// 要在建协调器之前调用，这样第一次规划热键时就带上新默认值。
+    func applyOneTimeDefaults(state: StateController) {
+        guard isWritable else { return }
+        let pending = OneTimeDefaults.pending(applied: state.state.appliedDefaults)
+        guard !pending.isEmpty else { return }
+        update { $0 = OneTimeDefaults.apply(pending, to: $0) }
+        state.update { $0.appliedDefaults += pending }
+        log.info("已补上一次性默认值：\(pending.joined(separator: ", "), privacy: .public)")
+    }
+}

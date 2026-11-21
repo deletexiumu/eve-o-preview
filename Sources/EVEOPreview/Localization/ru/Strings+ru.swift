@@ -139,6 +139,9 @@ struct SettingsStringsRU: SettingsStrings {
     // 客户端页。
     var clientsSubtitle: String { "Запущенные клиенты и персонажи, известные этому профилю." }
     var hideAllThumbnails: String { "Скрыть все миниатюры" }
+    var hideAllHotkeyLabel: String { "Сочетание клавиш" }
+    var hideAllScopeLabel: String { "Действует" }
+    var hideAllHotkeyFooter: String { "Используйте модификаторы с клавишей (например, ⌃⌥⌘H) или со средней либо боковой кнопкой мыши. Область действия применяется ко всем сочетаниям выше." }
     var charactersHeader: String { "Персонажи" }
     var charactersFooter: String { "Этим цветом рисуется рамка подсветки, когда персонаж активен." }
     var noCharacters: String { "Персонажей пока нет. Запустите EVE и войдите персонажем." }

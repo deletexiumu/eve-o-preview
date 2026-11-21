@@ -192,6 +192,24 @@ extension SettingsViewModel {
         }
     }
 
+    /// 某个位置全部热键共同的作用范围（已解析：没有后缀的按配置方案的默认值）。
+    /// 列表为空、或各行的范围不一致时为 nil；解析不了的行不参与比较。
+    func commonHotkeyScope(for slot: HotkeySlot) -> HotkeyScope? {
+        let defaultScope = profile.hotkeyDefaultScope
+        let scopes = Set(hotkeys(for: slot).compactMap { HotkeySpec(string: $0)?.resolvedScope(profileDefault: defaultScope) })
+        return scopes.count == 1 ? scopes.first : nil
+    }
+
+    /// 把某个位置的全部热键都明确写成 scope（带 `@global` 或 `@game` 后缀）。解析不了的行原样保留。
+    func setScopeOfAllHotkeys(_ scope: HotkeyScope, for slot: HotkeySlot) {
+        let list = hotkeys(for: slot).map { text -> String in
+            guard var spec = HotkeySpec(string: text) else { return text }
+            spec.scope = scope
+            return spec.stringValue()
+        }
+        setHotkeys(list, for: slot)
+    }
+
     /// 改列表里的一条热键。提交的时刻才读当前列表，并按文字找到这一条，
     /// 不用视图建立时记下的列表与位置：录制期间别的行可能已被删除或改动，旧的列表会把删掉的行写回来。
     /// 这一条已不在列表里时什么也不做。同一列表里的热键文字不重复（添加时去重），文字就是这一行的标识。
