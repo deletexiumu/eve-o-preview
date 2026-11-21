@@ -4,6 +4,7 @@
 // 画面层（IOSurface）、占位层、标题层、跳过标记层、边框层、提醒层（AlertFlashLayer，反馈文档 7.8 节）。
 // 鼠标事件转给 ThumbnailInteraction；悬停用 activeAlways 的 NSTrackingArea，
 // 因为本应用几乎不在前台，不用 activeAlways 就收不到悬停事件。
+// 同一个跟踪区域也收 mouseMoved：鼠标停在边缘带上时显示缩放光标（ResizeCursor，v1.2.1）。
 //
 // 坐标：视图不翻转，图层原点在左下角。Core 给的 contentsRect 原点在左上角，设置前在这里翻转。
 
@@ -254,19 +255,35 @@ final class ThumbnailContentView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let trackingArea { removeTrackingArea(trackingArea) }
-        let area = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+        let area = NSTrackingArea(rect: .zero,
+                                  options: [.mouseEnteredAndExited, .mouseMoved, .cursorUpdate, .activeAlways,
+                                            .inVisibleRect],
                                   owner: self, userInfo: nil)
         addTrackingArea(area)
         trackingArea = area
     }
 
     // 鼠标事件：悬停交给回调，按键与拖动交给手势状态机。右键也由视图自己处理，不设置 NSView.menu。
-    override func mouseEntered(with event: NSEvent) { onHoverChanged?(true) }
-    override func mouseExited(with event: NSEvent) { onHoverChanged?(false) }
+    override func mouseEntered(with event: NSEvent) {
+        onHoverChanged?(true)
+        updateCursor()
+    }
+    override func mouseExited(with event: NSEvent) {
+        onHoverChanged?(false)
+        ResizeCursor.reset()
+    }
+    override func mouseMoved(with event: NSEvent) { updateCursor() }
+    /// AppKit 在光标进入跟踪区域时会发 cursorUpdate 并默认设回箭头；改为按边缘带重新设置。
+    override func cursorUpdate(with event: NSEvent) { updateCursor() }
     override func mouseDown(with event: NSEvent) { interaction?.mouseDown(event, button: .left) }
     override func mouseDragged(with event: NSEvent) { interaction?.mouseDragged(event, button: .left) }
     override func mouseUp(with event: NSEvent) { interaction?.mouseUp(event, button: .left, in: self) }
     override func rightMouseDown(with event: NSEvent) { interaction?.mouseDown(event, button: .right) }
     override func rightMouseDragged(with event: NSEvent) { interaction?.mouseDragged(event, button: .right) }
     override func rightMouseUp(with event: NSEvent) { interaction?.mouseUp(event, button: .right, in: self) }
+
+    /// 按鼠标是否停在边缘带上显示或恢复缩放光标。
+    private func updateCursor() {
+        ResizeCursor.update(for: interaction?.hoverEdges() ?? [])
+    }
 }

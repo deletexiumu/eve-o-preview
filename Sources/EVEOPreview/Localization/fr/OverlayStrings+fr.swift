@@ -28,7 +28,13 @@ struct OverlayStringsFR: OverlayStrings {
     var opacity: String { "Opacité du fond" }
     var fontSize: String { "Taille du texte" }
     var resetFrame: String { "Rétablir la position" }
-    var gestureHelp: String { "Faites glisser avec le bouton droit, ou avec Option et le bouton gauche, pour déplacer l’overlay ; faites glisser un bord pour le redimensionner ; faites défiler pour parcourir la liste." }
+    var gestureHelp: String { "Faites glisser avec le bouton droit, ou avec Option et le bouton gauche, pour déplacer l’overlay ; placez le pointeur sur un bord et faites glisser avec le bouton gauche pour le redimensionner ; faites défiler pour parcourir la liste." }
+    var visibilityLabel: String { "Afficher" }
+    var visibilityAlways: String { "Toujours" }
+    var visibilityGameOnly: String { "Seulement dans EVE : masquer quand aucune fenêtre EVE n’est au premier plan" }
+    var positionLabel: String { "Position" }
+    var sizeLabel: String { "Taille" }
+    var frameHelp: String { "La position est exprimée en points depuis le coin supérieur gauche de l’écran principal. La taille est limitée de 220×120 à 900×900 ; une position hors écran est ramenée à l’écran." }
 
     // MARK: 频道列表
     var channelsHeader: String { "Canaux" }

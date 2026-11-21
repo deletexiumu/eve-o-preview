@@ -165,7 +165,7 @@ struct SettingsStringsJA: SettingsStrings {
     var lockAspectRatio: String { "サイズ変更時に縦横比を保持" }
     var lockLayout: String { "レイアウトをロック" }
     var gestureHint: String {
-        "右ドラッグまたはOption+ドラッグで移動、端をドラッグでサイズ変更。Shiftを押しながらドラッグするとスナップしません。"
+        "右ドラッグまたはOption+ドラッグで移動。端にポインタを合わせて左ドラッグでサイズ変更。Shiftを押しながらドラッグするとスナップしません。"
     }
     var captureHeader: String { "キャプチャと位置" }
     var frameRate: String { "フレームレート" }

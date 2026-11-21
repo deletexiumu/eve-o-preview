@@ -68,7 +68,8 @@ struct TranslationPage: View {
                 testRow(strings)
             }
             // 第 5 组：浮窗的外观与位置（共用视图，WP-A）。
-            OverlaySettingsSection(settings: model.translationBinding(\.overlay))
+            OverlaySettingsSection(settings: model.translationBinding(\.overlay), kind: .translation,
+                                   screens: model.coordinator.screens)
             // 第 6 组：译文缓存与页尾说明。
             Section {
                 LabeledContent(strings.cacheHeader) {

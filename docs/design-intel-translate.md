@@ -2110,6 +2110,7 @@ public enum OverlayScrollRules {
 
 1. 没有任何 EVE 客户端。
 2. `behavior.hideWhenEVENotFrontmost` 为真，前台是其他应用，且 `now - session.lastEVEContextAt >= behavior.hideDelaySeconds`。规则与缩略图的第 4 条相同（架构文档 5.6 节），共用同一个开关与延迟。
+3. （v1.2.1）这个浮窗的 `overlay.visibility` 是 `gameOnly`（「仅游戏内」），且前台是其他应用（`OverlayPlanner.isInEVEContext` 为假）。不等延迟，切回任一客户端时立即显示；前台是本应用（设置窗口）时仍显示，方便在设置页调整。默认值 `always` 即升级前的行为，不认识的取值按 `always` 解码。
 
 `session.hideAll`（「全部隐藏」）只管缩略图，不隐藏浮窗；浮窗用各自的开关（Q23）。
 
@@ -2132,7 +2133,7 @@ public enum OverlayScrollRules {
 | --- | --- |
 | 滚动列表 | 滚轮或触控板双指滑动 |
 | 移动浮窗 | 右键拖动，或 Option+左键拖动，移动超过 4 点后开始 |
-| 缩放浮窗 | 同移动的手势，起点落在边缘 12 点范围内时改为缩放那条边或那个角 |
+| 缩放浮窗 | 同移动的手势，起点落在边缘 12 点范围内时改为缩放那条边或那个角；v1.2.1 起也可以不带修饰键直接用左键从边缘 6 点内拖动（`EdgeGrip`），鼠标停在边缘带上时显示缩放光标。列表的右侧与底部各留 6 点，滚动条不与边缘带重叠 |
 | 临时绕过吸附 | 拖动时按住 Shift |
 | 打开菜单 | 右键按下并松开，期间移动不到 4 点 |
 | 回到最新 | 左键点新消息条 |

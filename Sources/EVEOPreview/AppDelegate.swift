@@ -64,6 +64,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard old.general.showDockIcon != new.general.showDockIcon else { return }
             DockIconPolicy.apply(showDockIcon: new.general.showDockIcon)
         }
+        // 后台也能改光标：鼠标停在缩略图、浮窗边缘时显示缩放光标（私有接口，失败时只记日志）。
+        BackgroundCursor.enable()
         let services = isFake ? FakeServices.make() : PlatformServices.makeLive()
         let coordinator = AppCoordinator(services: services, config: config, isFakeMode: isFake,
                                          environment: environment, state: state)

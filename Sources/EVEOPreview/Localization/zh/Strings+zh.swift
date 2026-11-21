@@ -148,7 +148,9 @@ struct SettingsStringsZH: SettingsStrings {
     var snapEnabled: String { "拖动时吸附" }
     var lockAspectRatio: String { "缩放时保持宽高比" }
     var lockLayout: String { "锁定布局" }
-    var gestureHint: String { "右键拖动或 Option+左键拖动可移动缩略图，从边缘拖动可缩放；拖动时按住 Shift 不吸附。" }
+    var gestureHint: String {
+        "右键拖动或 Option+左键拖动可移动缩略图；鼠标移到边缘（光标变为双向箭头）后直接用左键拖动即可缩放；拖动时按住 Shift 不吸附。"
+    }
     var captureHeader: String { "捕获与位置" }
     var frameRate: String { "帧率" }
     var titleBarCrop: String { "裁掉标题栏" }

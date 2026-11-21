@@ -47,6 +47,18 @@ protocol OverlayStrings: Sendable {
     var resetFrame: String { get }
     /// 手势说明。
     var gestureHelp: String { get }
+    /// 「显示范围」单选的标签，v1.2.1。
+    var visibilityLabel: String { get }
+    /// 「始终显示」选项（仍受「离开 EVE 时隐藏」约束），v1.2.1。
+    var visibilityAlways: String { get }
+    /// 「仅游戏内」选项：游戏窗口都不在前台时隐藏，v1.2.1。
+    var visibilityGameOnly: String { get }
+    /// 「位置」一行的标签（X、Y 两个数字框），v1.2.1。
+    var positionLabel: String { get }
+    /// 「尺寸」一行的标签（宽、高两个数字框），v1.2.1。
+    var sizeLabel: String { get }
+    /// 位置与尺寸的说明：坐标原点、单位、尺寸上下限与拉回屏幕的规则，v1.2.1。
+    var frameHelp: String { get }
 
     // MARK: 频道列表（ChannelListEditor）
     /// 一组的标题。

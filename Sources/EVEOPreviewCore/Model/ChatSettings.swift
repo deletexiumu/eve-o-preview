@@ -71,6 +71,14 @@ public struct ChannelRef: Sendable, Hashable, Codable {
     }
 }
 
+/// 浮窗什么时候显示（v1.2.1，用户要求两个浮窗各自可选）。
+public enum OverlayVisibility: String, Sendable, Codable, CaseIterable {
+    /// 始终显示（默认）：只受「离开 EVE 时隐藏」这个与缩略图共用的开关与延迟约束，即升级前的行为。
+    case always
+    /// 仅游戏内：前台不是 EVE 客户端（也不是本应用）时立即隐藏，切回任一客户端时立即显示。
+    case gameOnly
+}
+
 /// 一个浮窗的位置与外观（3.1 节的 overlay 对象）。
 public struct OverlayPanelSettings: Sendable, Equatable, Codable {
     /// 背景不透明度的范围。
@@ -84,12 +92,16 @@ public struct OverlayPanelSettings: Sendable, Equatable, Codable {
     public var opacity: Double
     /// 第一行的字号，单位是点，默认 12，范围 10～24。
     public var fontSize: Double
+    /// 什么时候显示，默认始终显示。v1.2.1 新增。
+    public var visibility: OverlayVisibility
 
     /// 用各字段建浮窗设置，默认值见各属性。
-    public init(frame: ScreenRect? = nil, opacity: Double = 0.75, fontSize: Double = 12) {
+    public init(frame: ScreenRect? = nil, opacity: Double = 0.75, fontSize: Double = 12,
+                visibility: OverlayVisibility = .always) {
         self.frame = frame
         self.opacity = opacity
         self.fontSize = fontSize
+        self.visibility = visibility
     }
 
     /// 解码时缺失的键取默认值。
@@ -99,6 +111,8 @@ public struct OverlayPanelSettings: Sendable, Equatable, Codable {
         frame = try c.decodeIfPresent(ScreenRect.self, forKey: .frame)
         opacity = try c.decodeIfPresent(Double.self, forKey: .opacity) ?? d.opacity
         fontSize = try c.decodeIfPresent(Double.self, forKey: .fontSize) ?? d.fontSize
+        // 不认识的取值（如更新版本写入的新选项）按默认值处理，不让整个配置读取失败。
+        visibility = (try? c.decodeIfPresent(OverlayVisibility.self, forKey: .visibility)) ?? d.visibility
     }
 }
 

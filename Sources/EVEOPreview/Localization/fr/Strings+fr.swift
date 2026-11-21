@@ -196,8 +196,8 @@ struct SettingsStringsFR: SettingsStrings {
     var lockLayout: String { "Verrouiller la disposition" }
     // 键名 Option、Shift 与英文一致，不改写成 Maj。
     var gestureHint: String {
-        "Faites glisser avec le bouton droit ou avec Option pour déplacer ; faites glisser un bord pour "
-            + "redimensionner ; maintenez Shift pour désactiver l'aimantation."
+        "Faites glisser avec le bouton droit ou avec Option pour déplacer ; placez le pointeur sur un bord et faites "
+            + "glisser avec le bouton gauche pour redimensionner ; maintenez Shift pour désactiver l'aimantation."
     }
     // 坐标标签用冒号分隔，与其他语言的写法一致。
     var captureHeader: String { "Capture et position" }

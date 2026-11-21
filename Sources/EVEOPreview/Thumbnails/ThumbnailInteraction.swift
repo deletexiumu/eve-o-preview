@@ -3,11 +3,12 @@
 // 缩略图的鼠标手势（架构文档 4.5 节、7.3 节）。
 //
 // | 操作 | 手势 |
-// | 切换 | 左键按下（不带 Ctrl、Option），按下即切换，不等松开 |
+// | 切换 | 左键按下（不带 Ctrl、Option），按下即切换，不等松开；按在边缘带上时改为松开时切换 |
 // | 最小化 | Ctrl+左键按下 |
 // | 菜单 | 右键按下并松开，期间移动不到 4 点 |
 // | 移动 | 右键拖动，或 Option+左键拖动，移动超过 4 点后开始 |
-// | 缩放 | 同移动，起点落在边缘 12 点内时改为缩放那条边或那个角 |
+// | 缩放 | 同移动，起点落在边缘 12 点内时改为缩放那条边或那个角；
+// |      | 也可以不带修饰键直接用左键从边缘 6 点内拖动（EdgeGrip，v1.2.1），角区 14 点 |
 // | 绕过吸附 | 拖动时按住 Shift；缩放时 Shift 同时保持宽高比 |
 //
 // 拖动中每次鼠标事件都由「起点 frame + 鼠标原始位移」算出候选 frame，交给 SnapEngine，
@@ -16,6 +17,8 @@
 // 悬停放大时开始拖动：缩放边缘按面板实际显示的（放大后的）frame 判断，因为用户按住的是放大后的边；
 // 判断完后面板回到基准 frame，移动、吸附、尺寸约束与保存都在基准 frame 上做（架构文档 5.6 节：
 // 拖动中的窗口不放大）。这样保存的不会是放大后的尺寸，吸附也与其他未放大的缩略图对齐。
+// 不带修饰键的左键按在边缘带上时先不切换：拖动超过 4 点就缩放，没拖动就在松开时切换，
+// 所以边缘上的单击仍然是切换，只是晚到松开时才生效。登录客户端与布局锁定时没有边缘带，点击照旧按下即切换。
 // Ctrl+左键在 macOS 上惯例是右键，这里由视图自己处理 mouseDown，不设置 NSView.menu。
 
 import AppKit
@@ -94,6 +97,8 @@ final class ThumbnailInteraction {
         case idle
         /// 已按下，还没移动超过阈值。
         case pending(button: Button, start: ScreenPoint)
+        /// 不带修饰键的左键按在边缘带上，还没移动超过阈值：拖动则缩放这些边，松开则切换。
+        case pendingEdge(start: ScreenPoint, edges: ResizeEdges)
         /// 正在拖动。
         case dragging(button: Button, start: ScreenPoint, drag: Drag)
         /// 布局已锁定：吞掉本次拖动，松开时什么也不做。
@@ -126,6 +131,14 @@ final class ThumbnailInteraction {
         case .left where flags.contains(.option):
             phase = .pending(button: .left, start: start)
         case .left:
+            // 边缘带只看面板实际显示的 frame（悬停放大时是放大后的），与光标显示一致。
+            if let context = delegate?.dragContext(for: id),
+               case .resize(let edges) = EdgeGrip.plainPress(at: start, in: context.edgeFrame,
+                                                              allowsResize: context.allowsResize,
+                                                              isLocked: context.isLocked) {
+                phase = .pendingEdge(start: start, edges: edges)
+                return
+            }
             phase = .idle
             delegate?.thumbnailClicked(id)
         case .right:
@@ -142,6 +155,12 @@ final class ThumbnailInteraction {
             guard distance > ThumbnailInteraction.dragThreshold else { return }
             beginDrag(button: button, start: start)
             update(to: point)
+        case .pendingEdge(let start, let edges) where button == .left:
+            let distance = hypot(point.x - start.x, point.y - start.y)
+            guard distance > ThumbnailInteraction.dragThreshold else { return }
+            // 用按下时判定的边，不再按 12 点重新判断：用户抓的就是那条边。
+            beginDrag(button: .left, start: start, forcedEdges: edges)
+            update(to: point)
         case .dragging(let pressed, _, _) where pressed == button:
             update(to: point)
         default:
@@ -156,11 +175,24 @@ final class ThumbnailInteraction {
         switch current {
         case .pending(.right, _) where button == .right:
             delegate?.thumbnailMenuRequested(id, event: event, in: view)
+        case .pendingEdge where button == .left:
+            // 边缘上的单击：没拖动，按普通点击切换。
+            delegate?.thumbnailClicked(id)
         case .dragging(let pressed, _, let drag) where pressed == button:
             delegate?.dragEnded(id, frame: drag.current)
+            // 松开时鼠标可能已不在边缘（尺寸上下限、吸附、保持宽高比），按当前位置刷新光标。
+            ResizeCursor.update(for: hoverEdges())
         default:
             break
         }
+    }
+
+    /// 鼠标停在面板上（没有按键按下）时应显示缩放光标的边；不在边缘带、布局锁定或不允许缩放时为空。
+    /// 由内容视图在 mouseMoved 里调用，规则与左键按下时的 EdgeGrip.plainPress 一致。
+    func hoverEdges() -> ResizeEdges {
+        guard case .idle = phase, let context = delegate?.dragContext(for: id),
+              context.allowsResize, !context.isLocked else { return [] }
+        return EdgeGrip.edges(at: Self.mouseLocation(), in: context.edgeFrame)
     }
 
     /// 取消进行中的手势，不提交。面板在拖动中被隐藏时由面板控制器调用；之后的拖动与松开事件都被忽略。
@@ -171,14 +203,17 @@ final class ThumbnailInteraction {
     // MARK: - 拖动
 
     /// 开始拖动：取上下文，按显示的 frame 判断移动还是缩放，再把面板放回基准 frame。
-    private func beginDrag(button: Button, start: ScreenPoint) {
+    ///
+    /// - Parameter forcedEdges: 不带修饰键的左键从边缘带开始时，按下时已判定的边；nil 时按 12 点边缘重新判断。
+    private func beginDrag(button: Button, start: ScreenPoint, forcedEdges: ResizeEdges? = nil) {
         guard let context = delegate?.dragContext(for: id), !context.isLocked else {
             phase = .suppressed(button: button)
             return
         }
         var edges = ResizeEdges()
         if context.allowsResize {
-            edges = SnapEngine.resizeEdges(at: start, in: context.edgeFrame, margin: ThumbnailInteraction.resizeMargin)
+            edges = forcedEdges
+                ?? SnapEngine.resizeEdges(at: start, in: context.edgeFrame, margin: ThumbnailInteraction.resizeMargin)
         }
         phase = .dragging(button: button, start: start,
                           drag: Drag(context: context, edges: edges, current: context.startFrame))

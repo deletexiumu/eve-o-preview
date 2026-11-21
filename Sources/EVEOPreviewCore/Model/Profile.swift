@@ -217,7 +217,8 @@ public struct OverlaySettings: Sendable, Equatable, Codable {
     public var titleFontSize: Double
     /// 标题颜色，默认 `#FFFFFF`。
     public var titleColor: String
-    /// 是否给活动客户端画高亮边框，默认 false。
+    /// 是否给活动客户端画高亮边框。v1.2.1 起默认 true（用户要求一眼看出正在操作的角色），
+    /// 已有配置由 OneTimeDefaults 补开一次。
     public var highlightEnabled: Bool
     /// 没有按角色设置时的高亮颜色，默认 `#ADFF2F`。
     public var highlightColor: String
@@ -235,7 +236,7 @@ public struct OverlaySettings: Sendable, Equatable, Codable {
 
     /// 用各字段建叠层设置，默认值见各属性。
     public init(showTitle: Bool = true, titleFontSize: Double = 12, titleColor: String = "#FFFFFF",
-                highlightEnabled: Bool = false, highlightColor: String = "#ADFF2F",
+                highlightEnabled: Bool = true, highlightColor: String = "#ADFF2F",
                 highlightThickness: Int = 3, borderEnabled: Bool = true,
                 borderColor: String = OverlaySettings.defaultBorderColor, borderThickness: Int = 2) {
         self.showTitle = showTitle
