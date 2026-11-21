@@ -90,6 +90,9 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
     public var isSkipped: Bool
     /// 面板是否置顶。
     public var isAlwaysOnTop: Bool
+    /// 置顶时是否要盖过原生全屏的客户端（v1.1.1）：前台是原生全屏的客户端时为真。全屏客户端的窗口在
+    /// 状态栏层级（25），面板这时要用更高的层级；窗口模式下保持 `.floating`，不盖住 Dock、菜单栏与系统对话框。
+    public var isOverFullScreen: Bool
     /// frame 是否为悬停放大后的尺寸。
     public var isZoomed: Bool
     /// 画面的显示范围（已裁掉标题栏），原点在左上角、y 轴向下。
@@ -102,7 +105,8 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
                 titleFontSize: Double, titleColor: String, opacity: Double, highlightColor: String?,
                 highlightThickness: Double, isActive: Bool, isSkipped: Bool, isAlwaysOnTop: Bool,
                 isZoomed: Bool, contentsRect: UnitRect, placeholder: ThumbnailPlaceholder,
-                borderColor: String? = nil, borderThickness: Double = 0, alert: ThumbnailAlert? = nil) {
+                borderColor: String? = nil, borderThickness: Double = 0, alert: ThumbnailAlert? = nil,
+                isOverFullScreen: Bool = false) {
         self.id = id
         self.pid = pid
         self.frame = frame
@@ -117,6 +121,7 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
         self.isActive = isActive
         self.isSkipped = isSkipped
         self.isAlwaysOnTop = isAlwaysOnTop
+        self.isOverFullScreen = isOverFullScreen
         self.isZoomed = isZoomed
         self.contentsRect = contentsRect
         self.placeholder = placeholder

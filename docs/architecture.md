@@ -655,7 +655,7 @@ public enum HexColor {
 - `opacity`：悬停或有战斗提醒时为 1.0，否则取 `thumbnail.opacity`。
 - `frame`：在 `interactingWindows` 里的窗口沿用基准 frame，不放大。悬停且 `zoomEnabled` 时取 `ZoomMath.zoomedFrame`，`isZoomed = true`。
 - `placeholder` 按以下顺序取第一个成立的：没有屏幕录制权限或状态是 `permissionDenied`，取 `needsScreenRecording`；状态是 `stoppedByUser`，取 `captureStopped`；`isMinimized == true`，取 `minimized`；状态是 `idle`、`starting` 或 `retrying`，取 `waitingForFrame`；否则取 `none`。面板已有画面时，`waitingForFrame` 不遮住它。
-- `contentsRect`：`CaptureMath.contentsRect`，从画面顶部裁掉 `titleBarCropHeight` 点。源窗口高度不小于所在屏幕高度时不裁（全屏窗口没有标题栏）。
+- `contentsRect`：`CaptureMath.contentsRect`，从画面顶部裁掉 `titleBarCropHeight` 点。源窗口高度不小于所在屏幕高度时不裁（全屏窗口没有标题栏）。v1.1.1 起 `EVEClient.isFullScreen` 为真时同样不裁：原生全屏的窗口范围不含菜单栏那一条，按高度判断会漏掉。
 
 捕获规格：只给可见的缩略图生成。`scale` 取缩略图中心点所在屏幕的值。`CaptureMath.spec` 的宽是 `缩略图宽 × scale`，高按源窗口的宽高比算出，两者都不超过源窗口的像素尺寸，且都向上取到偶数。没有屏幕录制权限时 `captures` 为空。
 
@@ -776,7 +776,7 @@ public struct CapturedFrame: @unchecked Sendable {
 `CGWindowProvider`（`actor`）每次调用做以下事情：
 
 1. 调 `CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID)`。
-2. 只留 `kCGWindowLayer == 0` 的窗口。对每个 `kCGWindowOwnerPID`，用 `NSRunningApplication(processIdentifier:)?.bundleIdentifier` 判断是不是 `com.ccpgames.eveonline`，肯定结果按 PID 缓存到 PID 消失；否定结果缓存 30 秒；取不到 bundle id 时不缓存，下一轮重查。
+2. 只留 `ClientWindowSelector.isCandidateLayer` 认可的窗口：`kCGWindowLayer == 0`，或层级在 1～25（状态栏层级）且不透明。v1.1.1 起加后一种：EVE 原生全屏时，前台客户端的主窗口在 layer 25，只认 layer 0 时它会从列表里消失、缩略图跟着收起。对每个 `kCGWindowOwnerPID`，用 `NSRunningApplication(processIdentifier:)?.bundleIdentifier` 判断是不是 `com.ccpgames.eveonline`，肯定结果按 PID 缓存到 PID 消失；否定结果缓存 30 秒；取不到 bundle id 时不缓存，下一轮重查。
 3. 填 `WindowInfo`：`title` 取 `kCGWindowName`，空串记为 `nil`；`frame` 取 `kCGWindowBounds`；`isOnScreen` 取 `kCGWindowIsOnscreen`，缺失记为 `false`。
 4. 如果有辅助功能权限，经 `AXWorker` 读每个 PID 的 AX 窗口的 `kAXTitleAttribute` 与 `kAXMinimizedAttribute`。结果写到该 PID 下标题相同的窗口；没有标题相同的窗口时，写到面积最大的窗口（补上 `title`，填 `isMinimized`）。AX 超时或失败时保留上一轮的值。
 
@@ -865,6 +865,8 @@ macOS 14 起应用激活是协作式的，系统不保证后台应用的激活�
 `minimize(_:)` 经 `AXWorker` 把窗口的 `kAXMinimizedAttribute` 设为真；没有权限返回 `.failure(.accessibilityDenied)`。
 
 用户已同意（Q2）把私有接口 `_SLPSSetFrontProcessWithOptions` 作为后备：第 5 步核对仍不在前台时，用 `GetProcessForPID` 取 `ProcessSerialNumber`，经 `dlsym` 在 SkyLight 框架里查找该符号并调用（`kCPSUserGenerated`），再核对一次。符号查找失败时跳过这一步，不崩溃。后备方案放在 `Windows/PrivateActivation.swift` 一个文件里，便于以后移除。
+
+v1.1.1 起，AX 窗口列表为空时（窗口在其他空间里，典型情况是原生全屏的客户端），`AXWorker` 改取应用的 `kAXMainWindowAttribute`：它不受空间限制，角色是 `AXWindow` 且标题相同时，照常还原、提升，系统随之切到窗口所在的空间（实测 2026-11-21，只用公开接口）。读窗口状态时同时读 `AXFullScreen`，写进 `WindowInfo.isFullScreen` 与 `EVEClient.isFullScreen`；读不到时沿用上一轮的值。没有辅助功能权限时，窗口列表里 layer 大于 0 的主窗口（前台的全屏窗口在 layer 25）也记为全屏。主窗口不比标题，只要求角色是 `AXWindow`。曾试过 `SLPSPostEventRecordTo` 与 `_AXUIElementCreateWithRemoteToken` 的做法，前者实际是向目标窗口发一次合成的鼠标点击，不符合 R7，已放弃。
 
 ### 6.5 热键
 
@@ -962,7 +964,7 @@ v1.1 起启动顺序加入日志初始化、会话标记、状态文件与更新
 
 - `styleMask = [.borderless, .nonactivatingPanel]`，`canBecomeKey` 与 `canBecomeMain` 返回 `false`。
 - `collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]`，`hidesOnDeactivate = false`，`hasShadow = false`，`isMovable = false`。
-- `level`：`isAlwaysOnTop` 时是 `.floating`，否则是 `.normal`。
+- `level`：`isAlwaysOnTop` 时是 `.floating`；同时前台是原生全屏的客户端（`isOverFullScreen`）时是 `ThumbnailPanel.fullScreenLevel`（状态栏层级加 1，即 26），否则会被全屏的 EVE 窗口（layer 25）盖住；不置顶时是 `.normal`。
 - 透明度用 `alphaValue`。
 - 内容视图的 `acceptsFirstMouse(for:)` 返回 `true`。
 - 悬停用 `NSTrackingArea`，选项是 `[.mouseEnteredAndExited, .activeAlways, .inVisibleRect]`。本应用几乎不在前台，不用 `.activeAlways` 就收不到悬停事件。
@@ -1315,7 +1317,7 @@ WP-C 用 `FakeServices` 代替 Platform，不等 WP-B。
 | R1 | ad-hoc 签名导致每次构建后重新授权 | 9.2 节的自签名证书 |
 | R2 | 运行捕获时系统在菜单栏显示录制指示器，用户可能从那里停止捕获 | `stoppedByUser` 状态、占位画面、菜单里的「恢复捕获」 |
 | R3 | EVE 窗口被销毁重建（切换显示模式）时窗口 ID 变化 | 运行时按新客户端处理；布局按角色名保存，不受影响 |
-| R4 | EVE 用原生全屏时，切换客户端会带来空间切换动画 | 在 README 里说明宜用窗口模式；面板已设 `fullScreenAuxiliary` |
+| R4 | EVE 用原生全屏时，切换客户端会带来空间切换动画 | 在 README 里说明宜用窗口模式；面板已设 `fullScreenAuxiliary`；v1.1.1 起能切到其他全屏空间里的客户端（6.4 节） |
 | R5 | AX 调用在客户端卡顿时变慢 | AX 全部走 `AXWorker`，超时 0.25 秒，激活的第 3 步不等 AX |
 | R6 | 客户端数量多时的能耗 | 分辨率跟随缩略图、隐藏即停流、帧率可调；10.3 节第 14 项实测 |
 | R7 | EVE 的最终用户许可协议 | 本工具只切换焦点，不广播输入，与上游的边界相同；「关于」页写明 |

@@ -39,16 +39,19 @@ public struct WindowInfo: Sendable, Hashable {
     public var isOnScreen: Bool
     /// 是否已最小化；nil 表示没有辅助功能权限，状态未知。
     public var isMinimized: Bool?
+    /// 是否是原生全屏窗口（AX 的 `AXFullScreen`，v1.1.1）；nil 表示不知道。
+    public var isFullScreen: Bool?
 
     /// 用平台层读到的各字段建一个候选窗口。
     public init(windowID: WindowID, pid: Int32, title: String?, frame: ScreenRect,
-                isOnScreen: Bool, isMinimized: Bool?) {
+                isOnScreen: Bool, isMinimized: Bool?, isFullScreen: Bool? = nil) {
         self.windowID = windowID
         self.pid = pid
         self.title = title
         self.frame = frame
         self.isOnScreen = isOnScreen
         self.isMinimized = isMinimized
+        self.isFullScreen = isFullScreen
     }
 }
 
@@ -84,16 +87,19 @@ public struct EVEClient: Sendable, Hashable, Identifiable {
     public var isOnScreen: Bool
     /// 是否已最小化；nil 表示状态未知（没有辅助功能权限）。
     public var isMinimized: Bool?
+    /// 主窗口是否是原生全屏（v1.1.1）；nil 表示不知道。
+    public var isFullScreen: Bool?
 
     /// 用各字段建一个客户端。
     public init(id: WindowID, pid: Int32, identity: ClientIdentity, windowFrame: ScreenRect,
-                isOnScreen: Bool, isMinimized: Bool?) {
+                isOnScreen: Bool, isMinimized: Bool?, isFullScreen: Bool? = nil) {
         self.id = id
         self.pid = pid
         self.identity = identity
         self.windowFrame = windowFrame
         self.isOnScreen = isOnScreen
         self.isMinimized = isMinimized
+        self.isFullScreen = isFullScreen
     }
 
     /// 由主窗口建客户端，身份经 `TitleParser.identity(fromTitle:)` 解析。
@@ -101,7 +107,7 @@ public struct EVEClient: Sendable, Hashable, Identifiable {
         self.init(id: window.windowID, pid: window.pid,
                   identity: TitleParser.identity(fromTitle: window.title),
                   windowFrame: window.frame, isOnScreen: window.isOnScreen,
-                  isMinimized: window.isMinimized)
+                  isMinimized: window.isMinimized, isFullScreen: window.isFullScreen)
     }
 
     /// 角色名；登录与未知客户端返回 nil。

@@ -6,6 +6,9 @@
 // 应用元素另外再设一次，作为保险。
 // 实测每个 EVE 进程在 AX 里只有 1 个 AXStandardWindow（事实 E7），所以按 PID 取窗口，
 // 不依赖私有接口 _AXUIElementGetWindow。
+// v1.1.1：客户端用原生全屏、窗口在另一个空间时，`kAXWindowsAttribute` 是空列表，但应用的
+// `kAXMainWindowAttribute` 不受空间限制，仍能取到它（实测 2026-11-21）。对它照常提升，系统就会切到它的空间，
+// 不需要私有接口。读窗口状态时同时读 `AXFullScreen`，供规划器决定是否裁标题栏、面板用多高的层级。
 
 import ApplicationServices
 import Foundation
@@ -18,11 +21,14 @@ public struct AXWindowState: Sendable, Equatable {
     public var title: String?
     /// `kAXMinimizedAttribute`；读不到时为 nil。
     public var isMinimized: Bool?
+    /// `AXFullScreen`（原生全屏）；读不到时为 nil。
+    public var isFullScreen: Bool?
 
-    /// 用标题与最小化状态建一个值。
-    public init(title: String?, isMinimized: Bool?) {
+    /// 用标题、最小化状态与全屏状态建一个值。
+    public init(title: String?, isMinimized: Bool?, isFullScreen: Bool? = nil) {
         self.title = title
         self.isMinimized = isMinimized
+        self.isFullScreen = isFullScreen
     }
 }
 
@@ -91,10 +97,14 @@ public actor AXWorker {
 
     // MARK: - 读
 
-    /// 读该进程全部 AX 窗口的标题与最小化状态。没有权限或 AX 失败时返回 nil。
+    /// 读该进程全部 AX 窗口的标题、最小化与全屏状态。没有权限或 AX 失败时返回 nil。
+    /// 窗口列表为空（窗口在另一个空间）时改读主窗口。
     public func windowStates(pid: Int32) -> [AXWindowState]? {
-        guard AXWorker.isTrusted, let windows = windows(of: pid) else { return nil }
-        return windows.map(windowState)
+        guard AXWorker.isTrusted else { return nil }
+        let app = applicationElement(pid)
+        if let windows = windows(of: pid, app: app), !windows.isEmpty { return windows.map(windowState) }
+        guard let main = mainWindow(of: app) else { return nil }
+        return [windowState(main)]
     }
 
     /// 读应用元素的 `kAXFrontmostAttribute`。没有权限或读不到时返回 nil。
@@ -185,8 +195,9 @@ public actor AXWorker {
     }
 
     /// 按 4.1 节选目标窗口：先按标题匹配，再取第一个 `AXStandardWindow`，最后取第一个窗口。
+    /// 窗口列表为空时（窗口在另一个空间，如原生全屏）取应用的主窗口；有目标标题时要求标题相同。
     private func window(of pid: Int32, app: AXUIElement, title: String?) -> AXUIElement? {
-        guard let list = windows(of: pid, app: app), !list.isEmpty else { return nil }
+        guard let list = windows(of: pid, app: app), !list.isEmpty else { return mainWindow(of: app) }
         if let title, let match = list.first(where: { stringAttribute($0, kAXTitleAttribute) == title }) {
             return match
         }
@@ -194,21 +205,38 @@ public actor AXWorker {
         return standard ?? list.first
     }
 
-    /// 一次消息读出窗口的标题与最小化状态。
+    /// 应用的主窗口（`kAXMainWindowAttribute`，不受空间限制）。角色不是窗口时返回 nil。
+    /// 不比标题：每个 EVE 进程只有一个主窗口（事实 E7），标题里多一个空格就拒绝会让原来的问题回来。
+    private func mainWindow(of app: AXUIElement) -> AXUIElement? {
+        guard let main = elementAttribute(app, kAXMainWindowAttribute),
+              stringAttribute(main, kAXRoleAttribute) == kAXWindowRole else { return nil }
+        return main
+    }
+
+    /// 读元素类型的属性；类型不符或失败时返回 nil。
+    private func elementAttribute(_ element: AXUIElement, _ name: String) -> AXUIElement? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success, let value,
+              CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return (value as! AXUIElement)
+    }
+
+    /// 一次消息读出窗口的标题、最小化与全屏状态。
     ///
     /// 实测 EVE 每条 AX 消息要 15～20 毫秒（大约一帧），一个进程读一轮要 40～70 毫秒，
-    /// 所以用 `AXUIElementCopyMultipleAttributeValues` 把两个属性合进一条消息。
+    /// 所以用 `AXUIElementCopyMultipleAttributeValues` 把三个属性合进一条消息。
     private func windowState(_ window: AXUIElement) -> AXWindowState {
-        let names = [kAXTitleAttribute, kAXMinimizedAttribute] as CFArray
+        let names = [kAXTitleAttribute, kAXMinimizedAttribute, "AXFullScreen"] as CFArray
         var values: CFArray?
         guard AXUIElementCopyMultipleAttributeValues(window, names, AXCopyMultipleAttributeOptions(), &values) == .success,
-              let list = values as? [Any], list.count == 2 else {
+              let list = values as? [Any], list.count == 3 else {
             return AXWindowState(title: nil, isMinimized: nil)
         }
         // 某个属性读不到时，对应位置是一个 AXValue 错误值而不是字符串或数字，按读不到处理。
         let title = list[0] as? String
         return AXWindowState(title: (title?.isEmpty ?? true) ? nil : title,
-                             isMinimized: (list[1] as? NSNumber)?.boolValue)
+                             isMinimized: (list[1] as? NSNumber)?.boolValue,
+                             isFullScreen: (list[2] as? NSNumber)?.boolValue)
     }
 
     /// 读字符串属性；类型不符或失败时返回 nil。
