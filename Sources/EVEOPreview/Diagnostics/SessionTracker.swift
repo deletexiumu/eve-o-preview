@@ -150,7 +150,13 @@ import EVEOPreviewCore
             source.setEventHandler {
                 MainActor.assumeIsolated {
                     AppLog.logger("Session").info("收到信号 \(signalNumber)，按正常流程退出")
-                    NSApp.terminate(nil)
+                }
+                // 不在这个主队列任务里直接调 terminate：terminate 会开嵌套事件循环等
+                // applicationShouldTerminate 的回复，而回复靠主线程 Task 发出；主队列是串行的，
+                // 当前任务不返回，那些 Task 和超时都轮不到，进程卡死（v1.1 手工测试发现）。
+                // 交给运行循环执行，嵌套循环里主队列照常排空。
+                RunLoop.main.perform {
+                    MainActor.assumeIsolated { NSApp.terminate(nil) }
                 }
             }
             source.resume()

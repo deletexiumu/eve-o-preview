@@ -78,13 +78,16 @@ import os
         // 只在确有调试开关时才设：正式使用时没有 EVEO_ 变量，不改动新实例的环境。
         let debugEnvironment = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("EVEO_") }
         if !debugEnvironment.isEmpty { configuration.environment = debugEnvironment }
-        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { [log] _, error in
+        // 回调由 LaunchServices 在后台队列调用。本类是 @MainActor，不写 @Sendable 时闭包会被推断为主线程隔离，
+        // Swift 6 运行时检查到不在主线程就终止进程：新实例已启动，旧实例却以崩溃退出（v1.1 手工测试发现）。
+        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { @Sendable [log] _, error in
             if let error {
                 log.error("重新启动失败：\(error.localizedDescription, privacy: .public)")
                 return
             }
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
+            // 不用 DispatchQueue.main.async：在主队列任务里调 terminate 会死锁，见 `SessionTracker.installSignalSources`。
+            RunLoop.main.perform {
+                MainActor.assumeIsolated { NSApp.terminate(nil) }
             }
         }
     }
