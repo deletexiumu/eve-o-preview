@@ -96,7 +96,7 @@ struct ClientsPage: View {
 /// 列从左到右：在线状态、角色名、高亮颜色、「显示缩略图」文字与开关。角色名占满剩余宽度，
 /// 其余各列宽度固定并靠右，所以不论角色名多长，各行的颜色块、「默认」与开关都上下对齐。
 private struct CharacterRow: View {
-    /// 颜色列的宽度：放得下颜色块加「默认」或「重置」按钮（各语言里最长的是俄语的「Сбросить」）。
+    /// 颜色列的宽度：放得下颜色块加「默认」或「重置」按钮（各语言里最长的是俄语的「По умолчанию」，约 130 点）。
     static let colorColumnWidth: CGFloat = 140
 
     /// 视图模型。
@@ -127,6 +127,8 @@ private struct CharacterRow: View {
             Text(L10n.settings.showThumbnail)
                 .lineLimit(1)
                 .fixedSize()
+                // 开关自己带同样的标签，这段文字只给眼睛看，避免旁白读两遍。
+                .accessibilityHidden(true)
             // 关掉即加入隐藏名单（持久化），与会话内的「全部隐藏」不同。
             Toggle(L10n.settings.showThumbnail, isOn: model.showsThumbnail(name))
                 .labelsHidden()

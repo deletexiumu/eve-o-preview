@@ -65,7 +65,11 @@ struct HotkeyListEditor: View {
             HotkeyRecorderView(model: model, text: text) { outcome in
                 switch outcome {
                 case .recorded(let hotkey):
-                    let replacement = model.recordedHotkeyText(hotkey, replacing: text)
+                    // 重录保留原来的后缀；原来没有后缀而页面指定了统一范围时写成那个范围，
+                    // 不让鼠标按键的 `@game` 规则悄悄改掉页面上选的范围。
+                    let oldScope = HotkeySpec(string: text)?.scope
+                    let replacement = newHotkeyScope.map { HotkeySpec(hotkey: hotkey, scope: oldScope ?? $0).stringValue() }
+                        ?? model.recordedHotkeyText(hotkey, replacing: text)
                     model.editHotkey(text, in: slot) { list, index in list[index] = replacement }
                 case .cleared:
                     model.editHotkey(text, in: slot) { list, index in list.remove(at: index) }
