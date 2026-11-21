@@ -35,18 +35,16 @@ struct ClientsPage: View {
         return Section {
             Toggle(L10n.settings.hideAllThumbnails, isOn: model.hideAllBinding)
             LabeledContent(L10n.settings.hideAllHotkeyLabel) {
-                // 逐行的范围菜单关掉，由下面的分段选择统一设置；新录的一条跟随当前范围，默认全局。
+                // 逐行的范围菜单关掉，由下面的单选按钮统一设置；新录的一条跟随当前范围，默认全局。
                 HotkeyListEditor(model: model, slot: slot, showsScopeMenu: false, newHotkeyScope: common ?? .global)
             }
-            Picker(L10n.settings.hideAllScopeLabel, selection: Binding<HotkeyScope?>(
+            // 与「切换与热键」页的默认范围用同一个单选控件与选项文字，两页的范围含义一致。
+            // 范围不一致时（手改配置）两项都不选中；选一项即把全部快捷键统一成它。
+            ScopeRadioPicker(label: L10n.settings.hideAllScopeLabel, selection: Binding<HotkeyScope?>(
                 get: { common },
-                set: { scope in if let scope { model.setScopeOfAllHotkeys(scope, for: slot) } })) {
-                Text(L10n.hotkeys.scopeGlobal).tag(HotkeyScope?.some(.global))
-                Text(L10n.hotkeys.scopeGame).tag(HotkeyScope?.some(.game))
-            }
-            .pickerStyle(.segmented)
-            // 没有快捷键时没有可改的范围。
-            .disabled(list.isEmpty)
+                set: { scope in if let scope { model.setScopeOfAllHotkeys(scope, for: slot) } }))
+                // 没有快捷键时没有可改的范围。
+                .disabled(list.isEmpty)
         } header: {
             PageHeader(title: L10n.settings.pageClients, subtitle: L10n.settings.clientsSubtitle)
         } footer: {

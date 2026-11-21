@@ -151,7 +151,9 @@ struct SettingsStringsFR: SettingsStrings {
     var hideAllHotkeyLabel: String { "Raccourci" }
     var hideAllScopeLabel: String { "Portée" }
     // 修饰键与鼠标按键的符号（⌃⌥⌘H）原样保留。
-    var hideAllHotkeyFooter: String { "Utilisez des touches de modification avec une touche (comme ⌃⌥⌘H), ou avec le bouton central ou un bouton latéral de la souris. La portée s'applique à tous les raccourcis ci-dessus." }
+    var hideAllHotkeyFooter: String {
+        "Utilisez des touches de modification avec une touche (comme ⌃⌥⌘H), ou avec le bouton central ou un bouton latéral de la souris. Tous les raccourcis ci-dessus utilisent la portée unique choisie ici."
+    }
     var charactersHeader: String { "Personnages" }
     var charactersFooter: String { "Cette couleur sert à la bordure de surbrillance quand le personnage est actif." }
     var noCharacters: String { "Aucun personnage pour l'instant. Lancez EVE et connectez un personnage." }

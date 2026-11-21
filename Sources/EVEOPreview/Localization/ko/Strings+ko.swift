@@ -123,7 +123,9 @@ struct SettingsStringsKO: SettingsStrings {
     var hideAllThumbnails: String { "모든 썸네일 가리기" }
     var hideAllHotkeyLabel: String { "단축키" }
     var hideAllScopeLabel: String { "적용 범위" }
-    var hideAllHotkeyFooter: String { "보조 키와 일반 키(예: ⌃⌥⌘H) 또는 보조 키와 마우스 가운데·측면 버튼을 조합할 수 있습니다. 적용 범위는 위의 모든 단축키에 적용됩니다." }
+    var hideAllHotkeyFooter: String {
+        "보조 키와 일반 키(예: ⌃⌥⌘H) 또는 보조 키와 마우스 가운데·측면 버튼을 조합할 수 있습니다. 위의 모든 단축키에 여기서 고른 범위 하나가 적용됩니다."
+    }
     var charactersHeader: String { "캐릭터" }
     var charactersFooter: String { "이 캐릭터가 활성 상태일 때 강조 표시 테두리에 쓰이는 색상입니다." }
     var noCharacters: String { "아직 캐릭터가 없습니다. EVE를 실행하고 캐릭터로 로그인하십시오." }

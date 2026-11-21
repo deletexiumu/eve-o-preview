@@ -13,7 +13,9 @@ import Foundation
 struct HotkeyStringsDE: HotkeyStrings {
     // MARK: 切换与热键页：页首与循环组
 
-    var switchingSubtitle: String { "Wechselgruppen und Hotkeys. Jeder Hotkey gilt überall oder nur in EVE." }
+    var switchingSubtitle: String {
+        "Wechselgruppen und Hotkeys. Jeder Hotkey hat genau einen Bereich: Überall (auch in EVE) oder Nur in EVE."
+    }
     var cycleGroupsHeader: String { "Wechselgruppen" }
     var addGroup: String { "Neue Wechselgruppe" }
     var noGroups: String { "Noch keine Wechselgruppen." }
@@ -49,9 +51,14 @@ struct HotkeyStringsDE: HotkeyStrings {
     var defaultScopeLabel: String { "Standardbereich für Hotkeys" }
     var scopeGlobal: String { "Überall" }
     var scopeGame: String { "Nur in EVE" }
+    var scopeGlobalOption: String { "Überall: wirkt in jeder App, auch in EVE" }
+    var scopeGameOption: String { "Nur in EVE: wirkt nur, solange ein EVE-Fenster im Vordergrund ist" }
+    var defaultScopeFooter: String {
+        "Jeder Hotkey hat genau einen Bereich, nie beide zugleich. Die Markierung rechts neben jedem Hotkey zeigt den tatsächlich verwendeten Bereich. Ein Klick darauf stellt diesen einen Hotkey auf Überall, Nur in EVE oder den hier gewählten Standard."
+    }
     // 「跟随默认」：Standard 后面的括号里是当前默认范围的名称。
     func scopeFollowDefault(_ current: String) -> String { "Standard (\(current))" }
-    func scopeMenuHelp(_ resolved: String) -> String { "Bereich: \(resolved)" }
+    func scopeMenuHelp(_ resolved: String) -> String { "Bereich: \(resolved). Zum Ändern für diesen Hotkey klicken." }
     var menuHotkeysOnlyInEVE: String { "Hotkeys nur in EVE" }
 
     // MARK: 录制器

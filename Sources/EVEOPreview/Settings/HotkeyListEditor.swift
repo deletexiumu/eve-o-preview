@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 一个动作的热键列表（反馈文档 6.8 节，从 HotkeyRecorderView.swift 拆出）。
-// 每一行：问题提示、录制按钮、作用范围菜单、删除按钮；末尾一个「添加」按钮。
+// 每一行：问题提示、录制按钮、作用范围菜单（图标加范围名称）、删除按钮；末尾一个「添加」按钮。
 // 行的读写用 HotkeySpec：显示时用热键的界面写法，保存时用规范写法（带作用范围后缀）。
 // 新录制的鼠标热键写成 `@game`，重新录制保留原来的作用范围，规则在 SettingsViewModel.recordedHotkeyText。
 // 回调都在提交的时刻重新读列表，按这一行的文字找位置（SettingsViewModel.editHotkey），
@@ -95,7 +95,8 @@ struct HotkeyListEditor: View {
 }
 
 /// 一条热键的作用范围菜单：「跟随默认（当前：…）」「全局」「仅游戏内」，当前选项打勾。
-/// 菜单的图标反映已解析的作用范围：全局是地球，仅游戏内是手柄。
+/// 菜单按钮同时显示图标与范围名称（全局是地球，仅游戏内是手柄），不用点开就能看出这一条实际的范围；
+/// 早先只有图标，用户认不出手柄图标代表什么。
 private struct HotkeyScopeMenu: View {
     /// 视图模型，用来取默认作用范围与名称。
     let model: SettingsViewModel
@@ -118,10 +119,12 @@ private struct HotkeyScopeMenu: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            Image(systemName: resolved == .game ? "gamecontroller" : "globe")
+            Label(model.scopeName(resolved), systemImage: resolved == .game ? "gamecontroller" : "globe")
+                .labelStyle(.titleAndIcon)
         }
         .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
+        // 显示下拉箭头，表明这是可以点开修改的菜单，不只是一个标记。
+        .menuIndicator(.visible)
         .fixedSize()
         .help(L10n.hotkeys.scopeMenuHelp(model.scopeName(resolved)))
     }

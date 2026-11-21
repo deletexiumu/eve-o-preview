@@ -110,7 +110,7 @@ struct SettingsStringsZH: SettingsStrings {
     var hideAllThumbnails: String { "隐藏全部缩略图" }
     var hideAllHotkeyLabel: String { "快捷键" }
     var hideAllScopeLabel: String { "生效范围" }
-    var hideAllHotkeyFooter: String { "可以是修饰键加普通键（如 ⌃⌥⌘H），也可以是修饰键加鼠标中键或侧键。生效范围对上面的全部快捷键生效。" }
+    var hideAllHotkeyFooter: String { "可以是修饰键加普通键（如 ⌃⌥⌘H），也可以是修饰键加鼠标中键或侧键。上面的全部快捷键统一按这里选的一种范围生效。" }
     var charactersHeader: String { "角色" }
     var charactersFooter: String { "颜色是该角色作为活动客户端时的高亮边框颜色；「默认」表示使用全局高亮颜色。" }
     var noCharacters: String { "还没有发现任何角色。启动 EVE 并选择角色后会出现在这里。" }

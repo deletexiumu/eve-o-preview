@@ -146,8 +146,7 @@ struct SettingsStringsES: SettingsStrings {
     var hideAllScopeLabel: String { "Ámbito" }
     // 修饰键用键符号举例，符号本身不翻译。
     var hideAllHotkeyFooter: String {
-        "Usa una combinación de teclas modificadoras con una tecla (como ⌃⌥⌘H) o con el botón central "
-            + "o un botón lateral del ratón. El ámbito se aplica a todos los atajos de arriba."
+        "Usa una combinación de teclas modificadoras con una tecla (como ⌃⌥⌘H) o con el botón central o un botón lateral del ratón. Todos los atajos de arriba usan el único ámbito elegido aquí."
     }
     var charactersHeader: String { "Personajes" }
     var charactersFooter: String { "El color se usa para el borde de resaltado cuando este personaje está activo." }

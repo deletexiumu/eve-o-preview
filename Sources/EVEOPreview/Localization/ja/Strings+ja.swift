@@ -124,7 +124,9 @@ struct SettingsStringsJA: SettingsStrings {
     var hideAllThumbnails: String { "すべてのサムネイルを隠す" }
     var hideAllHotkeyLabel: String { "ショートカット" }
     var hideAllScopeLabel: String { "有効範囲" }
-    var hideAllHotkeyFooter: String { "修飾キーと通常のキー（例：⌃⌥⌘H）、または修飾キーとマウスの中ボタン・サイドボタンの組み合わせを使えます。有効範囲は上のすべてのショートカットに適用されます。" }
+    var hideAllHotkeyFooter: String {
+        "修飾キーと通常のキー（例：⌃⌥⌘H）、または修飾キーとマウスの中ボタン・サイドボタンの組み合わせを使えます。上のすべてのショートカットに、ここで選んだ 1 つの範囲が適用されます。"
+    }
     var charactersHeader: String { "キャラクター" }
     var charactersFooter: String { "このキャラクターがアクティブなときのハイライト枠線の色です。" }
     var noCharacters: String { "キャラクターはまだありません。EVEを起動してキャラクターでログインしてください。" }
