@@ -43,7 +43,10 @@ struct StateStoreTests {
                                                            sha256: String(repeating: "a", count: 64), preparedAt: date),
                                   lastInstall: InstallRecord(version: "1.1.0", fromVersion: "1.0.0", at: date,
                                                              succeeded: false, errorCode: "checksumMismatch"),
-                                  staleStagingPath: "/private/var/folders/x/TemporaryItems/y")
+                                  staleStagingPath: "/private/var/folders/x/TemporaryItems/y",
+                                  intermediateNotes: IntermediateReleaseNotes(
+                                      latestVersion: "1.1.1", runningVersion: "1.0.0",
+                                      entries: [ReleaseNotesEntry(version: "1.1.0", notes: "earlier")], hasMore: false))
         let diagnostics = DiagnosticsState(pendingCrash: PendingCrash(sessionID: "s1", appVersion: "1.1.0",
                                                                       startedAt: date, detectedAt: date,
                                                                       reportFileNames: ["EVEOPreview-1.ips"]),
@@ -113,6 +116,17 @@ struct StateStoreTests {
         let state = store.load()
         #expect(state.updates == UpdateState(skippedVersion: "1.1.1"))
         #expect(state.diagnostics == DiagnosticsState())
+    }
+
+    /// `intermediateNotes` 结构不符时只丢掉它，其余记录（如「跳过此版本」）保留；旧版本写的文件没有这个键时为 nil。
+    @Test func malformedIntermediateNotesAreDroppedAlone() throws {
+        defer { cleanUp() }
+        try writeState(#"{"updates":{"skippedVersion":"1.1.1","intermediateNotes":{"latestVersion":3}}}"#)
+        #expect(store.load().updates == UpdateState(skippedVersion: "1.1.1"))
+        try writeState(#"{"updates":{"skippedVersion":"1.1.1","intermediateNotes":[]}}"#)
+        #expect(store.load().updates == UpdateState(skippedVersion: "1.1.1"))
+        try writeState(#"{"updates":{"etag":"x"}}"#)
+        #expect(store.load().updates.intermediateNotes == nil)
     }
 
     /// 原子写入：覆盖已有文件后内容完整，目录里不留临时文件；目录不存在时自动创建。

@@ -373,6 +373,8 @@
   3. 接上一项，打开「通用」页的「更新」一组。预期：`notifyonly` 时「自动安装更新」置灰，下方写明 ad-hoc 签名的原因；`downloading` 时状态行显示按界面语言格式化的大小；`uptodate` 时状态行是「已是最新版本」。
   4. 不设 `EVEO_LANG` 启动，打开更新窗口后在「通用」页切换语言。预期：窗口标题与内容立即换成新语言。
   5. 点发布说明里的链接。预期：只有 https 链接可点，用默认浏览器打开。
+  6. 用 `EVEO_FAKE=1 EVEO_UPDATE_UI_STATE=available` 启动（各语言）。预期：发布说明分两段，「版本 1.1.1」在前、「版本 1.1.0」在后，段间有分隔线，最后一行是「更早版本的更新内容请到发布页查看。」；1.1.0 一段在中英文以外的语言下显示英文。
+  7. 用本地测试地址（`make-update-test-feed.sh` 生成 feed.json 与 releases.json）从比 feed 旧两个版本以上的版本打开应用。预期：窗口列出 feed 版本与中间各版本的说明，新版在前；删掉 releases.json 后重新打开（或断网），只显示 feed 版本的说明，更新照常可装。
 - 第 5 组补充：
   1. 安装前用探针预检：`.build/debug/EVEOProbe update verify "<B 的应用>" "<A 的应用>"` 应打印 0；`update prepare http://127.0.0.1:8123/feed.json` 应打印 dmg 的位置与 SHA-256。`feed.json` 可用 `scripts/make-update-test-feed.sh` 生成。
   2. 让新实例在 15 秒内起不来（例如安装后立即把新应用改名）。预期：更新窗口显示「更新已安装。请退出并重新打开 EVE-O Preview。」，按钮是「关闭」与「退出 EVE-O Preview」；「通用」页的状态行是同一句。关掉窗口后它应重新弹出。

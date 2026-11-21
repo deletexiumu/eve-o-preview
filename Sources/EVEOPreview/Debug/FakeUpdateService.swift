@@ -8,7 +8,7 @@
 import Foundation
 import EVEOPreviewCore
 
-/// 演示模式的更新服务。检查返回样例版本 1.1.1；下载只模拟进度，不写文件；安装不改动任何东西。
+/// 演示模式的更新服务。检查返回样例版本 1.1.1，Release 列表另有样例 1.1.0；下载只模拟进度，不写文件；安装不改动任何东西。
 final class FakeUpdateService: UpdateService {
     /// 模拟下载的步数与每步的间隔。
     private static let steps = 10
@@ -17,6 +17,12 @@ final class FakeUpdateService: UpdateService {
     /// 返回样例版本 1.1.1（不发请求），不带 ETag。
     func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult {
         .release(FakeUpdateService.sampleRelease, etag: nil)
+    }
+
+    /// 返回样例的中间版本 1.1.0 与已是最新的 1.1.1（不发请求），供核对按版本分段的显示。
+    func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? {
+        ReleaseHistoryPage(entries: [ReleaseNotesEntry(version: "1.1.1", notes: FakeUpdateService.sampleNotes)]
+                           + FakeUpdateService.sampleIntermediateNotes.entries, isFull: false)
     }
 
     /// 模拟约 2 秒的下载进度，然后返回 `.cancelled`：演示模式不写缓存目录，也就没有可装的 dmg。
@@ -81,6 +87,30 @@ extension FakeUpdateService {
                                     ReleaseAsset(name: "SHA256SUMS.txt",
                                                  downloadURL: prefix + "download/v1.1.1/SHA256SUMS.txt", size: 220)])
     }
+
+    /// 界面调试时的中间版本样例（8.8 节）：一个 1.1.0，`hasMore` 为真，窗口显示两段说明和「更早版本见发布页」一行。
+    static var sampleIntermediateNotes: IntermediateReleaseNotes {
+        IntermediateReleaseNotes(latestVersion: "1.1.1", runningVersion: "1.0.0",
+                                 entries: [ReleaseNotesEntry(version: "1.1.0", notes: sampleEarlierNotes)], hasMore: true)
+    }
+
+    /// 中间版本样例的说明：英文与中文两块，其余语言取英文（核对取不到界面语言时的退回）。
+    static let sampleEarlierNotes = """
+    <!-- lang:en -->
+    ## New
+
+    - **In-app updates:** EVE-O Preview checks GitHub for new versions and installs them.
+    <!-- /lang:en -->
+    <!-- lang:zh -->
+    <details><summary>简体中文</summary>
+
+    ### 新增
+
+    - **应用内更新：** EVE-O Preview 会到 GitHub 检查新版本并安装。
+
+    </details>
+    <!-- /lang:zh -->
+    """
 
     /// 样例的发布说明（8.2 节的格式：英文在前，其余语言各一个可折叠的块）。
     static let sampleNotes = """

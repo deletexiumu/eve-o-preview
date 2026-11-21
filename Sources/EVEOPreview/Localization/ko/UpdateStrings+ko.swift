@@ -48,6 +48,8 @@ struct UpdateStringsKO: UpdateStrings {
     func headline(_ version: String) -> String { "EVE-O Preview \(version) 사용 가능" }
     func currentVersionLine(_ version: String) -> String { "현재 \(version) 버전을 사용하고 있습니다." }
     var releaseNotesHeader: String { "새로운 기능" }
+    func versionNotesTitle(_ version: String) -> String { "버전 \(version)" }
+    var earlierVersionsOnReleasePage: String { "이전 버전의 변경 내용은 릴리스 페이지에서 확인하십시오." }
     var installButton: String { "업데이트 설치" }
     var installHelp: String { "설치 후 앱이 다시 실행됩니다. 썸네일이 몇 초 동안 사라집니다." }
     var skipButton: String { "이 버전 건너뛰기" }

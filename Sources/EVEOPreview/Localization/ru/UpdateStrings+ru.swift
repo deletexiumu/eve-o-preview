@@ -46,6 +46,8 @@ struct UpdateStringsRU: UpdateStrings {
     func headline(_ version: String) -> String { "Доступна EVE-O Preview \(version)" }
     func currentVersionLine(_ version: String) -> String { "У вас версия \(version)." }
     var releaseNotesHeader: String { "Что нового" }
+    func versionNotesTitle(_ version: String) -> String { "Версия \(version)" }
+    var earlierVersionsOnReleasePage: String { "Изменения более ранних версий — на странице выпусков." }
     var installButton: String { "Установить обновление" }
     var installHelp: String {
         "После установки приложение перезапустится. Миниатюры пропадут на несколько секунд."

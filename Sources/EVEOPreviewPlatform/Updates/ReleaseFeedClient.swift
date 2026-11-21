@@ -9,6 +9,9 @@
 // - 会话用 `.ephemeral`，不用 cookie、不留缓存；请求超时 15 秒；答复正文超过 1 MiB 按 `malformedFeed` 处理。
 // - 答复的处理见 8.4 节的表：200 解析，304 `.notModified`，404 `.noRelease`，限流 `.rateLimited`，
 //   其他状态码 `.failed(.httpStatus)`，网络错误 `.failed(.network)`。
+//
+// 另有 `fetchHistory`：有新版本要提示时取 Release 列表（8.8 节），只用来显示中间版本的说明。请求头与会话配置
+// 同上，不带 ETag；任何失败都只返回 nil。
 
 import Foundation
 import EVEOPreviewCore
@@ -17,6 +20,8 @@ import EVEOPreviewCore
 public enum ReleaseFeedClient {
     /// 检查请求的超时秒数。
     static let requestTimeout: TimeInterval = 15
+    /// 取 Release 列表的日志（检查本身的结果由 App 记）。与 BundleInstaller 一样每次取用，不存成静态属性。
+    private static var log: LogChannel { PlatformLog.logger("Updates") }
 
     /// 检查与下载共用的会话配置：不带 cookie 与缓存，只加 `User-Agent` 与 `Accept-Language: en` 两个头。
     static func sessionConfiguration(appVersion: String, requestTimeout: TimeInterval) -> URLSessionConfiguration {
@@ -38,10 +43,7 @@ public enum ReleaseFeedClient {
         let session = URLSession(configuration: sessionConfiguration(appVersion: appVersion,
                                                                      requestTimeout: requestTimeout))
         defer { session.finishTasksAndInvalidate() }
-        var request = URLRequest(url: feed.feedURL)
-        request.httpMethod = "GET"
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+        var request = apiRequest(url: feed.feedURL)
         if let etag, !etag.isEmpty { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
 
         let body: Data
@@ -57,6 +59,43 @@ public enum ReleaseFeedClient {
         }
         return result(status: response.statusCode, headers: lowercasedHeaders(response), body: body, feed: feed,
                       now: now)
+    }
+
+    /// 请求 Release 列表（8.8 节），返回各正式版的说明。尽力而为：任何失败都返回 nil 并记一条日志，
+    /// 不写限流时刻（列表与检查共用 GitHub 的限额，被限流时下一次检查自己会遇到并记下）。不带 ETag。
+    public static func fetchHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? {
+        guard let url = feed.historyURL else { return nil }
+        let session = URLSession(configuration: sessionConfiguration(appVersion: appVersion,
+                                                                     requestTimeout: requestTimeout))
+        defer { session.finishTasksAndInvalidate() }
+        do {
+            let (bytes, rawResponse) = try await session.bytes(for: apiRequest(url: url))
+            guard let http = rawResponse as? HTTPURLResponse, http.statusCode == 200 else {
+                let status = (rawResponse as? HTTPURLResponse)?.statusCode ?? 0
+                log.notice("取 Release 列表：状态码 \(status, privacy: .public)")
+                return nil
+            }
+            let body = try await readLimited(bytes, limit: ReleaseHistory.maxListBytes)
+            return try ReleaseHistory.parse(body)
+        } catch {
+            log.notice("取 Release 列表失败：\(describeHistoryError(error), privacy: .public)")
+            return nil
+        }
+    }
+
+    /// GitHub API 的 GET 请求：`Accept` 与 `X-GitHub-Api-Version` 两个头。检查与取列表共用。
+    static func apiRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+        return request
+    }
+
+    /// 取列表失败的简短说明：解析错误给出原因，其余同 `describe(_:)`。
+    private static func describeHistoryError(_ error: any Error) -> String {
+        if let updateError = error as? UpdateError { return String(describing: updateError) }
+        return describe(error)
     }
 
     /// 按 8.4 节的表把状态码与正文换成结果。

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// `UpdateService` 的真实实现（v1.1 设计 8.4、9.2、9.3 节）。各方法转给：
-// `ReleaseFeedClient`（检查）、`UpdateDownloader`（下载与核对）、`BundleInstaller`（挂载、验证、替换与残留清理）。
+// `UpdateService` 的真实实现（v1.1 设计 8.4、8.8、9.2、9.3 节）。各方法转给：
+// `ReleaseFeedClient`（检查与 Release 列表）、`UpdateDownloader`（下载与核对）、`BundleInstaller`（挂载、验证、替换与残留清理）。
 //
 // 缓存目录默认是 `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/`。探针可以另指目录，
 // 不碰用户的缓存。
@@ -43,6 +43,11 @@ public final class SystemUpdateService: UpdateService {
     /// 请求最新的正式版（8.4 节）。
     public func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult {
         await ReleaseFeedClient.fetch(feed: feed, etag: etag, appVersion: appVersion)
+    }
+
+    /// 请求 Release 列表，取中间版本的说明（8.8 节）。失败时返回 nil。
+    public func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? {
+        await ReleaseFeedClient.fetchHistory(feed: feed, appVersion: appVersion)
     }
 
     /// 下载校验和文件与 dmg，核对 SHA-256（9.2 节）。

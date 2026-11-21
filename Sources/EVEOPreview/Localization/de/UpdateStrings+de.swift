@@ -54,6 +54,8 @@ struct UpdateStringsDE: UpdateStrings {
     // 「你装的是 X」改写成「已安装：X」的句式，不称呼用户。
     func currentVersionLine(_ version: String) -> String { "Installiert ist Version \(version)." }
     var releaseNotesHeader: String { "Neuerungen" }
+    func versionNotesTitle(_ version: String) -> String { "Version \(version)" }
+    var earlierVersionsOnReleasePage: String { "Änderungen früherer Versionen stehen auf der Release-Seite." }
     var installButton: String { "Update installieren" }
     var installHelp: String {
         "Die App startet nach der Installation neu. Die Miniaturen verschwinden für einige Sekunden."

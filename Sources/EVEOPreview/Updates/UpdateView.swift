@@ -4,7 +4,7 @@
 // 控制器是 `@Observable`，阶段变化时视图自己刷新。窗口本身（尺寸、弹出方式）在 UpdateWindowController.swift。
 //
 // 布局自上而下：标题行（新版本、当前版本、「测试地址」字样）、提示条（不能自动安装的原因、失败的说明）、
-// 发布说明（可滚动）或状态、按钮区。各阶段的按钮：
+// 发布说明（可滚动，跳过了几个版本时按版本分段，8.8 节）或状态、按钮区。各阶段的按钮：
 //
 // | 阶段 | 按钮区 |
 // | --- | --- |
@@ -120,16 +120,40 @@ struct UpdateView: View {
     // MARK: - 发布说明与状态
 
     /// 「新内容」小标题与可滚动的发布说明。按界面语言取段落；取出的文字为空时只留小标题下的空白区域。
+    ///
+    /// 跳过了几个版本时（8.8 节），最新版之后依次列出中间各版本的说明，新版在前，每段前有版本小标题，段间有分隔线；
+    /// 只有最新版一段时与以前完全一样，没有小标题。中间版本的说明在后台取，取到后视图自己刷新。
     private func notes(_ strings: any UpdateStrings, release: ReleaseInfo) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let sections = [ReleaseNotesEntry(version: release.version, notes: release.notes)]
+            + controller.earlierNotes(for: release)
+        let showsTitles = sections.count > 1
+        let hasMore = controller.hasMoreEarlierNotes(for: release)
+        return VStack(alignment: .leading, spacing: 6) {
             Text(strings.releaseNotesHeader).font(.headline)
             ScrollView {
-                ReleaseNotesView(markdown: ReleaseNotes.section(for: L10n.language, in: release.notes))
-                    .padding(12)
+                VStack(alignment: .leading, spacing: 14) {
+                    // 以版本号作标识：中间版本后到时，最新版那一段不重建。
+                    ForEach(Array(sections.enumerated()), id: \.element.version) { index, entry in
+                        if index > 0 { Divider() }
+                        if showsTitles {
+                            Text(strings.versionNotesTitle(entry.version)).font(.title2.bold())
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        ReleaseNotesView(markdown: ReleaseNotes.section(for: L10n.language, in: entry.notes))
+                    }
+                    if hasMore {
+                        Divider()
+                        Text(strings.earlierVersionsOnReleasePage).font(.callout).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.25)))
+            // 窗口显示某个版本时补取中间版本（如重启后从缓存恢复的提示）；缓存合用时不发请求。
+            .task(id: release.version) { controller.ensureIntermediateNotes(for: release) }
         }
     }
 

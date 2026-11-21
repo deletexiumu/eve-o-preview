@@ -201,6 +201,7 @@ The app keeps up to 5 log files of 1 MiB each in `~/Library/Logs/EVE-O Preview/`
 Version 1.0.0 made no network requests. From 1.1.0 the app connects only to GitHub, and only for updates:
 
 - Checking for updates requests `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…".
+- When a newer version is offered, the app also requests the release list `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases` once, with the same headers, to show the notes of any versions you skipped.
 - Installing an update downloads `SHA256SUMS.txt` and the dmg from the release.
 
 The requests carry only the app version in the `User-Agent` header, a fixed `Accept-Language: en` and a cache tag; no character names, settings, logs, hardware details, system version or identifiers are sent, and no cookies are used. GitHub sees your IP address and the time of the request. There is no telemetry and no automatic crash upload: "Report a Problem…" only creates a zip on your Mac and opens a web page that you choose whether to submit.
