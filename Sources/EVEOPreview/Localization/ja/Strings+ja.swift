@@ -259,3 +259,30 @@ struct SettingsStringsJA: SettingsStrings {
         "EVE Onlineおよび関連するロゴはCCP ehf.の商標です。このプロジェクトはCCPとは関係がなく、CCPの承認も受けていません。"
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，日文。
+extension MenuStringsJA {
+    var showIntelOverlay: String { "偵察オーバーレイを表示" }
+    var showTranslationOverlay: String { "翻訳オーバーレイを表示" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，日文。
+extension SettingsStringsJA {
+    var pageIntel: String { "偵察" }
+    var pageTranslation: String { "翻訳" }
+    var aboutChatLogsNote: String {
+        "偵察と翻訳はチャットログとゲームログを読み取るだけです。翻訳は、選択したモデルサービスにチャットの本文を送信します。「オンラインで名前を確認」がオンのときは、偵察メッセージ内で続けて書かれたパイロット名を CCP の ESI API に送信します。"
+    }
+    var chatLogStatusStopped: String { "オフ" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "監視中：\(directory)（ログファイル \(files) 件）"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "チャットログのフォルダが見つかりません：\(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "読み取り権限がありません：\(path)" }
+    var chatLogHelp: String {
+        "EVE クライアントでチャットをファイルに記録する設定を有効にしてください。ログのフォルダは「アラート」ページで設定します。"
+    }
+}

@@ -252,3 +252,30 @@ struct SettingsStringsEN: SettingsStrings {
             + "This project is not affiliated with or endorsed by CCP."
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，英文。
+extension MenuStringsEN {
+    var showIntelOverlay: String { "Show Intel Overlay" }
+    var showTranslationOverlay: String { "Show Translation Overlay" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，英文。
+extension SettingsStringsEN {
+    var pageIntel: String { "Intel" }
+    var pageTranslation: String { "Translation" }
+    var aboutChatLogsNote: String {
+        "Intel and translation only read chat logs and game logs. Translation sends chat text to the model service you choose. When online name checking is on, pilot names that run together in intel messages are sent to CCP's ESI API."
+    }
+    var chatLogStatusStopped: String { "Off" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "Watching \(directory), following \(files == 1 ? "1 log file" : "\(files) log files")"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "Chat log folder not found: \(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "No permission to read \(path)" }
+    var chatLogHelp: String {
+        "The EVE client must be set to log chat to file. The log folder is set on the Alerts page."
+    }
+}

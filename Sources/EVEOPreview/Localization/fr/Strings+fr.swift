@@ -313,3 +313,30 @@ struct SettingsStringsFR: SettingsStrings {
             + "Ce projet n'est ni affilié à CCP ni approuvé par CCP."
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，法文。
+extension MenuStringsFR {
+    var showIntelOverlay: String { "Afficher l’overlay de renseignement" }
+    var showTranslationOverlay: String { "Afficher l’overlay de traduction" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，法文。
+extension SettingsStringsFR {
+    var pageIntel: String { "Renseignement" }
+    var pageTranslation: String { "Traduction" }
+    var aboutChatLogsNote: String {
+        "Le renseignement et la traduction lisent uniquement les journaux de discussion et les journaux de jeu. La traduction envoie le texte des discussions au service de modèle que vous choisissez. Lorsque la vérification des noms en ligne est activée, les noms de pilotes qui se suivent dans les messages de renseignement sont envoyés à l'API ESI de CCP."
+    }
+    var chatLogStatusStopped: String { "Désactivé" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "Surveillance de \(files) \(frenchPlural(files, singular: "journal", plural: "journaux")) dans \(directory)"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "Dossier des journaux de discussion introuvable : \(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "Lecture non autorisée : \(path)" }
+    var chatLogHelp: String {
+        "Le client EVE doit être réglé pour enregistrer les discussions dans un fichier. Le dossier des journaux se règle sur la page « Alertes »."
+    }
+}

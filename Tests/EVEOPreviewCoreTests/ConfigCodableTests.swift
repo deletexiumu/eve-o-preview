@@ -76,8 +76,10 @@ struct ConfigCodableTests {
         let object = try jsonObject(AppConfig.makeDefault())
         #expect(Set(object.keys) == ["schemaVersion", "activeProfileID", "profiles", "general"])
         let general = try #require(object["general"] as? [String: Any])
-        // eveLogDirectory 为 nil 时不写进 JSON。v1.1 加了 4 个键（v1.1 设计 3.1 节、第 19 节）。
-        let v11Keys: Set<String> = ["checkForUpdates", "autoInstallUpdates", "logLevel", "showDockIcon"]
+        // eveLogDirectory 为 nil 时不写进 JSON。v1.1 加了 4 个键（v1.1 设计 3.1 节、第 19 节），
+        // 预警与翻译加了 translationEndpoint（docs/design-intel-translate.md 3.1 节）。
+        let v11Keys: Set<String> = ["checkForUpdates", "autoInstallUpdates", "logLevel", "showDockIcon",
+                                    "translationEndpoint"]
         #expect(Set(general.keys) == Set(["pollIntervalMs", "onboardingCompleted", "language"]).union(v11Keys))
         var withDirectory = AppConfig.makeDefault()
         withDirectory.general.eveLogDirectory = "~/EVE/logs"
@@ -94,7 +96,8 @@ struct ConfigCodableTests {
         let object = try jsonObject(profile)
         #expect(Set(object.keys) == ["id", "name", "thumbnail", "overlay", "behavior", "capture", "layouts",
                                      "loginPosition", "hiddenCharacters", "highlightColors", "cycleGroups",
-                                     "characterHotkeys", "hotkeys", "hotkeyDefaultScope", "combatAlert"])
+                                     "characterHotkeys", "hotkeys", "hotkeyDefaultScope", "combatAlert",
+                                     "intel", "translation"])
         let thumbnail = try #require(object["thumbnail"] as? [String: Any])
         #expect(Set(thumbnail.keys) == ["defaultSize", "minimumSize", "maximumSize", "opacity", "zoomEnabled",
                                         "zoomFactor", "zoomAnchor", "snapEnabled", "lockAspectRatio"])
@@ -300,5 +303,99 @@ extension ConfigCodableTests {
         expected.general.logLevel = .info
         expected.general.showDockIcon = true
         #expect(reloaded == expected)
+    }
+}
+
+/// 预警与翻译设置的编解码（docs/design-intel-translate.md 3.1 节、3.2 节、14.1 节）。频道名是虚构的。
+struct ChatConfigCodableTests {
+    /// 编码为 JSON 对象，便于检查键名。
+    private func jsonObject<T: Encodable>(_ value: T) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(value)
+        return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    /// 缺少全部新键的旧文件：两个功能都关闭，各项取默认值。
+    @Test func oldFileUsesDefaults() throws {
+        let json = #"{"schemaVersion":1,"activeProfileID":"p","profiles":[{"id":"p","name":"Main"}],"general":{}}"#
+        let config = try JSONDecoder().decode(AppConfig.self, from: Data(json.utf8))
+        let profile = config.profiles[0]
+        #expect(profile.intel == IntelSettings() && profile.translation == TranslationSettings())
+        #expect(!profile.intel.enabled && !profile.translation.enabled)
+        #expect(profile.intel.windowMinutes == 30 && profile.intel.maxJumps == 15 && profile.intel.alertJumps == 5)
+        #expect(profile.intel.showOriginal && profile.intel.referenceSystem == nil)
+        #expect(profile.intel.resolvePilotNames)
+        #expect(profile.intel.overlay == OverlayPanelSettings(frame: nil, opacity: 0.75, fontSize: 12))
+        #expect(profile.translation.targetLanguage == .ui && profile.translation.showOriginal)
+        #expect(!profile.translation.foreignOnly)
+        #expect(config.general.translationEndpoint == TranslationEndpointSettings(provider: .deepseek))
+    }
+
+    /// 新键的 JSON 名称与 3.1 节一致。
+    @Test func keyNames() throws {
+        var profile = Profile(name: "Main")
+        profile.intel.referenceSystem = "Jita"
+        profile.intel.overlay.frame = ScreenRect(x: 1, y: 2, width: 300, height: 200)
+        let object = try jsonObject(profile)
+        let intel = try #require(object["intel"] as? [String: Any])
+        #expect(Set(intel.keys) == ["enabled", "channels", "windowMinutes", "maxJumps", "alertJumps", "showOriginal",
+                                    "referenceSystem", "resolvePilotNames", "overlay"])
+        let overlay = try #require(intel["overlay"] as? [String: Any])
+        #expect(Set(overlay.keys) == ["frame", "opacity", "fontSize"])
+        #expect(Set((overlay["frame"] as? [String: Any])?.keys ?? [:].keys) == ["x", "y", "width", "height"])
+        let translation = try #require(object["translation"] as? [String: Any])
+        #expect(Set(translation.keys) == ["enabled", "channels", "targetLanguage", "showOriginal", "foreignOnly",
+                                          "overlay"])
+        let general = try jsonObject(GeneralSettings())
+        let endpoint = try #require(general["translationEndpoint"] as? [String: Any])
+        #expect(Set(endpoint.keys) == ["provider", "baseURL", "model"])
+        #expect(endpoint["provider"] as? String == "deepseek")
+    }
+
+    /// resolvePilotNames（6.9 节）：缺失时取 true；写成 false 时往返一致，其他键不受影响。
+    @Test func resolvePilotNamesCoding() throws {
+        let missing = try JSONDecoder().decode(IntelSettings.self, from: Data(#"{"enabled":true}"#.utf8))
+        #expect(missing.resolvePilotNames && missing.enabled)
+        let off = try JSONDecoder().decode(IntelSettings.self, from: Data(#"{"resolvePilotNames":false}"#.utf8))
+        #expect(!off.resolvePilotNames && !off.enabled && off.maxJumps == 15)
+        #expect(try jsonObject(off)["resolvePilotNames"] as? Bool == false)
+        var config = AppConfig.makeDefault()
+        config.profiles[0].intel.resolvePilotNames = false
+        let again = try JSONDecoder().decode(AppConfig.self, from: JSONEncoder().encode(config))
+        #expect(again == config && !again.profiles[0].intel.resolvePilotNames)
+    }
+
+    /// targetLanguage 与 provider 是不认识的值时取默认值，不抛错。
+    @Test func unknownEnumValues() throws {
+        let translation = try JSONDecoder().decode(TranslationSettings.self,
+                                                   from: Data(#"{"targetLanguage":"tlh","enabled":true}"#.utf8))
+        #expect(translation.targetLanguage == .ui && translation.enabled)
+        let endpoint = try JSONDecoder().decode(TranslationEndpointSettings.self,
+                                                from: Data(#"{"provider":42,"model":"m"}"#.utf8))
+        #expect(endpoint.provider == .deepseek && endpoint.model == "m")
+    }
+
+    /// ChannelRef 没有 id 时编码里省略 id；解码时 name 缺失为空串。
+    @Test func channelRefCoding() throws {
+        let object = try jsonObject(ChannelRef(name: "intel.Demo"))
+        #expect(Set(object.keys) == ["name"])
+        let decoded = try JSONDecoder().decode(ChannelRef.self, from: Data(#"{"id":"corp"}"#.utf8))
+        #expect(decoded == ChannelRef(name: "", id: "corp"))
+    }
+
+    /// 改过新键的配置往返一致。
+    @Test func roundTrip() throws {
+        var config = AppConfig.makeDefault()
+        config.profiles[0].intel = IntelSettings(enabled: true, channels: [ChannelRef(name: "intel.Demo", id: "player_1")],
+                                                 windowMinutes: 45, maxJumps: 10, alertJumps: 3, showOriginal: false,
+                                                 referenceSystem: "Jita",
+                                                 overlay: OverlayPanelSettings(frame: ScreenRect(x: 5, y: 6, width: 400,
+                                                                                                 height: 300),
+                                                                               opacity: 0.5, fontSize: 14))
+        config.profiles[0].translation = TranslationSettings(enabled: true, channels: [.local], targetLanguage: .ko,
+                                                             showOriginal: false, foreignOnly: true)
+        config.general.translationEndpoint = TranslationEndpointSettings(provider: .ollama, baseURL: "http://h:1",
+                                                                         model: "qwen")
+        let data = try JSONEncoder().encode(config)
+        #expect(try JSONDecoder().decode(AppConfig.self, from: data) == config)
     }
 }

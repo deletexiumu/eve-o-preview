@@ -25,11 +25,13 @@ Este repositorio empezó como un fork en GitHub de EveOPlus/eve-o-preview y se t
 - Disposición: arrastra para mover y redimensionar, con ajuste a otras miniaturas y a los bordes de la pantalla, y bloqueo opcional de la disposición. La posición y el tamaño se guardan por personaje; los clientes en la pantalla de inicio de sesión usan una posición inicial aparte.
 - Grupos de ciclo: atajos hacia delante y hacia atrás, omisión durante la sesión actual; atajos por personaje; un atajo para recorrer los clientes en la pantalla de inicio de sesión; atajos para ocultar todas las miniaturas y minimizar todos los clientes. Los atajos pueden usar los botones central y laterales del ratón, y cada atajo puede ser global o solo para EVE.
 - Alertas de combate (desactivadas por omisión): leen los registros del juego y hacen parpadear la miniatura de un personaje cuando lo atacan.
+- Superposición de inteligencia (desactivada por omisión): lee los registros de chat de los canales de inteligencia que elijas y muestra, para el personaje de la ventana de EVE en primer plano, en qué sistemas se informa de hostiles, a cuántos saltos están, cuántos son y qué naves llevan (consulta [Superposición de inteligencia](#superposición-de-inteligencia)).
+- Superposición de traducción del chat (desactivada por omisión): traduce a tu idioma los mensajes en otros idiomas de los canales que elijas, con un servicio de modelos que tú eliges y tu propia clave de API (consulta [Traducción del chat](#traducción-del-chat)).
 - Perfiles: crear, duplicar, renombrar, eliminar y cambiar.
 - Actualizaciones: busca nuevas versiones en GitHub y las instala desde la propia app tras verificar la descarga y su firma de código (consulta [Actualizaciones](#actualizaciones)).
 - Informes de problemas: genera un zip de diagnóstico anonimizado y abre un issue de GitHub ya rellenado; tras un cierre inesperado, el siguiente arranque ofrece informar de él (consulta [Informar de un problema](#informar-de-un-problema)).
 - Un icono en la barra de menús en lugar del icono de la bandeja de Windows.
-- Una ventana de ajustes de 8 páginas: Clientes, Miniaturas, Cambio y atajos, Alertas, Perfiles, General, Permisos y Acerca de.
+- Una ventana de ajustes de 10 páginas: Clientes, Miniaturas, Cambio y atajos, Alertas, Inteligencia, Traducción, Perfiles, General, Permisos y Acerca de.
 - Idiomas de la interfaz: inglés (predeterminado), chino, ruso, japonés, coreano, francés, alemán y español. Cámbialo en la página General o elige “Según el sistema”; el cambio surte efecto al instante. Las traducciones al ruso, japonés, coreano, francés, alemán y español son automáticas; se agradecen las correcciones.
 
 ## Funciones del proyecto original no portadas
@@ -102,7 +104,8 @@ La app usa los permisos del sistema que se indican a continuación, todos conced
 | --- | --- | --- |
 | Grabación de pantalla | Capturar las ventanas de los clientes y leer los títulos de las ventanas | Las miniaturas muestran un texto provisional; si además falta Accesibilidad, no se pueden leer los títulos y los clientes aparecen como `EVE (PID)` |
 | Accesibilidad | Restaurar, traer al frente y minimizar las ventanas de los clientes, leer los títulos de las ventanas, interceptar los atajos del ratón | Solo se puede activar el proceso del cliente, así que las ventanas minimizadas no se pueden restaurar; Minimizar y Minimizar todos están desactivados; los atajos del ratón no funcionan, los de teclado sí |
-| Carpeta Documentos | Las alertas de combate leen `~/Documents/EVE/logs/Gamelogs` | Solo se solicita al activar las alertas de combate; si se deniega, la página Alertas muestra el motivo y las demás funciones no se ven afectadas |
+| Carpeta Documentos | Las alertas de combate leen `~/Documents/EVE/logs/Gamelogs`; las superposiciones de inteligencia y de traducción leen `~/Documents/EVE/logs/Chatlogs`, y la de inteligencia también lee los registros del juego para saber tu ubicación | Solo se solicita al activar una de estas funciones o al hacer clic en “Actualizar” en el menú “Añadir desde los registros”; si se deniega, la página de esa función muestra el motivo y las demás funciones no se ven afectadas |
+| Red local (macOS 15 y posterior) | Conectar con un servicio de traducción en otro ordenador de la red local, por ejemplo Ollama | Solo se solicita cuando el servicio de traducción se ejecuta en otro ordenador de la red local, no para este Mac ni para servicios públicos; haz clic en “Probar” en la página Traducción para que la petición aparezca antes. Si se deniega, las solicitudes a ese ordenador fallan con un error de red. No aparece en la página Permisos |
 
 Tras conceder Grabación de pantalla, normalmente hay que reiniciar la app para que surta efecto; la página Permisos tiene un botón Reiniciar. Accesibilidad surte efecto al instante.
 
@@ -174,9 +177,53 @@ Actívalas en la página Alertas de la ventana de ajustes. La app lee entonces l
 - La primera vez, macOS pide acceso a la carpeta Documentos. Si tus registros están en otro sitio, elige la carpeta en la página Alertas.
 - El formato de registro del cliente chino se ha comprobado con registros reales. Las líneas de daño en japonés y ruso se han comprobado con registros reales de clientes (las muestras grabadas del proyecto original); sus líneas de fallo solo se deducen de plantillas. Inglés, alemán, francés, español y coreano se deducen de las plantillas del proyecto original y no se han comprobado con registros reales.
 
+### Superposición de inteligencia
+
+Actívala con “Mostrar superposición de inteligencia” en la página Inteligencia de la ventana de ajustes, o con Mostrar superposición de inteligencia en el menú de la barra de menús. La app lee entonces los registros de chat que los clientes escriben en `~/Documents/EVE/logs/Chatlogs`, junto a la carpeta de registros del juego elegida en la página Alertas. Cada línea de la superposición es un mensaje de tus canales de inteligencia: su antigüedad, cada sistema con su nivel de seguridad y su distancia en saltos desde tu ubicación, el número de hostiles, las naves y los nombres de los pilotos.
+
+- El cliente de EVE debe estar configurado para guardar el chat en un archivo.
+- Canales: elige “Añadir desde los registros” para escoger entre los canales de tus registros de chat recientes (cada uno indica cuántos de tus personajes están en él), o escribe el nombre de un canal y pulsa Retorno. La carpeta de registros solo se lee cuando la función está activada o cuando haces clic en “Actualizar” en el menú “Añadir desde los registros”; mientras la función está desactivada, el menú muestra al principio solo “Actualizar” (y, en la página Traducción, los canales integrados). Hasta 16 canales. Las conversaciones privadas nunca se leen ni se muestran en la lista.
+- Al activarla, la superposición se llena con los mensajes de los últimos 30 minutos (“Conservar los últimos”, 5–120 minutos); las líneas más antiguas desaparecen.
+- Ubicación: los saltos se cuentan desde el sistema donde está el personaje activo. La app lo obtiene de las líneas de salto y de desatraque de los registros del juego y de los mensajes de cambio de sistema del registro de chat Local. Si no hay ninguno de los dos, escribe un nombre de sistema para ese personaje en “Mi ubicación” y pulsa Retorno; un nombre desconocido muestra “No se encuentra el sistema”. El siguiente salto reemplaza una ubicación manual, y una ubicación manual se conserva al reiniciar. Un personaje sin ninguna ubicación cuenta los saltos desde el “Sistema de referencia”.
+- “Contar hasta” limita el número de saltos (1–30, 15 por omisión). “Resaltar a menos de” resalta un mensaje cuando un sistema informado está a ese número de saltos o menos (5 por omisión; 0 lo desactiva). “Mostrar el texto original” añade el remitente y el mensaje en una segunda línea.
+- Los nombres de sistemas y naves se muestran en el idioma de la interfaz.
+- Los nombres de pilotos son lo que queda de un mensaje después de reconocer sistemas, naves y cantidades, así que los nombres con espacios que van seguidos son ambiguos. Con “Comprobación de nombres en línea (ESI)” activada (por omisión), la app pregunta a la ESI de CCP cuáles de esas palabras son nombres reales de personajes y los separa en consecuencia (consulta [Privacidad](#privacidad)). Una coincidencia solo indica que existe un personaje con ese nombre, no que sea el aludido. Un nombre encontrado tiene un enlace a zKillboard en “Abrir en el navegador” del menú contextual. “Vaciar caché de nombres” borra los nombres guardados.
+
+### Traducción del chat
+
+Actívala con “Mostrar superposición de traducción” en la página Traducción, o con Mostrar superposición de traducción en el menú de la barra de menús. Traduce los mensajes de los canales elegidos que aún no están en el idioma de destino.
+
+1. Elige los canales como para la superposición de inteligencia; “Añadir desde los registros” también muestra los canales integrados Local, Corporación, Alianza y Flota.
+2. En “Traducir al”, elige un idioma, o “Igual que el idioma de la interfaz” (por omisión).
+3. Elige un “Servicio”: DeepSeek (por omisión), Claude (Anthropic), OpenAI, Qwen (DashScope), Kimi (Moonshot), Ollama u “Otro (compatible con OpenAI)”. “Dirección de la API” y “Nombre del modelo” muestran los valores del preajuste; escribe otros para reemplazarlos.
+4. Pega tu clave de API y haz clic en “Guardar”. La clave se guarda en el llavero de macOS; “Eliminar clave” la borra. Ollama no necesita clave.
+5. Haz clic en “Probar” para traducir una frase de ejemplo fija.
+
+- Al modelo solo se envían los mensajes que recibe el personaje del cliente activo. Una misma frase se traduce una sola vez y después se toma de la caché. No se envían los mensajes que solo contienen sistemas y naves. Si el idioma de destino es chino, japonés, coreano o ruso, tampoco se envían los mensajes que ya están en ese idioma. Si es inglés, alemán, francés o español, todos esos mensajes se envían al modelo, que decide si ya están en el idioma de destino. Los nombres de sistemas, regiones y naves usan su nombre oficial en el idioma de destino.
+- Cada línea muestra la hora de EVE, el canal (solo si traduces más de uno), el remitente y la traducción. “Mostrar también el texto original” añade el original debajo; “Mostrar solo los mensajes traducidos” oculta los mensajes omitidos por estar ya en el idioma de destino, incluidos los que el modelo consideró escritos en él.
+- Si el servicio rechaza la clave o se agota la cuota, la traducción se pausa y la línea de estado indica el motivo; “Reintentar ahora” lo intenta de nuevo.
+- Las direcciones públicas deben usar `https`; `http` solo se acepta para este Mac o la red local, como Ollama en `http://127.0.0.1:11434/v1`.
+- Las solicitudes usan tu cuenta en el servicio elegido y pueden costar dinero.
+- Tras recompilar con otra firma, macOS puede pedir permiso para leer el elemento del llavero cuando haces clic en “Probar” o “Reintentar ahora”. Las lecturas en segundo plano están diseñadas para no mostrar esta petición; en su lugar, la línea de estado te pide que vuelvas a guardar la clave. Esto aún hay que comprobarlo a mano tras una recompilación real.
+
+### Gestos de las superposiciones
+
+Las superposiciones de inteligencia y de traducción son paneles separados que se comportan como las miniaturas: nunca toman el foco, aparecen en todos los Spaces y muestran solo el personaje de la ventana de EVE en primer plano, cambiando de contenido en cuanto cambias de cliente. Los clics no pasan al juego. El mensaje más reciente está abajo y la lista se queda ahí. Si te desplazas hacia arriba, la lista deja de seguir los mensajes nuevos y aparece abajo una barra “N nuevos”; haz clic en ella para volver a lo más reciente.
+
+| Acción | Gesto |
+| --- | --- |
+| Desplazar la lista | Rueda del ratón o deslizar con dos dedos |
+| Mover | Arrastrar con el botón derecho, u Opción + arrastrar con el botón izquierdo |
+| Redimensionar | El mismo gesto que para mover, empezando a menos de 12 puntos del borde de la superposición |
+| Desactivar temporalmente el ajuste | Mantén pulsada Mayúsculas al arrastrar |
+| Abrir el menú | Clic derecho (moviendo menos de 4 puntos entre pulsar y soltar) |
+| Volver a lo más reciente | Clic en la barra “N nuevos” |
+
+El menú contextual ofrece Desplazar a lo más reciente, Copiar esta línea, Abrir en el navegador (solo en líneas con enlaces), Vaciar lista, Bloquear disposición, Restablecer posición y tamaño, Ocultar esta superposición y Abrir ajustes…. “Opacidad del fondo” (20 %–100 %, solo el fondo; el texto sigue opaco) y “Tamaño de letra” (10–24 puntos) están en la página de cada función. “Bloquear disposición” y “Ocultar las miniaturas si EVE no está en primer plano” también se aplican a las superposiciones; ocultar todas las miniaturas solo afecta a las miniaturas.
+
 ### Barra de menús
 
-El icono de la barra de menús coincide con el icono de la app: una molécula dentro de un octógono. El menú ofrece: Mostrar u ocultar todas las miniaturas, cambiar de perfil, Minimizar todos los clientes, Atajos solo en EVE, Buscar actualizaciones…, Informar de un problema…, Ajustes y Salir. Cuando hay una actualización disponible o la ejecución anterior se cerró inesperadamente, aparece un punto en el icono y el menú muestra un ítem al respecto en la parte superior. Cuando falta un permiso, el menú tiene un ítem adicional sobre ello. Si detienes la captura de un cliente desde el indicador de grabación del sistema, el menú añade un ítem “Reanudar captura”.
+El icono de la barra de menús coincide con el icono de la app: una molécula dentro de un octógono. El menú ofrece: Mostrar u ocultar todas las miniaturas, cambiar de perfil, Minimizar todos los clientes, Atajos solo en EVE, Mostrar superposición de inteligencia, Mostrar superposición de traducción, Buscar actualizaciones…, Informar de un problema…, Ajustes y Salir. Cuando hay una actualización disponible o la ejecución anterior se cerró inesperadamente, aparece un punto en el icono y el menú muestra un ítem al respecto en la parte superior. Cuando falta un permiso, el menú tiene un ítem adicional sobre ello. Si detienes la captura de un cliente desde el indicador de grabación del sistema, el menú añade un ítem “Reanudar captura”.
 
 EVE-O Preview también muestra su icono en el Dock; al hacer clic en él se abre la ventana de ajustes. Para dejar solo el icono de la barra de menús, desactiva “Mostrar icono en el Dock” en Ajustes > General.
 
@@ -200,7 +247,7 @@ La app conserva hasta 5 archivos de registro de 1 MiB cada uno en `~/Library/Log
 
 ## Privacidad
 
-La versión 1.0.0 no hacía ninguna solicitud de red. Desde la 1.1.0, la app solo se conecta a GitHub, y solo para las actualizaciones:
+La versión 1.0.0 no hacía ninguna solicitud de red. Desde la 1.1.0, la app se conecta a GitHub para las actualizaciones y no hace ninguna otra conexión salvo que actives alguna de las funciones opcionales descritas después de esta lista:
 
 - La búsqueda de actualizaciones solicita `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` al arrancar y una vez al día mientras “Buscar actualizaciones automáticamente” está activado, y cada vez que eliges “Buscar actualizaciones…”.
 - Cuando se ofrece una versión nueva, la app también solicita una vez la lista de versiones `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`, con las mismas cabeceras, para mostrar las notas de las versiones que te saltaste.
@@ -208,14 +255,24 @@ La versión 1.0.0 no hacía ninguna solicitud de red. Desde la 1.1.0, la app sol
 
 Las solicitudes solo llevan la versión de la app en la cabecera `User-Agent`, un `Accept-Language: en` fijo y una etiqueta de caché; no se envían nombres de personajes, ajustes, registros, datos del hardware, versión del sistema ni identificadores, y no se usan cookies. GitHub ve tu dirección IP y la hora de la solicitud. No hay telemetría ni envío automático de fallos: “Informar de un problema…” solo crea un zip en tu Mac y abre una página web que tú decides si enviar.
 
+Las superposiciones de inteligencia y de traducción solo leen los registros de chat y del juego; nunca escriben en ellos, y las conversaciones privadas nunca se leen. Dos funciones opcionales se conectan a otros servicios:
+
+- Comprobación de nombres de pilotos: “Comprobación de nombres en línea (ESI)” está activada por omisión en cuanto activas la superposición de inteligencia. Cuando un mensaje de inteligencia recibido por el personaje activo contiene nombres de pilotos de dos o más palabras seguidos, la app envía esas palabras, sueltas y en combinaciones de hasta tres, a la ESI de CCP en `esi.evetech.net/universe/ids`. No envía el remitente, el canal ni el resto del mensaje; los nombres de tus propios personajes solo se incluyen si alguien los escribió en un mensaje de inteligencia. Un nombre que aparece solo y tiene una sola palabra nunca se consulta. CCP ve tu dirección IP y la cabecera `User-Agent`, que contiene la versión de la app y la URL del proyecto. Desactiva el ajuste en la página Inteligencia para detener estas solicitudes. La app nunca se conecta por sí misma a zKillboard: “Abrir en el navegador” abre la página de zKillboard de un personaje en tu navegador, con solo el ID del personaje en la dirección.
+- Traducción del chat (desactivada por omisión): el texto de los mensajes que recibe el personaje del cliente activo en tus canales de traducción se envía al servicio de modelos elegido en la página Traducción, junto con los nombres oficiales de los sistemas y naves que mencionan. No se envían los nombres de remitentes ni de canales; “Probar” envía una frase de ejemplo fija. La clave de API se guarda solo en el llavero de macOS, con el servicio `io.github.deletexiumu.eveopreview-macos.translation` y un elemento por servicio de modelos, y solo se envía a ese servicio. Nunca aparece en el archivo de configuración, los registros ni los informes de problemas. Las direcciones públicas deben usar `https`; `http` solo se acepta para este Mac o la red local, por ejemplo Ollama. Lo que el servicio haga con el texto se rige por sus propias condiciones.
+
+Los informes de problemas contienen los ajustes de estas funciones como números e interruptores (como el número de canales y el servicio elegido), pero no nombres de canales ni de sistemas, direcciones de API, nombres de modelos, nombres de pilotos, texto del chat ni claves.
+
 La app guarda datos en estos lugares. Para desinstalarla por completo, elimínalos junto con la app y `~/Library/Application Support/EVE-O Preview/config.json`:
 
 | Ubicación | Contenido |
 | --- | --- |
 | `~/Library/Logs/EVE-O Preview/` | Registros de la app, unos 5 MiB como máximo |
-| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Marcador de sesión; registros de actualizaciones y diagnóstico |
+| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Marcador de sesión; registros de actualizaciones y diagnóstico; ubicaciones manuales de inteligencia |
 | `~/Library/Application Support/EVE-O Preview/Reports/` | Los zips de informes de problemas que has creado, anonimizados (los 3 más recientes) |
 | `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/` | Archivos de actualización descargados, que se eliminan tras la instalación |
+| `~/Library/Application Support/EVE-O Preview/pilot-names.json` | Nombres de pilotos e ID de personajes encontrados por la ESI (datos públicos del juego), guardados durante 30 días. Solo tú puedes leerlo (0600) y nunca se incluye en los informes de problemas; “Vaciar caché de nombres” en la página Inteligencia lo vacía. Los nombres sin coincidencia solo se guardan en memoria durante 6 horas |
+| `~/Library/Application Support/EVE-O Preview/translation-cache.json` | Texto original y traducido de los mensajes, sin nombres de remitentes ni de canales. Solo tú puedes leerlo (0600) y nunca se incluye en los informes de problemas; “Vaciar caché” en la página Traducción lo vacía |
+| Elementos del llavero con el servicio `io.github.deletexiumu.eveopreview-macos.translation` | Tus claves de API de traducción, una por servicio de modelos; “Eliminar clave” en la página Traducción borra la del servicio actual |
 
 ## Archivo de configuración
 
@@ -243,8 +300,13 @@ La página Perfiles tiene un botón “Mostrar en Finder”.
 | `swift run EVEOProbe update verify <new app> <base app>` | Comprobar si una nueva app cumple el designated requirement de la app base |
 | `swift run EVEOProbe update prepare <url> [--cache dir]` | Descargar y verificar una actualización sin instalarla |
 | `scripts/make-update-test-feed.sh [version]` | Escribir un `feed.json` para una prueba local de actualización a partir de `dist/release/` |
+| `swift run EVEOProbe staticdata` | Mostrar dónde se encontró el archivo de datos del mapa, su versión del SDE, el número de registros y el tiempo de una tabla de distancias de 15 saltos |
+| `swift run EVEOProbe chatlog [dir] [--follow seconds]` | Mostrar la carpeta de registros de chat, los tipos de canal y el número de mensajes y líneas de ubicación, sin nombres ni texto de los mensajes |
+| `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | Contar mensajes de inteligencia, sistemas, naves y nombres de pilotos en los registros de chat recientes; `--resolve-sample` envía tres nombres inventados a la ESI y `--resolve` envía a la ESI los nombres de pilotos de tus registros |
+| `swift run EVEOProbe translate [--provider id] [--model name] [--base-url url] [--target language] [--dry-run]` | Enviar un ejemplo fijo a un servicio de modelos, con la clave tomada solo de `EVEO_TRANSLATION_API_KEY`. Sin `--dry-run` es una solicitud real que puede costar dinero |
+| `python3 scripts/build-sde-data.py [--check]` | Descargar el SDE de CCP y regenerar `packaging/eve-static.json`; `--check` solo compara la versión del SDE |
 
-El modo de demostración escribe su configuración en `config-fake.json` en la misma carpeta, sin tocar la configuración real. Estas variables de entorno ayudan a depurar:
+El modo de demostración escribe su configuración en `config-fake.json` en la misma carpeta, sin tocar la configuración real. También ofrece dos canales de chat ficticios, `intel.Demo` y `chat.Demo`, traduce con un servicio ficticio que antepone 〔译〕 a cada línea y comprueba los nombres de pilotos sin conexión de red. Estas variables de entorno ayudan a depurar:
 
 | Variable | Función |
 | --- | --- |
@@ -259,6 +321,10 @@ El modo de demostración escribe su configuración en `config-fake.json` en la m
 | `EVEO_UPDATE_FEED_URL` | Buscar actualizaciones en esta dirección en lugar de GitHub; solo `https` o `http` en un host de loopback. Las compilaciones firmadas con un certificado local pueden instalar desde ella; la comprobación de la firma no se relaja |
 | `EVEO_UPDATE_UI_STATE` | En el modo de demostración, mostrar la interfaz de actualización en un estado de ejemplo: `available`, `notifyonly`, `downloading`, `ready`, `failed` o `uptodate` |
 | `EVEO_FAKE_CRASH` | `1` en el modo de demostración simula que la ejecución anterior falló, para mostrar el aviso del informe de fallo |
+| `EVEO_STATIC_DATA` | Usar este archivo de datos del mapa en lugar del incluido en la app |
+| `EVEO_TRANSLATION_API_KEY` | Clave de API solo para `EVEOProbe translate`; la app nunca la lee |
+
+Los datos del mapa y de las naves que usan las superposiciones de inteligencia y de traducción (sistemas, regiones, portales estelares, grupos de naves y naves, con sus nombres en los 8 idiomas de la interfaz) se generan a partir de la exportación de datos estáticos de CCP (SDE) con `scripts/build-sde-data.py` y se incluyen en la app como `packaging/eve-static.json`; `scripts/build-app.sh` copia el archivo en la app. La app no descarga estos datos durante la ejecución. Para probar un archivo más reciente sin recompilar, colócalo en `~/Library/Application Support/EVE-O Preview/eve-static.json`.
 
 El código fuente tiene 3 módulos: `EVEOPreviewCore` es la capa de lógica pura, `EVEOPreviewPlatform` envuelve AppKit, ScreenCaptureKit, Accesibilidad y los atajos de Carbon, y `EVEOPreview` es la propia app. La arquitectura se describe en [docs/architecture.md](docs/architecture.md) (en chino).
 
@@ -277,9 +343,9 @@ Los nombres de los archivos (`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), l
 
 ## Aviso legal
 
-Esta herramienta solo cambia el foco de las ventanas. No reenvía la entrada a varios clientes y no lee ni modifica la memoria del juego, el mismo límite que el proyecto original. Lee el Acuerdo de Licencia de Usuario Final de EVE Online antes de usarla.
+Esta herramienta solo cambia el foco de las ventanas. No reenvía la entrada a varios clientes y no lee ni modifica la memoria del juego, el mismo límite que el proyecto original. Las superposiciones de inteligencia y de traducción solo leen los archivos de registro que escribe el cliente. Lee el Acuerdo de Licencia de Usuario Final de EVE Online antes de usarla.
 
-La app solo se conecta a GitHub para buscar y descargar actualizaciones, y no envía datos personales (consulta [Privacidad](#privacidad)).
+La app se conecta a GitHub para buscar y descargar actualizaciones. Solo se conecta a la ESI de CCP y a un servicio de traducción si activas esas funciones opcionales, y solo envía lo que describe [Privacidad](#privacidad).
 
 EVE Online y los logotipos relacionados son marcas comerciales de CCP ehf. Este proyecto no está afiliado a CCP ni cuenta con su respaldo.
 

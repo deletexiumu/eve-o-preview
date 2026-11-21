@@ -95,12 +95,15 @@ public struct GeneralSettings: Sendable, Equatable, Codable {
     public var logLevel: LogLevel
     /// 是否在 Dock 里显示图标。v1.1 新增，默认 true；为 false 时只有菜单栏图标（设计第 19 节）。
     public var showDockIcon: Bool
+    /// 聊天翻译的模型服务：预设、地址与模型名。对全部配置方案生效（docs/design-intel-translate.md 3.1 节）。
+    public var translationEndpoint: TranslationEndpointSettings
 
     /// 用各字段建全局设置，默认值见各属性。
     public init(pollIntervalMs: Int = 1000, onboardingCompleted: Bool = false,
                 language: LanguagePreference = .en, eveLogDirectory: String? = nil,
                 checkForUpdates: Bool = true, autoInstallUpdates: Bool = true, logLevel: LogLevel = .info,
-                showDockIcon: Bool = true) {
+                showDockIcon: Bool = true,
+                translationEndpoint: TranslationEndpointSettings = TranslationEndpointSettings()) {
         self.pollIntervalMs = pollIntervalMs
         self.onboardingCompleted = onboardingCompleted
         self.language = language
@@ -109,6 +112,7 @@ public struct GeneralSettings: Sendable, Equatable, Codable {
         self.autoInstallUpdates = autoInstallUpdates
         self.logLevel = logLevel
         self.showDockIcon = showDockIcon
+        self.translationEndpoint = translationEndpoint
     }
 
     /// 解码时缺失的键取默认值；`language` 与 `logLevel` 不认识或类型不对时取默认值，不抛错。
@@ -124,5 +128,7 @@ public struct GeneralSettings: Sendable, Equatable, Codable {
         autoInstallUpdates = try c.decodeIfPresent(Bool.self, forKey: .autoInstallUpdates) ?? d.autoInstallUpdates
         logLevel = LenientDecoding.value(LogLevel.self, in: c, forKey: .logLevel, default: d.logLevel)
         showDockIcon = try c.decodeIfPresent(Bool.self, forKey: .showDockIcon) ?? d.showDockIcon
+        translationEndpoint = try c.decodeIfPresent(TranslationEndpointSettings.self, forKey: .translationEndpoint)
+            ?? d.translationEndpoint
     }
 }

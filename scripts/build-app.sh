@@ -53,6 +53,13 @@ echo "==> 组装 ${APP}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/EVEOPreview"
+# 2b. 星图数据（docs/design-intel-translate.md 4.4 节）：随包分发，应用用 Bundle.main 读取。
+#     在签名之前放入，签名时一并封存。文件缺失时只警告：预警不认星系与舰船，其余功能照常。
+if [[ -f "$ROOT/packaging/eve-static.json" ]]; then
+    cp "$ROOT/packaging/eve-static.json" "$APP/Contents/Resources/eve-static.json"
+else
+    echo "警告：缺少 packaging/eve-static.json，预警浮窗将不认星系与舰船（运行 scripts/build-sde-data.py 生成）" >&2
+fi
 
 # 3. 由模板生成 Info.plist，填版本号并检查格式。
 # 版本号里的 /、&、\ 对 sed 的替换串有特殊含义，先转义；& < > 在 plist（XML）里也要转义。

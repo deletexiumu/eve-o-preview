@@ -6,7 +6,7 @@
 //
 // 本文件是状态、轮询与重算；缩略图与菜单的动作在 AppCoordinator+Actions.swift，
 // 热键在 AppCoordinator+Hotkeys.swift，界面语言在 AppCoordinator+Language.swift，
-// 战斗提醒在 AppCoordinator+CombatAlerts.swift，防止 App Nap 的后台活动在 AppCoordinator+Activity.swift。第一轮反馈的接入点见反馈文档 9.1 节第 4 项，
+// 战斗提醒在 AppCoordinator+CombatAlerts.swift，预警与翻译浮窗在 AppCoordinator+ChatOverlays.swift，防止 App Nap 的后台活动在 AppCoordinator+Activity.swift。第一轮反馈的接入点见反馈文档 9.1 节第 4 项，
 // 被调用的方法由各工作包在对应的扩展文件里实现，本文件只负责在固定的位置调用它们。
 // v1.1 的接入点见 v1.1 设计 4.4 节：运行环境、状态文件、推迟弹窗与菜单栏圆点在本文件；
 // 诊断与更新的配置响应在 AppCoordinator+Diagnostics.swift、AppCoordinator+Updates.swift。
@@ -27,6 +27,12 @@ final class AppCoordinator {
     let isFakeMode: Bool
     /// 缩略图面板的管理器。
     let windowManager = ThumbnailWindowManager()
+    /// 预警与翻译浮窗的管理器（docs/design-intel-translate.md 9.3 节）。
+    let overlayManager = InfoOverlayManager()
+    /// 预警与翻译的总控。
+    let chat: ChatFeatureController
+    /// 正在拖动的浮窗；规划结果不改它们的 frame。
+    var interactingOverlays: Set<OverlayKind> = []
 
     /// 已发现的客户端。
     private(set) var registry = ClientRegistry()
@@ -103,6 +109,7 @@ final class AppCoordinator {
         self.isFakeMode = isFakeMode
         self.environment = environment
         self.state = state
+        chat = ChatFeatureController(services: services, state: state, isFakeMode: isFakeMode)
     }
 
     /// 当前配置方案。
@@ -128,6 +135,7 @@ final class AppCoordinator {
         session.lastEVEContextAt = now
         rebuildHotkeys()
         startCombatAlerts()
+        startChatOverlays()
         startPolling()
         startHealthChecks()
     }
@@ -144,6 +152,8 @@ final class AppCoordinator {
         updateBackgroundActivity()
         services.workspace.stop()
         services.combatLog.stop()
+        chat.stop()
+        overlayManager.closeAll()
         windowManager.closeAll()
         await services.capture.stopAll()
     }
@@ -287,6 +297,7 @@ final class AppCoordinator {
         }
         languageSettingDidChange(old: old, new: new)
         combatSettingsDidChange(old: old, new: new)
+        chatSettingsDidChange(old: old, new: new)
         diagnosticsSettingsDidChange(old: old, new: new)
         updateSettingsDidChange(old: old, new: new)
         rebuildHotkeys()
@@ -360,8 +371,10 @@ final class AppCoordinator {
         session.interactingWindows.formIntersection(visibleIDs)
         windowManager.apply(plan.presentations, interacting: session.interactingWindows)
         services.capture.reconcile(plan.captures, liveWindows: Set(registry.clients.map(\.id)))
+        // 浮窗在缩略图之后规划（docs/design-intel-translate.md 9.3 节）；两份规划的唤醒时刻取较早的一个。
+        let overlayWake = replanOverlays()
         persistAutoLayouts(plan.layoutsToPersist)
-        scheduleWake(at: plan.nextWakeAt)
+        scheduleWake(at: [plan.nextWakeAt, overlayWake].compactMap { $0 }.min())
         notifyRuntimeObservers()
     }
 

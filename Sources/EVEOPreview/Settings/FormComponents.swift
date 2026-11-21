@@ -38,6 +38,44 @@ struct CommitTextField: View {
     }
 }
 
+/// 没有「当前值」的输入框：回车时提交；失去焦点时只在草稿自上次提交后改过时提交。
+/// onCommit 返回真（提交成功）后清空草稿；返回假时草稿留着，再失去焦点也不重复提交。
+///
+/// 「预警」页的手动位置用它：CommitTextField 按「草稿与当前值不同」判断，当前值是空串时每次失去焦点都会把
+/// 上次输入的星系名重新提交，盖掉之后游戏日志更新的位置（审查 m5）。
+struct SubmitTextField: View {
+    /// 占位文字。
+    let placeholder: String
+    /// 提交回调，参数是去掉首尾空白的草稿，返回是否成功。
+    let onCommit: (String) -> Bool
+
+    @State private var draft = ""
+    /// 上次提交时的草稿；成功后清空。
+    @State private var lastSubmitted = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField(placeholder, text: $draft)
+            .labelsHidden()
+            .focused($focused)
+            .onSubmit { commit() }
+            .onChange(of: focused) { _, isFocused in
+                if !isFocused, draft != lastSubmitted { commit() }
+            }
+    }
+
+    /// 草稿不为空时提交；成功后清空草稿。
+    private func commit() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        lastSubmitted = draft
+        if onCommit(text) {
+            draft = ""
+            lastSubmitted = ""
+        }
+    }
+}
+
 /// 只在提交时写入的数字框，单位写在右侧。输入无法解析时恢复原值。
 struct NumberField: View {
     /// 左侧标签。

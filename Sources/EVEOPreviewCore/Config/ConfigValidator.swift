@@ -28,6 +28,8 @@ public enum ConfigValidator {
     /// - 战斗提醒的持续时间、最小伤害夹到范围内，非法颜色改回默认值；
     ///   `eveLogDirectory` 去掉首尾空白后是空串时改成 nil（反馈文档 3.2 节）。
     /// - `general.logLevel` 不是 info 或 debug 时改成 info（v1.1 设计 3.1 节）。
+    /// - 预警与翻译：数值夹到范围内，频道去重与截断，空的参考星系改成 nil，不可用的浮窗 frame 改成 nil，
+    ///   接口地址与模型名去掉首尾空白（docs/design-intel-translate.md 3.2 节）。
     /// - 配置方案的 id 为空或重复时换新 UUID；名称去掉首尾空白，为空时用 `Profile`，
     ///   超长时截断，不区分大小写重名时追加 ` 2`、` 3` 等序号。循环组 id 同理。
     /// - 没有配置方案时补一个 `Default`；activeProfileID 无效时取第一个配置方案。
@@ -54,6 +56,7 @@ public enum ConfigValidator {
             result.general.logLevel = .info
             fixer.record("general.logLevel")
         }
+        normalizeEndpoint(&result.general.translationEndpoint, path: "general.translationEndpoint", fixer: &fixer)
 
         if result.profiles.isEmpty {
             result.profiles = [Profile.makeNew(name: Profile.defaultName)]
@@ -125,6 +128,8 @@ public enum ConfigValidator {
         normalizeThumbnail(&profile.thumbnail, path: "\(path).thumbnail", fixer: &fixer)
         normalizeOverlay(&profile.overlay, path: "\(path).overlay", fixer: &fixer)
         normalizeCombatAlert(&profile.combatAlert, path: "\(path).combatAlert", fixer: &fixer)
+        normalizeIntel(&profile.intel, path: "\(path).intel", fixer: &fixer)
+        normalizeTranslation(&profile.translation, path: "\(path).translation", fixer: &fixer)
 
         let behaviorPath = "\(path).behavior.hideDelaySeconds"
         fixer.clamp(&profile.behavior.hideDelaySeconds, to: 0...10, default: 1.0, path: behaviorPath)
@@ -215,6 +220,97 @@ public enum ConfigValidator {
                     path: "\(path).durationSeconds")
         fixer.clamp(&a.minimumDamage, to: CombatAlertSettings.minimumDamageRange, path: "\(path).minimumDamage")
         fixer.requireHexColor(&a.color, default: d.color, path: "\(path).color")
+    }
+
+    // MARK: - 预警与翻译（docs/design-intel-translate.md 3.2 节）
+
+    /// 改正预警设置：3 个整数夹到范围内（先夹 maxJumps，再让 alertJumps 不超过它），频道、参考星系与浮窗。
+    private static func normalizeIntel(_ intel: inout IntelSettings, path: String, fixer: inout FieldFixer) {
+        fixer.clamp(&intel.windowMinutes, to: IntelSettings.windowMinutesRange, path: "\(path).windowMinutes")
+        fixer.clamp(&intel.maxJumps, to: IntelSettings.maxJumpsRange, path: "\(path).maxJumps")
+        fixer.clamp(&intel.alertJumps, to: IntelSettings.alertJumpsRange, path: "\(path).alertJumps")
+        // 第 2 条：高亮距离不超过计算上限。
+        if intel.alertJumps > intel.maxJumps {
+            intel.alertJumps = intel.maxJumps
+            fixer.record("\(path).alertJumps")
+        }
+        normalizeChannels(&intel.channels, path: "\(path).channels", fixer: &fixer)
+        // 第 5 条：只把空白串改成 nil；名称是否存在由预警功能在使用时按星图数据判断。
+        if let reference = intel.referenceSystem,
+           reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            intel.referenceSystem = nil
+            fixer.record("\(path).referenceSystem")
+        }
+        normalizeOverlayPanel(&intel.overlay, path: "\(path).overlay", fixer: &fixer)
+    }
+
+    /// 改正翻译设置：频道与浮窗。目标语言已在解码时由宽松解码兜底。
+    private static func normalizeTranslation(_ translation: inout TranslationSettings, path: String,
+                                             fixer: inout FieldFixer) {
+        normalizeChannels(&translation.channels, path: "\(path).channels", fixer: &fixer)
+        normalizeOverlayPanel(&translation.overlay, path: "\(path).overlay", fixer: &fixer)
+    }
+
+    /// 改正频道列表（第 3、4 条）：名字去掉首尾空白；空白的 id 改成 nil；名字与 id 都空的项、私聊频道的项删除；
+    /// 按「id 相同，或都没有 id 且名字不区分大小写相同」去重，保留靠前的一项；超过 16 项时保留前 16 项。
+    private static func normalizeChannels(_ channels: inout [ChannelRef], path: String, fixer: inout FieldFixer) {
+        var result: [ChannelRef] = []
+        for var channel in channels {
+            channel.name = channel.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let id = channel.id, id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                channel.id = nil
+            }
+            if channel.name.isEmpty && channel.id == nil { continue }
+            if let id = channel.id, id.lowercased().hasPrefix("private_") { continue }
+            let duplicate = result.contains { kept in
+                if let id = channel.id { return kept.id == id }
+                return kept.id == nil && kept.name.caseInsensitiveCompare(channel.name) == .orderedSame
+            }
+            if !duplicate { result.append(channel) }
+        }
+        if result.count > IntelSettings.maxChannels {
+            result = Array(result.prefix(IntelSettings.maxChannels))
+        }
+        if result != channels {
+            channels = result
+            fixer.record(path)
+        }
+    }
+
+    /// 改正浮窗设置（第 1、6 条）：不透明度与字号夹到范围内，非有限值改回默认值；
+    /// frame 的宽或高不是有限的正数、或坐标不是有限值时整个改成 nil。尺寸与屏幕范围的收拢在 OverlayPlanner 里做。
+    private static func normalizeOverlayPanel(_ overlay: inout OverlayPanelSettings, path: String,
+                                              fixer: inout FieldFixer) {
+        let d = OverlayPanelSettings()
+        fixer.clamp(&overlay.opacity, to: OverlayPanelSettings.opacityRange, default: d.opacity,
+                    path: "\(path).opacity")
+        fixer.clamp(&overlay.fontSize, to: OverlayPanelSettings.fontSizeRange, default: d.fontSize,
+                    path: "\(path).fontSize")
+        if let frame = overlay.frame {
+            let usable = frame.width.isFinite && frame.width > 0 && frame.height.isFinite && frame.height > 0
+                && frame.x.isFinite && frame.y.isFinite
+            if !usable {
+                overlay.frame = nil
+                fixer.record("\(path).frame")
+            }
+        }
+    }
+
+    /// 改正模型服务的设置（第 7 条）：地址与模型名去掉首尾空白，地址末尾的 `/` 全部去掉。
+    /// 地址是否可用由 TranslationProviders.resolve 在使用时判断，这里不改。
+    private static func normalizeEndpoint(_ endpoint: inout TranslationEndpointSettings, path: String,
+                                          fixer: inout FieldFixer) {
+        var baseURL = endpoint.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        while baseURL.hasSuffix("/") { baseURL.removeLast() }
+        if baseURL != endpoint.baseURL {
+            endpoint.baseURL = baseURL
+            fixer.record("\(path).baseURL")
+        }
+        let model = endpoint.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if model != endpoint.model {
+            endpoint.model = model
+            fixer.record("\(path).model")
+        }
     }
 
     /// 改正布局记录里无法使用的数值。尺寸范围由 `LayoutResolver.clampSize` 在使用时夹取，这里不改。

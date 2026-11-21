@@ -173,7 +173,9 @@ extension AppCoordinator: ThumbnailPanelDelegate {
             isLocked: profile.behavior.lockLayout, snapEnabled: settings.snapEnabled,
             lockAspectRatio: settings.lockAspectRatio, allowsResize: client.characterName != nil,
             minimumSize: settings.minimumSize, maximumSize: settings.maximumSize,
-            targets: SnapTargets(neighbors: windowManager.visibleFrames(excluding: id), screenInfos: screens))
+            // 吸附目标另加可见的预警与翻译浮窗（docs/design-intel-translate.md 9.3 节）。
+            targets: SnapTargets(neighbors: windowManager.visibleFrames(excluding: id)
+                                    + overlayManager.visibleFrames(excluding: nil), screenInfos: screens))
     }
 
     /// 拖动开始：标记为交互中，规划器不再放大它，面板管理器不再改它的 frame。

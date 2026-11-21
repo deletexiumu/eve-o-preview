@@ -317,3 +317,30 @@ struct SettingsStringsES: SettingsStrings {
             + "Este proyecto no está afiliado a CCP ni cuenta con su respaldo."
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，西班牙文。
+extension MenuStringsES {
+    var showIntelOverlay: String { "Mostrar superposición de inteligencia" }
+    var showTranslationOverlay: String { "Mostrar superposición de traducción" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，西班牙文。
+extension SettingsStringsES {
+    var pageIntel: String { "Inteligencia" }
+    var pageTranslation: String { "Traducción" }
+    var aboutChatLogsNote: String {
+        "La inteligencia y la traducción solo leen los registros de chat y los registros del juego. La traducción envía el texto del chat al servicio de modelos que elijas. Cuando la comprobación de nombres en línea está activada, los nombres de pilotos que aparecen seguidos en los mensajes de inteligencia se envían a la API ESI de CCP."
+    }
+    var chatLogStatusStopped: String { "Desactivado" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "Vigilando \(files == 1 ? "1 archivo de registro" : "\(files) archivos de registro") en \(directory)"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "Carpeta de registros de chat no encontrada: \(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "Sin permiso para leer \(path)" }
+    var chatLogHelp: String {
+        "El cliente de EVE debe tener activada la opción de guardar el chat en un archivo. La carpeta de registros se configura en la página «Alertas»."
+    }
+}

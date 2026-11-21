@@ -42,6 +42,10 @@ public struct Profile: Sendable, Equatable, Codable, Identifiable {
     public var hotkeyDefaultScope: HotkeyScope
     /// 战斗提醒的设置。第一轮反馈新增，默认关闭（反馈文档 3.1 节）。
     public var combatAlert: CombatAlertSettings
+    /// 预警的设置。默认关闭（docs/design-intel-translate.md 3.1 节）。
+    public var intel: IntelSettings
+    /// 聊天翻译的设置。默认关闭（docs/design-intel-translate.md 3.1 节）。
+    public var translation: TranslationSettings
 
     /// 用各字段建一个配置方案；除名称外都有默认值，id 默认生成新的 UUID。
     public init(id: String = UUID().uuidString, name: String,
@@ -55,7 +59,9 @@ public struct Profile: Sendable, Equatable, Codable, Identifiable {
                 cycleGroups: [CycleGroup] = [], characterHotkeys: [String: [String]] = [:],
                 hotkeys: GeneralHotkeys = GeneralHotkeys(),
                 hotkeyDefaultScope: HotkeyScope = .global,
-                combatAlert: CombatAlertSettings = CombatAlertSettings()) {
+                combatAlert: CombatAlertSettings = CombatAlertSettings(),
+                intel: IntelSettings = IntelSettings(),
+                translation: TranslationSettings = TranslationSettings()) {
         self.id = id
         self.name = name
         self.thumbnail = thumbnail
@@ -71,6 +77,8 @@ public struct Profile: Sendable, Equatable, Codable, Identifiable {
         self.hotkeys = hotkeys
         self.hotkeyDefaultScope = hotkeyDefaultScope
         self.combatAlert = combatAlert
+        self.intel = intel
+        self.translation = translation
     }
 
     /// 新建一个配置方案：除了 `init(name:)` 的默认值，全局热键取 `GeneralHotkeys.newProfileDefaults`。
@@ -104,6 +112,8 @@ public struct Profile: Sendable, Equatable, Codable, Identifiable {
                                                    default: .global)
         combatAlert = try c.decodeIfPresent(CombatAlertSettings.self, forKey: .combatAlert)
             ?? CombatAlertSettings()
+        intel = try c.decodeIfPresent(IntelSettings.self, forKey: .intel) ?? IntelSettings()
+        translation = try c.decodeIfPresent(TranslationSettings.self, forKey: .translation) ?? TranslationSettings()
     }
 }
 

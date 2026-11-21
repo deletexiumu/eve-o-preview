@@ -286,3 +286,30 @@ struct SettingsStringsRU: SettingsStrings {
             + "Этот проект не связан с CCP и не одобрен ею."
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，俄文。
+extension MenuStringsRU {
+    var showIntelOverlay: String { "Показать оверлей разведки" }
+    var showTranslationOverlay: String { "Показать оверлей перевода" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，俄文。
+extension SettingsStringsRU {
+    var pageIntel: String { "Разведка" }
+    var pageTranslation: String { "Перевод" }
+    var aboutChatLogsNote: String {
+        "Разведка и перевод только читают журналы чата и игровые журналы. Перевод отправляет текст чата выбранному вами сервису модели. Если включена онлайн-проверка имён, имена пилотов, идущие подряд в сообщениях разведки, отправляются в ESI API компании CCP."
+    }
+    var chatLogStatusStopped: String { "Выключено" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "Отслеживается \(files) \(russianPlural(files, one: "журнал", few: "журнала", many: "журналов")) в \(directory)"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "Папка журналов чата не найдена: \(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "Нет доступа к \(path)" }
+    var chatLogHelp: String {
+        "В клиенте EVE должна быть включена запись чата в файл. Папка журналов задаётся на странице «Оповещения»."
+    }
+}

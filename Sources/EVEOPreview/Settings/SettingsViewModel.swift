@@ -34,6 +34,15 @@ final class SettingsViewModel {
     private(set) var hideAll = false
     /// 游戏日志跟踪服务的状态，「提醒」页的状态行用它（反馈文档 7.11 节）。
     private(set) var combatLogStatus: CombatLogStatus = .stopped
+    /// 聊天日志跟踪服务的状态，「预警」页与「翻译」页的状态行用它（docs/design-intel-translate.md 第 10 节）。
+    private(set) var chatLogStatus: ChatLogStatus = .stopped
+    /// 日志目录里最近出现过的频道，「从日志添加」菜单用它；由 `refreshDiscoveredChannels()` 更新。
+    private(set) var discoveredChannels: [DiscoveredChannel] = []
+    /// 星图数据的状态：`build-<版本号>`、`missing`、`invalid`、`notLoaded`。
+    private(set) var staticDataState = "notLoaded"
+    /// 预警与翻译状态的版本号（`ChatFeatureController.statusRevision` 的副本）。「预警」页与「翻译」页读它，
+    /// 两个功能的位置、翻译状态与缓存条数变化时随之重绘。
+    private(set) var chatRevision = 0
     /// 正在录制热键的录制器数量；大于 0 时全局热键处于暂停状态。
     @ObservationIgnored var recordingCount = 0
 
@@ -55,6 +64,25 @@ final class SettingsViewModel {
         if permissions != source.permissions { permissions = source.permissions }
         if hideAll != source.session.hideAll { hideAll = source.session.hideAll }
         if combatLogStatus != source.combatLogStatus { combatLogStatus = source.combatLogStatus }
+        if chatLogStatus != source.chat.chatLogStatus { chatLogStatus = source.chat.chatLogStatus }
+        if staticDataState != source.chat.staticDataState { staticDataState = source.chat.staticDataState }
+        if chatRevision != source.chat.statusRevision { chatRevision = source.chat.statusRevision }
+    }
+
+    /// 聊天日志跟踪服务正在读日志目录。这时列出频道不会再弹「文稿」权限提示，频道列表可以自动刷新。
+    var isWatchingChatLogs: Bool {
+        if case .watching = chatLogStatus { return true }
+        return false
+    }
+
+    /// 重新列出日志目录里最近的频道。第一次调用时才读目录，系统的「文稿」权限提示出现在这一步之后。
+    func refreshDiscoveredChannels() {
+        let chat = coordinator.chat
+        Task { [weak self] in
+            let channels = await chat.discoverChannels()
+            guard let self, self.discoveredChannels != channels else { return }
+            self.discoveredChannels = channels
+        }
     }
 
     /// 窗口打开时刷新一次状态。

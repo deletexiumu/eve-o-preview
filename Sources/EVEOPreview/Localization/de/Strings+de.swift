@@ -302,3 +302,30 @@ struct SettingsStringsDE: SettingsStrings {
             + "Dieses Projekt steht in keiner Verbindung zu CCP und wird nicht von CCP unterstützt."
     }
 }
+
+// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
+
+/// 菜单栏的两个浮窗开关，德文。
+extension MenuStringsDE {
+    var showIntelOverlay: String { "Aufklärungs-Overlay anzeigen" }
+    var showTranslationOverlay: String { "Übersetzungs-Overlay anzeigen" }
+}
+
+/// 两个新页的页名、关于页的说明与聊天日志的状态，德文。
+extension SettingsStringsDE {
+    var pageIntel: String { "Aufklärung" }
+    var pageTranslation: String { "Übersetzung" }
+    var aboutChatLogsNote: String {
+        "Aufklärung und Übersetzung lesen nur Chatprotokolle und Spielprotokolle. Die Übersetzung sendet Chattext an den von dir gewählten Modelldienst. Wenn die Online-Namensprüfung aktiv ist, werden zusammenhängende Pilotennamen aus Aufklärungsmeldungen an die ESI-API von CCP gesendet."
+    }
+    var chatLogStatusStopped: String { "Aus" }
+    func chatLogStatusWatching(directory: String, files: Int) -> String {
+        "Überwacht \(files == 1 ? "1 Protokolldatei" : "\(files) Protokolldateien") in \(directory)"
+    }
+    func chatLogStatusDirectoryNotFound(_ path: String) -> String { "Ordner der Chatprotokolle nicht gefunden: \(path)" }
+    func chatLogStatusAccessDenied(_ path: String) -> String { "Keine Leseberechtigung für \(path)" }
+    var chatLogHelp: String {
+        "Im EVE-Client muss das Protokollieren des Chats in eine Datei aktiviert sein. Der Protokollordner wird auf der Seite „Warnungen“ festgelegt."
+    }
+}

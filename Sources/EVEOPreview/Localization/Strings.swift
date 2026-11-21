@@ -30,6 +30,10 @@ protocol MenuStrings: Sendable {
     func resumeCapture(_ title: String) -> String
     /// 菜单顶部的客户端数量，如「3 个客户端」。俄语按数字选复数形式。
     func clientCount(_ count: Int) -> String
+    /// 带勾选的菜单项：显示预警浮窗（docs/design-intel-translate.md 第 10 节、第 11 节）。
+    var showIntelOverlay: String { get }
+    /// 带勾选的菜单项：显示翻译浮窗。
+    var showTranslationOverlay: String { get }
 }
 
 /// 主菜单「编辑」菜单的文字。应用没有 Dock 图标，菜单栏上看不到这个菜单，

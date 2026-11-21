@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 浮窗域的英文文字（docs/design-intel-translate.md 第 11 节）。
+// 英文只区分单数与复数，条数在函数里直接判断。
+
+import Foundation
+
+/// 浮窗与两页共用设置控件的英文文字。
+struct OverlayStringsEN: OverlayStrings {
+    // MARK: 浮窗的列表
+    func newMessages(_ count: Int) -> String { "\(count) new" }
+    var noActiveCharacter: String { "No character in the current window" }
+    var emptyList: String { "No messages yet" }
+
+    // MARK: 浮窗的右键菜单
+    var menuScrollToLatest: String { "Scroll to Latest" }
+    var menuCopyLine: String { "Copy This Line" }
+    var menuOpenInBrowser: String { "Open in Browser" }
+    var menuClear: String { "Clear List" }
+    var menuLockLayout: String { "Lock Layout" }
+    var menuResetFrame: String { "Reset Position and Size" }
+    var menuHide: String { "Hide This Overlay" }
+    var menuOpenSettings: String { "Open Settings…" }
+
+    // MARK: 浮窗设置
+    var overlayHeader: String { "Overlay" }
+    var opacity: String { "Background Opacity" }
+    var fontSize: String { "Font Size" }
+    var resetFrame: String { "Reset Position" }
+    var gestureHelp: String { "Right-drag or Option-drag to move the overlay, drag an edge to resize, and scroll to browse the list." }
+
+    // MARK: 频道列表
+    var channelsHeader: String { "Channels" }
+    var addFromLogs: String { "Add from Logs" }
+    var addByNamePlaceholder: String { "Type a channel name and press Return" }
+    var removeChannel: String { "Remove" }
+    var noChannels: String { "No channels yet" }
+    var refreshChannels: String { "Refresh" }
+    var noDiscoveredChannels: String { "No recent chat logs found" }
+    func channelListeners(_ count: Int) -> String { count == 1 ? "1 character" : "\(count) characters" }
+
+    // MARK: 内置频道
+    var builtInLocal: String { "Local" }
+    var builtInCorp: String { "Corp" }
+    var builtInAlliance: String { "Alliance" }
+    var builtInFleet: String { "Fleet" }
+}
