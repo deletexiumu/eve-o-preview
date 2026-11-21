@@ -32,9 +32,14 @@ struct CommitTextField: View {
             }
     }
 
-    /// 草稿与当前值不同时才提交。
+    /// 草稿与当前值不同时才提交；提交后草稿先回到当前值。
+    ///
+    /// 提交改变了值时，随后 onChange(of: text) 会把草稿换成新值；提交被拒（无法解析）或被夹回原值时
+    /// text 不变、不触发 onChange，不先复位的话框里会一直留着用户输入的那个值，每次失去焦点都再提交一次。
     private func commit() {
-        if draft != text { onCommit(draft) }
+        guard draft != text else { return }
+        onCommit(draft)
+        draft = text
     }
 }
 

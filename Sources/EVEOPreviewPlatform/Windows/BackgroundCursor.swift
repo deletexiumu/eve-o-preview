@@ -9,6 +9,7 @@
 
 import CoreFoundation
 import Darwin
+import Foundation
 
 /// 后台改光标的私有接口封装。
 public enum BackgroundCursor {
