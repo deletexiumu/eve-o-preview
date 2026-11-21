@@ -21,8 +21,12 @@ final class ThumbnailPanel: NSPanel {
         isReleasedWhenClosed = false
         backgroundColor = .black
         animationBehavior = .none
-        level = .floating
+        level = ThumbnailPanel.alwaysOnTopLevel
     }
+
+    /// 「缩略图置顶」时的层级：比状态栏层级（25）高一级。EVE 用原生全屏时，前台客户端的窗口在 layer 25，
+    /// 原先的 `.floating`（3）被它盖住，全屏时看不到缩略图（v1.1.1 实测）。菜单、通知中心等层级更高，不受影响。
+    static let alwaysOnTopLevel = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
 
     /// 面板永远不成为 key 窗口，键盘焦点留在原来的应用。
     override var canBecomeKey: Bool { false }

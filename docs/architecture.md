@@ -964,7 +964,7 @@ v1.1 起启动顺序加入日志初始化、会话标记、状态文件与更新
 
 - `styleMask = [.borderless, .nonactivatingPanel]`，`canBecomeKey` 与 `canBecomeMain` 返回 `false`。
 - `collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]`，`hidesOnDeactivate = false`，`hasShadow = false`，`isMovable = false`。
-- `level`：`isAlwaysOnTop` 时是 `.floating`，否则是 `.normal`。
+- `level`：`isAlwaysOnTop` 时是 `ThumbnailPanel.alwaysOnTopLevel`（状态栏层级加 1，即 26），否则是 `.normal`。v1.1.0 及以前是 `.floating`（3），会被原生全屏的 EVE 窗口（layer 25）盖住。
 - 透明度用 `alphaValue`。
 - 内容视图的 `acceptsFirstMouse(for:)` 返回 `true`。
 - 悬停用 `NSTrackingArea`，选项是 `[.mouseEnteredAndExited, .activeAlways, .inVisibleRect]`。本应用几乎不在前台，不用 `.activeAlways` 就收不到悬停事件。
