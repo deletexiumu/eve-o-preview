@@ -91,15 +91,23 @@ import Foundation
         #expect(kinds("不安全").isEmpty)
         #expect(kinds("没无人").isEmpty)
         #expect(kinds("安全等级").isEmpty)
+        // 往回看 2 个字符（复审 N1）；「非常」不算否定。
+        #expect(kinds("不太安全").isEmpty)
+        #expect(kinds("没有安全").isEmpty)
+        #expect(kinds("不 安全").isEmpty)
+        #expect(kinds("非常安全") == [.intelWord(.clear)])
         #expect(kinds("安全") == [.intelWord(.clear)])
         #expect(kinds("吉他* 无人") == [.system(id: StaticDataFixtures.jita), .intelWord(.clear)])
     }
 
-    /// 也是普通词的星系与星域的译名（Exit 的「出口」、Cache 的「地窖」）：后面紧跟 `*`，或前后都不紧挨汉字时才算。
-    /// 不在 ambiguousShortNames 里的星系不受影响。
-    @Test func ambiguousLocalizedNames() {
+    /// commonWordLocalizedNames 里的译名（日常中文词，如 Exit 的「出口」、Cache 的「地窖」、Central Point 的「中心点」）：
+    /// 后面紧跟 `*`，或前后都不紧挨汉字时才算（复审 R1）。不在表里的译名照常不看边界，英文名是普通词的
+    /// Perimeter 的音译「皮尔米特」也一样。
+    @Test func commonWordLocalizedNames() {
         let systems = [SolarSystem(id: 1, name: "Exit", localized: ["zh": "出口"], kind: .known),
-                       SolarSystem(id: 2, name: "Jita", localized: ["zh": "吉他"], kind: .known)]
+                       SolarSystem(id: 2, name: "Jita", localized: ["zh": "吉他"], kind: .known),
+                       SolarSystem(id: 3, name: "Central Point", localized: ["zh": "中心点"], kind: .known),
+                       SolarSystem(id: 4, name: "Perimeter", localized: ["zh": "皮尔米特"], kind: .known)]
         let regions = [StaticDataFile.Named(i: 10, n: "Cache", l: ["zh": "地窖"])]
         let matcher = TermMatcher(systems: systems, regions: regions, ships: [])
         let kinds = { (text: String) in matcher.matches(in: text).map(\.kind) }
@@ -112,8 +120,19 @@ import Foundation
         #expect(kinds("吉他出口") == [.system(id: 2)])
         #expect(kinds("地窖 3") == [.region(id: 10)])
         #expect(kinds("酒地窖里").isEmpty)
-        // 普通星系的中文名照常不看边界。
-        #expect(kinds("门口吉他有人") == [.system(id: 2)])
+        #expect(kinds("中心点") == [.system(id: 3)])
+        #expect(kinds("地图中心点附近").isEmpty)
+        // 音译名不在表里：紧挨汉字也算。
+        #expect(kinds("门口皮尔米特有人") == [.system(id: 4)])
+        #expect(kinds("吉他皮尔米特") == [.system(id: 2), .system(id: 4)])
+        #expect(IntelLexicon.commonWordLocalizedNames.contains("出口"))
+        #expect(!IntelLexicon.commonWordLocalizedNames.contains("皮尔米特"))
+    }
+
+    /// 夹具里的皮尔米特（Perimeter 在 ambiguousShortNames 里）不带 `*`、紧挨汉字也认得出。
+    @Test func transliteratedAmbiguousNameMatchesFreely() {
+        #expect(kinds("从吉他跳到皮尔米特了") == [.system(id: StaticDataFixtures.jita),
+                                                 .system(id: StaticDataFixtures.perimeter)])
     }
 
     /// 舰船与舰船分组小写也算（不受第 5 条限制）；caseSensitiveShipNames 与 ambiguousShortNames 里的键仍要大写或 `*`，
@@ -121,7 +140,8 @@ import Foundation
     @Test func lowercaseShipNames() {
         let ships = [ShipName(id: 1, groupID: 25, name: "Moa"), ShipName(id: 2, groupID: 25, name: "Nyx"),
                      ShipName(id: 3, groupID: 25, name: "Sin"), ShipName(id: 4, groupID: 25, name: "Imp"),
-                     ShipName(id: 5, groupID: 25, name: "Ark"), ShipName(id: 6, groupID: 25, name: "Curse")]
+                     ShipName(id: 5, groupID: 25, name: "Ark"), ShipName(id: 6, groupID: 25, name: "Curse"),
+                     ShipName(id: 7, groupID: 25, name: "Hel")]
         let matcher = TermMatcher(systems: [SolarSystem(id: 9, name: "Hek", kind: .known)], regions: [], ships: ships)
         let kinds = { (text: String) in matcher.matches(in: text).map(\.kind) }
         #expect(kinds("moa") == [.ship(typeID: 1)])
@@ -133,10 +153,12 @@ import Foundation
         #expect(kinds("imp ark").isEmpty)
         #expect(kinds("Imp Ark*") == [.ship(typeID: 4), .ship(typeID: 5)])
         #expect(kinds("curse").isEmpty)
+        #expect(kinds("hel").isEmpty)
         #expect(kinds("Curse") == [.ship(typeID: 6)])
         // 星系仍受第 5 条限制。
         #expect(kinds("hek").isEmpty)
-        #expect(IntelLexicon.caseSensitiveShipNames == ["sin", "imp", "ark"])
+        #expect(kinds("Hel") == [.ship(typeID: 7)])
+        #expect(IntelLexicon.caseSensitiveShipNames == ["sin", "imp", "ark", "hel"])
     }
 
     /// ambiguousShortNames 里的名称：小写不算，首字母大写算。

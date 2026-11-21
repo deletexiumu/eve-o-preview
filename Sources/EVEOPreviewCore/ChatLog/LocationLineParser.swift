@@ -8,7 +8,7 @@
 //   | 中文离站 | 正在从 <空间站> 离站进入 <星系> 恒星系。      | `离站进入` 与 `恒星系` 之间   |
 //   | 英文跳跃 | Jumping from <甲> to <乙>                    | 最后一个 ` to ` 之后到行尾     |
 //   | 英文离站 | Undocking from <空间站> to <星系> solar system. | 最后一个 ` to ` 与 ` solar system` 之间 |
-//   句式不认识时返回 nil，由 WP-B 的 LocationTracker 用「正文里最后一个星系」兜底。
+//   句式不认识时返回 nil，由 LocationTracker 按正文里星系的个数兜底（规则见 LocationTracker.swift 文件头）。
 // 取出的名称都去掉首尾空白、末尾的句号与 `*`（中文客户端在译名后加 `*`）。
 
 import Foundation

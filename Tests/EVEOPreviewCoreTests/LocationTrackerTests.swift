@@ -80,7 +80,7 @@ import Foundation
         var tracker = LocationTracker()
         do { let changed = tracker.apply(hint("Прыжок из Jita в Perimeter"), data: data); #expect(changed) }
         #expect(tracker.locations["Kael Doran"]?.systemID == F.perimeter)
-        // 目的星系名查不到：认得出的吉他不在正文末尾，不用这条线索，位置不变。
+        // 目的星系名查不到：游戏日志的行里只认得出出发的吉他（1 个星系），不用这条线索，位置不变。
         do { let changed = tracker.apply(hint("从吉他*跳到不存在*", time: 200), data: data); #expect(!changed) }
         #expect(tracker.locations["Kael Doran"]?.systemID == F.perimeter)
         var empty = LocationTracker()
@@ -88,17 +88,29 @@ import Foundation
         #expect(empty.locations.isEmpty)
     }
 
-    /// 兜底的两个条件：最后一个星系后面只剩空白或标点；正文里至多 2 个星系。
+    /// 兜底按星系个数（复审 R2）：正好 2 个时取后一个，不管后面还有什么（日文、韩文动词在句末）；
+    /// 正好 1 个时只认 Local 的线索、且星系在正文末尾；游戏日志只有 1 个星系的行不用；3 个以上不用。
+    /// 日文、韩文的句子是编的，星系用夹具里的英文名与中文名。
     @Test func fallbackConditions() {
         var tracker = LocationTracker()
         do { let changed = tracker.apply(hint("Saut de Jita vers Hek."), data: data); #expect(changed) }
         #expect(tracker.locations["Kael Doran"]?.systemID == F.hek)
-        do { let changed = tracker.apply(hint("Sprung nach Amarr！ ", time: 110), data: data); #expect(changed) }
+        // 日文语序：目的星系后面还有动词。
+        do { let changed = tracker.apply(hint("Jita から Amarr へジャンプしています", time: 110), data: data); #expect(changed) }
         #expect(tracker.locations["Kael Doran"]?.systemID == F.amarr)
-        // 星系后面还有别的词：不用。
-        do { let changed = tracker.apply(hint("Jita gate camp", time: 120), data: data); #expect(!changed) }
-        // 3 个星系：不用（多半是一句闲聊或情报，不是跳跃记录）。
-        do { let changed = tracker.apply(hint("Jita Hek Urlen", time: 130), data: data); #expect(!changed) }
+        // 韩文语序，名称紧挨谚文。
+        do { let changed = tracker.apply(hint("赫克에서 乌尔仑(으)로 점프 중입니다", time: 120), data: data); #expect(changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.urlen)
+        // 游戏日志只有 1 个星系：不用，即使星系在句末。
+        do { let changed = tracker.apply(hint("Autopilot destination set to Hek", time: 130), data: data); #expect(!changed) }
+        do { let changed = tracker.apply(hint("Jita 정거장 도킹 요청이 수락되었습니다", time: 140), data: data); #expect(!changed) }
+        // 3 个星系：不用。
+        do { let changed = tracker.apply(hint("Jita Hek Amarr", time: 150), data: data); #expect(!changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.urlen)
+        // Local 的线索只有 1 个星系：在末尾（后面只有空白或标点）时用，后面还有词时不用。
+        do { let changed = tracker.apply(hint("Sprung nach Amarr！ ", source: .localChannel, time: 160), data: data); #expect(changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.amarr)
+        do { let changed = tracker.apply(hint("Hek gate camp", source: .localChannel, time: 170), data: data); #expect(!changed) }
         #expect(tracker.locations["Kael Doran"]?.systemID == F.amarr)
     }
 

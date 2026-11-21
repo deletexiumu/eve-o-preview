@@ -507,6 +507,9 @@ public struct ChatLogRequest: Sendable, Equatable {
     public var channels: [ChannelRef]           // 预警频道与翻译频道的并集
     public var followsLocation: Bool            // 预警开启时为真：读 Local 与游戏日志里的位置线索
     public var backfillSeconds: Double
+    public var enabledFeatures: Set<OverlayKind> // 已打开的功能；跟踪服务不读，只用于比较（2026-11-21 复审增补）
+    /// 要不要重建跟踪服务：目录、频道、followsLocation、enabledFeatures 有一项不同时要；只差 backfillSeconds 时不要（9.2 节）。
+    public static func requiresRestart(from old: ChatLogRequest?, to new: ChatLogRequest?) -> Bool
 }
 public struct DiscoveredChannel: Sendable, Equatable, Identifiable {
     public var id: String                       // Channel ID
@@ -768,7 +771,10 @@ public struct LocationTracker: Sendable, Equatable {
 
 1. 取星系名：线索来自 `Local` 时用 `LocationLineParser.systemName(fromLocalSystemLine:)`，来自游戏日志时用 `systemName(fromGameNote:)`。
 2. 用 `data.system(named:)` 查星系。
-3. 第 1 步或第 2 步没有结果时兜底：对线索的正文调 `data.matcher.matches(in:)`，取最后一个种类是星系的匹配。这一条应对表以外语言的句式；「目的星系写在最后」只在中文样例里核实过（V32）。2026 年 11 月 21 日审查后补充两个条件，不满足时不用这条线索：正文里至多有 2 个星系；最后一个星系的匹配（含后面的 `*`）之后只剩空白或标点。理由：`从吉他*跳到<认不出的名字>` 里认得出的只有出发的吉他，取它会把位置记错。
+3. 第 1 步或第 2 步没有结果时兜底：对线索的正文调 `data.matcher.matches(in:)`，只看种类是星系的匹配，按个数决定。这一条应对表以外语言的句式；「目的星系写在最后」只在中文样例里核实过（V32）。2026 年 11 月 21 日按审查、复审意见改成下面的规则：
+   - 正好 2 个：取后一个，不看后面还有什么。跳跃句「从 A 到 B」与离开 NPC 空间站的句子（空间站名以星系名开头）都是 2 个；日文、韩文的动词在句末，目的星系后面还有字，如编的 `Jita から Amarr へジャンプしています`。
+   - 正好 1 个：只对 `Local` 的线索，且这个星系的匹配（含后面的 `*`）之后只剩空白或标点时才用。游戏日志的 `(None)` 行只有 1 个星系时不用：`从吉他*跳到<认不出的名字>` 里认得出的只有出发的吉他，「设置目的地为 X」一类的行也不是位置。分辨跳跃、离站与别的 `(None)` 行没有不看语言的便宜办法，「正好 2 个星系」就是这里用的近似；离开名字里不含星系名的玩家建筑时，表以外语言的客户端靠下一次跳跃更新位置。
+   - 0 个或 3 个以上：不用。
 4. 仍没有结果时返回假，不改任何记录。
 5. 找这个角色已有的记录：键先按原样比较，没有时再不区分大小写比较。
 6. 线索是补读的（`isBackfill`）：只有没有记录、或线索的时间晚于记录的时间时才写入。线索不是补读的：直接写入。
@@ -818,6 +824,8 @@ public enum IntelLexicon {
     public static let nonPilotWords: Set<String>        // 虚词加情报里常见、但不是人名的英文词
     public static let ambiguousShortNames: Set<String>  // 也是普通英文词的短星系名
     public static let cjkNegations: Set<Character>      // 中文情报用语前面的否定字（2026-11-21 增补）
+    public static let cjkNegationLookBack: Int          // 往回看几个字符找否定字（2026-11-21 复审增补）
+    public static let commonWordLocalizedNames: Set<String> // 是日常词的星系与星域译名（2026-11-21 复审增补）
     public static let caseSensitiveShipNames: Set<String> // 仍受扫描第 5 条限制的舰船名（2026-11-21 增补）
 }
 ```
@@ -836,12 +844,12 @@ WP-0 的空实现让 `matches(in:)` 返回空数组。
 扫描：
 
 1. 字符键：从左到右，在每个汉字、假名或谚文的位置上试最长的字符键，匹配后跳到匹配的末尾。字符键一般不看边界，以下两类例外（2026-11-21 审查后增补）；不满足时这个键不算匹配，接着试更短的键：
-   - `clearWords` 里的中文词（`安全`、`无人`）：前一个字符不在 `cjkNegations`（`不`、`非`、`未`、`没`、`沒`）里，且后一个字符不是汉字、假名或谚文。`不安全`、`无人机`、`安全等级` 因此不认作「安全」，`吉他 安全`、`吉他*安全`、`吉他安全` 仍认作「安全」。
-   - 英文名在 `ambiguousShortNames` 里的星系与星域的字符键，如 Exit 的 `出口`、Gateway 的 `通路`、Reset 的 `重置`、Cache 的 `地窖`、Devoid 的 `破碎`。这些键后面紧跟 `*`，或前后都不紧挨汉字、假名、谚文时才算匹配。`出口*`、`Jita 出口 gate` 算，`门口出口处` 不算。
+   - `clearWords` 里的中文词（`安全`、`无人`）：前面 2 个字符（`cjkNegationLookBack`）里没有 `cjkNegations`（`不`、`非`、`未`、`没`、`沒`）里的字，且后一个字符不是汉字、假名或谚文。词 `非常`（很）不算否定。`不安全`、`不太安全`、`没有安全`、`无人机`、`安全等级` 因此不认作「安全」；`吉他 安全`、`吉他*安全`、`吉他安全`、`非常安全` 仍认作「安全」。
+   - `commonWordLocalizedNames` 里的字符键，即是日常中文词的星系与星域译名，如 Exit 的 `出口`、Cache 的 `地窖`。这些键后面紧跟 `*`，或前后都不紧挨汉字、假名、谚文时才算匹配。`出口*`、`Jita 出口 gate` 算，`门口出口处` 不算。只看这张表（2026-11-21 复审改）：英文名在 `ambiguousShortNames` 里、但译名是音译的（如 Perimeter 的 `皮尔米特`）照常不看边界。
 2. 词键：在剩下的文字里取词。从每个词起，试连续的 1～6 个词（两个词之间只隔一个空格或引号时才算连续），从最长的开始，第一个能查到的就是匹配。
 3. 词键查不到时，把最后一个词末尾的 `es` 或 `s` 去掉再查一次（去掉后至少剩 3 个字母）。`crows` 因此认作 `Crow`。
 4. 只有一个词的匹配，种类不是情报用语时，以下情况不算匹配：词在 `stopWords` 里；词只有 1～2 个字符；词全是数字。
-5. 只有一个词、且词是 3 个以内的 ASCII 字母，或在 `ambiguousShortNames` 里：原文里这个词的首字母是大写，或词后紧跟 `*` 时才算匹配。`Hek` 与 `HEK` 算，`hek` 不算。这一条防止 `bar`、`cat`、`mod` 这类普通词被当成星系。以下不受这一条限制：情报用语（`clr`、`nv`）；`shipAliases` 的词（`dic`、`fax`）；舰船与舰船分组（2026-11-21 增补，`moa`、`nyx`、`eos` 在情报里常以小写写出）。舰船里命中的键在 `caseSensitiveShipNames`（`sin`、`imp`、`ark`，是常见普通词，`sin` 也是西班牙文的「没有」）或 `ambiguousShortNames`（与星域同名的 `Curse`）里时仍受限；判断用命中的键，`sins` 经第 3 条命中 `sin` 也受限。
+5. 只有一个词、且词是 3 个以内的 ASCII 字母，或在 `ambiguousShortNames` 里：原文里这个词的首字母是大写，或词后紧跟 `*` 时才算匹配。`Hek` 与 `HEK` 算，`hek` 不算。这一条防止 `bar`、`cat`、`mod` 这类普通词被当成星系。以下不受这一条限制：情报用语（`clr`、`nv`）；`shipAliases` 的词（`dic`、`fax`）；舰船与舰船分组（2026-11-21 增补，`moa`、`nyx`、`eos` 在情报里常以小写写出）。舰船里命中的键在 `caseSensitiveShipNames`（`sin`、`imp`、`ark`、`hel`；前三个是常见普通词，`sin` 也是西班牙文的「没有」，`hel` 是北欧语的「整个」，也常是 `hell`、`help` 的手误）或 `ambiguousShortNames`（与星域同名的 `Curse`）里时仍受限；判断用命中的键，`sins` 经第 3 条命中 `sin` 也受限。
 6. 匹配后面紧跟的 `*`（一个或多个）并入匹配的范围。中文客户端在翻译过的名称后面加 `*`（C14）。
 7. 比较不区分大小写。
 
@@ -853,10 +861,11 @@ WP-0 的空实现让 `matches(in:)` 返回空数组。
 | `clearWords` | `clr`、`clear`、`安全`、`无人` | 参考实现的 `live.py` |
 | `noVisualWords` | `nv`、`novisual`、`no visual` | 参考实现的 `live.py`，加两个词的写法 |
 | `stopWords` | 参考实现 `match.py` 的 `STOPWORDS` 原表（66 个英文虚词） | 同左 |
-| `nonPilotWords` | `stopWords` 加参考实现 `intel.py` 的 `_INTEL_WORDS_TEXT` 原表，再加 `wh`、`ess`、`gate`、`gates`、`station`、`hostile`、`hostiles`、`red`、`reds`、`neut`、`neuts` | 同左；后加的词在原表里已有的不重复 |
-| `ambiguousShortNames` | 4 个字母以上的英文星系名里同时是常见英文词的，由 WP-B 对照数据文件列出。已知空间里 4 个字母的星系名有 181 个（S7） | 4 个字母以上的名称不受第 5 条的长度限制，靠这张表补。这些术语的中文、日文、韩文名称另按扫描第 1 条的边界匹配 |
-| `cjkNegations` | `不`、`非`、`未`、`没`、`沒` | 2026-11-21 增补，扫描第 1 条 |
-| `caseSensitiveShipNames` | `sin`、`imp`、`ark` | 2026-11-21 增补，扫描第 5 条。3 个字母的舰船名共 9 个（`Moa`、`Utu`、`Sin`、`Eos`、`Hel`、`Nyx`、`Ark`、`Imp`、`Lif`，SDE 3720952），只列常见普通词 |
+| `nonPilotWords` | `stopWords` 加参考实现 `intel.py` 的 `_INTEL_WORDS_TEXT` 原表，再加 `wh`、`ess`、`gate`、`gates`、`station`、`hostile`、`hostiles`、`red`、`reds`、`neut`、`neuts`，以及致意与道别 `o7`、`7o`、`o/`、`\o`、`ty`、`thx`、`tnx`、`gl`、`gg`（2026-11-21 复审增补：`o7` 含数字，不排除时 `X clr o7` 的敌对数量是 1） | 同左；后加的词在原表里已有的不重复 |
+| `ambiguousShortNames` | 4 个字母以上的英文星系名里同时是常见英文词的，由 WP-B 对照数据文件列出。已知空间里 4 个字母的星系名有 181 个（S7） | 4 个字母以上的名称不受第 5 条的长度限制，靠这张表补 |
+| `cjkNegations` | `不`、`非`、`未`、`没`、`沒`；`cjkNegationLookBack` 是 2 | 2026-11-21 增补，扫描第 1 条 |
+| `commonWordLocalizedNames` | 星系 `出口`（Exit）、`重置`（Reset）、`通路`（Gateway）、`福特`（Forte）、`乌托邦`（Utopia）、`中心点`（Central Point）、`绝境`（Dead End）、`北极星`（Polaris）；星域 `地窖`（Cache）、`破碎`（Devoid）、`混浊`（Stain）、`血脉`（Branch）、`多美`（Domain）、`长征`（Lonetrek）、`外环`（Outer Ring） | 2026-11-21 复审增补，扫描第 1 条。取已知空间星系与全部星域里 2～4 个字的中文名，逐个对照数据文件（SDE 3720952）挑出聊天里会单独出现的普通词 |
+| `caseSensitiveShipNames` | `sin`、`imp`、`ark`、`hel` | 2026-11-21 增补，扫描第 5 条。3 个字母的舰船名共 9 个（`Moa`、`Utu`、`Sin`、`Eos`、`Hel`、`Nyx`、`Ark`、`Imp`、`Lif`，SDE 3720952），只列常见普通词与常见手误 |
 
 `bs` 与 `bc` 只有 2 个字符，按扫描第 4 条不会匹配；它们留在表里是为了与参考实现一致，WP-B 可在实现时删掉并在回报里说明。
 
@@ -921,7 +930,7 @@ WP-0 的空实现返回 `IntelReport.empty`（`segments` 里只有一段 `plain`
 7. 其余的词与空白是 `plain`。相邻的 `plain` 并成一段。各段拼起来应与原文逐字符相同。
 8. `systemIDs`：种类是星系的段，按出现顺序去重。
 9. `isNoVisual`：有 `word(.noVisual)` 段时为真。`isClear`：有 `word(.clear)` 段、且它不是否定或疑问时为真（2026-11-21 审查后增补）。以下情况这一段不算：
-   - 它前面的一个词（去掉两端不是字母的字符，不区分大小写）是 `not`、`no`，或以 `n't`、`n’t` 结尾，如 `Jita not clear`、`spike +10 not clr`。
+   - 它前面至多 3 个词里（去掉两端不是字母的字符，不区分大小写）有 `not`、`no`、`never`，或以 `n't`、`n’t` 结尾的词，如 `Jita not clear`、`spike +10 not clr`、`not yet clr`、`no longer clear`、`never clr`（2026-11-21 复审改为 3 个词）。只看紧挨在用语前面的普通文字：遇到星系、舰船、人数、人名或别的用语段就停；以 `.`、`;`、`!`、`。`、`；`、`！` 结尾的词属于上一句，它和它前面的词不看。逗号不算句子结束。
    - 它后面跳过空白后紧跟 `?` 或 `？`，或整条消息去掉末尾空白后以 `?`、`？` 结尾，如 `Amarr clear?`。
    `不安全` 这类中文否定，以及 `无人机`、`安全等级` 这类连在词里的字，由 6.3 节扫描第 1 条的边界挡住，不产生 `word` 段。
 
@@ -986,7 +995,7 @@ public struct IntelFeed: Sendable {
 - 缓冲按收听者分开，每个收听者至多 300 条。编号在整个缓冲里递增，从 1 起。
 - 同一个收听者的消息按到达顺序排列，新消息追加在末尾，已有条目不挪位置（2026-11-21 审查后明确）。跟踪服务把每一轮补读的事件按时间排好再交来（5.4 节），所以一轮之内仍是时间顺序；不同轮次之间不重排。理由：浮窗按编号对齐行，插到中间会让整表重排，「N 条新消息」也不再累加（8.5 节）。
 - `items(for:)` 的收听者先按原样比较，没有时再不区分大小写比较（做法同反馈文档 7.5 节）。
-- 每次刷新前调 `prune(olderThan: 当前时刻 − windowMinutes × 60)`。只改「保留最近」时跟踪服务不重建，缓冲也不清空。按 9.2 节，开关、频道列表或日志目录变了才算请求变了，`backfillSeconds` 不同不算（`ChatLogRequest.requiresRestart`）。时长变短时这里按新时长修剪；变长时不补读更早的消息。
+- 每次刷新前调 `prune(olderThan: 当前时刻 − windowMinutes × 60)`。只改「保留最近」时跟踪服务不重建，缓冲也不清空。按 9.2 节，功能的开关、频道列表或日志目录变了才算请求变了，`backfillSeconds` 不同不算（`ChatLogRequest.requiresRestart`）。时长变短时这里按新时长修剪；变长时不补读更早的消息。
 - 星图数据在消息之后才读完时，`IntelFeedController` 对缓冲里的消息重新解析一遍。
 
 ### 6.6 跳数
@@ -2242,11 +2251,11 @@ struct ChatFeedContext {
 
 `ChatFeatureController` 的规则：
 
-- 请求：当前配置方案的 `intel.enabled` 或 `translation.enabled` 为真时调 `services.chatLog.start(_:)`，都为假时调 `stop()`。`channels` 是已启用功能的频道的并集；`followsLocation` 取 `intel.enabled`；`backfillSeconds` 取「预警启用时的 `windowMinutes × 60`」与「翻译启用时的 600」里较大的一个。
+- 请求：当前配置方案的 `intel.enabled` 或 `translation.enabled` 为真时调 `services.chatLog.start(_:)`，都为假时调 `stop()`。`channels` 是已启用功能的频道的并集；`followsLocation` 取 `intel.enabled`；`backfillSeconds` 取「预警启用时的 `windowMinutes × 60`」与「翻译启用时的 600」里较大的一个；`enabledFeatures` 是已打开的功能（2026-11-21 复审增补）。翻译的频道全在预警的频道里时，打开翻译不改变频道的并集。这时靠 `enabledFeatures` 才算请求变了：跟踪服务重建并补读，翻译浮窗不从空白开始。
 - 星图数据：第一次有功能启用时调一次 `services.staticData.load()`，结果留到应用退出。
 - 分发：`.message` 交给「已启用、且频道列表里有一项与它匹配」的功能，两个功能都匹配时各给一份。`.locationHint` 只给预警。
 - 任何影响内容的变化之后，对两个功能各调一次 `update(context:)`。
-- 请求变了时（某个功能的开关、频道列表，或日志目录变了）：先对两个功能调 `clear(character: nil)` 清空全部角色的缓冲，再调 `services.chatLog.start(_:)`。跟踪服务重建后补读最近的内容（5.4 节），缓冲由补读填回。翻译的缓存不清，补读回来的句子直接命中缓存。位置记录不清。
+- 请求变了时（某个功能的开关、频道列表，或日志目录变了；判断用 `ChatLogRequest.requiresRestart`，只差 `backfillSeconds` 不算变了）：先对两个功能调 `clear(character: nil)` 清空全部角色的缓冲，再调 `services.chatLog.start(_:)`。跟踪服务重建后补读最近的内容（5.4 节），缓冲由补读填回。翻译的缓存不清，补读回来的句子直接命中缓存。位置记录不清。
 - 某个功能关掉后，它的缓冲是空的；再打开时走上一条，内容由补读填回。
 - 按时间的刷新：对可见的浮窗取 `nextRefresh(now:)` 里最早的时刻，用一个任务睡到那时，然后对这些浮窗调 `onContentChanged`。没有可见的浮窗时不安排。预警的时间文字与过期清理靠它；翻译的 `nextRefresh` 返回 `nil`。
 - 时钟：日志里的时间与「多久以前」用墙上时钟（`Date`）。浮窗的隐藏延迟用单调时钟，与缩略图一致。
@@ -2765,7 +2774,7 @@ WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 30
 | `IntelParserTests` | 6.4 节样例表的 8 行，逐行核对星系、舰船数量、人名、敌对数量、`countIsExplicit` 与两个用语标志；各段拼起来等于原文；13 种人数写法；数值是 0 与 501 时不算人数；隔两个空格的人名不合并、一个人名至多 3 个词；全小写的句子没有人名；没有认出星系或舰船时不推断人名；`remainder` 在人名超过 3 个词时含人名 |
 | `IntelFeedTests` | 按收听者分开；超过容量丢最早的；`prune`；收听者不区分大小写的回退 |
 | `JumpGraphTests` | 链上的跳数；支线；`maxJumps` 截断；不相连的星系是 `beyond`；没有星门的星系是 `unreachable`；`table` 为 `nil` 是 `unknownOrigin`；出发星系是 0 |
-| `LocationTrackerTests` | `Local` 线索与游戏日志线索各自生效；补读的线索只在更新时写入；运行中的线索不比较时间；手动位置被之后的线索覆盖；`setManual(nil)` 删除；句式不认识时取正文里最后一个星系；星系名查不到时不改记录；`origin` 的 3 种结果；`manualLocations` 只含手动的记录 |
+| `LocationTrackerTests` | `Local` 线索与游戏日志线索各自生效；补读的线索只在更新时写入；运行中的线索不比较时间；手动位置被之后的线索覆盖；`setManual(nil)` 删除；句式不认识时按正文里星系的个数兜底（2 个取后一个，1 个只认 `Local` 行尾的，游戏日志 1 个与 3 个以上不用）；星系名查不到时不改记录；`origin` 的 3 种结果；`manualLocations` 只含手动的记录 |
 | `IntelPresenterTests` | 一条情报的各部分与样式；3 档新旧；4 档安全等级；跳数的 4 种样式与 `alertJumps` 为 0；`showOriginal` 的开与关；不是情报的消息；`emphasis` 的 3 种取值；`nextRefresh` 的 3 种结果。6.9 增补：`showOriginal` 为真时也列出查到的人名；没查到的人名带 `?` 且用 `dim` 样式；两个人名之间有分隔；数量取核对后的值；`links` 每个查到的人名一项，角色 ID 是 0 时没有；`pilots` 为空时与增补前的输出相同 |
 | `PilotSegmenterTests`（6.9 增补） | 人名段：隔一个空格的 `pilot` 段接成一串，隔两个空格、标点或术语时分开，被 6.4 节切开的 4 个词接回一串。候选名字：一个词的人名段没有，2 个词的有 3 个，4 个词的有 9 个，按比较键去重，长度与字符不合的去掉。6.9 节样例表的 9 行。盖住的词一样多时取名字少的；完全相同时左边取长的（`A B C` 里 `A B` 与 `B C` 都可用）；`ambiguous` 不可用；空缺里只有部分词可用时不拆；有候选名字没有结果时整段是 `unchecked`。`resolve`：新的人数大于、等于原数量时的 `hostileCount` 与 `countIsExplicit`；`isClear` 且没有人名时仍是 0；`directory` 为空时与 `report` 相同 |
 | `ESINameWireTests`（6.9 增补） | 请求的地址、6 个请求头与请求体；`batches` 去掉空串与超过 100 个字符的、按比较键去重、501 个切成两组、输入为空时没有组。答复：`characters` 命中；大小写不同的名字对回请求；同名的物品是 `ambiguous`；`alliances` 里名称对不上的项被忽略；`{}` 时全是 `notFound`；正文不是 JSON 对象是 `malformedAnswer`；420 与 429 的 `retry-after`、回到 `x-esi-error-limit-reset`、都没有时取 60、夹取；503、400、302 的归类；错误额度两个头的读取 |
@@ -2845,7 +2854,7 @@ WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 30
 | V29 | `sendEvent` 能否在本应用不活动时收到右键与 Option+左键的事件，没有实测。缩略图用视图的 `rightMouseDown` 等方法收到过同样的事件 | 第 4 组第 3 项。收不到时改成在内容视图上重写这些方法，并让列表的 `hitTest` 把这些事件让给内容视图 |
 | V30 | 浮窗在原生全屏的客户端上是否与缩略图一样可见，没有实测 | 第 4 组第 7 项。层级与 `collectionBehavior` 都与缩略图相同 |
 | V31 | 每次跳跃是否往 `Local` 聊天日志追加一条切换消息，本机无法核实（C8） | 第 2 组第 3 项。两个来源并用，不依赖这一条 |
-| V32 | 英文客户端游戏日志的跳跃、离站句式没有本机样例；其余 6 种语言的句式与系统消息的说话人都没有样例 | 英文句式按 5.6 节的表实现并标注来源。其余语言走「取正文里最后一个星系」的兜底。拿到样例后补表与用例 |
+| V32 | 英文客户端游戏日志的跳跃、离站句式没有本机样例；其余 6 种语言的句式与系统消息的说话人都没有样例 | 英文句式按 5.6 节的表实现并标注来源。其余语言走 6.2 节第 3 条按星系个数的兜底。拿到样例后补表与用例 |
 | V33 | 不显示界面的钥匙串读取（`kSecUseAuthenticationUI` 取 `kSecUseAuthenticationUIFail` 或等价办法）在登录钥匙串上是否返回 `errSecInteractionNotAllowed`，没有实测 | WP-C 核实。办法不可用时，后台不读钥匙串，状态行提示用户在「翻译」页点「立即重试」 |
 | V34 | `NSAllowsLocalNetworking` 对 `127.0.0.1`、局域网 IP、不带点的主机名是否都放行明文 HTTP，没有实测 | 第 5 组第 6 项。见 7.11 节 |
 | V35 | DeepSeek、OpenAI、通义千问、Kimi、Ollama 5 个预设的地址与默认模型名照抄参考实现，没有核对是否仍有效；不带 `max_tokens` 与 `temperature` 的请求体是否被这 5 家接受也没有实测。`moonshot-v1-8k` 的上下文只有 8k，一批 6,000 个字符可能超出 | WP-C 对照各家的官方文档核对并在回报里列出改动。上下文不够的预设换成上下文更大的模型 |

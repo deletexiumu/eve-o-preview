@@ -126,4 +126,22 @@ struct ChatLogRequestRestartTests {
         #expect(ChatLogRequest.requiresRestart(from: base, to: nil))
         #expect(!ChatLogRequest.requiresRestart(from: nil, to: nil))
     }
+
+    /// 打开翻译、而翻译的频道全在预警的频道里：频道并集不变，只有补读时长与已打开的功能变了，也要重建（复审 R3）；
+    /// 功能不变、只改补读时长仍不重建。
+    @Test func enablingFeatureWithSubsetChannelsRestarts() {
+        var intelOnly = base
+        intelOnly.enabledFeatures = [.intel]
+        var both = intelOnly
+        both.enabledFeatures = [.intel, .translation]
+        both.backfillSeconds = 600
+        #expect(intelOnly.channels == both.channels)
+        #expect(ChatLogRequest.requiresRestart(from: intelOnly, to: both))
+        #expect(ChatLogRequest.requiresRestart(from: both, to: intelOnly))
+        var longerWindow = both
+        longerWindow.backfillSeconds = 3_600
+        #expect(!ChatLogRequest.requiresRestart(from: both, to: longerWindow))
+        // 跟踪服务对相同的请求不做任何事；功能不同的两个请求不相等，所以会重建。
+        #expect(intelOnly != both)
+    }
 }

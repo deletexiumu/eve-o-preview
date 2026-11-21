@@ -11,7 +11,9 @@
 // 敌对数量：甲是各船数量之和，乙是独立人数里最大的，丙是人名个数。isClear、甲与丙都是 0、且消息里没有人数时是 0；
 // 否则取三者最大，最大是 0 时为 nil。取最大不相加：同一批敌对常常既写人名又写船型。
 // isClear（审查后补充）：有「安全」用语，且这个用语不是否定或疑问时才为真：
-// - 前一个词是 not、no 或以 n't 结尾（`Jita not clear`）时不算；
+// - 前面 3 个词里有 not、no、never 或以 n't 结尾的词时不算（`Jita not clear`、`not yet clr`、`no longer clear`、
+//   `never clr`，复审 N1）。只往回看到前一个不是普通文字的段（星系、舰船、人数、人名、用语）为止，
+//   遇到以 `.`、`;`、`!`、`。`、`；`、`！` 结尾的词（上一句）也停；逗号不算句子结束；
 // - 用语后面紧跟 `?` 或 `？`（中间可有空白），或整条消息以 `?`、`？` 结尾（`Amarr clear?`）时不算。
 
 import Foundation
@@ -94,7 +96,10 @@ extension IntelParser {
                            isClear: isClear, isNoVisual: isNoVisual)
     }
 
-    /// 第 index 段的「安全」用语是否被否定或是疑问：前一个词是 not、no 或以 n't 结尾；
+    /// 往回看几个词找否定词。
+    static let negationLookBack = 3
+
+    /// 第 index 段的「安全」用语是否被否定或是疑问：前面至多 3 个普通词里有否定词（见文件头）；
     /// 用语后面（跳过空白）紧跟 `?`、`？`；或整条消息去掉末尾空白后以 `?`、`？` 结尾。
     static func isNegatedOrQuestion(_ segments: [IntelSegment], at index: Int) -> Bool {
         let before = segments[..<index].map(\.text).joined()
@@ -105,10 +110,18 @@ extension IntelParser {
            questionMarks.contains(last) {
             return true
         }
-        // 前一个词：去掉两端不是字母的字符（保留中间的撇号），转成小写。
-        guard let rawWord = before.split(whereSeparator: \.isWhitespace).last else { return false }
-        let word = rawWord.drop(while: { !$0.isLetter }).reversed().drop(while: { !$0.isLetter }).reversed()
-        let lower = String(word).lowercased()
-        return lower == "not" || lower == "no" || lower.hasSuffix("n't") || lower.hasSuffix("n’t")
+        // 紧挨在前面的普通文字（相邻的 plain 已并成一段，所以至多一段）。
+        guard index > 0, segments[index - 1].kind == .plain else { return false }
+        var words = segments[index - 1].text.split(whereSeparator: \.isWhitespace).map(String.init)
+        // 上一句结束的词及它前面的词不看。
+        if let end = words.lastIndex(where: { word in word.last.map { ".;!。；！".contains($0) } ?? false }) {
+            words.removeFirst(end + 1)
+        }
+        return words.suffix(negationLookBack).contains { raw in
+            // 去掉两端不是字母的字符（保留中间的撇号），转成小写。
+            let word = raw.drop(while: { !$0.isLetter }).reversed().drop(while: { !$0.isLetter }).reversed()
+            let lower = String(word).lowercased()
+            return ["not", "no", "never"].contains(lower) || lower.hasSuffix("n't") || lower.hasSuffix("n’t")
+        }
     }
 }

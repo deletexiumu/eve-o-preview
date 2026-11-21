@@ -44,6 +44,28 @@ import Foundation
         #expect(!parse(text).isClear, "\(text)")
     }
 
+    /// 往回看 3 个普通词（复审 N1）：not yet、no longer、never，以及隔着一两个词的 not。
+    @Test(arguments: ["Jita not yet clr", "Jita no longer clear", "Jita never clr", "Jita is not really clear",
+                      "Jita gate isn't fully clr"])
+    func negationLookBack(_ text: String) {
+        #expect(!parse(text).isClear, "\(text)")
+    }
+
+    /// 往回看的边界：上一句（以句号等结尾）里的否定、用语前面隔着别的段（星系、人数、用语）时不算否定。
+    @Test(arguments: ["no camp anymore. Jita clr", "not sure. clr", "no Jita clr", "Jita nv clr"])
+    func lookBackStops(_ text: String) {
+        #expect(parse(text).isClear, "\(text)")
+    }
+
+    /// 致意与道别（o7、gg、ty）不当人名（复审 N2）：`X clr o7` 仍是安全，敌对数量 0。
+    @Test(arguments: ["HED-GP clr o7", "Jita clr GG", "Jita clr ty", "Jita clr o/", "Jita clr THX"])
+    func signOffsKeepClear(_ text: String) {
+        let report = parse(text)
+        #expect(report.isClear, "\(text)")
+        #expect(report.pilots.isEmpty, "\(text)")
+        #expect(report.hostileCount == 0, "\(text)")
+    }
+
     /// 否定后面带人数：不是安全，数量是写明的 10。
     @Test func negatedClearWithCount() {
         let report = parse("spike +10 not clr")

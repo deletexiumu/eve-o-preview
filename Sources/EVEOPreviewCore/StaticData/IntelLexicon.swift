@@ -52,12 +52,26 @@ public enum IntelLexicon {
 
     /// 中文情报用语前面的否定字：「不安全」「没无人」里的用语不算（6.3 节字符键的边界）。
     public static let cjkNegations: Set<Character> = ["不", "非", "未", "没", "沒"]
+    /// 往回看几个字符找否定字：2 个时「不太安全」「没有安全」也算否定。
+    public static let cjkNegationLookBack = 2
+
+    /// 是日常中文词的星系与星域译名：作为字符键匹配时，后面紧跟 `*`，或前后都不紧挨汉字、假名、谚文时才算
+    /// （6.3 节扫描第 1 条，复审 R1）。音译名（如 Perimeter 的「皮尔米特」）不列，照常不看边界。
+    ///
+    /// 做法：取已知空间星系与全部星域的中文名里 2～4 个字的，逐个看是不是聊天里会单独出现的普通词
+    /// （SDE 3720952）。每项后面是对应的英文名：星系 Exit、Reset、Gateway、Forte、Utopia、Central Point、
+    /// Dead End、Polaris；星域 Cache、Devoid、Stain、Branch、Domain、Lonetrek、Outer Ring。
+    public static let commonWordLocalizedNames: Set<String> = [
+        "出口", "重置", "通路", "福特", "乌托邦", "中心点", "绝境", "北极星",
+        "地窖", "破碎", "混浊", "血脉", "多美", "长征", "外环",
+    ]
 
     /// 只有大写或带 `*` 才认的舰船名（小写）。舰船与舰船分组本来不受 6.3 节扫描第 5 条限制，
     /// 这几个是 3 个字母、又是常见普通词的舰船名：`sin`（英文「罪」，也是西班牙文的「没有」）、`imp`（小鬼）、
-    /// `ark`（方舟）。其余 3 个字母的舰船名（Moa、Utu、Eos、Hel、Nyx、Lif）不是常用词，小写也认。
+    /// `ark`（方舟）、`hel`（北欧语的「整个」，也常是 `hell`、`help` 的手误，复审 N3）。
+    /// 其余 3 个字母的舰船名（Moa、Utu、Eos、Nyx、Lif）不是常用词，小写也认。
     /// 与星域同名的 `Curse` 在 ambiguousShortNames 里，不用重复列。
-    public static let caseSensitiveShipNames: Set<String> = ["sin", "imp", "ark"]
+    public static let caseSensitiveShipNames: Set<String> = ["sin", "imp", "ark", "hel"]
 
     /// 「未见」一类的情报用语。`no visual` 是两个词，按词键匹配。
     public static let noVisualWords: Set<String> = ["nv", "novisual", "no visual"]
@@ -78,7 +92,9 @@ public enum IntelLexicon {
             + "small big large medium blops bomber bombers probes probe scanning combat dscan d-scan zkill killboard "
             + "kill killed dead pod podded tackle tackled point pointed scram scrammed log off logged logoff afk "
             // 6.3 节另加的词；与上面重复的由 Set 去重。
-            + "wh ess gate gates station hostile hostiles red reds neut neuts"
+            + "wh ess gate gates station hostile hostiles red reds neut neuts "
+            // 复审 N2：聊天里的致意与道别。`o7` 含数字会被当成人名，`X clr o7` 的敌对数量就不是 0 了。
+            + "o7 7o o/ \\o ty thx tnx gl gg"
     ).split(separator: " ").map(String.init))
 
     /// 也是普通英文词的 4 个字母以上的名称（小写）。只有一个词时，原文首字母大写或后面紧跟 `*` 才算匹配（6.3 节扫描第 5 条）。

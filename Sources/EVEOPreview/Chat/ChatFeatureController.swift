@@ -5,7 +5,8 @@
 //   channels 是已启用功能的频道的并集；followsLocation 取 intel.enabled；backfillSeconds 取
 //   「预警启用时的 windowMinutes × 60」与「翻译启用时的 600」里较大的一个。
 // - 请求变了时：先清空两个功能全部角色的缓冲，再交给跟踪服务；跟踪服务重建后补读，缓冲由补读填回。
-//   判断「变了」用 ChatLogRequest.requiresRestart：日志目录、频道或是否跟踪位置变了才重建。只有 backfillSeconds
+//   判断「变了」用 ChatLogRequest.requiresRestart：日志目录、频道、是否跟踪位置或已打开的功能变了才重建
+//   （翻译的频道全在预警里时，打开翻译也要重建，补读填回翻译的缓冲）。只有 backfillSeconds
 //   （随「保留最近」变）变了时不重建、不清空，也不调 start（跟踪服务对任何不同的请求都会重建并重新补读）：
 //   预警缓冲在每次刷新时按新的 windowMinutes 修剪（IntelFeedController.content），翻译缓冲不受它影响（审查 m6）。
 // - 星图数据：第一次有功能启用时读一次，结果留到应用退出。
@@ -182,8 +183,11 @@ import EVEOPreviewPlatform
             channels.append(channel)
         }
         let backfill = max(intel.enabled ? Double(intel.windowMinutes) * 60 : 0, translation.enabled ? 600 : 0)
+        var features: Set<OverlayKind> = []
+        if intel.enabled { features.insert(.intel) }
+        if translation.enabled { features.insert(.translation) }
         return ChatLogRequest(logDirectory: config.general.eveLogDirectory, channels: channels,
-                              followsLocation: intel.enabled, backfillSeconds: backfill)
+                              followsLocation: intel.enabled, backfillSeconds: backfill, enabledFeatures: features)
     }
 
     /// 第一次有功能启用时读一次星图数据，结果留到应用退出。

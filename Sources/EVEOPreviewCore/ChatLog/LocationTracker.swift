@@ -6,9 +6,13 @@
 //
 // apply 的规则：
 // 1. 按线索的来源用 LocationLineParser 取星系名，再用 data.system(named:) 查星系。
-// 2. 取不到或查不到时兜底：对正文做术语匹配，取最后一个种类是星系的匹配（应对表以外语言的句式，V32）。
-//    只在正文里至多有 2 个星系、且最后一个星系后面只剩空白或标点时才用；否则不用这条线索（审查 m4：
-//    「从 A 跳到 <认不出的名字>」不应把位置记成出发的 A）。
+// 2. 取不到或查不到时兜底：对正文做术语匹配，按正文里的星系个数决定（应对表以外语言的句式，V32；
+//    审查 m4、复审 R2）：
+//    - 正好 2 个：取后一个，不看后面还有什么。跳跃句「从 A 到 B」与离开 NPC 空间站的句子（空间站名以星系名
+//      开头）都是 2 个；日文、韩文的动词在句末，目的星系后面还有字。
+//    - 正好 1 个：只对 Local 的线索，且这个星系后面只剩空白或标点时才用。游戏日志的 (None) 行只有 1 个星系时
+//      不用：「从 A 跳到 <认不出的名字>」不应记成出发的 A，「设置目的地为 X」一类的行也不是位置。
+//    - 0 个或 3 个以上：不用。
 // 3. 仍没有结果时不改任何记录。
 // 4. 角色的键先原样比较，没有时再不区分大小写比较（CharacterNameMatch）。
 // 5. 补读的线索只在没有记录、或时间晚于记录时写入；运行中的线索直接写入，不比较时间
@@ -90,11 +94,7 @@ public struct LocationTracker: Sendable, Equatable {
         locations.filter { $0.value.source == .manual }
     }
 
-    /// 兜底时正文里至多几个星系。
-    static let maxFallbackSystems = 2
-
-    /// 线索里的星系：先按句式取名称再查星系；取不到时，正文里至多 2 个星系、且最后一个在正文末尾
-    /// （后面只有空白或标点）时取它，否则为 nil。
+    /// 线索里的星系：先按句式取名称再查星系；取不到时按文件头第 2 条兜底，不满足时为 nil。
     static func resolveSystem(_ hint: LocationHint, data: EVEStaticData) -> Int? {
         let name: String?
         switch hint.source {
@@ -106,10 +106,15 @@ public struct LocationTracker: Sendable, Equatable {
             if case .system = match.kind { return true }
             return false
         }
-        guard (1...maxFallbackSystems).contains(systems.count), let last = systems.last,
-              case .system(let id) = last.kind else { return nil }
-        let tail = hint.text[last.range.upperBound...]
-        guard tail.allSatisfy({ $0.isWhitespace || $0.isPunctuation }) else { return nil }
-        return id
+        guard let last = systems.last, case .system(let id) = last.kind else { return nil }
+        switch systems.count {
+        case 2:
+            return id
+        case 1 where hint.source == .localChannel:
+            let tail = hint.text[last.range.upperBound...]
+            return tail.allSatisfy({ $0.isWhitespace || $0.isPunctuation }) ? id : nil
+        default:
+            return nil
+        }
     }
 }

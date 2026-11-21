@@ -159,22 +159,28 @@ public struct ChatLogRequest: Sendable, Equatable {
     public var followsLocation: Bool
     /// 补读多少秒以内的消息。
     public var backfillSeconds: Double
+    /// 已打开的功能（预警、翻译）。跟踪服务不读它，只用来判断请求变没变（9.2 节：功能的开关变了算请求变了）。
+    public var enabledFeatures: Set<OverlayKind>
 
-    /// 用各字段建一个请求。
-    public init(logDirectory: String?, channels: [ChannelRef], followsLocation: Bool, backfillSeconds: Double) {
+    /// 用各字段建一个请求。enabledFeatures 不给时为空（探针等只跟踪、不分功能的调用方）。
+    public init(logDirectory: String?, channels: [ChannelRef], followsLocation: Bool, backfillSeconds: Double,
+                enabledFeatures: Set<OverlayKind> = []) {
         self.logDirectory = logDirectory
         self.channels = channels
         self.followsLocation = followsLocation
         self.backfillSeconds = backfillSeconds
+        self.enabledFeatures = enabledFeatures
     }
 
     /// 从 old 换成 new 时要不要重建跟踪服务（并清空两个功能的缓冲）：一边是 nil 另一边不是，
-    /// 或日志目录、频道、是否跟踪位置有一项不同时要。只有 backfillSeconds 不同时不要（审查 m6）：
+    /// 或日志目录、频道、是否跟踪位置、已打开的功能有一项不同时要。只有 backfillSeconds 不同时不要（审查 m6）：
     /// 补读只在启动时用一次，「保留最近」变短时预警缓冲在刷新时按新的时长修剪，变长时不补读更早的消息。
+    /// 已打开的功能要比（复审 R3）：翻译的频道全在预警的频道里时，打开翻译只改变 backfillSeconds，
+    /// 不比的话不会重建、不会补读，翻译浮窗从空白开始。
     public static func requiresRestart(from old: ChatLogRequest?, to new: ChatLogRequest?) -> Bool {
         guard let old, let new else { return (old == nil) != (new == nil) }
         return old.logDirectory != new.logDirectory || old.channels != new.channels
-            || old.followsLocation != new.followsLocation
+            || old.followsLocation != new.followsLocation || old.enabledFeatures != new.enabledFeatures
     }
 }
 

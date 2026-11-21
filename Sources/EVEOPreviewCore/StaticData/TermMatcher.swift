@@ -13,10 +13,12 @@
 // 只有一个词的匹配另有两条限制（6.3 节第 4、5 条），见 passesSingleWordRules。匹配后紧跟的 `*` 并入范围。
 //
 // 字符键的边界（6.3 节扫描第 1 条，审查后补充）：字符键本身不看边界，以下两类另有要求，见 passesBoundary。
-// - 中文情报用语（安全、无人）：前面不是「不、非、未、没、沒」，后面不紧跟汉字、假名或谚文。
-//   「不安全」「无人机」「安全等级」因此不认作「安全」。
-// - ambiguousShortNames 里的星系与星域的译名（如 Exit 的中文名「出口」、Cache 的「地窖」）：后面紧跟 `*`，
-//   或前后都不紧挨汉字、假名、谚文时才算匹配。
+// - 中文情报用语（安全、无人）：前面 2 个字符里没有「不、非、未、没、沒」，后面不紧跟汉字、假名或谚文。
+//   「不安全」「不太安全」「没有安全」「无人机」「安全等级」因此不认作「安全」（往回看 2 个字符：复审 N1）；
+//   「非常」不算否定，「非常安全」仍认作「安全」。
+// - commonWordLocalizedNames 里的译名（是日常中文词的星系与星域名，如 Exit 的「出口」、Cache 的「地窖」）：
+//   后面紧跟 `*`，或前后都不紧挨汉字、假名、谚文时才算匹配。只看这张表，按键判断（复审 R1）：
+//   「皮尔米特」这类音译名照常不看边界。
 //
 // 6.3 节第 5 条（3 个以内的 ASCII 字母、或在 ambiguousShortNames 里的词要首字母大写或带 `*`）的三处例外：
 // - 情报用语不受限（6.4 节样例 `HED-GP* clr` 要认出 `clr`）。
@@ -109,8 +111,8 @@ public struct TermMatcher: Sendable {
         case none
         /// 中文情报用语：前面不是否定字，后面不紧跟汉字、假名或谚文。
         case intelWord
-        /// 也是普通词的星系与星域的译名：后面紧跟 `*`，或前后都不紧挨汉字、假名或谚文。
-        case ambiguousName
+        /// 是日常词的星系与星域的译名：后面紧跟 `*`，或前后都不紧挨汉字、假名或谚文。
+        case commonWord
     }
 
     /// 一个词在原文里的位置（字符下标，左闭右开）。
@@ -144,14 +146,12 @@ public struct TermMatcher: Sendable {
         }
         for region in regions {
             let entry = Entry(kind: .region(id: region.i), english: region.n, localized: region.l ?? [:], rank: 2,
-                              isKnownSpace: false, id: region.i, isAlias: false,
-                              boundary: TermMatcher.nameBoundary(region.n))
+                              isKnownSpace: false, id: region.i, isAlias: false)
             builder.add(names: [region.n] + (region.l ?? [:]).values.sorted(), entry: entry)
         }
         for system in systems {
             let entry = Entry(kind: .system(id: system.id), english: system.name, localized: system.localized,
-                              rank: 3, isKnownSpace: system.kind == .known, id: system.id, isAlias: false,
-                              boundary: TermMatcher.nameBoundary(system.name))
+                              rank: 3, isKnownSpace: system.kind == .known, id: system.id, isAlias: false)
             builder.add(names: [system.name] + system.localized.values.sorted(), entry: entry)
         }
         TermMatcher.addAliases(to: &builder, ships: ships)
@@ -282,19 +282,14 @@ public struct TermMatcher: Sendable {
         case .none:
             return true
         case .intelWord:
-            if let before, IntelLexicon.cjkNegations.contains(before) { return false }
+            // 「非常」（很）不是否定：「非常安全」仍算「安全」。
+            let lookBack = String(characters[max(0, start - IntelLexicon.cjkNegationLookBack)..<start])
+                .replacingOccurrences(of: "非常", with: "")
+            if lookBack.contains(where: IntelLexicon.cjkNegations.contains) { return false }
             return !cjkAfter
-        case .ambiguousName:
+        case .commonWord:
             return after == "*" || (!cjkBefore && !cjkAfter)
         }
-    }
-
-    /// 星系与星域的边界要求：英文名在 ambiguousShortNames 里时，译名按 ambiguousName 匹配。
-    private static func nameBoundary(_ english: String) -> CharacterBoundary {
-        guard let key = IntelLexicon.wordKey(english), IntelLexicon.ambiguousShortNames.contains(key) else {
-            return .none
-        }
-        return .ambiguousName
     }
 
     /// 只有一个词的匹配的两条限制（6.3 节扫描第 4、5 条）。情报用语不受这两条限制；舰船缩写不受第 5 条限制；
@@ -393,13 +388,18 @@ public struct TermMatcher: Sendable {
         var wordKeys: [String: Entry] = [:]
 
         /// 为一个术语的各个名称建键：含汉字、假名或谚文的建字符键（2 个字符以上），其余建词键。
+        /// 字符键在 commonWordLocalizedNames 里、而这一项本来不看边界时，这个键按 commonWord 匹配。
         mutating func add(names: [String], entry: Entry) {
             for raw in names {
                 let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !name.isEmpty else { continue }
                 if name.contains(where: IntelLexicon.isCJK) {
                     guard name.count >= 2 else { continue }
-                    insert(entry, key: name.lowercased(), into: &characterKeys)
+                    var keyed = entry
+                    if keyed.boundary == .none, IntelLexicon.commonWordLocalizedNames.contains(name) {
+                        keyed.boundary = .commonWord
+                    }
+                    insert(keyed, key: name.lowercased(), into: &characterKeys)
                 } else if let key = IntelLexicon.wordKey(name) {
                     insert(entry, key: key, into: &wordKeys)
                 }
