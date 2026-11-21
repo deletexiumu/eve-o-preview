@@ -21,7 +21,7 @@ struct UpdateStringsZH: UpdateStrings {
     var autoCheckToggle: String { "自动检查更新" }
     var autoCheckHelp: String { "每天访问一次 GitHub，不发送个人数据。" }
     var autoInstallToggle: String { "自动安装更新" }
-    var autoInstallHelp: String { "在后台下载，退出 EVE-O Preview 时安装。" }
+    var autoInstallHelp: String { "在后台下载。没有 EVE 客户端运行满 1 分钟时安装并重新启动；也会在退出 EVE-O Preview 时安装。" }
     var currentVersionLabel: String { "当前版本" }
     var lastCheckedLabel: String { "上次检查" }
     var lastCheckedNever: String { "从未检查" }

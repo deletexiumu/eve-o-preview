@@ -24,7 +24,7 @@ struct UpdateStringsRU: UpdateStrings {
     var autoCheckToggle: String { "Автоматически проверять наличие обновлений" }
     var autoCheckHelp: String { "Обращается к GitHub раз в день. Личные данные не передаются." }
     var autoInstallToggle: String { "Автоматически устанавливать обновления" }
-    var autoInstallHelp: String { "Загружает обновление в фоне и устанавливает его при выходе из EVE-O Preview." }
+    var autoInstallHelp: String { "Загружает обновление в фоне. Устанавливает и перезапускает приложение, если клиент EVE не запущен в течение минуты, а также устанавливает при выходе из EVE-O Preview." }
     var currentVersionLabel: String { "Текущая версия" }
     var lastCheckedLabel: String { "Последняя проверка" }
     var lastCheckedNever: String { "Никогда" }

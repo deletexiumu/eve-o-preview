@@ -203,6 +203,8 @@ struct SettingsStringsJA: SettingsStrings {
     var interfaceLanguage: String { "表示言語" }
     var followSystem: String { "システムに合わせる" }
     var machineTranslationNote: String { "一部の翻訳は機械翻訳です。修正のご指摘を歓迎します。" }
+    var showDockIcon: String { "Dock にアイコンを表示" }
+    var showDockIconHelp: String { "オフにすると、メニューバーのアイコンだけが表示されます。" }
 
     // 权限页。
     var permissionsSubtitle: String { "どちらの権限も「システム設定」>「プライバシーとセキュリティ」で許可します。" }

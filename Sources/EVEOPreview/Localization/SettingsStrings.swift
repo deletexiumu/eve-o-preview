@@ -217,6 +217,10 @@ protocol SettingsStrings: Sendable {
     var followSystem: String { get }
     /// 语言选择下方的说明：部分译文由机器生成，欢迎指正（反馈文档 5.2 节）。
     var machineTranslationNote: String { get }
+    /// 「通用」页：「在 Dock 中显示图标」开关（v1.1）。
+    var showDockIcon: String { get }
+    /// 开关下方的说明。
+    var showDockIconHelp: String { get }
 
     // MARK: 权限页
     // 每项权限写清缺了它哪些功能不可用，与架构文档 4.4 节的权限矩阵一致。

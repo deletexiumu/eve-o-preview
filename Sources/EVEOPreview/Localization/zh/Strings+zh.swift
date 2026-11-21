@@ -187,6 +187,8 @@ struct SettingsStringsZH: SettingsStrings {
     var interfaceLanguage: String { "界面语言" }
     var followSystem: String { "跟随系统" }
     var machineTranslationNote: String { "部分译文由机器生成，欢迎指正。" }
+    var showDockIcon: String { "在 Dock 中显示图标" }
+    var showDockIconHelp: String { "关掉后只在菜单栏显示图标。" }
 
     // 权限页。
     var permissionsSubtitle: String { "两项权限都在「系统设置 > 隐私与安全性」里授予。" }

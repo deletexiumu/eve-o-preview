@@ -87,17 +87,20 @@ public struct GeneralSettings: Sendable, Equatable, Codable {
     public var eveLogDirectory: String?
     /// 是否在启动时与每 24 小时自动检查更新。v1.1 新增，默认 true（v1.1 设计 3.1 节、8.5 节）。
     public var checkForUpdates: Bool
-    /// 是否在后台下载更新、退出时安装。v1.1 新增，默认 false（9.5 节）。
+    /// 是否在后台下载更新、退出时安装。v1.1 新增，默认 true（用户在 v1.1 手工测试后要求默认打开；设计第 19 节）。
     /// 为真而 `checkForUpdates` 为假时不改值，行为按不检查处理。
     public var autoInstallUpdates: Bool
     /// 写进文件日志的最低级别。v1.1 新增，默认 `.info`，只接受 `.info` 与 `.debug`；
     /// 其他取值由 `ConfigValidator` 改回 `.info`（3.1 节、5.3 节）。
     public var logLevel: LogLevel
+    /// 是否在 Dock 里显示图标。v1.1 新增，默认 true；为 false 时只有菜单栏图标（设计第 19 节）。
+    public var showDockIcon: Bool
 
     /// 用各字段建全局设置，默认值见各属性。
     public init(pollIntervalMs: Int = 1000, onboardingCompleted: Bool = false,
                 language: LanguagePreference = .en, eveLogDirectory: String? = nil,
-                checkForUpdates: Bool = true, autoInstallUpdates: Bool = false, logLevel: LogLevel = .info) {
+                checkForUpdates: Bool = true, autoInstallUpdates: Bool = true, logLevel: LogLevel = .info,
+                showDockIcon: Bool = true) {
         self.pollIntervalMs = pollIntervalMs
         self.onboardingCompleted = onboardingCompleted
         self.language = language
@@ -105,6 +108,7 @@ public struct GeneralSettings: Sendable, Equatable, Codable {
         self.checkForUpdates = checkForUpdates
         self.autoInstallUpdates = autoInstallUpdates
         self.logLevel = logLevel
+        self.showDockIcon = showDockIcon
     }
 
     /// 解码时缺失的键取默认值；`language` 与 `logLevel` 不认识或类型不对时取默认值，不抛错。
@@ -119,5 +123,6 @@ public struct GeneralSettings: Sendable, Equatable, Codable {
         checkForUpdates = try c.decodeIfPresent(Bool.self, forKey: .checkForUpdates) ?? d.checkForUpdates
         autoInstallUpdates = try c.decodeIfPresent(Bool.self, forKey: .autoInstallUpdates) ?? d.autoInstallUpdates
         logLevel = LenientDecoding.value(LogLevel.self, in: c, forKey: .logLevel, default: d.logLevel)
+        showDockIcon = try c.decodeIfPresent(Bool.self, forKey: .showDockIcon) ?? d.showDockIcon
     }
 }

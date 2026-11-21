@@ -18,7 +18,7 @@ struct UpdateStringsEN: UpdateStrings {
     var autoCheckToggle: String { "Check for updates automatically" }
     var autoCheckHelp: String { "Contacts GitHub once a day. No personal data is sent." }
     var autoInstallToggle: String { "Install updates automatically" }
-    var autoInstallHelp: String { "Downloads in the background and installs when you quit EVE-O Preview." }
+    var autoInstallHelp: String { "Downloads in the background. Installs and restarts when no EVE client has been running for a minute, or installs when you quit EVE-O Preview." }
     var currentVersionLabel: String { "Current version" }
     var lastCheckedLabel: String { "Last checked" }
     var lastCheckedNever: String { "Never" }

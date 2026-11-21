@@ -221,6 +221,8 @@ struct SettingsStringsRU: SettingsStrings {
     var interfaceLanguage: String { "Язык интерфейса" }
     var followSystem: String { "Как в системе" }
     var machineTranslationNote: String { "Часть переводов выполнена машинным переводом. Будем рады исправлениям." }
+    var showDockIcon: String { "Показывать значок в Dock" }
+    var showDockIconHelp: String { "Если выключено, EVE-O Preview показывает только значок в строке меню." }
 
     // 权限页。
     var permissionsSubtitle: String {

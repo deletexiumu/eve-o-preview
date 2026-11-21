@@ -59,7 +59,9 @@ struct DiagnosticsSummaryTests {
         #expect(summary.general.eveLogDirectory == "custom")
         #expect(summary.general.logLevel == .debug)
         #expect(summary.general.checkForUpdates)
-        #expect(!summary.general.autoInstallUpdates)
+        // 默认值：自动安装开、显示 Dock 图标（设计第 19 节）。
+        #expect(summary.general.autoInstallUpdates)
+        #expect(summary.general.showDockIcon)
     }
 
     /// 没有自定游戏日志目录时写 `default`。

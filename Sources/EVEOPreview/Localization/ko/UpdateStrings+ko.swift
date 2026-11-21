@@ -24,7 +24,7 @@ struct UpdateStringsKO: UpdateStrings {
     var autoCheckToggle: String { "자동으로 업데이트 확인" }
     var autoCheckHelp: String { "하루에 한 번 GitHub에 접속합니다. 개인 정보는 전송되지 않습니다." }
     var autoInstallToggle: String { "자동으로 업데이트 설치" }
-    var autoInstallHelp: String { "백그라운드에서 다운로드하고 EVE-O Preview를 종료할 때 설치합니다." }
+    var autoInstallHelp: String { "백그라운드에서 다운로드합니다. EVE 클라이언트가 1분 동안 실행되지 않으면 설치하고 다시 실행하며, EVE-O Preview를 종료할 때도 설치합니다." }
     var currentVersionLabel: String { "현재 버전" }
     var lastCheckedLabel: String { "마지막 확인" }
     var lastCheckedNever: String { "확인한 적 없음" }

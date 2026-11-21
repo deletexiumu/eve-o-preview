@@ -930,7 +930,7 @@ v1.1 起探针新增 `update` 子命令：`update feed [地址]`、`update verif
 
 v1.1 起启动顺序加入日志初始化、会话标记、状态文件与更新检查，退出时先写会话标记，再在需要时安装已下载的更新（最多等 10.5 秒）。顺序见 v1.1 设计 4.4 节，会话标记的规则见第 6 节。
 
-- `main.swift` 建 `NSApplication`，设 `AppDelegate`，激活策略为 `.accessory`（Info.plist 同时写 `LSUIElement`）。
+- `main.swift` 建 `NSApplication`，设 `AppDelegate`，激活策略先设为 `.accessory`（Info.plist 同时写 `LSUIElement`）。v1.1 起 `AppDelegate` 读完配置后按 `general.showDockIcon` 改策略：为真（默认）时是 `.regular`，Dock 里有图标（`Support/DockIconPolicy.swift`）。
 - 启动时如果同 bundle id 的实例已在运行，退出自己。例外：权限页的「重新启动」以参数 `--relaunched-from <pid>` 打开新实例，新实例最多等 8 秒让该 PID 退出，并在单实例检查中排除它（`Support/InstanceGuard.swift`）。
 - `AppDelegate` 建 `ConfigController`、`PlatformServices`、`AppCoordinator`、`StatusItemController`。环境变量 `EVEO_FAKE=1` 时改用 `FakeServices`（假客户端与生成的画面），供界面开发在没有 EVE 和权限的机器上运行。
 - 首次启动（`onboardingCompleted == false`）或缺权限时，打开设置窗口的权限页。

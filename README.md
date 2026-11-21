@@ -176,13 +176,15 @@ Turn them on in the Alerts page of the settings window. The app then reads the g
 
 The menu bar icon matches the app icon: a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Check for Updates…, Report a Problem…, Settings and Quit. When an update is available or the previous run quit unexpectedly, a dot appears on the icon and the menu gets an item for it at the top. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
 
+EVE-O Preview also shows its icon in the Dock; clicking it opens the settings window. To keep only the menu bar icon, clear "Show icon in Dock" under Settings > General.
+
 ### Updates
 
 EVE-O Preview checks GitHub for a new release at launch and once a day. To turn this off, clear "Check for updates automatically" under Settings > General > Updates; "Check for Updates…" in the menu bar menu still checks on demand.
 
 When a new version is available, a window shows the release notes in your interface language (English if there is no translation) and offers Install Update, Skip This Version and Later. While an EVE client is in front, the window waits until you switch away, and it never takes keyboard focus on its own; a dot on the menu bar icon shows that an update is waiting. "Skip This Version" only stops automatic reminders for that version; "Check for Updates…" still shows it.
 
-Install Update downloads the dmg, checks it against `SHA256SUMS.txt`, verifies that the new app is signed with the same certificate as the running one, replaces the app and restarts it. If any step fails, the installed app is left unchanged. With "Install updates automatically" turned on, the update is downloaded in the background and installed when you quit EVE-O Preview, or when you choose "Restart to Update to X.Y.Z" in the menu bar menu; the app never restarts by itself.
+Install Update downloads the dmg, checks it against `SHA256SUMS.txt`, verifies that the new app is signed with the same certificate as the running one, replaces the app and restarts it. If any step fails, the installed app is left unchanged. "Install updates automatically" is on by default: the update is downloaded in the background, then installed and the app restarted once no EVE client has been running for about a minute and no EVE-O Preview window is open. Otherwise it is installed when you quit EVE-O Preview, or when you choose "Restart to Update to X.Y.Z" in the menu bar menu. While an EVE client is running, the app never restarts by itself. Turn the setting off under Settings > General > Updates if you want the window to ask you first.
 
 Some builds can only show the reason and an "Open Release Page" button instead of installing: ad-hoc or locally signed builds, an app running from a disk image or from a translocated location, an app in a folder you cannot write to, and an app on a volume that is not APFS, such as an external HFS+, exFAT or FAT disk.
 

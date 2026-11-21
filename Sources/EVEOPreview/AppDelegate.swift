@@ -56,6 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 界面语言要在建主菜单、菜单栏与设置窗口之前定下，它们建好后不会自己换语言。
         L10n.setLanguage(L10n.resolve(config.config.general.language))
         installMainMenu()
+        // 进程按 LSUIElement 以 .accessory 启动；读完配置再按开关决定要不要 Dock 图标。
+        DockIconPolicy.apply(showDockIcon: config.config.general.showDockIcon)
+        config.addObserver { old, new in
+            guard old.general.showDockIcon != new.general.showDockIcon else { return }
+            DockIconPolicy.apply(showDockIcon: new.general.showDockIcon)
+        }
         let services = isFake ? FakeServices.make() : PlatformServices.makeLive()
         let coordinator = AppCoordinator(services: services, config: config, isFakeMode: isFake,
                                          environment: environment, state: state)
@@ -163,15 +169,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 关掉设置窗口后应用继续在菜单栏运行。
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    /// 点 Dock 图标，或在访达里再次打开正在运行的应用：没有可见窗口时打开设置窗口。
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { coordinator?.openSettings?(.clients) }
+        return true
+    }
+
     // MARK: - 主菜单
 
-    /// 装一个只含「编辑」的主菜单。应用没有 Dock 图标，菜单栏上看不到它，
-    /// 但设置窗口的文本框要靠它响应 Cmd+C、Cmd+V、Cmd+Z 等快捷键，Cmd+W 关窗口。
+    /// 装主菜单：应用菜单（设置、退出）与「编辑」菜单。
+    /// 不显示 Dock 图标时菜单栏上看不到它，但设置窗口的文本框要靠它响应 Cmd+C、Cmd+V、Cmd+Z 等快捷键，
+    /// Cmd+W 关窗口；显示 Dock 图标时应用激活后菜单栏上会出现它，所以应用菜单不能是空的。
     /// 启动时调用一次，界面语言变了以后再调用一次，整个替换掉旧菜单。
     private func installMainMenu() {
         let main = NSMenu()
         let appItem = NSMenuItem()
         main.addItem(appItem)
+        let appMenu = NSMenu()
+        let settingsItem = ClosureMenuItem(L10n.menu.settings) { [weak self] in
+            self?.coordinator?.openSettings?(.clients)
+        }
+        settingsItem.keyEquivalent = ","
+        appMenu.addItem(settingsItem)
+        appMenu.addItem(.separator())
+        // 退出走 NSApp.terminate，由 applicationShouldTerminate 先写配置、再停捕获。
+        appMenu.addItem(NSMenuItem(title: L10n.menu.quit, action: #selector(NSApplication.terminate(_:)),
+                                   keyEquivalent: "q"))
+        appItem.submenu = appMenu
         let editItem = NSMenuItem()
         main.addItem(editItem)
         let edit = NSMenu(title: L10n.editMenu.title)

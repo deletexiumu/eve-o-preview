@@ -4,8 +4,9 @@
 //
 // - 用户点「安装更新」：下载并核对（已有可用的下载时跳过），安装，成功后重新启动。
 // - 自动安装：后台下载并核对，成功后进入 `.readyToInstall`、亮 `.updateReady`；失败时退回普通提示。
-//   之后只在两个时刻安装：用户点「重新启动以更新到 <版本>」（`restartToInstall`），或用户退出应用
-//   （`installOnQuitIfReady`，不重新启动，最多等 8 秒）。应用不自行重新启动。
+//   之后在三个时刻安装：用户点「重新启动以更新到 <版本>」（`restartToInstall`）；没有 EVE 客户端在运行、
+//   连续空闲约 1 分钟时自动安装并重新启动（UpdateController+IdleInstall.swift）；用户退出应用
+//   （`installOnQuitIfReady`，不重新启动，最多等 8 秒）。
 // - 每次安装失败都写 `lastInstall`（失败）与一条 error 日志；验证阶段的 fault 日志由平台层写（9.4 节）。
 //   失败过的版本不再自动安装。dmg 已被平台层删掉（验证失败、校验和不符）时清掉 `prepared`。
 // - 演示模式与 `EVEO_UPDATE_UI_STATE` 调试入口下不下载、不安装、不重新启动。
@@ -106,7 +107,8 @@ extension UpdateController {
         coordinator.setAttention(.updateAvailable, on: false)
         coordinator.setAttention(.updateReady, on: true)
         coordinator.presenter.cancel(key: UpdateController.presenterKey)
-        log.info("更新 \(release.version, privacy: .public) 已下载，退出时安装")
+        log.info("更新 \(release.version, privacy: .public) 已下载，空闲时或退出时安装")
+        startIdleInstallWatch()
     }
 
     /// 下载开始前的进度：0 字节，总数取 dmg 附件声明的大小。

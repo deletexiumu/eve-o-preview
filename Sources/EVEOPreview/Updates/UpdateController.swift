@@ -55,6 +55,8 @@ import EVEOPreviewPlatform
     @ObservationIgnored var isChecking = false
     /// 正在下载或安装的任务。
     @ObservationIgnored var workTask: Task<Void, Never>?
+    /// 已下载好时检查是否空闲、空闲就安装的循环（见 UpdateController+IdleInstall.swift）。
+    @ObservationIgnored var idleInstallTask: Task<Void, Never>?
     /// 启动时的残留清理。下载开始前等它做完。
     @ObservationIgnored var cleanupTask: Task<Void, Never>?
     /// 用户在下载真正开始前点了「取消」（阶段已是下载中，但还在等清理）。
@@ -166,6 +168,7 @@ import EVEOPreviewPlatform
             phase = .readyToInstall(release)
             coordinator.setAttention(.updateAvailable, on: false)
             coordinator.setAttention(.updateReady, on: true)
+            startIdleInstallWatch()
             return
         }
         coordinator.setAttention(.updateReady, on: false)

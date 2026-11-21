@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // EVE-O Preview 应用入口（架构文档 7.1 节）。
-// 建 NSApplication，设 AppDelegate，激活策略为 .accessory（只有菜单栏图标，没有 Dock 图标）。
+// 建 NSApplication，设 AppDelegate，激活策略先设为 .accessory（只有菜单栏图标，没有 Dock 图标）。
 // 发布包的 Info.plist 同时写了 LSUIElement；用 `swift run` 运行时没有 Info.plist，靠这里的设置。
+// 读完配置后，AppDelegate 按「在 Dock 中显示图标」开关再改策略（见 DockIconPolicy）。
 
 import AppKit
 

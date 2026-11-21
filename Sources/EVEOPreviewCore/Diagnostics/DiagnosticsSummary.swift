@@ -70,6 +70,8 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
         public var logLevel: LogLevel
         /// 游戏日志目录：`default` 或 `custom`，不写路径。
         public var eveLogDirectory: String
+        /// 是否显示 Dock 图标（v1.1）。
+        public var showDockIcon: Bool
     }
 
     /// 由配置建摘要。loadErrorKind、warningKinds 只传类别名，不传路径与说明。
@@ -100,7 +102,8 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
         self.general = GeneralSummary(pollIntervalMs: general.pollIntervalMs, language: general.language,
                                       checkForUpdates: general.checkForUpdates,
                                       autoInstallUpdates: general.autoInstallUpdates, logLevel: general.logLevel,
-                                      eveLogDirectory: customLogDirectory ? "custom" : "default")
+                                      eveLogDirectory: customLogDirectory ? "custom" : "default",
+                                      showDockIcon: general.showDockIcon)
     }
 
     /// 编码成 `config-summary.json` 的内容：缩进、键按字母排序。

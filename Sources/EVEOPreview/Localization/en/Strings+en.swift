@@ -195,6 +195,8 @@ struct SettingsStringsEN: SettingsStrings {
     var interfaceLanguage: String { "Interface language" }
     var followSystem: String { "Follow System" }
     var machineTranslationNote: String { "Some translations are machine-generated. Corrections are welcome." }
+    var showDockIcon: String { "Show icon in Dock" }
+    var showDockIconHelp: String { "When off, EVE-O Preview shows only its menu bar icon." }
 
     // 权限页。
     var permissionsSubtitle: String { "Both permissions are granted in System Settings > Privacy & Security." }

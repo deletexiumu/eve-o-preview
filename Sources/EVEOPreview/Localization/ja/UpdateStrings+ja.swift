@@ -22,7 +22,7 @@ struct UpdateStringsJA: UpdateStrings {
     var autoCheckToggle: String { "アップデートを自動的に確認" }
     var autoCheckHelp: String { "1 日に 1 回 GitHub に接続します。個人データは送信されません。" }
     var autoInstallToggle: String { "アップデートを自動的にインストール" }
-    var autoInstallHelp: String { "バックグラウンドでダウンロードし、EVE-O Preview の終了時にインストールします。" }
+    var autoInstallHelp: String { "バックグラウンドでダウンロードします。EVE クライアントが 1 分間起動していなければインストールして再起動し、EVE-O Preview の終了時にもインストールします。" }
     var currentVersionLabel: String { "現在のバージョン" }
     var lastCheckedLabel: String { "最終確認" }
     var lastCheckedNever: String { "未確認" }

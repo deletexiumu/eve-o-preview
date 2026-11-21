@@ -6,6 +6,7 @@
 // （AppLanguage.autonym），不随界面语言变化，这样选错语言后仍认得出自己的语言。
 // 选择写入 `general.language`，对全部配置方案生效；协调器在配置变化时切换界面语言，不用重启（5.4 节）。
 //
+// v1.1：语言一组里另有「在 Dock 中显示图标」开关（设计第 19 节），写 `general.showDockIcon`。
 // v1.1（v1.1 设计 11.2 节）：语言一组之后是「更新」与「诊断」两组，分别在
 // UpdateSettingsSection.swift 与 DiagnosticsSettingsSection.swift 里，本页只放两行。
 
@@ -27,6 +28,13 @@ struct GeneralPage: View {
                 }
                 Text(L10n.settings.machineTranslationNote).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: model.generalBinding(\.showDockIcon)) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.settings.showDockIcon)
+                        Text(L10n.settings.showDockIconHelp).font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             } header: {
                 PageHeader(title: L10n.settings.pageGeneral, subtitle: L10n.settings.generalSubtitle)
             }

@@ -203,6 +203,8 @@ struct SettingsStringsKO: SettingsStrings {
     var interfaceLanguage: String { "표시 언어" }
     var followSystem: String { "시스템 설정 따르기" }
     var machineTranslationNote: String { "일부 번역은 기계 번역입니다. 수정 제안을 환영합니다." }
+    var showDockIcon: String { "Dock에 아이콘 표시" }
+    var showDockIconHelp: String { "끄면 메뉴 막대 아이콘만 표시됩니다." }
 
     // 权限页。
     var permissionsSubtitle: String { "두 권한 모두 ‘시스템 설정 > 개인정보 보호 및 보안’에서 허용합니다." }
