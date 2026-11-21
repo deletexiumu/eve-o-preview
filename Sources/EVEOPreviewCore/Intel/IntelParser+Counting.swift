@@ -117,11 +117,20 @@ extension IntelParser {
         if let end = words.lastIndex(where: { word in word.last.map { ".;!。；！".contains($0) } ?? false }) {
             words.removeFirst(end + 1)
         }
-        return words.suffix(negationLookBack).contains { raw in
-            // 去掉两端不是字母的字符（保留中间的撇号），转成小写。
-            let word = raw.drop(while: { !$0.isLetter }).reversed().drop(while: { !$0.isLetter }).reversed()
-            let lower = String(word).lowercased()
+        // 去掉两端不是字母的字符（保留中间的撇号），转成小写。
+        let lowered = words.suffix(negationLookBack).map { raw in
+            String(raw.drop(while: { !$0.isLetter }).reversed().drop(while: { !$0.isLetter }).reversed()).lowercased()
+        }
+        return lowered.indices.contains { i in
+            let lower = lowered[i]
+            // 「no reds clr」「no hostiles clr」里的 no 否定的是敌对，整句仍是安全，不算否定。
+            if lower == "no", i + 1 < lowered.count, hostileNouns.contains(lowered[i + 1]) { return false }
             return ["not", "no", "never"].contains(lower) || lower.hasSuffix("n't") || lower.hasSuffix("n’t")
         }
     }
+
+    /// 跟在 no 后面时表示「没有敌对」的名词：这时 no 不否定后面的安全用语。
+    static let hostileNouns: Set<String> = [
+        "red", "reds", "hostile", "hostiles", "neut", "neuts", "enemy", "enemies", "one", "contacts", "spike",
+    ]
 }

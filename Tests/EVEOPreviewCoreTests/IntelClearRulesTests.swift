@@ -57,6 +57,12 @@ import Foundation
         #expect(parse(text).isClear, "\(text)")
     }
 
+    /// 「no reds」「no hostiles」里的 no 否定的是敌对，整句仍是安全。
+    @Test(arguments: ["Jita no reds clr", "Jita no hostiles clr", "Jita no one, clr", "Jita no neuts clear"])
+    func noHostilesStillClear(_ text: String) {
+        #expect(parse(text).isClear, "\(text)")
+    }
+
     /// 致意与道别（o7、gg、ty）不当人名（复审 N2）：`X clr o7` 仍是安全，敌对数量 0。
     @Test(arguments: ["HED-GP clr o7", "Jita clr GG", "Jita clr ty", "Jita clr o/", "Jita clr THX"])
     func signOffsKeepClear(_ text: String) {
