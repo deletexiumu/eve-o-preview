@@ -23,11 +23,13 @@ This repository started as a GitHub fork of EveOPlus/eve-o-preview and was moved
 - Layout: drag to move and resize, snapping to other thumbnails and screen edges, with an optional layout lock. Position and size are saved per character; clients on the login screen use a separate starting position.
 - Cycle groups: forward and backward hotkeys, skip for the current session; per-character hotkeys; a hotkey to cycle through login-screen clients; Hide All and Minimize All hotkeys. Hotkeys can use the middle and side mouse buttons, and each hotkey can be global or EVE-only.
 - Combat alerts (off by default): reads the game logs and flashes a character's thumbnail when that character is attacked.
+- Intel overlay (off by default): reads the chat logs of the intel channels you choose and shows, for the character in the EVE window in front, which systems hostiles are reported in, how many jumps away they are, how many there are and which ships (see [Intel overlay](#intel-overlay)).
+- Chat translation overlay (off by default): translates messages in other languages from the channels you choose into your language, using a model service you choose with your own API key (see [Chat translation](#chat-translation)).
 - Profiles: create, clone, rename, delete and switch.
 - Updates: checks GitHub for new releases and installs them from inside the app after verifying the download and its code signature (see [Updates](#updates)).
 - Problem reports: builds a redacted diagnostics zip and opens a prefilled GitHub issue; after an unexpected quit, the next launch offers to report it (see [Reporting a problem](#reporting-a-problem)).
 - A menu bar icon in place of the Windows tray icon.
-- An 8-page settings window: Clients, Previews & Layout, Switching & Hotkeys, Alerts, Profiles, General, Permissions and About.
+- A 10-page settings window: Clients, Previews & Layout, Switching & Hotkeys, Alerts, Intel, Translation, Profiles, General, Permissions and About.
 - UI languages: English (default), Chinese, Russian, Japanese, Korean, French, German and Spanish. Switch on the General page, or choose "Follow System"; the change takes effect immediately. The Russian, Japanese, Korean, French, German and Spanish translations are machine-generated; corrections are welcome.
 
 ## Upstream features not ported
@@ -100,7 +102,7 @@ The app uses the system permissions below, all granted in System Settings > Priv
 | --- | --- | --- |
 | Screen Recording | Capturing client windows and reading window titles | Thumbnails show a placeholder; without Accessibility as well, titles cannot be read and clients show as `EVE (PID)` |
 | Accessibility | Restoring, raising and minimizing client windows, reading window titles, intercepting mouse hotkeys | Only the client process can be activated, so minimized windows cannot be restored; Minimize and Minimize All are disabled; mouse hotkeys do not work, keyboard hotkeys still do |
-| Documents folder | Combat alerts read `~/Documents/EVE/logs/Gamelogs` | Requested only when combat alerts are turned on; if denied, the Alerts page shows the reason and other features are unaffected |
+| Documents folder | Combat alerts read `~/Documents/EVE/logs/Gamelogs`; the intel and translation overlays read `~/Documents/EVE/logs/Chatlogs`, and the intel overlay also reads the game logs to find your location | Requested only when one of these features is turned on, or when you choose "Add from Logs"; if denied, that feature's page shows the reason and other features are unaffected |
 
 After you grant Screen Recording, the app usually has to restart for it to take effect; the Permissions page has a Relaunch button. Accessibility takes effect immediately.
 
@@ -172,9 +174,53 @@ Turn them on in the Alerts page of the settings window. The app then reads the g
 - The first time, macOS asks for access to the Documents folder. If your logs are elsewhere, choose the folder on the Alerts page.
 - The Chinese client's log format has been checked against real logs. Japanese and Russian damage lines have been checked against real client logs (upstream's recorded samples); their miss lines are inferred from templates only. English, German, French, Spanish and Korean are inferred from upstream's templates and have not been checked against real logs.
 
+### Intel overlay
+
+Turn it on with "Show intel overlay" on the Intel page of the settings window, or with "Show Intel Overlay" in the menu bar menu. The app then reads the chat logs that clients write to `~/Documents/EVE/logs/Chatlogs`, next to the game log folder chosen on the Alerts page. Each line of the overlay is one message from your intel channels: its age, each system with its security status and its distance in jumps from your location, the number of hostiles, the ships and the pilot names.
+
+- The EVE client must be set to log chat to a file.
+- Channels: choose "Add from Logs" to pick from the channels in your recent chat logs (each shows how many of your characters are in it), or type a channel name and press Return. "Refresh" rescans the logs. Up to 16 channels. Private conversations are never read and never listed.
+- When you turn it on, the overlay fills with the messages of the last 30 minutes ("Keep the last", 5–120 minutes); older lines disappear.
+- Location: jumps are counted from the system the active character is in. The app takes it from the jump and undock lines in the game logs and from the system change messages in the Local chat log. If neither is available, type a system name for that character under "My Location" and press Return; an unknown name shows "System not found". The next jump replaces a manual location, and a manual location is kept across restarts. A character with no location at all counts jumps from the "Reference System".
+- "Count up to" limits the jump count (1–30, default 15). "Highlight Within" highlights a message when a reported system is that many jumps away or closer (default 5; 0 turns it off). "Show original text" adds the sender and the message as a second line.
+- System and ship names are shown in the interface language.
+- Pilot names are what is left of a message after systems, ships and counts are recognized, so names with spaces that run together are ambiguous. With "Check pilot names online (ESI)" turned on (the default), the app asks CCP's ESI which of those words are real character names and splits them accordingly (see [Privacy](#privacy)). A match only means a character with that name exists, not that it is the one meant. A matched name gets a zKillboard link under "Open in Browser" in the right-click menu. "Clear Name Cache" deletes the saved names.
+
+### Chat translation
+
+Turn it on with "Show translation overlay" on the Translation page, or with "Show Translation Overlay" in the menu bar menu. It translates messages in the chosen channels that are not already in the target language.
+
+1. Choose channels as for the intel overlay; "Add from Logs" also lists the built-in Local, Corp, Alliance and Fleet channels.
+2. Under "Translate into", choose a language, or "Same as interface language" (the default).
+3. Choose a "Service": DeepSeek (the default), Claude (Anthropic), OpenAI, Qwen (DashScope), Kimi (Moonshot), Ollama, or "Other (OpenAI-compatible)". "API Address" and "Model Name" show the preset values; type in them to override.
+4. Paste your API key and click "Save". The key is stored in the macOS Keychain; "Delete Key" removes it. Ollama needs no key.
+5. Click "Test" to translate one fixed sample sentence.
+
+- Only messages received by the active client's character are sent to the model. The same sentence is translated once and then taken from the cache. Messages that contain only systems and ships are not sent. When the target language is Chinese, Japanese, Korean or Russian, messages already in that language are not sent either. System, region and ship names use their official names in the target language.
+- Each line shows the EVE time, the channel (only when you translate more than one), the sender and the translation. "Also show original text" adds the original below it; "Only show translated messages" hides the messages skipped because they are already in the target language.
+- If the service rejects the key or the quota runs out, translation pauses and the status line says why; "Retry Now" tries again.
+- Public addresses must use `https`; `http` is accepted only for this Mac or the local network, such as Ollama at `http://127.0.0.1:11434/v1`.
+- Requests use your account with the service you choose and may cost money.
+- After a rebuild with a different signature, macOS may ask for permission to read the Keychain item when you click "Test" or "Retry Now". Reads in the background never show this prompt; the status line asks you to save the key again instead.
+
+### Overlay gestures
+
+The intel and translation overlays are separate panels that behave like thumbnails: they never take focus, appear on all Spaces, and show only the character of the EVE window in front, switching content as soon as you switch clients. Clicks do not pass through to the game. The newest message is at the bottom and the list stays there. When you scroll up, the list stops following new messages and a bar at the bottom shows "N new"; click it to return to the latest.
+
+| Action | Gesture |
+| --- | --- |
+| Scroll the list | Scroll wheel or two-finger swipe |
+| Move | Right-drag, or Option+left-drag |
+| Resize | Same gesture as moving, starting within 12 points of the overlay edge |
+| Temporarily disable snapping | Hold Shift while dragging |
+| Open the menu | Right-click (moving less than 4 points between press and release) |
+| Return to the latest | Click the "N new" bar |
+
+The right-click menu offers Scroll to Latest, Copy This Line, Open in Browser (only on lines with links), Clear List, Lock Layout, Reset Position and Size, Hide This Overlay and Open Settings…. "Background Opacity" (20%–100%, background only; text stays opaque) and "Font Size" (10–24 points) are on each feature's page. "Lock layout" and "Hide thumbnails when EVE is not in front" also apply to the overlays; Hide All applies to thumbnails only.
+
 ### Menu bar
 
-The menu bar icon matches the app icon: a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Check for Updates…, Report a Problem…, Settings and Quit. When an update is available or the previous run quit unexpectedly, a dot appears on the icon and the menu gets an item for it at the top. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
+The menu bar icon matches the app icon: a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Show Intel Overlay, Show Translation Overlay, Check for Updates…, Report a Problem…, Settings and Quit. When an update is available or the previous run quit unexpectedly, a dot appears on the icon and the menu gets an item for it at the top. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
 
 EVE-O Preview also shows its icon in the Dock; clicking it opens the settings window. To keep only the menu bar icon, clear "Show icon in Dock" under Settings > General.
 
@@ -198,7 +244,7 @@ The app keeps up to 5 log files of 1 MiB each in `~/Library/Logs/EVE-O Preview/`
 
 ## Privacy
 
-Version 1.0.0 made no network requests. From 1.1.0 the app connects only to GitHub, and only for updates:
+Version 1.0.0 made no network requests. From 1.1.0 the app connects to GitHub for updates, and makes no other connections unless you turn on one of the optional features described after this list:
 
 - Checking for updates requests `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…".
 - When a newer version is offered, the app also requests the release list `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases` once, with the same headers, to show the notes of any versions you skipped.
@@ -206,14 +252,24 @@ Version 1.0.0 made no network requests. From 1.1.0 the app connects only to GitH
 
 The requests carry only the app version in the `User-Agent` header, a fixed `Accept-Language: en` and a cache tag; no character names, settings, logs, hardware details, system version or identifiers are sent, and no cookies are used. GitHub sees your IP address and the time of the request. There is no telemetry and no automatic crash upload: "Report a Problem…" only creates a zip on your Mac and opens a web page that you choose whether to submit.
 
+The intel and translation overlays read the chat logs and game logs only; they never write to them, and private conversations are never read. Two optional features connect to other services:
+
+- Pilot name checks: "Check pilot names online (ESI)" is on by default once you turn on the intel overlay. When an intel message received by the active character contains pilot names of two or more words that run together, the app sends those words, alone and in combinations of up to three, to CCP's ESI at `esi.evetech.net/universe/ids`. It does not send the sender, the channel or the rest of the message; your own character names are included only if someone typed them into an intel message. A name that stands alone as one word is never looked up. CCP sees your IP address and the `User-Agent` header, which contains the app version and the project URL. Turn the setting off on the Intel page to stop these requests. The app itself never contacts zKillboard: "Open in Browser" opens a character's zKillboard page in your browser, with only the character ID in the address.
+- Chat translation (off by default): the text of messages received by the active client's character in your translation channels is sent to the model service chosen on the Translation page, together with the official names of the systems and ships they mention. Sender and channel names are not sent; "Test" sends one fixed sample sentence. The API key is stored only in the macOS Keychain, under the service `io.github.deletexiumu.eveopreview-macos.translation` with one item per service, and is sent only to that service. It never appears in the configuration file, the logs or problem reports. Public addresses must use `https`; `http` is accepted only for this Mac or the local network, for example Ollama. What the service does with the text is governed by its own terms.
+
+Problem reports contain the settings of these features as numbers and switches (such as the channel count and the chosen service), but no channel names, system names, API addresses, model names, pilot names, chat text or keys.
+
 The app stores data in these places. To uninstall completely, delete them along with the app and `~/Library/Application Support/EVE-O Preview/config.json`:
 
 | Location | Contents |
 | --- | --- |
 | `~/Library/Logs/EVE-O Preview/` | App logs, about 5 MiB at most |
-| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Session marker; update and diagnostics records |
+| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Session marker; update and diagnostics records; manual intel locations |
 | `~/Library/Application Support/EVE-O Preview/Reports/` | Problem report zips you created, redacted (the 3 newest) |
 | `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/` | Downloaded update files, deleted after installing |
+| `~/Library/Application Support/EVE-O Preview/pilot-names.json` | Pilot names and character IDs matched by ESI (public game data), kept for 30 days. Readable only by you (0600) and never included in problem reports; "Clear Name Cache" on the Intel page empties it. Names without a match are kept in memory for 6 hours only |
+| `~/Library/Application Support/EVE-O Preview/translation-cache.json` | Original and translated message text, without sender or channel names. Readable only by you (0600) and never included in problem reports; "Clear Cache" on the Translation page empties it |
+| Keychain items with the service `io.github.deletexiumu.eveopreview-macos.translation` | Your translation API keys, one per service; "Delete Key" on the Translation page removes the current one |
 
 ## Configuration file
 
@@ -241,8 +297,13 @@ The Profiles page has a "Show in Finder" button.
 | `swift run EVEOProbe update verify <new app> <base app>` | Check whether a new app satisfies the base app's designated requirement |
 | `swift run EVEOProbe update prepare <url> [--cache dir]` | Download and verify an update without installing it |
 | `scripts/make-update-test-feed.sh [version]` | Write a `feed.json` for a local update test from `dist/release/` |
+| `swift run EVEOProbe staticdata` | Show where the map data file was found, its SDE build, record counts and the time for one 15-jump distance table |
+| `swift run EVEOProbe chatlog [dir] [--follow seconds]` | Show the chat log folder, channel kinds, message and location line counts, without names or message text |
+| `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | Count intel messages, systems, ships and pilot names in recent chat logs; `--resolve-sample` sends three made-up names to ESI, `--resolve` sends the pilot names from your logs to ESI |
+| `swift run EVEOProbe translate [--provider id] [--model name] [--base-url url] [--target language] [--dry-run]` | Send one fixed sample to a model service, with the key taken only from `EVEO_TRANSLATION_API_KEY`. Without `--dry-run` this is a real request that may cost money |
+| `python3 scripts/build-sde-data.py [--check]` | Download CCP's SDE and regenerate `packaging/eve-static.json`; `--check` only compares the SDE build |
 
-Demo mode writes its configuration to `config-fake.json` in the same folder, leaving the real configuration untouched. These environment variables help with debugging:
+Demo mode writes its configuration to `config-fake.json` in the same folder, leaving the real configuration untouched. It also feeds two fake chat channels, `intel.Demo` and `chat.Demo`, translates with a fake service that prefixes each line with 〔译〕, and checks pilot names without a network connection. These environment variables help with debugging:
 
 | Variable | Purpose |
 | --- | --- |
@@ -257,6 +318,10 @@ Demo mode writes its configuration to `config-fake.json` in the same folder, lea
 | `EVEO_UPDATE_FEED_URL` | Check this address for updates instead of GitHub; only `https` or `http` on a loopback host. Builds signed with a local certificate may install from it; the signature check is not relaxed |
 | `EVEO_UPDATE_UI_STATE` | In demo mode, show the update UI in a sample state: `available`, `notifyonly`, `downloading`, `ready`, `failed` or `uptodate` |
 | `EVEO_FAKE_CRASH` | `1` in demo mode pretends the previous run crashed, to show the crash report prompt |
+| `EVEO_STATIC_DATA` | Use this map data file instead of the one inside the app |
+| `EVEO_TRANSLATION_API_KEY` | API key for `EVEOProbe translate` only; the app never reads it |
+
+The map and ship data used by the intel and translation overlays (systems, regions, stargates, ship groups and ships, with their names in the 8 UI languages) is generated from CCP's static data export (SDE) by `scripts/build-sde-data.py` and shipped inside the app as `packaging/eve-static.json`; `scripts/build-app.sh` copies it into the app. The app does not download it at run time. To try a newer file without rebuilding, put it at `~/Library/Application Support/EVE-O Preview/eve-static.json`.
 
 The source has 3 modules: `EVEOPreviewCore` is the pure logic layer, `EVEOPreviewPlatform` wraps AppKit, ScreenCaptureKit, Accessibility and Carbon hotkeys, and `EVEOPreview` is the app itself. The architecture is described in [docs/architecture.md](docs/architecture.md) (in Chinese).
 
@@ -275,9 +340,9 @@ The asset names (`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), the dmg layou
 
 ## Disclaimer
 
-This tool only switches window focus. It does not broadcast input to multiple clients and does not read or modify game memory, the same boundary as upstream. Read the EVE Online End User License Agreement before using it.
+This tool only switches window focus. It does not broadcast input to multiple clients and does not read or modify game memory, the same boundary as upstream. The intel and translation overlays only read the log files that the client writes. Read the EVE Online End User License Agreement before using it.
 
-The app connects to GitHub only to check for and download updates, and sends no personal data (see [Privacy](#privacy)).
+The app connects to GitHub to check for and download updates. It connects to CCP's ESI and to a translation service only when you turn on those optional features, and sends only what [Privacy](#privacy) describes.
 
 EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP.
 

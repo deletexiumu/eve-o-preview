@@ -25,11 +25,13 @@ Dieses Repository begann als GitHub-Fork von EveOPlus/eve-o-preview und wurde f�
 - Layout: Ziehen zum Bewegen und Skalieren, Einrasten an anderen Miniaturen und Bildschirmrändern, optional Layout sperren. Position und Größe werden pro Charakter gesichert; Clients am Anmeldebildschirm nutzen eine eigene Startposition.
 - Wechselgruppen: Hotkeys vorwärts und rückwärts, Überspringen für die laufende Sitzung; Hotkeys pro Charakter; ein Hotkey zum Durchschalten der Clients am Anmeldebildschirm; Hotkeys für „Alle ausblenden“ und „Alle minimieren“. Hotkeys können die mittlere und die seitlichen Maustasten nutzen, und jeder Hotkey kann überall oder nur in EVE gelten.
 - Kampfwarnungen (standardmäßig aus): liest die Spielprotokolle und lässt die Miniatur eines Charakters blinken, wenn dieser angegriffen wird.
+- Aufklärungs-Overlay (standardmäßig aus): liest die Chatprotokolle der von Ihnen gewählten Aufklärungskanäle und zeigt für den Charakter im vorderen EVE-Fenster, in welchen Systemen Feinde gemeldet werden, wie viele Sprünge entfernt sie sind, wie viele es sind und welche Schiffe sie fliegen (siehe [Aufklärungs-Overlay](#aufklärungs-overlay)).
+- Chat-Übersetzungs-Overlay (standardmäßig aus): übersetzt Nachrichten in anderen Sprachen aus den gewählten Kanälen in Ihre Sprache, mit einem Modelldienst Ihrer Wahl und Ihrem eigenen API-Schlüssel (siehe [Chat-Übersetzung](#chat-übersetzung)).
 - Profile: erstellen, duplizieren, umbenennen, löschen und wechseln.
 - Updates: sucht auf GitHub nach neuen Releases und installiert sie direkt in der App, nachdem der Download und seine Codesignatur überprüft wurden (siehe [Updates](#updates)).
 - Problemberichte: erstellt eine anonymisierte Diagnose-ZIP-Datei und öffnet ein vorausgefülltes GitHub-Issue; nach einem unerwarteten Beenden bietet der nächste Start an, es zu melden (siehe [Problem melden](#problem-melden)).
 - Ein Symbol in der Menüleiste anstelle des Windows-Tray-Symbols.
-- Ein Einstellungsfenster mit 8 Seiten: „Clients“, „Miniaturen“, „Umschalten“, „Warnungen“, „Profile“, „Allgemein“, „Berechtigungen“ und „Info“.
+- Ein Einstellungsfenster mit 10 Seiten: „Clients“, „Miniaturen“, „Umschalten“, „Warnungen“, „Aufklärung“, „Übersetzung“, „Profile“, „Allgemein“, „Berechtigungen“ und „Info“.
 - Sprachen der Oberfläche: Englisch (Standard), Chinesisch, Russisch, Japanisch, Koreanisch, Französisch, Deutsch und Spanisch. Die Sprache wird auf der Seite „Allgemein“ umgeschaltet, alternativ lässt sich „Systemsprache“ wählen; die Änderung gilt sofort. Die russische, japanische, koreanische, französische, deutsche und spanische Übersetzung sind maschinell erstellt; Korrekturen sind willkommen.
 
 ## Nicht übernommene Funktionen des Ursprungsprojekts
@@ -102,7 +104,7 @@ Die App nutzt die folgenden Systemberechtigungen, die alle unter Systemeinstellu
 | --- | --- | --- |
 | Bildschirmaufnahme | Client-Fenster aufnehmen und Fenstertitel lesen | Miniaturen zeigen einen Platzhalter; fehlen auch die Bedienungshilfen, können keine Titel gelesen werden und Clients erscheinen als `EVE (PID)` |
 | Bedienungshilfen | Client-Fenster wiederherstellen, nach vorne holen und minimieren, Fenstertitel lesen, Maus-Hotkeys abfangen | Nur der Client-Prozess kann aktiviert werden, minimierte Fenster lassen sich also nicht wiederherstellen; „Minimieren“ und „Alle minimieren“ sind deaktiviert; Maus-Hotkeys funktionieren nicht, Tastatur-Hotkeys schon |
-| Ordner „Dokumente“ | Kampfwarnungen lesen `~/Documents/EVE/logs/Gamelogs` | Wird nur angefordert, wenn Kampfwarnungen eingeschaltet werden; bei Ablehnung zeigt die Seite „Warnungen“ den Grund, andere Funktionen sind nicht betroffen |
+| Ordner „Dokumente“ | Kampfwarnungen lesen `~/Documents/EVE/logs/Gamelogs`; Aufklärungs- und Übersetzungs-Overlay lesen `~/Documents/EVE/logs/Chatlogs`, das Aufklärungs-Overlay liest außerdem die Spielprotokolle, um Ihren Standort zu bestimmen | Wird nur angefordert, wenn eine dieser Funktionen eingeschaltet wird oder Sie „Aus Protokollen hinzufügen“ wählen; bei Ablehnung zeigt die Seite der Funktion den Grund, andere Funktionen sind nicht betroffen |
 
 Nach dem Erteilen von „Bildschirmaufnahme“ muss die App meist neu gestartet werden, damit die Berechtigung wirkt; die Seite „Berechtigungen“ hat dafür die Schaltfläche „Neu starten“. „Bedienungshilfen“ wirkt sofort.
 
@@ -174,9 +176,53 @@ Sie werden auf der Seite „Warnungen“ des Einstellungsfensters eingeschaltet.
 - Beim ersten Mal fragt macOS nach dem Zugriff auf den Ordner „Dokumente“. Liegen Ihre Protokolle woanders, wählen Sie den Ordner auf der Seite „Warnungen“.
 - Das Protokollformat des chinesischen Clients wurde anhand echter Protokolle geprüft. Japanische und russische Schadenszeilen wurden anhand echter Client-Protokolle (aufgezeichnete Beispiele des Ursprungsprojekts) geprüft; ihre Fehlschusszeilen sind nur aus Vorlagen abgeleitet. Englisch, Deutsch, Französisch, Spanisch und Koreanisch sind aus den Vorlagen des Ursprungsprojekts abgeleitet und wurden nicht anhand echter Protokolle geprüft.
 
+### Aufklärungs-Overlay
+
+Schalten Sie es mit „Aufklärungs-Overlay anzeigen“ auf der Seite „Aufklärung“ des Einstellungsfensters ein oder mit „Aufklärungs-Overlay anzeigen“ im Menü der Menüleiste. Die App liest dann die Chatprotokolle, die Clients nach `~/Documents/EVE/logs/Chatlogs` schreiben, neben dem auf der Seite „Warnungen“ gewählten Ordner der Spielprotokolle. Jede Zeile des Overlays ist eine Nachricht aus Ihren Aufklärungskanälen: ihr Alter, jedes System mit Sicherheitsstatus und Entfernung in Sprüngen von Ihrem Standort, die Zahl der Feinde, die Schiffe und die Pilotennamen.
+
+- Der EVE-Client muss so eingestellt sein, dass er den Chat in eine Datei protokolliert.
+- Kanäle: Wählen Sie „Aus Protokollen hinzufügen“, um aus den Kanälen Ihrer letzten Chatprotokolle zu wählen (jeweils mit der Zahl Ihrer Charaktere darin), oder geben Sie einen Kanalnamen ein und drücken Sie den Zeilenschalter. „Aktualisieren“ durchsucht die Protokolle erneut. Höchstens 16 Kanäle. Private Unterhaltungen werden nie gelesen und nie aufgelistet.
+- Beim Einschalten füllt sich das Overlay mit den Nachrichten der letzten 30 Minuten („Behalten für“, 5–120 Minuten); ältere Zeilen verschwinden.
+- Standort: Sprünge werden ab dem System gezählt, in dem sich der aktive Charakter befindet. Die App entnimmt es den Sprung- und Abdockzeilen der Spielprotokolle und den Systemwechselmeldungen im Chatprotokoll von Local. Fehlt beides, geben Sie unter „Mein Standort“ einen Systemnamen für diesen Charakter ein und drücken den Zeilenschalter; bei einem unbekannten Namen erscheint „System nicht gefunden“. Der nächste Sprung ersetzt einen manuellen Standort, und ein manueller Standort bleibt über einen Neustart erhalten. Ein Charakter ganz ohne Standort zählt die Sprünge ab dem „Bezugssystem“.
+- „Zählen bis“ begrenzt die Sprungzahl (1–30, Standard 15). „Hervorheben bis“ hebt eine Nachricht hervor, wenn ein gemeldetes System höchstens so viele Sprünge entfernt ist (Standard 5; 0 schaltet es aus). „Originaltext anzeigen“ fügt Absender und Nachricht als zweite Zeile hinzu.
+- System- und Schiffsnamen erscheinen in der Sprache der Oberfläche.
+- Pilotennamen sind das, was von einer Nachricht übrig bleibt, nachdem Systeme, Schiffe und Zahlen erkannt wurden; aufeinanderfolgende Namen mit Leerzeichen sind daher mehrdeutig. Ist „Online-Namensprüfung (ESI)“ eingeschaltet (Standard), fragt die App bei CCPs ESI nach, welche dieser Wörter echte Charakternamen sind, und teilt sie entsprechend auf (siehe [Datenschutz](#datenschutz)). Ein Treffer bedeutet nur, dass ein Charakter mit diesem Namen existiert, nicht, dass er gemeint ist. Ein gefundener Name erhält im Kontextmenü unter „Im Browser öffnen“ einen Link zu zKillboard. „Namenscache leeren“ löscht die gespeicherten Namen.
+
+### Chat-Übersetzung
+
+Schalten Sie sie mit „Übersetzungs-Overlay anzeigen“ auf der Seite „Übersetzung“ ein oder mit „Übersetzungs-Overlay anzeigen“ im Menü der Menüleiste. Sie übersetzt Nachrichten in den gewählten Kanälen, die noch nicht in der Zielsprache sind.
+
+1. Wählen Sie die Kanäle wie beim Aufklärungs-Overlay; „Aus Protokollen hinzufügen“ listet zusätzlich die eingebauten Kanäle „Lokal“, „Corporation“, „Allianz“ und „Flotte“.
+2. Wählen Sie unter „Übersetzen in“ eine Sprache oder „Wie die Sprache der Oberfläche“ (Standard).
+3. Wählen Sie einen „Dienst“: DeepSeek (Standard), Claude (Anthropic), OpenAI, Qwen (DashScope), Kimi (Moonshot), Ollama oder „Andere (OpenAI-kompatibel)“. „API-Adresse“ und „Modellname“ zeigen die Werte der Voreinstellung; tragen Sie eigene Werte ein, um sie zu ersetzen.
+4. Fügen Sie Ihren API-Schlüssel ein und klicken Sie auf „Speichern“. Der Schlüssel wird im macOS-Schlüsselbund gespeichert; „Schlüssel löschen“ entfernt ihn. Ollama braucht keinen Schlüssel.
+5. Klicken Sie auf „Testen“, um einen festen Beispielsatz zu übersetzen.
+
+- An das Modell gehen nur Nachrichten, die der Charakter des aktiven Clients empfangen hat. Derselbe Satz wird nur einmal übersetzt und danach aus dem Cache genommen. Nachrichten, die nur Systeme und Schiffe enthalten, werden nicht gesendet. Ist die Zielsprache Chinesisch, Japanisch, Koreanisch oder Russisch, werden auch Nachrichten nicht gesendet, die schon in dieser Sprache sind. System-, Regions- und Schiffsnamen erscheinen mit ihren offiziellen Namen in der Zielsprache.
+- Jede Zeile zeigt die EVE-Zeit, den Kanal (nur wenn Sie mehr als einen übersetzen), den Absender und die Übersetzung. „Auch den Originaltext anzeigen“ fügt das Original darunter hinzu; „Nur übersetzte Nachrichten anzeigen“ blendet Nachrichten aus, die übersprungen wurden, weil sie schon in der Zielsprache sind.
+- Lehnt der Dienst den Schlüssel ab oder ist das Kontingent aufgebraucht, pausiert die Übersetzung, und die Statuszeile nennt den Grund; „Jetzt erneut versuchen“ versucht es noch einmal.
+- Öffentliche Adressen müssen `https` verwenden; `http` ist nur für diesen Mac oder das lokale Netzwerk erlaubt, etwa für Ollama unter `http://127.0.0.1:11434/v1`.
+- Die Anfragen laufen über Ihr Konto beim gewählten Dienst und können Kosten verursachen.
+- Nach einem Neubau mit einer anderen Signatur kann macOS beim Klick auf „Testen“ oder „Jetzt erneut versuchen“ um Erlaubnis bitten, den Schlüsselbundeintrag zu lesen. Lesezugriffe im Hintergrund zeigen diese Abfrage nie; stattdessen bittet die Statuszeile, den Schlüssel erneut zu speichern.
+
+### Gesten auf Overlays
+
+Aufklärungs- und Übersetzungs-Overlay sind eigene Fenster, die sich wie Miniaturen verhalten: Sie übernehmen nie den Fokus, erscheinen in allen Spaces und zeigen nur den Charakter des vorderen EVE-Fensters; beim Wechsel des Clients wechselt der Inhalt sofort. Klicks gehen nicht an das Spiel durch. Die neueste Nachricht steht unten, und die Liste bleibt dort. Scrollen Sie nach oben, folgt die Liste neuen Nachrichten nicht mehr, und unten erscheint ein Balken „N neu“; ein Klick darauf führt zurück zum Neuesten.
+
+| Aktion | Geste |
+| --- | --- |
+| Liste scrollen | Scrollrad oder Streichen mit zwei Fingern |
+| Bewegen | Ziehen mit der rechten Maustaste oder Wahltaste (⌥)+Ziehen mit der linken Maustaste |
+| Skalieren | Dieselbe Geste wie beim Bewegen, beginnend innerhalb von 12 Punkten vom Rand des Overlays |
+| Einrasten vorübergehend abschalten | Umschalttaste (⇧) beim Ziehen gedrückt halten |
+| Menü öffnen | Rechtsklick (weniger als 4 Punkte Bewegung zwischen Drücken und Loslassen) |
+| Zurück zum Neuesten | Auf den Balken „N neu“ klicken |
+
+Das Kontextmenü bietet „Zum Neuesten scrollen“, „Diese Zeile kopieren“, „Im Browser öffnen“ (nur bei Zeilen mit Links), „Liste leeren“, „Layout sperren“, „Position und Größe zurücksetzen“, „Dieses Overlay ausblenden“ und „Einstellungen öffnen …“. „Deckkraft des Hintergrunds“ (20–100 %, nur der Hintergrund; der Text bleibt deckend) und „Schriftgröße“ (10–24 Punkte) stehen auf der Seite der jeweiligen Funktion. „Layout sperren“ und „Miniaturen ausblenden, wenn EVE nicht aktiv ist“ gelten auch für die Overlays; „Alle Miniaturen ausblenden“ gilt nur für Miniaturen.
+
 ### Menüleiste
 
-Das Symbol in der Menüleiste entspricht dem App-Symbol: ein Molekül in einem Achteck. Das Menü bietet: „Alle Miniaturen einblenden“ bzw. „Alle Miniaturen ausblenden“, Profil wechseln, „Alle Clients minimieren“, „Hotkeys nur in EVE“, „Nach Updates suchen …“, „Problem melden …“, „Einstellungen …“ und „EVE-O Preview beenden“. Wenn ein Update verfügbar ist oder der letzte Lauf unerwartet beendet wurde, erscheint ein Punkt auf dem Symbol, und oben im Menü erscheint ein Eintrag dazu. Fehlt eine Berechtigung, hat das Menü einen zusätzlichen Eintrag dazu. Wird die Aufnahme eines Clients über die Aufnahmeanzeige des Systems gestoppt, erhält das Menü einen Eintrag „Aufnahme fortsetzen“.
+Das Symbol in der Menüleiste entspricht dem App-Symbol: ein Molekül in einem Achteck. Das Menü bietet: „Alle Miniaturen einblenden“ bzw. „Alle Miniaturen ausblenden“, Profil wechseln, „Alle Clients minimieren“, „Hotkeys nur in EVE“, „Aufklärungs-Overlay anzeigen“, „Übersetzungs-Overlay anzeigen“, „Nach Updates suchen …“, „Problem melden …“, „Einstellungen …“ und „EVE-O Preview beenden“. Wenn ein Update verfügbar ist oder der letzte Lauf unerwartet beendet wurde, erscheint ein Punkt auf dem Symbol, und oben im Menü erscheint ein Eintrag dazu. Fehlt eine Berechtigung, hat das Menü einen zusätzlichen Eintrag dazu. Wird die Aufnahme eines Clients über die Aufnahmeanzeige des Systems gestoppt, erhält das Menü einen Eintrag „Aufnahme fortsetzen“.
 
 EVE-O Preview zeigt sein Symbol auch im Dock; ein Klick darauf öffnet das Einstellungsfenster. Um nur das Symbol in der Menüleiste zu behalten, deaktivieren Sie „Symbol im Dock anzeigen“ unter Einstellungen > Allgemein.
 
@@ -200,7 +246,7 @@ Die App behält bis zu 5 Protokolldateien zu je 1 MiB in `~/Library/Logs/EVE-O P
 
 ## Datenschutz
 
-Version 1.0.0 stellte keine Netzwerkanfragen. Ab 1.1.0 verbindet sich die App nur mit GitHub, und nur für Updates:
+Version 1.0.0 stellte keine Netzwerkanfragen. Ab 1.1.0 verbindet sich die App für Updates mit GitHub und stellt keine weiteren Verbindungen her, solange Sie keine der nach dieser Liste beschriebenen optionalen Funktionen einschalten:
 
 - Die Suche nach Updates fragt `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` beim Start und einmal täglich ab, solange „Automatisch nach Updates suchen“ aktiviert ist, sowie jedes Mal, wenn Sie „Nach Updates suchen …“ wählen.
 - Wird eine neue Version angeboten, fragt die App außerdem einmal die Release-Liste `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases` mit denselben Headern ab, um die Änderungen übersprungener Versionen anzuzeigen.
@@ -208,14 +254,24 @@ Version 1.0.0 stellte keine Netzwerkanfragen. Ab 1.1.0 verbindet sich die App nu
 
 Die Anfragen enthalten nur die App-Version im Header `User-Agent`, ein festes `Accept-Language: en` und ein Cache-Tag; es werden keine Charakternamen, Einstellungen, Protokolle, Hardwaredetails, Systemversion oder Kennungen gesendet, und es werden keine Cookies verwendet. GitHub sieht Ihre IP-Adresse und den Zeitpunkt der Anfrage. Es gibt keine Telemetrie und keinen automatischen Upload von Abstürzen: „Problem melden …“ erstellt nur eine ZIP-Datei auf Ihrem Mac und öffnet eine Webseite, auf der Sie selbst entscheiden, ob Sie absenden.
 
+Aufklärungs- und Übersetzungs-Overlay lesen nur die Chat- und Spielprotokolle; sie schreiben nie hinein, und private Unterhaltungen werden nie gelesen. Zwei optionale Funktionen verbinden sich mit anderen Diensten:
+
+- Prüfung von Pilotennamen: „Online-Namensprüfung (ESI)“ ist standardmäßig eingeschaltet, sobald Sie das Aufklärungs-Overlay einschalten. Enthält eine Aufklärungsnachricht, die der aktive Charakter empfangen hat, aufeinanderfolgende Pilotennamen aus zwei oder mehr Wörtern, sendet die App diese Wörter einzeln und in Kombinationen von bis zu drei an CCPs ESI unter `esi.evetech.net/universe/ids`. Absender, Kanal und der Rest der Nachricht werden nicht gesendet; Ihre eigenen Charakternamen sind nur dabei, wenn jemand sie in eine Aufklärungsnachricht geschrieben hat. Ein Name, der für sich allein steht und nur aus einem Wort besteht, wird nie abgefragt. CCP sieht Ihre IP-Adresse und den Header `User-Agent` mit der App-Version und der Projekt-URL. Schalten Sie die Einstellung auf der Seite „Aufklärung“ aus, um diese Anfragen zu beenden. Die App selbst verbindet sich nie mit zKillboard: „Im Browser öffnen“ öffnet die zKillboard-Seite eines Charakters in Ihrem Browser, mit nur der Charakter-ID in der Adresse.
+- Chat-Übersetzung (standardmäßig aus): Der Text der Nachrichten, die der Charakter des aktiven Clients in Ihren Übersetzungskanälen empfängt, geht zusammen mit den offiziellen Namen der darin genannten Systeme und Schiffe an den auf der Seite „Übersetzung“ gewählten Modelldienst. Absender- und Kanalnamen werden nicht gesendet; „Testen“ sendet einen festen Beispielsatz. Der API-Schlüssel liegt nur im macOS-Schlüsselbund, unter dem Dienst `io.github.deletexiumu.eveopreview-macos.translation` mit einem Eintrag pro Modelldienst, und wird nur an diesen Modelldienst gesendet. Er erscheint nie in der Konfigurationsdatei, in Protokollen oder Problemberichten. Öffentliche Adressen müssen `https` verwenden; `http` ist nur für diesen Mac oder das lokale Netzwerk erlaubt, etwa für Ollama. Was der Dienst mit dem Text macht, regeln seine eigenen Bedingungen.
+
+Problemberichte enthalten die Einstellungen dieser Funktionen als Zahlen und Schalter (etwa die Zahl der Kanäle und den gewählten Dienst), aber keine Kanal- und Systemnamen, API-Adressen, Modellnamen, Pilotennamen, Chattexte oder Schlüssel.
+
 Die App speichert Daten an diesen Orten. Für eine vollständige Deinstallation löschen Sie sie zusammen mit der App und `~/Library/Application Support/EVE-O Preview/config.json`:
 
 | Ort | Inhalt |
 | --- | --- |
 | `~/Library/Logs/EVE-O Preview/` | App-Protokolle, höchstens etwa 5 MiB |
-| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Sitzungsmarkierung; Einträge zu Updates und Diagnose |
+| `~/Library/Application Support/EVE-O Preview/session.json`, `state.json` | Sitzungsmarkierung; Einträge zu Updates und Diagnose; manuelle Standorte für die Aufklärung |
 | `~/Library/Application Support/EVE-O Preview/Reports/` | Von Ihnen erstellte, anonymisierte Problembericht-ZIP-Dateien (die 3 neuesten) |
 | `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/` | Geladene Update-Dateien, werden nach der Installation gelöscht |
+| `~/Library/Application Support/EVE-O Preview/pilot-names.json` | Über ESI gefundene Pilotennamen und Charakter-IDs (öffentliche Spieldaten), 30 Tage lang aufbewahrt. Nur für Sie lesbar (0600) und nie in Problemberichten; „Namenscache leeren“ auf der Seite „Aufklärung“ leert die Datei. Namen ohne Treffer bleiben nur 6 Stunden im Speicher |
+| `~/Library/Application Support/EVE-O Preview/translation-cache.json` | Original- und übersetzter Nachrichtentext, ohne Absender- und Kanalnamen. Nur für Sie lesbar (0600) und nie in Problemberichten; „Cache leeren“ auf der Seite „Übersetzung“ leert die Datei |
+| Schlüsselbundeinträge mit dem Dienst `io.github.deletexiumu.eveopreview-macos.translation` | Ihre API-Schlüssel für die Übersetzung, einer pro Modelldienst; „Schlüssel löschen“ auf der Seite „Übersetzung“ entfernt den des aktuellen Modelldienstes |
 
 ## Konfigurationsdatei
 
@@ -243,8 +299,13 @@ Die Seite „Profile“ hat eine Schaltfläche „Im Finder zeigen“.
 | `swift run EVEOProbe update verify <new app> <base app>` | Prüfen, ob eine neue App die Designated Requirement der Basis-App erfüllt |
 | `swift run EVEOProbe update prepare <url> [--cache dir]` | Ein Update laden und überprüfen, ohne es zu installieren |
 | `scripts/make-update-test-feed.sh [version]` | Eine `feed.json` für einen lokalen Update-Test aus `dist/release/` schreiben |
+| `swift run EVEOProbe staticdata` | Fundort der Kartendaten, SDE-Build, Anzahl der Einträge und die Zeit für eine Entfernungstabelle über 15 Sprünge anzeigen |
+| `swift run EVEOProbe chatlog [dir] [--follow seconds]` | Ordner der Chatprotokolle, Kanalarten, Zahl der Nachrichten und Standortzeilen anzeigen, ohne Namen und Nachrichtentext |
+| `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | Aufklärungsnachrichten, Systeme, Schiffe und Pilotennamen in den letzten Chatprotokollen zählen; `--resolve-sample` sendet drei erfundene Namen an ESI, `--resolve` sendet die Pilotennamen aus Ihren Protokollen an ESI |
+| `swift run EVEOProbe translate [--provider id] [--model name] [--base-url url] [--target language] [--dry-run]` | Ein festes Beispiel an einen Modelldienst senden, mit dem Schlüssel nur aus `EVEO_TRANSLATION_API_KEY`. Ohne `--dry-run` ist das eine echte Anfrage, die Kosten verursachen kann |
+| `python3 scripts/build-sde-data.py [--check]` | CCPs SDE herunterladen und `packaging/eve-static.json` neu erzeugen; `--check` vergleicht nur den SDE-Build |
 
-Der Demomodus schreibt seine Konfiguration in `config-fake.json` im selben Ordner und lässt die echte Konfiguration unberührt. Diese Umgebungsvariablen helfen beim Debuggen:
+Der Demomodus schreibt seine Konfiguration in `config-fake.json` im selben Ordner und lässt die echte Konfiguration unberührt. Außerdem liefert er zwei erfundene Chatkanäle, `intel.Demo` und `chat.Demo`, übersetzt mit einem erfundenen Dienst, der jeder Zeile 〔译〕 voranstellt, und prüft Pilotennamen ohne Netzwerkverbindung. Diese Umgebungsvariablen helfen beim Debuggen:
 
 | Variable | Zweck |
 | --- | --- |
@@ -259,6 +320,10 @@ Der Demomodus schreibt seine Konfiguration in `config-fake.json` im selben Ordne
 | `EVEO_UPDATE_FEED_URL` | Diese Adresse statt GitHub nach Updates abfragen; nur `https` oder `http` auf einem Loopback-Host. Mit einem lokalen Zertifikat signierte Builds dürfen von dort installieren; die Signaturprüfung wird nicht gelockert |
 | `EVEO_UPDATE_UI_STATE` | Im Demomodus die Update-Oberfläche in einem Beispielzustand zeigen: `available`, `notifyonly`, `downloading`, `ready`, `failed` oder `uptodate` |
 | `EVEO_FAKE_CRASH` | `1` täuscht im Demomodus vor, dass der vorige Lauf abgestürzt ist, um die Nachfrage zum Absturzbericht zu zeigen |
+| `EVEO_STATIC_DATA` | Diese Kartendatendatei statt der in der App enthaltenen verwenden |
+| `EVEO_TRANSLATION_API_KEY` | API-Schlüssel nur für `EVEOProbe translate`; die App liest ihn nie |
+
+Die Karten- und Schiffsdaten der Aufklärungs- und Übersetzungs-Overlays (Systeme, Regionen, Sternentore, Schiffsgruppen und Schiffe mit ihren Namen in den 8 Sprachen der Oberfläche) erzeugt `scripts/build-sde-data.py` aus CCPs statischem Datenexport (SDE). Sie werden als `packaging/eve-static.json` mit der App ausgeliefert; `scripts/build-app.sh` kopiert die Datei in die App. Zur Laufzeit lädt die App diese Daten nicht herunter. Um eine neuere Datei ohne Neubau auszuprobieren, legen Sie sie unter `~/Library/Application Support/EVE-O Preview/eve-static.json` ab.
 
 Der Quellcode hat 3 Module: `EVEOPreviewCore` ist die reine Logikschicht, `EVEOPreviewPlatform` kapselt AppKit, ScreenCaptureKit, Bedienungshilfen und Carbon-Hotkeys, und `EVEOPreview` ist die App selbst. Die Architektur ist in [docs/architecture.md](docs/architecture.md) beschrieben (auf Chinesisch).
 
@@ -277,9 +342,9 @@ Die Asset-Namen (`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), der Aufbau de
 
 ## Haftungsausschluss
 
-Dieses Tool wechselt nur den Fensterfokus. Es sendet keine Eingaben an mehrere Clients gleichzeitig und liest oder verändert nicht den Spielspeicher – dieselbe Grenze wie beim Ursprungsprojekt. Lesen Sie vor der Verwendung die Endbenutzer-Lizenzvereinbarung von EVE Online.
+Dieses Tool wechselt nur den Fensterfokus. Es sendet keine Eingaben an mehrere Clients gleichzeitig und liest oder verändert nicht den Spielspeicher – dieselbe Grenze wie beim Ursprungsprojekt. Aufklärungs- und Übersetzungs-Overlay lesen nur die Protokolldateien, die der Client schreibt. Lesen Sie vor der Verwendung die Endbenutzer-Lizenzvereinbarung von EVE Online.
 
-Die App verbindet sich nur mit GitHub, um nach Updates zu suchen und sie zu laden, und sendet keine persönlichen Daten (siehe [Datenschutz](#datenschutz)).
+Die App verbindet sich mit GitHub, um nach Updates zu suchen und sie zu laden. Mit CCPs ESI und einem Übersetzungsdienst verbindet sie sich nur, wenn Sie diese optionalen Funktionen einschalten, und sendet nur, was unter [Datenschutz](#datenschutz) beschrieben ist.
 
 EVE Online und zugehörige Logos sind Marken von CCP ehf. Dieses Projekt steht in keiner Verbindung zu CCP und wird nicht von CCP unterstützt.
 
