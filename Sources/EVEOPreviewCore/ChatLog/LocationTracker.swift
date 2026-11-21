@@ -7,6 +7,8 @@
 // apply 的规则：
 // 1. 按线索的来源用 LocationLineParser 取星系名，再用 data.system(named:) 查星系。
 // 2. 取不到或查不到时兜底：对正文做术语匹配，取最后一个种类是星系的匹配（应对表以外语言的句式，V32）。
+//    只在正文里至多有 2 个星系、且最后一个星系后面只剩空白或标点时才用；否则不用这条线索（审查 m4：
+//    「从 A 跳到 <认不出的名字>」不应把位置记成出发的 A）。
 // 3. 仍没有结果时不改任何记录。
 // 4. 角色的键先原样比较，没有时再不区分大小写比较（CharacterNameMatch）。
 // 5. 补读的线索只在没有记录、或时间晚于记录时写入；运行中的线索直接写入，不比较时间
@@ -88,7 +90,11 @@ public struct LocationTracker: Sendable, Equatable {
         locations.filter { $0.value.source == .manual }
     }
 
-    /// 线索里的星系：先按句式取名称再查星系，取不到时取正文里最后一个星系。
+    /// 兜底时正文里至多几个星系。
+    static let maxFallbackSystems = 2
+
+    /// 线索里的星系：先按句式取名称再查星系；取不到时，正文里至多 2 个星系、且最后一个在正文末尾
+    /// （后面只有空白或标点）时取它，否则为 nil。
     static func resolveSystem(_ hint: LocationHint, data: EVEStaticData) -> Int? {
         let name: String?
         switch hint.source {
@@ -96,10 +102,14 @@ public struct LocationTracker: Sendable, Equatable {
         case .gameLog: name = LocationLineParser.systemName(fromGameNote: hint.text)
         }
         if let name, let system = data.system(named: name) { return system.id }
-        let systems = data.matcher.matches(in: hint.text).compactMap { match -> Int? in
-            if case .system(let id) = match.kind { return id }
-            return nil
+        let systems = data.matcher.matches(in: hint.text).filter { match in
+            if case .system = match.kind { return true }
+            return false
         }
-        return systems.last
+        guard (1...maxFallbackSystems).contains(systems.count), let last = systems.last,
+              case .system(let id) = last.kind else { return nil }
+        let tail = hint.text[last.range.upperBound...]
+        guard tail.allSatisfy({ $0.isWhitespace || $0.isPunctuation }) else { return nil }
+        return id
     }
 }

@@ -100,3 +100,30 @@ struct ChatModelsTests {
         #expect(CharacterNameMatch.value(for: "Tarn Vex", in: table) == nil)
     }
 }
+
+/// 跟踪请求变化时要不要重建跟踪服务（审查 m6）。频道名是虚构的。
+struct ChatLogRequestRestartTests {
+    /// 一个基准请求。
+    let base = ChatLogRequest(logDirectory: nil, channels: [ChannelRef(name: "intel.Demo", id: "player_1")],
+                              followsLocation: true, backfillSeconds: 600)
+
+    /// 只改补读时长不重建；改目录、频道或位置跟踪要重建；开和关都要重建；两边都是 nil 不重建。
+    @Test func onlyBackfillDoesNotRestart() {
+        var longer = base
+        longer.backfillSeconds = 3_600
+        #expect(!ChatLogRequest.requiresRestart(from: base, to: longer))
+        #expect(!ChatLogRequest.requiresRestart(from: base, to: base))
+        var moved = base
+        moved.logDirectory = "/tmp/logs"
+        #expect(ChatLogRequest.requiresRestart(from: base, to: moved))
+        var more = base
+        more.channels.append(ChannelRef(name: "chat.Demo"))
+        #expect(ChatLogRequest.requiresRestart(from: base, to: more))
+        var noLocation = base
+        noLocation.followsLocation = false
+        #expect(ChatLogRequest.requiresRestart(from: base, to: noLocation))
+        #expect(ChatLogRequest.requiresRestart(from: nil, to: base))
+        #expect(ChatLogRequest.requiresRestart(from: base, to: nil))
+        #expect(!ChatLogRequest.requiresRestart(from: nil, to: nil))
+    }
+}

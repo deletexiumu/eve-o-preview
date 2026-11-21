@@ -9,6 +9,8 @@
 //   （夹到 1～120，没有时 60），否则回到 idle。
 // - fail：rateLimited 回到待查、等 retryAfter 秒；network、server、malformedAnswer 回到待查、等 30 秒，
 //   连续失败时每次加倍，上限 600 秒；rejected 丢掉这一批、等 300 秒（请求写法有错，重发只会再扣错误额度）。
+// - rejected 的名字另记进内存里的「暂不查」表，1 小时内 enqueue 不再排它们：补排每次从缓冲里收集名字，
+//   不记的话同一批会在每次补排时重新发出（审查 nit a）。这张表不写文件，removeAll 不清（同等待的时刻）。
 //   失败不产生任何结果，缓存不变。
 
 import Foundation
@@ -27,6 +29,8 @@ public struct PilotLookupQueue: Sendable {
     static let failureDelay = 30.0
     static let maxFailureDelay = 600.0
     static let rejectedDelay = 300.0
+    /// rejected 的名字多久之内不再排。
+    static let rejectedHoldSeconds = 3_600.0
 
     /// 一个待查的名字。
     private struct Pending: Sendable {
@@ -47,6 +51,8 @@ public struct PilotLookupQueue: Sendable {
     private var lastBatchAt: Double?
     /// 连续失败的次数（network、server、malformedAnswer）。
     private var consecutiveFailures = 0
+    /// 被 rejected 的名字的比较键 → 到这个时刻之前不再排。
+    private var rejectedUntil: [String: Double] = [:]
 
     /// 建一个空队列。
     public init() {}
@@ -62,12 +68,14 @@ public struct PilotLookupQueue: Sendable {
     /// 待查的名字个数。
     public var pendingCount: Int { pending.count }
 
-    /// 排进待查的名字；已在待查或在途的不重复排。超过 2,000 个时丢最早的。
+    /// 排进待查的名字；已在待查或在途的、1 小时内被 rejected 的不排。超过 2,000 个时丢最早的。
     public mutating func enqueue(_ names: [String], now: Double) {
         let inFlightKeys = Set(inFlight?.map(\.key) ?? [])
+        rejectedUntil = rejectedUntil.filter { $0.value > now }
         for name in names {
             let key = PilotLookupAnswer.key(for: name)
-            guard !key.isEmpty, !pendingKeys.contains(key), !inFlightKeys.contains(key) else { continue }
+            guard !key.isEmpty, !pendingKeys.contains(key), !inFlightKeys.contains(key),
+                  rejectedUntil[key] == nil else { continue }
             pending.append(Pending(key: key, name: name, enqueuedAt: now))
             pendingKeys.insert(key)
         }
@@ -126,6 +134,7 @@ public struct PilotLookupQueue: Sendable {
             waitingUntil = now + min(delay, PilotLookupQueue.maxFailureDelay)
         case .rejected:
             waitingUntil = now + PilotLookupQueue.rejectedDelay
+            for item in batch { rejectedUntil[item.key] = now + PilotLookupQueue.rejectedHoldSeconds }
         }
     }
 

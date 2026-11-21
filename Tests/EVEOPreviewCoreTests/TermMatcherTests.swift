@@ -84,11 +84,59 @@ import Foundation
         #expect(matcher.matches(in: "Not Ab").map(\.kind) == [.system(id: 4)])
     }
 
-    /// 中文情报用语按字符键匹配，没有词的边界：「无人机」里的「无人」、「不安全」里的「安全」也认作「安全」。
-    /// 这是 6.3 节规则的现状（字符键不看边界），由 WP-B 的回报列为风险；这里把行为钉住，改规则时这条用例要跟着改。
-    @Test func chineseClearWordsHaveNoBoundary() {
-        #expect(kinds("无人机") == [.intelWord(.clear)])
-        #expect(kinds("不安全") == [.intelWord(.clear)])
+    /// 中文情报用语看边界（6.3 节字符键的边界）：「无人机」「安全等级」后面紧跟汉字，「不安全」前面是否定字，都不算；
+    /// 前后是空白、`*` 或行尾时算。
+    @Test func chineseClearWordsNeedBoundary() {
+        #expect(kinds("无人机").isEmpty)
+        #expect(kinds("不安全").isEmpty)
+        #expect(kinds("没无人").isEmpty)
+        #expect(kinds("安全等级").isEmpty)
+        #expect(kinds("安全") == [.intelWord(.clear)])
+        #expect(kinds("吉他* 无人") == [.system(id: StaticDataFixtures.jita), .intelWord(.clear)])
+    }
+
+    /// 也是普通词的星系与星域的译名（Exit 的「出口」、Cache 的「地窖」）：后面紧跟 `*`，或前后都不紧挨汉字时才算。
+    /// 不在 ambiguousShortNames 里的星系不受影响。
+    @Test func ambiguousLocalizedNames() {
+        let systems = [SolarSystem(id: 1, name: "Exit", localized: ["zh": "出口"], kind: .known),
+                       SolarSystem(id: 2, name: "Jita", localized: ["zh": "吉他"], kind: .known)]
+        let regions = [StaticDataFile.Named(i: 10, n: "Cache", l: ["zh": "地窖"])]
+        let matcher = TermMatcher(systems: systems, regions: regions, ships: [])
+        let kinds = { (text: String) in matcher.matches(in: text).map(\.kind) }
+        #expect(kinds("出口") == [.system(id: 1)])
+        #expect(kinds("出口*") == [.system(id: 1)])
+        #expect(kinds("Jita 出口 gate") == [.system(id: 2), .system(id: 1)])
+        #expect(kinds("门口出口处").isEmpty)
+        #expect(kinds("出口有泡泡").isEmpty)
+        #expect(kinds("吉他出口*") == [.system(id: 2), .system(id: 1)])
+        #expect(kinds("吉他出口") == [.system(id: 2)])
+        #expect(kinds("地窖 3") == [.region(id: 10)])
+        #expect(kinds("酒地窖里").isEmpty)
+        // 普通星系的中文名照常不看边界。
+        #expect(kinds("门口吉他有人") == [.system(id: 2)])
+    }
+
+    /// 舰船与舰船分组小写也算（不受第 5 条限制）；caseSensitiveShipNames 与 ambiguousShortNames 里的键仍要大写或 `*`，
+    /// 复数回退得到的键也按这条判断。
+    @Test func lowercaseShipNames() {
+        let ships = [ShipName(id: 1, groupID: 25, name: "Moa"), ShipName(id: 2, groupID: 25, name: "Nyx"),
+                     ShipName(id: 3, groupID: 25, name: "Sin"), ShipName(id: 4, groupID: 25, name: "Imp"),
+                     ShipName(id: 5, groupID: 25, name: "Ark"), ShipName(id: 6, groupID: 25, name: "Curse")]
+        let matcher = TermMatcher(systems: [SolarSystem(id: 9, name: "Hek", kind: .known)], regions: [], ships: ships)
+        let kinds = { (text: String) in matcher.matches(in: text).map(\.kind) }
+        #expect(kinds("moa") == [.ship(typeID: 1)])
+        #expect(kinds("2 moas") == [.ship(typeID: 1)])
+        #expect(kinds("nyx") == [.ship(typeID: 2)])
+        #expect(kinds("sin").isEmpty)
+        #expect(kinds("sins").isEmpty)
+        #expect(kinds("Sin") == [.ship(typeID: 3)])
+        #expect(kinds("imp ark").isEmpty)
+        #expect(kinds("Imp Ark*") == [.ship(typeID: 4), .ship(typeID: 5)])
+        #expect(kinds("curse").isEmpty)
+        #expect(kinds("Curse") == [.ship(typeID: 6)])
+        // 星系仍受第 5 条限制。
+        #expect(kinds("hek").isEmpty)
+        #expect(IntelLexicon.caseSensitiveShipNames == ["sin", "imp", "ark"])
     }
 
     /// ambiguousShortNames 里的名称：小写不算，首字母大写算。

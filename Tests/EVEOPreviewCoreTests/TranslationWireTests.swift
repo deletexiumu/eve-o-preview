@@ -77,7 +77,7 @@ struct TranslationWireTests {
                                     "anthropic-version": "2026-10-21"])
         let json = try body(request)
         #expect(Set(json.keys) == ["model", "max_tokens", "system", "messages"])
-        #expect(json["max_tokens"] as? Int == 8_192)
+        #expect(json["max_tokens"] as? Int == 16_000)
         #expect(json["system"] as? String == "SYS")
         #expect(json["temperature"] == nil && json["thinking"] == nil)
         let proxied = TranslationWire.request(endpoint: try endpoint(.anthropic, base: "https://gw.example.com/v1"),
@@ -135,7 +135,7 @@ struct TranslationWireTests {
             == .rejected(status: 400, message: String(repeating: "m", count: 200)))
     }
 
-    /// 429 的 retry-after：取秒数并夹到 5～600；没有或不是数字时取 30。
+    /// 429 的 retry-after：取秒数并夹到 5～600；没有或不是数字时不给秒数（队列从 30 秒起加倍等待）。
     @Test func retryAfterClamping() {
         func wait(_ header: String?) -> TranslationFailure? {
             failure(response(429, "{}", headers: header.map { ["retry-after": $0] } ?? [:]))
@@ -143,8 +143,9 @@ struct TranslationWireTests {
         #expect(wait("12") == .rateLimited(retryAfter: 12))
         #expect(wait("1") == .rateLimited(retryAfter: 5))
         #expect(wait("9999") == .rateLimited(retryAfter: 600))
-        #expect(wait(nil) == .rateLimited(retryAfter: 30))
-        #expect(wait("Wed, 21 Oct 2026 07:28:00 GMT") == .rateLimited(retryAfter: 30))
+        #expect(wait(nil) == .rateLimited(retryAfter: nil))
+        #expect(wait("Wed, 21 Oct 2026 07:28:00 GMT") == .rateLimited(retryAfter: nil))
+        #expect(TranslationFailure.rateLimited(retryAfter: nil).retryDelay == 30)
     }
 
     /// 传输层的失败：答复过大按网络失败处理。

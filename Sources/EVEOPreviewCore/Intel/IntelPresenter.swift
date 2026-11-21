@@ -13,7 +13,8 @@
 // | 用语       | clear、noVisual                                                                           |
 // 相邻两个人名之间加「 · 」（dim）：人名里有空格，只隔一个空格分不清。
 // 第二行：显示原文时是「说话人: 原文」。不是情报的消息：第一行是时间、说话人与原文，没有第二行。
-// emphasis：isClear 时 clear；否则 alertJumps>0 且某个星系的跳数不超过它时 alert；其余 none。
+// emphasis：alertJumps>0 且某个星系的跳数不超过它，并且消息里有舰船、人名或大于 0 的数量时 alert；
+// 否则 isClear 时 clear；否则在高亮距离内时 alert；其余 none。有敌对的消息里夹着「安全」时，alert 优先。
 // copyText：「[HH:mm:ss] 说话人 > 原文」，时间是日志里的 EVE 时间（UTC）。
 // links：每个查到的、角色 ID 大于 0 的人名一项，指向 zKillboard 的角色页；地址里只有数字 ID。
 
@@ -124,13 +125,21 @@ public enum IntelPresenter {
         let secondary = settings.showOriginal
             ? [OverlaySpan(message.speaker, .speaker), OverlaySpan(": " + message.text, .dim)]
             : []
-        let emphasis: OverlayEmphasis = report.isClear ? .clear : (isAlert ? .alert : .none)
+        let hasHostiles = !report.ships.isEmpty || !resolved.pilots.isEmpty || (resolved.hostileCount ?? 0) > 0
+        let emphasis = emphasis(isClear: report.isClear, isAlert: isAlert, hasHostiles: hasHostiles)
         let links = resolved.pilots.compactMap { pilot -> OverlayLink? in
             guard case .matched(let id) = pilot.status, id > 0 else { return nil }
             return OverlayLink(title: "\(pilot.name) · zKillboard", url: "https://zkillboard.com/character/\(id)/")
         }
         return OverlayLine(id: item.id, primary: primary, secondary: secondary, emphasis: emphasis,
                            copyText: copyText(message), links: links)
+    }
+
+    /// 一行的强调：在高亮距离内且有敌对（舰船、人名或数量）时 alert 优先于 clear；否则 clear 优先于 alert。
+    static func emphasis(isClear: Bool, isAlert: Bool, hasHostiles: Bool) -> OverlayEmphasis {
+        if isAlert && hasHostiles { return .alert }
+        if isClear { return .clear }
+        return isAlert ? .alert : .none
     }
 
     /// 不是情报的消息（或没有星图数据时）的一行：时间、说话人与原文，原文用 plain 样式，没有第二行。

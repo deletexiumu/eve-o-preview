@@ -174,3 +174,37 @@ struct TranslationRulesTests {
         #expect(TranslationRules.renderTerms(overlapText, matches: [full, short], target: .zh) == "娜迦级海军型")
     }
 }
+
+/// 模型结果换成阶段（审查 m7）与每批条数的上限（审查 m8）。
+struct TranslationResultPhaseTests {
+    /// 原样抄回（按缓存键比较）是 sameLanguage；其余是 done。
+    @Test func echoedResultIsSameLanguage() {
+        let echoed = TranslatedText(text: "  gate camp  in Jita*", sourceLanguage: nil)
+        #expect(TranslationRules.resultPhase(echoed, original: "gate camp in Jita", target: .zh)
+                == .skipped(.sameLanguage, rendered: nil))
+        let real = TranslatedText(text: "吉他有人蹲门", sourceLanguage: "en")
+        #expect(TranslationRules.resultPhase(real, original: "gate camp in Jita", target: .zh)
+                == .done(text: "吉他有人蹲门", sourceLanguage: "en"))
+    }
+
+    /// 拉丁字母的目标语言：模型说原文就是目标语言时是 sameLanguage（带地区的代码也算）；非拉丁的目标语言不看 lang。
+    @Test func sourceLanguageEqualsLatinTarget() {
+        let rewritten = TranslatedText(text: "Gate camp in Jita.", sourceLanguage: "en-US")
+        #expect(TranslationRules.resultPhase(rewritten, original: "gate camp in jita", target: .en)
+                == .skipped(.sameLanguage, rendered: nil))
+        let german = TranslatedText(text: "Torcamp in Jita", sourceLanguage: "en")
+        #expect(TranslationRules.resultPhase(german, original: "gate camp in Jita", target: .de)
+                == .done(text: "Torcamp in Jita", sourceLanguage: "en"))
+        let chinese = TranslatedText(text: "吉他蹲门", sourceLanguage: "zh")
+        #expect(TranslationRules.resultPhase(chinese, original: "吉他门口蹲", target: .zh)
+                == .done(text: "吉他蹲门", sourceLanguage: "zh"))
+    }
+
+    /// nextBatch 的 maxMessages：夹到 1～20。
+    @Test func nextBatchHonoursLimit() {
+        let items = (1...30).map { TranslationItem(id: UInt64($0), message: trMessage("m\($0)"), phase: .pending) }
+        #expect(TranslationRules.nextBatch(pending: items, maxMessages: 5).count == 5)
+        #expect(TranslationRules.nextBatch(pending: items, maxMessages: 0).count == 1)
+        #expect(TranslationRules.nextBatch(pending: items, maxMessages: 99).count == 20)
+    }
+}

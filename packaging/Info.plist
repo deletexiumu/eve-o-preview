@@ -10,6 +10,8 @@
   （反馈文档 7.9 节、docs/design-intel-translate.md 5.7 节）。
   NSAppTransportSecurity 的 NSAllowsLocalNetworking 只放行本机与局域网地址的明文 HTTP（Ollama 预设用到），
   公网主机仍只能用 HTTPS；不加 NSAllowsArbitraryLoads（docs/design-intel-translate.md 7.11 节）。
+  NSLocalNetworkUsageDescription 是第一次连局域网里的模型服务（如另一台电脑上的 Ollama）时，
+  系统「本地网络」权限提示里的说明（审查 m10）。连本机 localhost 不弹这个提示。
   Info.plist 的文字不随界面语言变化（没有资源目录），所以用英文。
 -->
 <plist version="1.0">
@@ -40,6 +42,8 @@
 	<string>NSApplication</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>EVE-O Preview reads EVE game logs and chat logs in Documents/EVE/logs to flash thumbnails when a character is attacked and to show intel and chat translation overlays.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>EVE-O Preview connects to the translation model service you configure. If it runs on another computer on your local network (for example Ollama), macOS asks for local network access.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

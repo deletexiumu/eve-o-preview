@@ -768,7 +768,7 @@ public struct LocationTracker: Sendable, Equatable {
 
 1. 取星系名：线索来自 `Local` 时用 `LocationLineParser.systemName(fromLocalSystemLine:)`，来自游戏日志时用 `systemName(fromGameNote:)`。
 2. 用 `data.system(named:)` 查星系。
-3. 第 1 步或第 2 步没有结果时兜底：对线索的正文调 `data.matcher.matches(in:)`，取最后一个种类是星系的匹配。这一条应对表以外语言的句式；「目的星系写在最后」只在中文样例里核实过（V32）。
+3. 第 1 步或第 2 步没有结果时兜底：对线索的正文调 `data.matcher.matches(in:)`，取最后一个种类是星系的匹配。这一条应对表以外语言的句式；「目的星系写在最后」只在中文样例里核实过（V32）。2026 年 11 月 21 日审查后补充两个条件，不满足时不用这条线索：正文里至多有 2 个星系；最后一个星系的匹配（含后面的 `*`）之后只剩空白或标点。理由：`从吉他*跳到<认不出的名字>` 里认得出的只有出发的吉他，取它会把位置记错。
 4. 仍没有结果时返回假，不改任何记录。
 5. 找这个角色已有的记录：键先按原样比较，没有时再不区分大小写比较。
 6. 线索是补读的（`isBackfill`）：只有没有记录、或线索的时间晚于记录的时间时才写入。线索不是补读的：直接写入。
@@ -817,6 +817,8 @@ public enum IntelLexicon {
     public static let stopWords: Set<String>            // 英文虚词
     public static let nonPilotWords: Set<String>        // 虚词加情报里常见、但不是人名的英文词
     public static let ambiguousShortNames: Set<String>  // 也是普通英文词的短星系名
+    public static let cjkNegations: Set<Character>      // 中文情报用语前面的否定字（2026-11-21 增补）
+    public static let caseSensitiveShipNames: Set<String> // 仍受扫描第 5 条限制的舰船名（2026-11-21 增补）
 }
 ```
 
@@ -833,11 +835,13 @@ WP-0 的空实现让 `matches(in:)` 返回空数组。
 
 扫描：
 
-1. 字符键：从左到右，在每个汉字、假名或谚文的位置上试最长的字符键，匹配后跳到匹配的末尾。
+1. 字符键：从左到右，在每个汉字、假名或谚文的位置上试最长的字符键，匹配后跳到匹配的末尾。字符键一般不看边界，以下两类例外（2026-11-21 审查后增补）；不满足时这个键不算匹配，接着试更短的键：
+   - `clearWords` 里的中文词（`安全`、`无人`）：前一个字符不在 `cjkNegations`（`不`、`非`、`未`、`没`、`沒`）里，且后一个字符不是汉字、假名或谚文。`不安全`、`无人机`、`安全等级` 因此不认作「安全」，`吉他 安全`、`吉他*安全`、`吉他安全` 仍认作「安全」。
+   - 英文名在 `ambiguousShortNames` 里的星系与星域的字符键，如 Exit 的 `出口`、Gateway 的 `通路`、Reset 的 `重置`、Cache 的 `地窖`、Devoid 的 `破碎`。这些键后面紧跟 `*`，或前后都不紧挨汉字、假名、谚文时才算匹配。`出口*`、`Jita 出口 gate` 算，`门口出口处` 不算。
 2. 词键：在剩下的文字里取词。从每个词起，试连续的 1～6 个词（两个词之间只隔一个空格或引号时才算连续），从最长的开始，第一个能查到的就是匹配。
 3. 词键查不到时，把最后一个词末尾的 `es` 或 `s` 去掉再查一次（去掉后至少剩 3 个字母）。`crows` 因此认作 `Crow`。
 4. 只有一个词的匹配，种类不是情报用语时，以下情况不算匹配：词在 `stopWords` 里；词只有 1～2 个字符；词全是数字。
-5. 只有一个词、且词是 3 个以内的 ASCII 字母，或在 `ambiguousShortNames` 里：原文里这个词的首字母是大写，或词后紧跟 `*` 时才算匹配。`Hek` 与 `HEK` 算，`hek` 不算。这一条防止 `bar`、`cat`、`mod` 这类普通词被当成星系。
+5. 只有一个词、且词是 3 个以内的 ASCII 字母，或在 `ambiguousShortNames` 里：原文里这个词的首字母是大写，或词后紧跟 `*` 时才算匹配。`Hek` 与 `HEK` 算，`hek` 不算。这一条防止 `bar`、`cat`、`mod` 这类普通词被当成星系。以下不受这一条限制：情报用语（`clr`、`nv`）；`shipAliases` 的词（`dic`、`fax`）；舰船与舰船分组（2026-11-21 增补，`moa`、`nyx`、`eos` 在情报里常以小写写出）。舰船里命中的键在 `caseSensitiveShipNames`（`sin`、`imp`、`ark`，是常见普通词，`sin` 也是西班牙文的「没有」）或 `ambiguousShortNames`（与星域同名的 `Curse`）里时仍受限；判断用命中的键，`sins` 经第 3 条命中 `sin` 也受限。
 6. 匹配后面紧跟的 `*`（一个或多个）并入匹配的范围。中文客户端在翻译过的名称后面加 `*`（C14）。
 7. 比较不区分大小写。
 
@@ -850,7 +854,9 @@ WP-0 的空实现让 `matches(in:)` 返回空数组。
 | `noVisualWords` | `nv`、`novisual`、`no visual` | 参考实现的 `live.py`，加两个词的写法 |
 | `stopWords` | 参考实现 `match.py` 的 `STOPWORDS` 原表（66 个英文虚词） | 同左 |
 | `nonPilotWords` | `stopWords` 加参考实现 `intel.py` 的 `_INTEL_WORDS_TEXT` 原表，再加 `wh`、`ess`、`gate`、`gates`、`station`、`hostile`、`hostiles`、`red`、`reds`、`neut`、`neuts` | 同左；后加的词在原表里已有的不重复 |
-| `ambiguousShortNames` | 4 个字母以上的英文星系名里同时是常见英文词的，由 WP-B 对照数据文件列出。已知空间里 4 个字母的星系名有 181 个（S7） | 4 个字母以上的名称不受第 5 条的长度限制，靠这张表补 |
+| `ambiguousShortNames` | 4 个字母以上的英文星系名里同时是常见英文词的，由 WP-B 对照数据文件列出。已知空间里 4 个字母的星系名有 181 个（S7） | 4 个字母以上的名称不受第 5 条的长度限制，靠这张表补。这些术语的中文、日文、韩文名称另按扫描第 1 条的边界匹配 |
+| `cjkNegations` | `不`、`非`、`未`、`没`、`沒` | 2026-11-21 增补，扫描第 1 条 |
+| `caseSensitiveShipNames` | `sin`、`imp`、`ark` | 2026-11-21 增补，扫描第 5 条。3 个字母的舰船名共 9 个（`Moa`、`Utu`、`Sin`、`Eos`、`Hel`、`Nyx`、`Ark`、`Imp`、`Lif`，SDE 3720952），只列常见普通词 |
 
 `bs` 与 `bc` 只有 2 个字符，按扫描第 4 条不会匹配；它们留在表里是为了与参考实现一致，WP-B 可在实现时删掉并在回报里说明。
 
@@ -910,11 +916,14 @@ WP-0 的空实现返回 `IntelReport.empty`（`segments` 里只有一段 `plain`
 2. 把每个空隙按空白切成词，同时记下每个词前面的空白是不是正好一个空格。
 3. 人数。一个词去掉末尾的 `,`、`，`、`.`、`;`、`:` 后是下列形式之一时，成为一段 `count`，数值是其中的数字：`+3`、`＋3`、`x3`、`×3`、`3`、`3x`、`3×`、`3+`、`3人`、`3个`、`3只`、`3艘`、`3名`。数字是 1～3 位，数值在 1～500 之间；超出时这个词按普通文字处理。
 4. 紧跟在舰船或舰船分组之后的词，以 1～3 位数字开头、数字后面直接是汉字时：数字成为一段 `count`，其余部分是 `plain`。例：`剑齿虎级 1门口有泡泡` 里的 `1`。
-5. 人名。消息里至少认出一个星系、舰船或舰船分组时才推断人名。一个词去掉两端的标点后同时满足以下条件，就是人名的候选：不为空；不含汉字、假名、谚文；小写形式不在 `nonPilotWords` 里；不全是数字；含至少一个大写字母或数字。
+5. 人名。消息里至少认出一个星系、舰船或舰船分组时才推断人名。一个词去掉两端的标点后同时满足以下条件，就是人名的候选：不为空；不含汉字、假名、谚文；小写形式不在 `nonPilotWords` 里；含至少一个字母（2026-11-21 增补，`15:30`、`1/2` 这类没有字母的词不是候选；这一条也排除了全是数字的词）；含至少一个大写字母或数字。
 6. 相邻的候选之间正好隔一个空格时，并成一个人名，一个人名至多 3 个词。隔两个以上空格、或隔着别的字符时，是两个人名。游戏里拖进聊天框的名字之间是两个空格（C14）。
 7. 其余的词与空白是 `plain`。相邻的 `plain` 并成一段。各段拼起来应与原文逐字符相同。
 8. `systemIDs`：种类是星系的段，按出现顺序去重。
-9. `isClear`、`isNoVisual`：有对应种类的 `word` 段时为真。
+9. `isNoVisual`：有 `word(.noVisual)` 段时为真。`isClear`：有 `word(.clear)` 段、且它不是否定或疑问时为真（2026-11-21 审查后增补）。以下情况这一段不算：
+   - 它前面的一个词（去掉两端不是字母的字符，不区分大小写）是 `not`、`no`，或以 `n't`、`n’t` 结尾，如 `Jita not clear`、`spike +10 not clr`。
+   - 它后面跳过空白后紧跟 `?` 或 `？`，或整条消息去掉末尾空白后以 `?`、`？` 结尾，如 `Amarr clear?`。
+   `不安全` 这类中文否定，以及 `无人机`、`安全等级` 这类连在词里的字，由 6.3 节扫描第 1 条的边界挡住，不产生 `word` 段。
 
 第 5 条的大写条件是本设计加的，参考实现没有。理由：闲聊的英文句子多是小写，角色名多有大写字母或数字。句首大写的普通词仍会被误当成人名（R31）。
 
@@ -925,7 +934,7 @@ WP-0 的空实现返回 `IntelReport.empty`（`segments` 里只有一段 `plain`
 3. 没有归到舰船的 `count` 是「独立人数」。
 4. `ships` 里每艘船的 `count` 是归给它的数字，没有时是 1。
 5. 甲是 `ships` 里各 `count` 之和；乙是独立人数里最大的一个；丙是人名的个数。三者里没有的记 0。
-6. `isClear` 为真，且甲与丙都是 0 时，`hostileCount` 是 0。
+6. `isClear` 为真、甲与丙都是 0、且消息里没有任何 `count` 段时，`hostileCount` 是 0。有 `count` 段时按第 7 条取写明的数（2026-11-21 增补：`Jita clr 3` 的敌对数量是 3，不是 0）。
 7. 否则 `hostileCount` 取甲、乙、丙里最大的；最大值是 0 时为 `nil`。
 8. `countIsExplicit`：最大值等于乙且乙大于 0，或最大值等于甲且至少一艘船有归给它的数字时为真。
 
@@ -946,6 +955,10 @@ WP-0 的空实现返回 `IntelReport.empty`（`segments` 里只有一段 `plain`
 | `1DQ1-A +5` | `1DQ1-A` | 无 | 无 | 5，写明 | |
 | `3x Naga Jita gate` | `Jita` | `Naga` 3 | 无 | 3，写明 | `Naga` 按舰船认（6.3 节） |
 | `anyone want to roam to Jita later` | `Jita` | 无 | 无 | `nil` | 小写的词不当人名 |
+| `Jita 3 无人机` | `Jita` | 无 | 无 | 3，写明 | `无人` 后面紧跟汉字，不是用语，`isClear` 为假 |
+| `HED-GP 不安全 +5` | `HED-GP` | 无 | 无 | 5，写明 | `安全` 前面是否定字，`isClear` 为假 |
+| `Jita not clear` | `Jita` | 无 | 无 | `nil` | 前一个词是 `not`，`isClear` 为假 |
+| `Amarr clear?` | `Amarr` | 无 | 无 | `nil` | 疑问，`isClear` 为假 |
 
 ### 6.5 缓冲
 
@@ -971,8 +984,9 @@ public struct IntelFeed: Sendable {
 ```
 
 - 缓冲按收听者分开，每个收听者至多 300 条。编号在整个缓冲里递增，从 1 起。
+- 同一个收听者的消息按到达顺序排列，新消息追加在末尾，已有条目不挪位置（2026-11-21 审查后明确）。跟踪服务把每一轮补读的事件按时间排好再交来（5.4 节），所以一轮之内仍是时间顺序；不同轮次之间不重排。理由：浮窗按编号对齐行，插到中间会让整表重排，「N 条新消息」也不再累加（8.5 节）。
 - `items(for:)` 的收听者先按原样比较，没有时再不区分大小写比较（做法同反馈文档 7.5 节）。
-- 每次刷新前调 `prune(olderThan: 当前时刻 − windowMinutes × 60)`。
+- 每次刷新前调 `prune(olderThan: 当前时刻 − windowMinutes × 60)`。只改「保留最近」时跟踪服务不重建，缓冲也不清空。按 9.2 节，开关、频道列表或日志目录变了才算请求变了，`backfillSeconds` 不同不算（`ChatLogRequest.requiresRestart`）。时长变短时这里按新时长修剪；变长时不补读更早的消息。
 - 星图数据在消息之后才读完时，`IntelFeedController` 对缓冲里的消息重新解析一遍。
 
 ### 6.6 跳数
@@ -1041,7 +1055,7 @@ public enum IntelPresenter {
 
 - 第二行：`settings.showOriginal` 为真时是 `<说话人>: <原文>`，说话人用 `speaker` 样式，原文用 `dim` 样式。
 - 不是情报的消息（`isIntelLike` 为假）：第一行是时间、说话人与原文，原文用 `plain` 样式，没有第二行。
-- `emphasis`：`isClear` 为真时是 `clear`；否则 `alertJumps` 大于 0、且消息里某个星系的跳数不超过它时是 `alert`；其余是 `none`。
+- `emphasis`：记「在高亮距离内」为 `alertJumps` 大于 0、且消息里某个星系的跳数不超过它；记「有敌对」为 `ships` 不为空、6.9 节核对后的人名不为空、或核对后的 `hostileCount` 大于 0。在高亮距离内且有敌对时是 `alert`；否则 `isClear` 为真时是 `clear`；否则在高亮距离内时是 `alert`；其余是 `none`。（2026-11-21 审查后增补：有敌对的消息里夹着「安全」时，`alert` 优先。）
 - `copyText`：`[HH:mm:ss] 说话人 > 原文`，时间是日志里的 EVE 时间。
 - 名称的显示语言取界面语言（`L10n.language`）。它与翻译的目标语言无关（Q25）。
 - 6.9 增补：上表的「数量」与「人名」两行按 6.9 节末尾的表显示，并填 `OverlayLine.links`。`IntelPresentationContext` 多一个 `pilots` 字段。
@@ -1700,14 +1714,15 @@ public protocol TranslationCacheStore: Sendable {
 
 | 编号 | 显示名 | 接口 | 预设地址 | 预设模型 | 要 Key |
 | --- | --- | --- | --- | --- | --- |
-| `deepseek` | DeepSeek | OpenAI 兼容 | `https://api.deepseek.com` | `deepseek-chat` | 是 |
+| `deepseek` | DeepSeek | OpenAI 兼容 | `https://api.deepseek.com` | `deepseek-flash` | 是 |
 | `anthropic` | Claude (Anthropic) | Anthropic | `https://api.anthropic.com` | `claude-haiku-5-5` | 是 |
-| `openai` | OpenAI | OpenAI 兼容 | `https://api.openai.com/v1` | `gpt-4.1-mini` | 是 |
+| `openai` | OpenAI | OpenAI 兼容 | `https://api.openai.com/v1` | `gpt-6-luna` | 是 |
 | `qwen` | Qwen (DashScope) | OpenAI 兼容 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | 是 |
-| `moonshot` | Kimi (Moonshot) | OpenAI 兼容 | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` | 是 |
+| `moonshot` | Kimi (Moonshot) | OpenAI 兼容 | `https://api.moonshot.cn/v1` | `kimi-k3` | 是 |
 | `ollama` | Ollama | OpenAI 兼容 | `http://127.0.0.1:11434/v1` | `qwen2.5:7b` | 否 |
 | `custom` | 界面文字「其他（OpenAI 兼容接口）」 | OpenAI 兼容 | 空 | 空 | 否 |
 
+- 2026 年 11 月 21 日已对照各家的官方文档核对上表，按 `TranslationProviders.swift` 更新了 3 个预设模型。`deepseek` 由 `deepseek-chat` 改为 `deepseek-flash`，`openai` 由 `gpt-4.1-mini` 改为 `gpt-6-luna`，`moonshot` 由 `moonshot-v1-8k` 改为 `kimi-k3`；地址都没有变。下一条里「没有逐个核实」的说法已由这次核对取代（V35）。
 - `claude-haiku-5-5` 已核实存在（A1）。其余 5 个预设的地址与模型名照抄参考实现的 `llm.py`，没有逐个核实是否仍是各家当前的名称（V35）。WP-C 在实现时对照各家的官方文档核对，改动写进回报。
 - 默认预设是 `deepseek`，与参考实现相同（Q26）。
 - 用户可以在任何预设上改地址与模型名。在 `anthropic` 预设上改地址后，接口种类仍是 Anthropic。
@@ -2314,7 +2329,7 @@ struct ChatFeedContext {
 | 开关「显示预警浮窗」 | `intel.enabled` |
 | 状态行 | 聊天日志的状态。没有访问权限时附说明与「打开系统设置」按钮 |
 | 频道列表 | `ChannelListEditor`，绑定 `intel.channels`，不列内置频道 |
-| 「我的位置」：每个在线角色一行 | 角色名；位置文字（星系、来源、多久以前，或「未知」）；星系名输入框，回车时调 `model.setIntelLocation(character:systemName:)`，查不到时在行下显示提示；「清除」按钮 |
+| 「我的位置」：每个在线角色一行 | 角色名；位置文字（星系、来源、多久以前，或「未知」）；星系名输入框（`SubmitTextField`），回车、或改过内容后失去焦点时调 `model.setIntelLocation(character:systemName:)`，找到后清空输入框，查不到时在行下显示提示、输入框里的文字留着且再失去焦点不重复提交（2026-11-21 增补）；「清除」按钮 |
 | 参考星系 | 输入框，绑定 `intel.referenceSystem`；查不到时在行下显示提示 |
 | 保留最近 | `intel.windowMinutes`，`IntStepperRow`，5～120，步长 5 |
 | 最多计算 | `intel.maxJumps`，1～30 |
@@ -2350,7 +2365,7 @@ struct ChatFeedContext {
 // [App] Settings/ChannelListEditor.swift
 struct ChannelListEditor: View {
     init(channels: Binding<[ChannelRef]>, discovered: [DiscoveredChannel],
-         includesBuiltIns: Bool, onRefresh: @escaping () -> Void)
+         includesBuiltIns: Bool, onRefresh: @escaping () -> Void, autoRefresh: Bool = false)
 }
 // [App] Settings/OverlaySettingsSection.swift
 struct OverlaySettingsSection: View {
@@ -2358,7 +2373,7 @@ struct OverlaySettingsSection: View {
 }
 ```
 
-- `ChannelListEditor`：已选频道的列表，每行有名称与「移除」按钮。「从日志添加」是一个菜单，列出 `discovered` 里还没选的频道（名称与「N 个角色」），`includesBuiltIns` 为真时另列 4 个内置频道，末尾是「刷新」。「按名称添加」是一个输入框，回车时加一项只有名字的频道。超过 16 项时两个入口置灰。页第一次出现时调一次 `onRefresh`。
+- `ChannelListEditor`：已选频道的列表，每行有名称与「移除」按钮。「从日志添加」是一个菜单，列出 `discovered` 里还没选的频道（名称与「N 个角色」），`includesBuiltIns` 为真时另列 4 个内置频道，末尾是「刷新」。「按名称添加」是一个输入框，回车时加一项只有名字的频道。超过 16 项时两个入口置灰。读日志目录的时机按 5.7 节（2026-11-21 审查后改）：`autoRefresh` 为真时，出现时或 `autoRefresh` 变成真时调一次 `onRefresh`；否则只在用户点菜单里的「刷新」时调。两页传入的 `autoRefresh` 是「本页的功能已打开，且聊天日志的状态是 `watching`」，这时跟踪服务已在读这个目录，不会再弹「文稿」权限提示。还没读过目录、`discovered` 也为空时，菜单里只有「刷新」（和内置频道），不显示「没有最近的聊天日志」。SwiftUI 的 `Menu` 没有可靠的「菜单打开」回调，所以不在点开菜单时自动读：功能关着时，用户点「从日志添加」再点「刷新」才第一次读目录。
 - `OverlaySettingsSection`：背景不透明度（滑块，0.2～1.0，步长 0.05）、字号（10～24）、「恢复默认位置」按钮、手势说明。
 
 `SettingsViewModel` 的改动：

@@ -11,6 +11,7 @@
 // 发送：一个任务睡到 queue.nextAttempt，取一批，调 resolver.resolve，回到主 actor 后 complete 或 fail，
 // 结果进缓存后调 onChange。开关关掉时清空队列并取消任务（代号加 1，迟到的结果丢掉），缓存留着。
 // 缓存：预警第一次启用时在后台读一次文件；有改动且距上次存盘满 30 秒时存一次，stop() 时同步存一次。
+// 后台的各次写入排成一串（cacheWriteTask），后一次等前一次写完，做法同 TranslationController（审查 m9）。
 // 日志只写个数、状态与失败的种类，不写名字（.private 也不用）。
 
 import Foundation
@@ -208,10 +209,12 @@ extension IntelFeedController {
         save(pilotCache.snapshot(now: now))
     }
 
-    /// 在后台写缓存文件。
+    /// 在后台写缓存文件。各次写入排成一串：后一次等前一次写完，旧的快照不会盖掉新的。
     private func save(_ entries: [PilotNameCacheEntry]) {
         let store = cacheStore
-        Task.detached(priority: .utility) {
+        let previous = cacheWriteTask
+        cacheWriteTask = Task.detached(priority: .utility) {
+            await previous?.value
             do {
                 try store.save(entries)
             } catch {

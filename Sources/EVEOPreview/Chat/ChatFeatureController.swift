@@ -5,8 +5,9 @@
 //   channels 是已启用功能的频道的并集；followsLocation 取 intel.enabled；backfillSeconds 取
 //   「预警启用时的 windowMinutes × 60」与「翻译启用时的 600」里较大的一个。
 // - 请求变了时：先清空两个功能全部角色的缓冲，再交给跟踪服务；跟踪服务重建后补读，缓冲由补读填回。
-//   判断「变了」比较整个 ChatLogRequest：跟踪服务对任何不同的请求都会重建并重新补读（ChatLogMonitor.start），
-//   所以 backfillSeconds（随 windowMinutes 变）变了也要清空，否则补读回来的消息会重复。
+//   判断「变了」用 ChatLogRequest.requiresRestart：日志目录、频道或是否跟踪位置变了才重建。只有 backfillSeconds
+//   （随「保留最近」变）变了时不重建、不清空，也不调 start（跟踪服务对任何不同的请求都会重建并重新补读）：
+//   预警缓冲在每次刷新时按新的 windowMinutes 修剪（IntelFeedController.content），翻译缓冲不受它影响（审查 m6）。
 // - 星图数据：第一次有功能启用时读一次，结果留到应用退出。
 // - 分发：消息交给「已启用、且频道列表里有一项与它匹配」的功能，两个都匹配时各给一份；位置线索只给预警。
 // - 任何影响内容的变化之后，对两个功能各调一次 update(context:)。
@@ -151,11 +152,12 @@ import EVEOPreviewPlatform
         // 先把新上下文交给两个功能，再启动跟踪：跟踪服务可能在 start 里就上报事件（如假服务的位置线索）。
         updateConsumers()
         let request = ChatFeatureController.request(for: newConfig)
-        if request != currentRequest {
+        let restart = ChatLogRequest.requiresRestart(from: currentRequest, to: request)
+        currentRequest = request
+        if restart {
             // 先清空缓冲：跟踪服务重建后会补读最近的内容，不清空会出现重复的消息。
             // 翻译的缓存与位置记录不清（由各功能自己保管）。
             for consumer in consumers { consumer.clear(character: nil) }
-            currentRequest = request
             if let request {
                 let seconds = Int(request.backfillSeconds)
                 log.info("聊天日志跟踪：\(request.channels.count) 个频道，位置线索 \(request.followsLocation)，补读 \(seconds) 秒")
@@ -208,7 +210,8 @@ import EVEOPreviewPlatform
             log.notice("没有星图数据文件")
         case .invalid(let error):
             staticDataState = "invalid"
-            log.error("星图数据无效：\(String(describing: error), privacy: .public)")
+            // 只写错误的种类：unreadable 的说明来自系统，可能含主目录路径（审查 nit b）。
+            log.error("星图数据无效：\(error.logName, privacy: .public)")
         }
         updateConsumers()
         notifyStatus()

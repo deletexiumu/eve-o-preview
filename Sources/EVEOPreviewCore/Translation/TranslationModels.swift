@@ -95,8 +95,8 @@ public enum TranslationFailure: Error, Sendable, Equatable {
     case insufficientBalance
     /// 3xx 与其他 4xx：请求不被接受。message 只显示在界面上，不写进日志。
     case rejected(status: Int, message: String)
-    /// 429：限流，retryAfter 是要等的秒数。
-    case rateLimited(retryAfter: Double)
+    /// 429：限流，retryAfter 是答复给的等待秒数；答复没给或解析不了时为 nil，由队列按连续次数加倍等待。
+    case rateLimited(retryAfter: Double?)
     /// 408、409、5xx：服务出错。
     case server(status: Int)
     /// 连不上、超时、答复过大。
@@ -121,11 +121,11 @@ public enum TranslationFailure: Error, Sendable, Equatable {
 
     /// 非致命错误下次请求前至少等多久（秒）。
     ///
-    /// 限流取答复给的秒数；服务出错与网络失败取 30 秒（连续失败时的加倍由队列负责）；
+    /// 限流取答复给的秒数，没给时取 30 秒；服务出错与网络失败取 30 秒（连续失败时的加倍由队列负责）；
     /// 只影响这一批的失败（格式不对、被拒绝、被截断）与致命的失败是 0。
     public var retryDelay: Double {
         switch self {
-        case .rateLimited(let seconds): return seconds
+        case .rateLimited(let seconds): return seconds ?? 30
         case .server, .network: return 30
         default: return 0
         }

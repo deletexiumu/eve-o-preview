@@ -10,7 +10,7 @@
 // 3. 人数：去掉末尾的 , ， . ; : 后是 +3、x3、3、3x、3+、3人 等 13 种形式之一，数字 1～3 位、数值 1～500。
 // 4. 紧跟在舰船或舰船分组之后、以 1～3 位数字开头且数字后直接是汉字的词：数字是人数，其余是普通文字。
 // 5. 人名：消息里至少认出一个星系、舰船或舰船分组时，去掉两端标点后不含汉字假名谚文、不在 nonPilotWords 里、
-//    不全是数字、含大写字母或数字的词是候选。
+//    至少含一个字母、含大写字母或数字的词是候选（`15:30` 这类没有字母的词不是）。
 // 6. 相邻候选之间正好隔一个空格时并成一个人名，从左起每 3 个词一个人名，人名之间的一个空格单独成一段 plain。
 // 7. 其余是 plain，相邻的 plain 并成一段。各段拼起来与原文逐字符相同。
 // 数量的归属与敌对数量见 IntelParser+Counting.swift。
@@ -190,11 +190,12 @@ public enum IntelParser {
         return (value, form)
     }
 
-    /// 6.4 节第 5 条：不为空；不含汉字、假名、谚文；小写不在 nonPilotWords 里；不全是数字；含大写字母或数字。
+    /// 6.4 节第 5 条：不为空；不含汉字、假名、谚文；小写不在 nonPilotWords 里；至少含一个字母；含大写字母或数字。
+    /// 「至少含一个字母」也排除了全是数字的词。
     static func isPilotCandidate(_ word: String) -> Bool {
         guard !word.isEmpty, !word.contains(where: IntelLexicon.isCJK),
               !IntelLexicon.nonPilotWords.contains(word.lowercased()),
-              !word.allSatisfy({ $0.isNumber }) else { return false }
+              word.contains(where: { $0.isLetter }) else { return false }
         return word.contains { $0.isUppercase || $0.isNumber }
     }
 

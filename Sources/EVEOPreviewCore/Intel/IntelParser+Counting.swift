@@ -8,8 +8,11 @@
 //    「还没有数量」是 WP-B 补的条件：`2 Naga 3 Machariel` 里的 3 应归给 Machariel（R31 把这种写法列为能认对的）。
 // 2. 否则，写法是 `3`、`3x`、`3×`，且它后面最近的非 plain 段是还没有数量的舰船或舰船分组、中间只有空白时，归给后面那艘船。
 // 3. 其余是独立人数。
-// 敌对数量：甲是各船数量之和，乙是独立人数里最大的，丙是人名个数。isClear 且甲、丙都是 0 时是 0；
+// 敌对数量：甲是各船数量之和，乙是独立人数里最大的，丙是人名个数。isClear、甲与丙都是 0、且消息里没有人数时是 0；
 // 否则取三者最大，最大是 0 时为 nil。取最大不相加：同一批敌对常常既写人名又写船型。
+// isClear（审查后补充）：有「安全」用语，且这个用语不是否定或疑问时才为真：
+// - 前一个词是 not、no 或以 n't 结尾（`Jita not clear`）时不算；
+// - 用语后面紧跟 `?` 或 `？`（中间可有空白），或整条消息以 `?`、`？` 结尾（`Amarr clear?`）时不算。
 
 import Foundation
 
@@ -64,7 +67,7 @@ extension IntelParser {
                 ships.append(IntelShipMention(kind: .shipGroup(groupID: groupID), count: shipCounts[index] ?? 1))
             case .pilot:
                 pilots.append(segment.text)
-            case .word(.clear):
+            case .word(.clear) where !isNegatedOrQuestion(segments, at: index):
                 isClear = true
             case .word(.noVisual):
                 isNoVisual = true
@@ -78,7 +81,7 @@ extension IntelParser {
         let pilotCount = pilots.count
         var hostileCount: Int?
         var countIsExplicit = false
-        if isClear, shipTotal == 0, pilotCount == 0 {
+        if isClear, shipTotal == 0, pilotCount == 0, independent.isEmpty, shipCounts.isEmpty {
             hostileCount = 0
         } else {
             let best = max(shipTotal, independentMax, pilotCount)
@@ -89,5 +92,23 @@ extension IntelParser {
         return IntelReport(segments: segments, systemIDs: systemIDs, ships: ships, pilots: pilots,
                            hostileCount: hostileCount, countIsExplicit: countIsExplicit,
                            isClear: isClear, isNoVisual: isNoVisual)
+    }
+
+    /// 第 index 段的「安全」用语是否被否定或是疑问：前一个词是 not、no 或以 n't 结尾；
+    /// 用语后面（跳过空白）紧跟 `?`、`？`；或整条消息去掉末尾空白后以 `?`、`？` 结尾。
+    static func isNegatedOrQuestion(_ segments: [IntelSegment], at index: Int) -> Bool {
+        let before = segments[..<index].map(\.text).joined()
+        let after = segments[(index + 1)...].map(\.text).joined()
+        let questionMarks: Set<Character> = ["?", "？"]
+        if let next = after.first(where: { !$0.isWhitespace }), questionMarks.contains(next) { return true }
+        if let last = (before + segments[index].text + after).last(where: { !$0.isWhitespace }),
+           questionMarks.contains(last) {
+            return true
+        }
+        // 前一个词：去掉两端不是字母的字符（保留中间的撇号），转成小写。
+        guard let rawWord = before.split(whereSeparator: \.isWhitespace).last else { return false }
+        let word = rawWord.drop(while: { !$0.isLetter }).reversed().drop(while: { !$0.isLetter }).reversed()
+        let lower = String(word).lowercased()
+        return lower == "not" || lower == "no" || lower.hasSuffix("n't") || lower.hasSuffix("n’t")
     }
 }

@@ -133,4 +133,11 @@ struct StaticDataTests {
         let json = try #require(String(data: JSONEncoder().encode(hed), encoding: .utf8))
         #expect(!json.contains("\"l\""))
     }
+
+    /// 日志里的错误名只有种类，不含 unreadable 的说明（说明可能含主目录路径）。
+    @Test func errorLogNames() {
+        #expect(StaticDataError.unreadable("/Users/someone/x.json missing").logName == "unreadable")
+        #expect(StaticDataError.unsupportedFormat(found: 2).logName == "unsupportedFormat(2)")
+        #expect(StaticDataError.empty.logName == "empty")
+    }
 }

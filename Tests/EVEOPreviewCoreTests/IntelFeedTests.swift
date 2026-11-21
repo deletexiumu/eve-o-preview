@@ -51,13 +51,18 @@ enum IntelTestMessages {
         #expect(items.first?.message.text == "5")
     }
 
-    /// 按日志时间排列：晚到的较早消息插到前面。
-    @Test func keepsTimeOrder() {
+    /// 按到达顺序排列：晚到的较早消息追加在末尾，已有条目的位置与编号不变（浮窗按编号对齐行，只追加不重排）。
+    @Test func keepsArrivalOrder() {
         var feed = IntelFeed()
-        feed.append(IntelTestMessages.message("late", time: 200), report: .plain("late"))
-        feed.append(IntelTestMessages.message("early", time: 100), report: .plain("early"))
+        let late = feed.append(IntelTestMessages.message("late", time: 200), report: .plain("late"))
+        let early = feed.append(IntelTestMessages.message("early", time: 100), report: .plain("early"))
         feed.append(IntelTestMessages.message("same", time: 200), report: .plain("same"))
-        #expect(feed.items(for: "Kael Doran").map(\.message.text) == ["early", "late", "same"])
+        let items = feed.items(for: "Kael Doran")
+        #expect(items.map(\.message.text) == ["late", "early", "same"])
+        #expect(items.map(\.id).prefix(2) == [late, early])
+        // prune 仍按时间丢：早于 cutoff 的那条去掉，其余顺序不变。
+        feed.prune(olderThan: 150)
+        #expect(feed.items(for: "Kael Doran").map(\.message.text) == ["late", "same"])
     }
 
     /// prune 丢掉早于 cutoff 的消息，返回有没有丢。

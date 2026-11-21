@@ -75,17 +75,31 @@ import Foundation
         #expect(tracker.locations["Kael Doran"]?.source == .manual)
     }
 
-    /// 句式不认识时取正文里最后一个星系；星系名查不到时不改记录。
+    /// 句式不认识时取正文末尾的星系；星系名查不到时不改记录。
     @Test func fallbackAndUnknown() {
         var tracker = LocationTracker()
         do { let changed = tracker.apply(hint("Прыжок из Jita в Perimeter"), data: data); #expect(changed) }
         #expect(tracker.locations["Kael Doran"]?.systemID == F.perimeter)
-        // 目的星系名查不到时也走兜底：正文里认得出的最后一个星系是出发的吉他。
-        do { let changed = tracker.apply(hint("从吉他*跳到不存在*", time: 200), data: data); #expect(changed) }
-        #expect(tracker.locations["Kael Doran"]?.systemID == F.jita)
+        // 目的星系名查不到：认得出的吉他不在正文末尾，不用这条线索，位置不变。
+        do { let changed = tracker.apply(hint("从吉他*跳到不存在*", time: 200), data: data); #expect(!changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.perimeter)
         var empty = LocationTracker()
         do { let changed = empty.apply(hint("Jumping from Nowhere to Elsewhere"), data: data); #expect(!changed) }
         #expect(empty.locations.isEmpty)
+    }
+
+    /// 兜底的两个条件：最后一个星系后面只剩空白或标点；正文里至多 2 个星系。
+    @Test func fallbackConditions() {
+        var tracker = LocationTracker()
+        do { let changed = tracker.apply(hint("Saut de Jita vers Hek."), data: data); #expect(changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.hek)
+        do { let changed = tracker.apply(hint("Sprung nach Amarr！ ", time: 110), data: data); #expect(changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.amarr)
+        // 星系后面还有别的词：不用。
+        do { let changed = tracker.apply(hint("Jita gate camp", time: 120), data: data); #expect(!changed) }
+        // 3 个星系：不用（多半是一句闲聊或情报，不是跳跃记录）。
+        do { let changed = tracker.apply(hint("Jita Hek Urlen", time: 130), data: data); #expect(!changed) }
+        #expect(tracker.locations["Kael Doran"]?.systemID == F.amarr)
     }
 
     /// 角色名先原样比较，再不区分大小写比较。

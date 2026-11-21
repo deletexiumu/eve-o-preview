@@ -2,7 +2,8 @@
 //
 // 模型服务的请求与答复（docs/design-intel-translate.md 7.4 节、7.5 节）。
 // - request：拼出 HTTP 请求。请求体只带各模型都接受的字段，不带 temperature、top_p、思考与强度的设置（A1）。
-//   OpenAI 兼容接口不带 max_tokens；Anthropic 接口的 max_tokens 取 8,192（默认模型先思考，思考也计入上限）。
+//   OpenAI 兼容接口不带 max_tokens；Anthropic 接口的 max_tokens 取 16,000（默认模型先思考，思考也计入上限；
+//   一批 20 条、6,000 个字符的译文加上思考，8,192 会被截断，审查 m8）。
 // - answer：按状态码归类失败，从 2xx 答复里取出模型写的文字。
 // - parse：从模型的文字里取出 JSON 数组，按编号对回消息。
 // - failure(for:)：传输层的失败换成翻译的失败。
@@ -15,13 +16,12 @@ public enum TranslationWire {
     /// Anthropic Messages API 的版本头（A1）。
     public static let anthropicVersion = "2026-10-21"
     /// Anthropic 请求的 max_tokens。
-    public static let anthropicMaxTokens = 8_192
+    public static let anthropicMaxTokens = 16_000
     /// 请求的超时，单位是秒。
     public static let timeoutSeconds = 60.0
     /// 答复正文的上限，超过时按网络失败处理。
     public static let maxResponseBytes = 1_048_576
-    /// 429 的等待秒数：没有 retry-after 或解析不了时的默认值与夹取范围。
-    public static let defaultRetryAfter = 30.0
+    /// 429 的 retry-after 秒数的夹取范围。没有 retry-after 或解析不了时不给秒数，由队列从 30 秒起加倍。
     public static let retryAfterRange: ClosedRange<Double> = 5...600
     /// rejected 的说明至多保留几个字符。
     public static let maxErrorMessageCharacters = 200
@@ -121,10 +121,10 @@ public enum TranslationWire {
         }
     }
 
-    /// retry-after 头里的秒数，夹到 5～600；没有或不是数字（如 HTTP 日期）时取 30。
-    static func retryAfter(_ header: String?) -> Double {
+    /// retry-after 头里的秒数，夹到 5～600；没有或不是数字（如 HTTP 日期）时为 nil。
+    static func retryAfter(_ header: String?) -> Double? {
         guard let text = header?.trimmingCharacters(in: .whitespaces), let seconds = Double(text),
-              seconds.isFinite else { return defaultRetryAfter }
+              seconds.isFinite else { return nil }
         return min(max(seconds, retryAfterRange.lowerBound), retryAfterRange.upperBound)
     }
 

@@ -69,6 +69,12 @@ final class SettingsViewModel {
         if chatRevision != source.chat.statusRevision { chatRevision = source.chat.statusRevision }
     }
 
+    /// 聊天日志跟踪服务正在读日志目录。这时列出频道不会再弹「文稿」权限提示，频道列表可以自动刷新。
+    var isWatchingChatLogs: Bool {
+        if case .watching = chatLogStatus { return true }
+        return false
+    }
+
     /// 重新列出日志目录里最近的频道。第一次调用时才读目录，系统的「文稿」权限提示出现在这一步之后。
     func refreshDiscoveredChannels() {
         let chat = coordinator.chat

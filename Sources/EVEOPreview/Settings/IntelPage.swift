@@ -38,7 +38,8 @@ struct IntelPage: View {
             }
             Section {
                 ChannelListEditor(channels: model.intelBinding(\.channels), discovered: model.discoveredChannels,
-                                  includesBuiltIns: false, onRefresh: { model.refreshDiscoveredChannels() })
+                                  includesBuiltIns: false, onRefresh: { model.refreshDiscoveredChannels() },
+                                  autoRefresh: model.profile.intel.enabled && model.isWatchingChatLogs)
             } footer: {
                 Text(strings.channelsHelp).foregroundStyle(.secondary)
             }
@@ -96,13 +97,15 @@ struct IntelPage: View {
                 Text(model.intelLocationText(for: character)).foregroundStyle(.secondary)
             }
             HStack(spacing: 8) {
-                CommitTextField(placeholder: strings.systemPlaceholder, text: "") { text in
+                // 只在回车、或改过草稿后失去焦点时提交；找到星系后清空输入框（审查 m5）。
+                SubmitTextField(placeholder: strings.systemPlaceholder) { text in
                     let found = model.setIntelLocation(character: character, systemName: text)
                     if found {
                         notFoundCharacters.remove(character)
                     } else {
                         notFoundCharacters.insert(character)
                     }
+                    return found
                 }
                 Button(strings.clearLocation) {
                     notFoundCharacters.remove(character)

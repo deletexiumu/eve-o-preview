@@ -167,6 +167,15 @@ public struct ChatLogRequest: Sendable, Equatable {
         self.followsLocation = followsLocation
         self.backfillSeconds = backfillSeconds
     }
+
+    /// 从 old 换成 new 时要不要重建跟踪服务（并清空两个功能的缓冲）：一边是 nil 另一边不是，
+    /// 或日志目录、频道、是否跟踪位置有一项不同时要。只有 backfillSeconds 不同时不要（审查 m6）：
+    /// 补读只在启动时用一次，「保留最近」变短时预警缓冲在刷新时按新的时长修剪，变长时不补读更早的消息。
+    public static func requiresRestart(from old: ChatLogRequest?, to new: ChatLogRequest?) -> Bool {
+        guard let old, let new else { return (old == nil) != (new == nil) }
+        return old.logDirectory != new.logDirectory || old.channels != new.channels
+            || old.followsLocation != new.followsLocation
+    }
 }
 
 /// 日志目录里发现的一个频道，给设置界面的「从日志添加」用（5.3 节）。

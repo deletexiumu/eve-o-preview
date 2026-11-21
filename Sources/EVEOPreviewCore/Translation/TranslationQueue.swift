@@ -8,7 +8,14 @@
 //   只取活动角色的消息：一段长时间的暂停之后切换客户端时，不为没人看的缓冲花钱（R34，规格没写，回报里列出）。
 // - complete、fail：按结果改阶段与状态。一批在途时记下它的 id 集合；只有与之相同的一批才能释放在途的位置，
 //   reset 或清空之后才到的旧结果仍可填上译文（complete），但不改状态。
-// - 等待时长：429 用答复给的秒数，不参与加倍；408、409、5xx 与网络失败 30 秒起，连续失败时每次加倍，上限 300 秒。
+// - complete 的结果按 TranslationRules.resultPhase 换成阶段（给了目标语言时）：模型原样抄回、或判断原文
+//   已是目标语言的，是 skipped(.sameLanguage)，不是 done（审查 m7）。
+// - 答复被截断（truncated）：一批多于 1 条时把这一批放回 pending，之后每批至多取原来的一半；
+//   只有 1 条时这一条改成 failed。成功一批后上限加倍，回到 20 为止（审查 m8）。
+// - 等待时长：429 带 retry-after 时用答复给的秒数，不参与加倍；不带时 30 秒起，连续限流时每次加倍，上限 600 秒。
+//   408、409、5xx 与网络失败 30 秒起，连续失败时每次加倍，上限 300 秒。
+// - nextAttempt：在等待、而活动角色没有 pending 的消息时，返回等待结束的时刻，让控制器到时调 takeBatch
+//   把状态改回 idle，状态行不停在「等待重试」。
 // 时刻（now、until、pendingSince）都用墙上时钟的秒数，与日志里的消息时间同一个时钟。
 
 import Foundation
@@ -23,6 +30,8 @@ public struct TranslationQueue: Sendable {
     public static let baseRetrySeconds = 30.0
     /// 连续失败时等待秒数的上限。
     public static let maxRetrySeconds = 300.0
+    /// 429 没有给等待秒数时，连续限流的等待上限。
+    public static let maxRateLimitSeconds = 600.0
 
     /// 队列的状态。
     public private(set) var status: TranslationStatus = .idle
@@ -37,6 +46,10 @@ public struct TranslationQueue: Sendable {
     private var inFlightIDs: Set<UInt64>?
     /// 连续的服务出错与网络失败次数。
     private var consecutiveFailures = 0
+    /// 连续的、没有给等待秒数的 429 次数。
+    private var consecutiveRateLimits = 0
+    /// 一批至多几条；答复被截断后减半，成功后加倍，最多 TranslationRules.maxBatchMessages。
+    public private(set) var batchLimit = TranslationRules.maxBatchMessages
 
     /// 一条缓冲：条目与它变成 pending 的时刻。
     private struct Slot: Sendable {
@@ -110,7 +123,7 @@ public struct TranslationQueue: Sendable {
         guard let earliest = pending.map(\.pendingSince).min(), now >= earliest + Self.debounceSeconds else {
             return nil
         }
-        let batch = TranslationRules.nextBatch(pending: pending.map(\.item))
+        let batch = TranslationRules.nextBatch(pending: pending.map(\.item), maxMessages: batchLimit)
         guard !batch.isEmpty else { return nil }
         let ids = Set(batch.map(\.id))
         for index in slots.indices where ids.contains(slots[index].item.id) {
@@ -131,7 +144,9 @@ public struct TranslationQueue: Sendable {
     ///
     /// 不是当前在途的一批（reset 或清空之后才到的旧结果）时，只把结果填给仍在 pending 或 inFlight 的消息，
     /// 不把没有结果的改成 failed，也不改状态。
-    public mutating func complete(_ results: [UInt64: TranslatedText], batch: [TranslationItem]) {
+    /// target 不为 nil 时，结果按 `TranslationRules.resultPhase` 换成阶段；为 nil 时一律是 done。
+    public mutating func complete(_ results: [UInt64: TranslatedText], batch: [TranslationItem],
+                                  target: AppLanguage? = nil) {
         let isCurrent = isCurrentBatch(batch)
         var byKey: [String: TranslatedText] = [:]
         for item in batch {
@@ -145,7 +160,9 @@ public struct TranslationQueue: Sendable {
                 let open = item.phase == .pending || item.phase == .inFlight
                 guard open else { continue }
                 if let result = byKey[TranslationRules.cacheKey(item.message.text)] {
-                    slots[index].item.phase = .done(text: result.text, sourceLanguage: result.sourceLanguage)
+                    slots[index].item.phase = target.map {
+                        TranslationRules.resultPhase(result, original: item.message.text, target: $0)
+                    } ?? .done(text: result.text, sourceLanguage: result.sourceLanguage)
                     changed = true
                 } else if isCurrent, item.phase == .inFlight, batchIDs.contains(item.id) {
                     slots[index].item.phase = .failed
@@ -157,15 +174,18 @@ public struct TranslationQueue: Sendable {
         guard isCurrent else { return }
         inFlightIDs = nil
         consecutiveFailures = 0
+        consecutiveRateLimits = 0
+        batchLimit = min(TranslationRules.maxBatchMessages, batchLimit * 2)
         if status == .translating { status = .idle }
     }
 
     /// 一批失败，或者发请求之前就发现的失败（batch 为空）。
     ///
     /// - 致命的失败：这一批回到 pending，状态改成 blocked。
-    /// - rateLimited：这一批回到 pending，等答复给的秒数。
+    /// - rateLimited：这一批回到 pending；有秒数时等答复给的秒数，没有时等 30 秒，连续限流时加倍，上限 600 秒。
     /// - server、network：这一批回到 pending，等 30 秒，连续失败时加倍，上限 300 秒。
-    /// - malformedAnswer、refused、truncated：这一批改成 failed，状态回到 idle。
+    /// - truncated：多于 1 条时这一批回到 pending，每批的上限改成这一批条数的一半；只有 1 条时改成 failed。
+    /// - malformedAnswer、refused：这一批改成 failed，状态回到 idle。
     /// batch 不为空但不是当前在途的一批时（旧请求的结果）不做任何事。
     public mutating func fail(_ failure: TranslationFailure, batch: [TranslationItem], now: Double) {
         if !batch.isEmpty {
@@ -174,13 +194,23 @@ public struct TranslationQueue: Sendable {
         }
         let ids = Set(batch.map(\.id))
         switch failure {
+        case .truncated where batch.count > 1:
+            setPhase(of: ids, to: .pending, now: now)
+            batchLimit = max(1, batch.count / 2)
+            status = .idle
         case .malformedAnswer, .refused, .truncated:
             setPhase(of: ids, to: .failed, now: now)
             consecutiveFailures = 0
             status = .idle
-        case .rateLimited(let seconds):
+        case .rateLimited(let seconds?):
             setPhase(of: ids, to: .pending, now: now)
             status = .waiting(until: now + seconds, reason: failure)
+        case .rateLimited(nil):
+            setPhase(of: ids, to: .pending, now: now)
+            consecutiveRateLimits += 1
+            let exponent = Double(min(consecutiveRateLimits - 1, 16))
+            let delay = min(Self.baseRetrySeconds * pow(2, exponent), Self.maxRateLimitSeconds)
+            status = .waiting(until: now + delay, reason: failure)
         case .server, .network:
             setPhase(of: ids, to: .pending, now: now)
             consecutiveFailures += 1
@@ -198,6 +228,8 @@ public struct TranslationQueue: Sendable {
     public mutating func reset(now: Double) {
         status = .idle
         consecutiveFailures = 0
+        consecutiveRateLimits = 0
+        batchLimit = TranslationRules.maxBatchMessages
         inFlightIDs = nil
         for (key, var slots) in buffers {
             for index in slots.indices {
@@ -212,11 +244,17 @@ public struct TranslationQueue: Sendable {
         }
     }
 
-    /// 下一次该调 takeBatch 的时刻；blocked、有一批在途、或活动角色没有 pending 的消息时为 nil。
+    /// 下一次该调 takeBatch 的时刻；blocked 或有一批在途时为 nil。
+    /// 活动角色没有 pending 的消息时：在等待则是等待结束的时刻（到时 takeBatch 把状态改回 idle），否则为 nil。
     public func nextAttempt(now: Double) -> Double? {
         if case .blocked = status { return nil }
-        guard inFlightIDs == nil, let key = activeKey, let slots = buffers[key] else { return nil }
-        guard let earliest = slots.filter({ $0.item.phase == .pending }).map(\.pendingSince).min() else { return nil }
+        guard inFlightIDs == nil else { return nil }
+        var waitingUntil: Double?
+        if case .waiting(let until, _) = status { waitingUntil = until }
+        guard let key = activeKey, let slots = buffers[key],
+              let earliest = slots.filter({ $0.item.phase == .pending }).map(\.pendingSince).min() else {
+            return waitingUntil
+        }
         var time = earliest + Self.debounceSeconds
         if case .waiting(let until, _) = status { time = max(time, until) }
         return time
@@ -227,6 +265,8 @@ public struct TranslationQueue: Sendable {
         buffers.removeAll()
         inFlightIDs = nil
         consecutiveFailures = 0
+        consecutiveRateLimits = 0
+        batchLimit = TranslationRules.maxBatchMessages
         status = .idle
     }
 

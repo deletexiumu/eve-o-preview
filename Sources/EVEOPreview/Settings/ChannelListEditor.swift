@@ -7,7 +7,10 @@
 //   这 4 种按 ID 匹配（5.3 节），用内置频道的项添加。
 // - 「按名称添加」输入框：回车时加一项只有名字的频道（游戏里看到的名字，大小写不同的视为同一个）。
 // - 已有 16 项（IntelSettings.maxChannels）时两个入口置灰。
-// - 页第一次出现时调一次 onRefresh，让视图模型重新列出日志里的频道。
+// - 什么时候读日志目录（5.7 节：用户打开开关或点「从日志添加」时才第一次读目录，审查 m11）：
+//   autoRefresh 为真（功能已打开、跟踪服务已在读这个目录，不会再弹「文稿」权限提示）时，出现时或 autoRefresh
+//   变成真时调一次 onRefresh；否则只在用户点菜单里的「刷新」时调。还没读过时菜单里不显示「没有最近的聊天日志」，
+//   只有「刷新」一项（SwiftUI 的 Menu 没有可靠的「菜单打开」回调，所以不在点开菜单时自动读）。
 // 文字取自 L10n.overlay。
 
 import SwiftUI
@@ -23,19 +26,22 @@ struct ChannelListEditor: View {
     let includesBuiltIns: Bool
     /// 请求重新列出日志里的频道。
     let onRefresh: () -> Void
+    /// 可以不等用户操作就读日志目录：功能已打开、跟踪服务已在读这个目录。
+    let autoRefresh: Bool
 
     /// 「按名称添加」输入框的草稿。
     @State private var draft = ""
     /// 这个编辑器出现后是否已经刷新过一次。
     @State private var didRefresh = false
 
-    /// 用绑定、发现的频道、是否列出内置频道与刷新动作建编辑器。
+    /// 用绑定、发现的频道、是否列出内置频道、刷新动作与能否自动读目录建编辑器。
     init(channels: Binding<[ChannelRef]>, discovered: [DiscoveredChannel],
-         includesBuiltIns: Bool, onRefresh: @escaping () -> Void) {
+         includesBuiltIns: Bool, onRefresh: @escaping () -> Void, autoRefresh: Bool = false) {
         _channels = channels
         self.discovered = discovered
         self.includesBuiltIns = includesBuiltIns
         self.onRefresh = onRefresh
+        self.autoRefresh = autoRefresh
     }
 
     var body: some View {
@@ -63,18 +69,28 @@ struct ChannelListEditor: View {
         } header: {
             Text(strings.channelsHeader)
         }
-        .onAppear {
-            guard !didRefresh else { return }
-            didRefresh = true
-            onRefresh()
-        }
+        .onAppear { refreshAutomaticallyIfAllowed() }
+        .onChange(of: autoRefresh) { _, _ in refreshAutomaticallyIfAllowed() }
+    }
+
+    /// autoRefresh 为真、且这个编辑器还没刷新过时刷新一次。
+    private func refreshAutomaticallyIfAllowed() {
+        guard autoRefresh, !didRefresh else { return }
+        refresh()
+    }
+
+    /// 读一次日志目录，记下已经读过。
+    private func refresh() {
+        didRefresh = true
+        onRefresh()
     }
 
     /// 「从日志添加」菜单的内容：发现的频道、内置频道、刷新。
     @ViewBuilder
     private func addMenu(_ strings: any OverlayStrings) -> some View {
         let fromLogs = discovered.filter { !ChannelListEditor.builtInKinds.contains($0.kind) }
-        if fromLogs.isEmpty {
+        // 还没读过目录时不说「没有最近的聊天日志」：那时只是没看过。
+        if fromLogs.isEmpty && (didRefresh || !discovered.isEmpty) {
             Button(strings.noDiscoveredChannels) {}
                 .disabled(true)
         }
@@ -88,7 +104,7 @@ struct ChannelListEditor: View {
             }
         }
         Divider()
-        Button(strings.refreshChannels) { onRefresh() }
+        Button(strings.refreshChannels) { refresh() }
     }
 
     // MARK: - 规则

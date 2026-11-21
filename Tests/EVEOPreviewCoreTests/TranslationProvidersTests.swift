@@ -86,6 +86,23 @@ struct TranslationProvidersTests {
         for host in remote { #expect(!TranslationProviders.isLocalHost(host), "\(host)") }
     }
 
+    /// 表意句点等 IDNA 里等同于 `.` 的字符：isLocalHost 先换成 `.` 再判断；百分号编码的写法与非 ASCII 的无点主机名都不算。
+    /// resolve 对这些地址给出 insecureRemoteHTTP。
+    @Test func ideographicDotsAreNotLocal() {
+        for host in ["evil。com", "evil．com", "evil｡com", "evil%E3%80%82com", "evil%2ecom", "家里的电脑"] {
+            #expect(!TranslationProviders.isLocalHost(host), "\(host)")
+        }
+        // 换成 `.` 后仍是本机或局域网的写法照常算。
+        #expect(TranslationProviders.isLocalHost("nas。"))
+        #expect(TranslationProviders.isLocalHost("studio。local"))
+        for url in ["http://evil。com/v1", "http://evil%E3%80%82com/v1", "http://evil．com:8080/v1"] {
+            let settings = TranslationEndpointSettings(provider: .custom, baseURL: url, model: "m")
+            let result = TranslationProviders.resolve(settings)
+            #expect(result == .failure(.insecureRemoteHTTP) || result == .failure(.invalidURL), "\(url)")
+            #expect((try? result.get()) == nil, "\(url)")
+        }
+    }
+
     /// 钥匙串的账户名。
     @Test func keychainAccounts() {
         #expect(TranslationProviders.keychainAccount(for: .deepseek) == "apikey.deepseek")

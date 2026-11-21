@@ -64,6 +64,8 @@ import EVEOPreviewCore
     var cacheClearCount = 0
     /// 上次存盘的时刻（墙上时钟）。
     var lastCacheSave = 0.0
+    /// 最近一次后台写缓存文件的任务；下一次写入等它完成，旧的快照不会盖掉新的。
+    var cacheWriteTask: Task<Void, Never>?
     /// 上一次 update 时人名核对是否开着。
     var lookupWasEnabled = false
 

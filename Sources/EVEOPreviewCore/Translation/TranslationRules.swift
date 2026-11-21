@@ -127,8 +127,11 @@ public enum TranslationRules {
     }
 
     /// 从待翻译的消息里取下一批（7.6 节）：按给出的顺序看 pending 的消息，`cacheKey` 相同的只取第一条；
-    /// 一批至多 20 条、合计至多 6,000 个字符（每条按截断到 500 个字符后计），第一条总是能取。
-    public static func nextBatch(pending: [TranslationItem]) -> [TranslationItem] {
+    /// 一批至多 maxMessages 条（默认 20，答复被截断后队列会调小）、合计至多 6,000 个字符
+    /// （每条按截断到 500 个字符后计），第一条总是能取。
+    public static func nextBatch(pending: [TranslationItem],
+                                 maxMessages: Int = maxBatchMessages) -> [TranslationItem] {
+        let limit = max(1, min(maxMessages, maxBatchMessages))
         var batch: [TranslationItem] = []
         var keys: Set<String> = []
         var size = 0
@@ -140,9 +143,29 @@ public enum TranslationRules {
             keys.insert(key)
             batch.append(item)
             size += length
-            if batch.count >= maxBatchMessages { break }
+            if batch.count >= limit { break }
         }
         return batch
+    }
+
+    // MARK: - 模型的结果
+
+    /// 用拉丁字母书写的目标语言：按文字种类判断不出是否已是目标语言，要看模型的结果（审查 m7）。
+    static let latinTargets: Set<AppLanguage> = [.en, .fr, .de, .es]
+
+    /// 模型的结果（或缓存里的译文）换成这条消息的阶段：
+    /// 1. 译文与原文的 `cacheKey` 相同：模型原样抄回，是 skipped(.sameLanguage)，浮窗不把同一句显示两遍。
+    /// 2. 目标语言是英、德、法、西文，且模型给的原文语言（去掉 `-`、`_` 后的地区部分）就是目标语言：
+    ///    是 skipped(.sameLanguage)。「只显示翻译过的消息」打开时这类消息不显示。
+    /// 3. 其余是 done。结果照常进译文缓存，下次不再付费。
+    public static func resultPhase(_ result: TranslatedText, original: String, target: AppLanguage)
+        -> TranslationPhase {
+        if cacheKey(result.text) == cacheKey(original) { return .skipped(.sameLanguage, rendered: nil) }
+        if latinTargets.contains(target), let code = result.sourceLanguage,
+           code.split(whereSeparator: { $0 == "-" || $0 == "_" }).first.map(String.init) == target.rawValue {
+            return .skipped(.sameLanguage, rendered: nil)
+        }
+        return .done(text: result.text, sourceLanguage: result.sourceLanguage)
     }
 
     // MARK: - 术语替换

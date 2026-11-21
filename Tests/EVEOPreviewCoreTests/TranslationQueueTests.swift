@@ -197,6 +197,89 @@ struct TranslationQueueTests {
         #expect(queue.nextAttempt(now: t0 + 3) == nil)
     }
 
+    /// 答复被截断：多条的一批放回 pending，下一批取一半；只剩 1 条再被截断时改成 failed。成功后上限加倍。
+    @Test func truncatedBatchIsSplit() throws {
+        var (queue, ids) = queue((0..<8).map { "line \($0)" })
+        let full = try take(&queue, t0 + 1)
+        #expect(full.count == 8)
+        queue.fail(.truncated, batch: full, now: t0 + 2)
+        #expect(queue.status == .idle && !queue.hasBatchInFlight)
+        #expect(phases(queue).allSatisfy { $0 == .pending })
+        #expect(queue.batchLimit == 4)
+        let half = try take(&queue, t0 + 3)
+        #expect(half.map(\.id) == Array(ids.prefix(4)))
+        queue.fail(.truncated, batch: half, now: t0 + 4)
+        #expect(queue.batchLimit == 2)
+        let quarter = try take(&queue, t0 + 5)
+        queue.complete(Dictionary(uniqueKeysWithValues: quarter.map { ($0.id, TranslatedText(text: "ok", sourceLanguage: nil)) }),
+                       batch: quarter)
+        #expect(queue.batchLimit == 4)
+        // 只有 1 条的一批被截断：这一条 failed。
+        var (single, _) = self.queue(["very long line"])
+        let one = try take(&single, t0 + 1)
+        single.fail(.truncated, batch: one, now: t0 + 2)
+        #expect(phases(single) == [.failed])
+        // reset 把上限恢复成 20。
+        queue.reset(now: t0 + 6)
+        #expect(queue.batchLimit == TranslationRules.maxBatchMessages)
+    }
+
+    /// 429 没有给秒数：30、60、120……秒，上限 600 秒；给了秒数时照用、不加倍；成功后计数清零。
+    @Test func rateLimitWithoutRetryAfterBacksOff() throws {
+        var (queue, _) = queue(["hello"])
+        var now = t0 + 1
+        var waits: [Double] = []
+        for _ in 0..<7 {
+            let batch = try take(&queue, now)
+            queue.fail(.rateLimited(retryAfter: nil), batch: batch, now: now)
+            guard case .waiting(let until, _) = queue.status else { Issue.record("not waiting"); return }
+            waits.append(until - now)
+            now = until
+        }
+        #expect(waits == [30, 60, 120, 240, 480, 600, 600])
+        let explicit = try take(&queue, now)
+        queue.fail(.rateLimited(retryAfter: 9), batch: explicit, now: now)
+        #expect(queue.status == .waiting(until: now + 9, reason: .rateLimited(retryAfter: 9)))
+        now += 9
+        let ok = try take(&queue, now)
+        queue.complete([ok[0].id: TranslatedText(text: "x", sourceLanguage: nil)], batch: ok)
+        queue.append(trMessage("again", listener: alpha), phase: .pending, now: now)
+        let next = try take(&queue, now + 1)
+        queue.fail(.rateLimited(retryAfter: nil), batch: next, now: now + 1)
+        #expect(queue.status == .waiting(until: now + 31, reason: .rateLimited(retryAfter: nil)))
+    }
+
+    /// 等待中而没有 pending 的消息（清空了列表、或没有活动角色）：nextAttempt 是等待结束的时刻，
+    /// 到时 takeBatch 把状态改回 idle，不停在 waiting。
+    @Test func waitingExpiresWithoutPending() throws {
+        var (queue, _) = queue(["hello"])
+        let batch = try take(&queue, t0 + 1)
+        queue.fail(.server(status: 503), batch: batch, now: t0 + 2)
+        queue.removeItems(listener: nil)
+        #expect(queue.nextAttempt(now: t0 + 3) == t0 + 32)
+        #expect(queue.takeBatch(now: t0 + 32) == nil)
+        #expect(queue.status == .idle)
+        #expect(queue.nextAttempt(now: t0 + 33) == nil)
+        // 没有活动角色时同样到时恢复。
+        var (other, _) = self.queue(["hi"])
+        let first = try take(&other, t0 + 1)
+        other.fail(.network("offline"), batch: first, now: t0 + 2)
+        other.activate(listener: nil, now: t0 + 2)
+        #expect(other.nextAttempt(now: t0 + 2) == t0 + 32)
+        _ = other.takeBatch(now: t0 + 32)
+        #expect(other.status == .idle)
+    }
+
+    /// complete 带目标语言时，模型原样抄回的结果是 sameLanguage，其余是 done；同缓存键的副本一并处理。
+    @Test func completeWithTargetMarksEcho() throws {
+        var (queue, ids) = queue(["Jita gate camp", "Jita  gate camp*", "hostiles"])
+        let batch = try take(&queue, t0 + 1)
+        queue.complete([ids[0]: TranslatedText(text: "Jita gate camp", sourceLanguage: "en"),
+                        ids[2]: TranslatedText(text: "敌对", sourceLanguage: "en")], batch: batch, target: .zh)
+        #expect(phases(queue) == [.skipped(.sameLanguage, rendered: nil), .skipped(.sameLanguage, rendered: nil),
+                                  .done(text: "敌对", sourceLanguage: "en")])
+    }
+
     /// 旧请求的结果：reset 后才到，填上仍在等的消息，但不改状态、不把别的改成 failed；旧的失败被忽略。
     @Test func staleResultsAfterReset() throws {
         var (queue, ids) = queue(["one", "two"])

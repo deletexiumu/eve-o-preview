@@ -81,11 +81,14 @@ public enum TranslationProviders {
     /// 算：`localhost`；以 `.local` 结尾；不含 `.` 且不是 IP 的主机名；IPv4 的 127/8、10/8、172.16/12、192.168/16、
     /// 169.254/16；IPv6 的 `::1`、fc00::/7、fe80::/10，以及映射到上述 IPv4 的 `::ffff:a.b.c.d`。
     /// 全是数字或 `0x` 开头的十六进制「主机名」可能被系统当成 IP 解释（如 2130706433），一律不算。
+    /// 先把表意句点 `。`、全角句点 `．` 与半角句点 `｡` 换成 `.`：IDNA 把它们当成 `.`，`evil。com` 实际连的是
+    /// evil.com。不带点的主机名只认 ASCII 字母、数字与 `-`，其余字符（含 `%`）都不算。
     public static func isLocalHost(_ host: String) -> Bool {
         var name = host.lowercased()
+        for dot in ["。", "．", "｡"] { name = name.replacingOccurrences(of: dot, with: ".") }
         if name.hasPrefix("["), name.hasSuffix("]") { name = String(name.dropFirst().dropLast()) }
-        // IPv6 的地址可带区域（fe80::1%en0），比较前去掉。
-        if let percent = name.firstIndex(of: "%") { name = String(name[..<percent]) }
+        // IPv6 的地址可带区域（fe80::1%en0），比较前去掉。只对 IPv6 去：别的主机名里的 `%` 不当成区域的分隔。
+        if name.contains(":"), let percent = name.firstIndex(of: "%") { name = String(name[..<percent]) }
         if name.hasSuffix(".") { name.removeLast() }
         guard !name.isEmpty else { return false }
         if name.contains(":") {
@@ -95,6 +98,7 @@ public enum TranslationProviders {
         if let octets = ipv4Octets(name) { return isLocalIPv4(octets) }
         if name == "localhost" || name.hasSuffix(".local") { return true }
         if name.contains(".") { return false }
+        guard name.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }) else { return false }
         // 不带点的主机名：排除可能被当成数字地址的写法。
         if name.allSatisfy({ $0.isASCII && $0.isNumber }) { return false }
         if name.hasPrefix("0x"), name.dropFirst(2).allSatisfy({ $0.isHexDigit }) { return false }

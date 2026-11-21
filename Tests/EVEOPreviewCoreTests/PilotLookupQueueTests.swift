@@ -118,6 +118,20 @@ import Foundation
         #expect(value.nextAttempt(now: 3) == 302)
     }
 
+    /// rejected 的名字 1 小时内不再排（补排不会把同一批反复发出）；过了 1 小时又能排；别的名字不受影响。
+    @Test func rejectedNamesAreHeldBack() {
+        var value = queue(["Kael Doran", "Tarn Vex"])
+        _ = value.takeBatch(now: 1)
+        value.fail(.rejected(status: 400), now: 2)
+        value.enqueue(["kael doran", "Tarn Vex", "Mira Voss"], now: 10)
+        #expect(value.pendingCount == 1)
+        value.removeAll()
+        value.enqueue(["Kael Doran"], now: 2 + 3_599)
+        #expect(value.pendingCount == 0)
+        value.enqueue(["Kael Doran"], now: 2 + 3_600)
+        #expect(value.pendingCount == 1)
+    }
+
     /// removeAll 清空待查与在途，保留等待的时刻。
     @Test func removeAllKeepsWait() {
         var value = queue(["Kael Doran"])

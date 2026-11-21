@@ -2,7 +2,9 @@
 //
 // 预警消息的缓冲（docs/design-intel-translate.md 6.5 节）：按收听者分开，每个收听者至多 300 条，
 // 编号在整个缓冲里递增、从 1 起。浮窗只显示活动角色的那一份，切换客户端时立即换内容。
-// - 同一个收听者的消息按日志时间排列：补读时各频道的文件依次读入，时间可能交错；相同时间的按到达顺序。
+// - 同一个收听者的消息按到达顺序排列，新的追加在末尾，已有的条目不挪位置。跟踪服务把每一轮补读的事件
+//   按时间排好再交来（ChatLogTailer.flushBackfill），所以一轮之内仍是时间顺序。不按时间插入的理由：
+//   插到中间会让浮窗按编号对齐行时整表重排，「N 条新消息」也不再累加（审查 m3）。
 // - items(for:) 的收听者先按原样比较，没有时再不区分大小写比较（CharacterNameMatch）。
 // - 每次刷新前由控制器调 prune，丢掉早于 windowMinutes 的消息。
 // - 星图数据晚于消息读完时，控制器用 reparse 重新解析缓冲里的消息。
@@ -32,7 +34,7 @@ public struct IntelFeed: Sendable {
     /// 每个收听者至多保留的条数。
     public static let capacityPerCharacter = 300
 
-    /// 收听者 → 消息，按日志时间排列。
+    /// 收听者 → 消息，按到达顺序排列。
     private var byListener: [String: [IntelItem]] = [:]
     /// 下一条的编号。
     private var nextID: UInt64 = 1
@@ -48,10 +50,7 @@ public struct IntelFeed: Sendable {
         let item = IntelItem(id: id, message: message, report: report)
         let key = CharacterNameMatch.key(for: message.listener, in: byListener) ?? message.listener
         var items = byListener[key] ?? []
-        // 从末尾往前找第一条时间不晚于它的，插在它后面；多数消息直接追加在末尾。
-        var position = items.count
-        while position > 0, items[position - 1].message.time > message.time { position -= 1 }
-        items.insert(item, at: position)
+        items.append(item)
         if items.count > IntelFeed.capacityPerCharacter {
             items.removeFirst(items.count - IntelFeed.capacityPerCharacter)
         }

@@ -50,6 +50,15 @@ public enum IntelLexicon {
     /// 「安全」一类的情报用语。
     public static let clearWords: Set<String> = ["clr", "clear", "安全", "无人"]
 
+    /// 中文情报用语前面的否定字：「不安全」「没无人」里的用语不算（6.3 节字符键的边界）。
+    public static let cjkNegations: Set<Character> = ["不", "非", "未", "没", "沒"]
+
+    /// 只有大写或带 `*` 才认的舰船名（小写）。舰船与舰船分组本来不受 6.3 节扫描第 5 条限制，
+    /// 这几个是 3 个字母、又是常见普通词的舰船名：`sin`（英文「罪」，也是西班牙文的「没有」）、`imp`（小鬼）、
+    /// `ark`（方舟）。其余 3 个字母的舰船名（Moa、Utu、Eos、Hel、Nyx、Lif）不是常用词，小写也认。
+    /// 与星域同名的 `Curse` 在 ambiguousShortNames 里，不用重复列。
+    public static let caseSensitiveShipNames: Set<String> = ["sin", "imp", "ark"]
+
     /// 「未见」一类的情报用语。`no visual` 是两个词，按词键匹配。
     public static let noVisualWords: Set<String> = ["nv", "novisual", "no visual"]
 

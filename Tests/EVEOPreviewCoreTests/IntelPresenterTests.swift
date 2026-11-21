@@ -139,6 +139,17 @@ struct FixedIntelFormatter: IntelLineFormatting {
         #expect(spans(line(item("Hek* clr"), context())).last == OverlaySpan("CLR", .clear))
     }
 
+    /// 在高亮距离内、又有舰船、人名或数量时，alert 优先于 clear；没有敌对时 clear 优先；远处的仍是 clear。
+    @Test func alertBeatsClearWithHostiles() {
+        #expect(line(item("Perimeter Rifter clr"), context()).emphasis == .alert)
+        #expect(line(item("Perimeter clr 3"), context()).emphasis == .alert)
+        #expect(line(item("Perimeter Kael Doran clr"), context()).emphasis == .alert)
+        #expect(line(item("Perimeter clr"), context()).emphasis == .clear)
+        #expect(line(item("HED-GP Rifter clr"), context(alertJumps: 3)).emphasis == .clear)
+        #expect(IntelPresenter.emphasis(isClear: true, isAlert: false, hasHostiles: true) == .clear)
+        #expect(IntelPresenter.emphasis(isClear: false, isAlert: true, hasHostiles: false) == .alert)
+    }
+
     /// nextRefresh 的 3 种结果。
     @Test func nextRefresh() {
         let recent = item("Jita", time: 100)

@@ -20,6 +20,15 @@ public enum StaticDataError: Error, Sendable, Equatable {
     case unsupportedFormat(found: Int)
     /// 没有星系。
     case empty
+
+    /// 写进系统日志的名字：只有种类与格式版本，不含 unreadable 的说明（说明可能含文件路径）。
+    public var logName: String {
+        switch self {
+        case .unreadable: "unreadable"
+        case .unsupportedFormat(let found): "unsupportedFormat(\(found))"
+        case .empty: "empty"
+        }
+    }
 }
 
 /// 星系所在的空间。

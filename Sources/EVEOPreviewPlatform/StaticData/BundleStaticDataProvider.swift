@@ -96,14 +96,16 @@ public struct BundleStaticDataProvider: StaticDataProvider {
             data = try Data(contentsOf: candidate.url)
         } catch {
             log.error("读星图数据失败：\(candidate.url.path, privacy: .private)")
-            return .invalid(.unreadable(String(describing: error)))
+            // 说明只写错误的域与代码，不写系统给的描述（里面有文件路径，可能含主目录，审查 nit b）。
+            let nsError = error as NSError
+            return .invalid(.unreadable("\(nsError.domain) \(nsError.code)"))
         }
         do {
             let decoded = try EVEStaticData.decode(data)
             log.info("星图数据：来源 \(candidate.source, privacy: .public)，SDE 版本 \(decoded.sdeBuild)")
             return .loaded(decoded, source: candidate.source)
         } catch {
-            log.error("星图数据无效：\(String(describing: error), privacy: .public)")
+            log.error("星图数据无效：\(error.logName, privacy: .public)")
             return .invalid(error)
         }
     }

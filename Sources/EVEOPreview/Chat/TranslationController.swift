@@ -5,8 +5,9 @@
 // 「翻译」页经 SettingsViewModel+Translation.swift 调用本文件末尾的设置接口。
 //
 // 规则：
-// - 消息进入时的阶段：系统消息不进入；不用模型的是 skipped；缓存命中是 done；活动角色的非补读消息是 pending；
-//   其余是 off。补读到活动角色的消息后调一次 activate，至多 20 条交给模型。
+// - 消息进入时的阶段：系统消息不进入；不用模型的是 skipped；缓存命中按 TranslationRules.resultPhase 是 done
+//   或 skipped(.sameLanguage)；活动角色的非补读消息是 pending；其余是 off。补读到活动角色的消息后调一次 activate，
+//   至多 20 条交给模型。模型的结果也按 resultPhase 换成阶段（队列的 complete 带上目标语言）。
 // - 目标语言变了、或星图数据第一次读到时，把缓冲里的消息按新条件重新判断；重新判断时不把旧消息直接排进队列，
 //   只按 activate 的规则排最近的 20 条，不为整个缓冲重新付费。
 // - 钥匙串只在 3 个时机读（7.7 节）：开关打开或预设变了（不弹窗）；用户点「保存」（写入后留在内存）；
@@ -215,7 +216,7 @@ import EVEOPreviewPlatform
             return .skipped(reason, rendered: rendered)
         }
         if let hit = cache.value(for: message.text, target: target) {
-            return .done(text: hit.text, sourceLanguage: hit.sourceLanguage)
+            return TranslationRules.resultPhase(hit, original: message.text, target: target)
         }
         return allowPending && !message.isBackfill && isActive(message.listener) ? .pending : .off
     }
@@ -289,7 +290,7 @@ import EVEOPreviewPlatform
             hitItems.append(item)
         }
         guard !hitItems.isEmpty else { return false }
-        queue.complete(hits, batch: hitItems)
+        queue.complete(hits, batch: hitItems, target: target)
         return true
     }
 
@@ -332,7 +333,7 @@ import EVEOPreviewPlatform
             }
             scheduleCacheSave()
             // 目标语言变了时缓冲里已是新的条目，旧译文只进缓存，不填给它们。
-            if target == self.target { queue.complete(results, batch: batch) }
+            if target == self.target { queue.complete(results, batch: batch, target: target) }
             let suffix = isCurrent ? "" : "（旧请求）"
             log.info("翻译：收到 \(results.count)/\(batch.count) 条，耗时 \(milliseconds) 毫秒\(suffix, privacy: .public)")
         case .failure(let failure):
@@ -424,7 +425,7 @@ import EVEOPreviewPlatform
         case .notFound: return "notFound"
         case .insufficientBalance: return "insufficientBalance"
         case .rejected(let status, _): return "rejected(\(status))"
-        case .rateLimited(let seconds): return "rateLimited(\(Int(seconds))s)"
+        case .rateLimited(let seconds): return "rateLimited(\(seconds.map { "\(Int($0))s" } ?? "no retry-after"))"
         case .server(let status): return "server(\(status))"
         case .network(let reason): return "network(\(reason))"
         case .malformedAnswer: return "malformedAnswer"

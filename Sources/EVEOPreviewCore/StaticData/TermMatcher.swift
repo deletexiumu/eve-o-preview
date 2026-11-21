@@ -12,9 +12,17 @@
 // （两个词之间只隔一个空格或引号才算连续），最长的先试；查不到时把最后一个词的 es 或 s 去掉再查。
 // 只有一个词的匹配另有两条限制（6.3 节第 4、5 条），见 passesSingleWordRules。匹配后紧跟的 `*` 并入范围。
 //
-// 6.3 节第 5 条（3 个以内的 ASCII 字母、或在 ambiguousShortNames 里的词要首字母大写或带 `*`）的两处例外，
-// 由 WP-B 按 6.3 节的用意补充：情报用语不受限（6.4 节样例 `HED-GP* clr` 要认出 `clr`）；舰船缩写表的词不受限
-// （`dic`、`hic`、`hac`、`fax`、`vni` 在情报里多以小写写出，缩写表专为它们而设）。
+// 字符键的边界（6.3 节扫描第 1 条，审查后补充）：字符键本身不看边界，以下两类另有要求，见 passesBoundary。
+// - 中文情报用语（安全、无人）：前面不是「不、非、未、没、沒」，后面不紧跟汉字、假名或谚文。
+//   「不安全」「无人机」「安全等级」因此不认作「安全」。
+// - ambiguousShortNames 里的星系与星域的译名（如 Exit 的中文名「出口」、Cache 的「地窖」）：后面紧跟 `*`，
+//   或前后都不紧挨汉字、假名、谚文时才算匹配。
+//
+// 6.3 节第 5 条（3 个以内的 ASCII 字母、或在 ambiguousShortNames 里的词要首字母大写或带 `*`）的三处例外：
+// - 情报用语不受限（6.4 节样例 `HED-GP* clr` 要认出 `clr`）。
+// - 舰船缩写表的词不受限（`dic`、`hic`、`hac`、`fax`、`vni` 在情报里多以小写写出，缩写表专为它们而设）。
+// - 舰船与舰船分组不受限（`moa`、`nyx`、`eos` 在情报里常以小写写出）。命中的键在 caseSensitiveShipNames
+//   （`sin`、`imp`、`ark`）或 ambiguousShortNames（与星域同名的 `Curse`）里时仍受限。
 
 import Foundation
 
@@ -83,6 +91,26 @@ public struct TermMatcher: Sendable {
         var id: Int
         /// 这个键来自舰船缩写表；不受扫描第 5 条的限制。
         var isAlias: Bool
+        /// 作为字符键匹配时的边界要求。
+        var boundary: CharacterBoundary = .none
+
+        /// 是舰船或舰船分组。
+        var isShipKind: Bool {
+            switch kind {
+            case .ship, .shipGroup: true
+            default: false
+            }
+        }
+    }
+
+    /// 字符键的边界要求（文件头的「字符键的边界」）。
+    enum CharacterBoundary: Sendable {
+        /// 不看边界。
+        case none
+        /// 中文情报用语：前面不是否定字，后面不紧跟汉字、假名或谚文。
+        case intelWord
+        /// 也是普通词的星系与星域的译名：后面紧跟 `*`，或前后都不紧挨汉字、假名或谚文。
+        case ambiguousName
     }
 
     /// 一个词在原文里的位置（字符下标，左闭右开）。
@@ -116,12 +144,14 @@ public struct TermMatcher: Sendable {
         }
         for region in regions {
             let entry = Entry(kind: .region(id: region.i), english: region.n, localized: region.l ?? [:], rank: 2,
-                              isKnownSpace: false, id: region.i, isAlias: false)
+                              isKnownSpace: false, id: region.i, isAlias: false,
+                              boundary: TermMatcher.nameBoundary(region.n))
             builder.add(names: [region.n] + (region.l ?? [:]).values.sorted(), entry: entry)
         }
         for system in systems {
             let entry = Entry(kind: .system(id: system.id), english: system.name, localized: system.localized,
-                              rank: 3, isKnownSpace: system.kind == .known, id: system.id, isAlias: false)
+                              rank: 3, isKnownSpace: system.kind == .known, id: system.id, isAlias: false,
+                              boundary: TermMatcher.nameBoundary(system.name))
             builder.add(names: [system.name] + system.localized.values.sorted(), entry: entry)
         }
         TermMatcher.addAliases(to: &builder, ships: ships)
@@ -163,6 +193,7 @@ public struct TermMatcher: Sendable {
     // MARK: - 扫描
 
     /// 扫描第 1 步：在每个汉字、假名或谚文的位置上试最长的字符键，匹配后跳到匹配的末尾。
+    /// 不满足边界要求的键跳过，接着试更短的键；都不行时这个位置不算匹配，也不盖住。
     private func scanCharacterKeys(_ characters: [Character], covered: inout [Bool],
                                    found: inout [(start: Int, end: Int, entry: Entry)]) {
         var index = 0
@@ -176,7 +207,9 @@ public struct TermMatcher: Sendable {
             var matchedEnd: Int?
             for length in lengths where index + length <= characters.count {
                 let key = String(characters[index..<(index + length)]).lowercased()
-                guard let entry = characterKeys[key] else { continue }
+                guard let entry = characterKeys[key],
+                      TermMatcher.passesBoundary(entry.boundary, characters, start: index, end: index + length)
+                else { continue }
                 let end = TermMatcher.extendOverStars(characters, from: index + length, covered: covered)
                 found.append((index, end, entry))
                 matchedEnd = end
@@ -239,7 +272,33 @@ public struct TermMatcher: Sendable {
         return nil
     }
 
-    /// 只有一个词的匹配的两条限制（6.3 节扫描第 4、5 条）。情报用语不受这两条限制，舰船缩写不受第 5 条限制。
+    /// 字符键前后的字符是否满足边界要求。start..<end 是键在 characters 里的范围（不含后面的 `*`）。
+    static func passesBoundary(_ boundary: CharacterBoundary, _ characters: [Character], start: Int, end: Int) -> Bool {
+        let before: Character? = start > 0 ? characters[start - 1] : nil
+        let after: Character? = end < characters.count ? characters[end] : nil
+        let cjkBefore = before.map(IntelLexicon.isCJK) ?? false
+        let cjkAfter = after.map(IntelLexicon.isCJK) ?? false
+        switch boundary {
+        case .none:
+            return true
+        case .intelWord:
+            if let before, IntelLexicon.cjkNegations.contains(before) { return false }
+            return !cjkAfter
+        case .ambiguousName:
+            return after == "*" || (!cjkBefore && !cjkAfter)
+        }
+    }
+
+    /// 星系与星域的边界要求：英文名在 ambiguousShortNames 里时，译名按 ambiguousName 匹配。
+    private static func nameBoundary(_ english: String) -> CharacterBoundary {
+        guard let key = IntelLexicon.wordKey(english), IntelLexicon.ambiguousShortNames.contains(key) else {
+            return .none
+        }
+        return .ambiguousName
+    }
+
+    /// 只有一个词的匹配的两条限制（6.3 节扫描第 4、5 条）。情报用语不受这两条限制；舰船缩写不受第 5 条限制；
+    /// 舰船与舰船分组除 caseSensitiveShipNames 与 ambiguousShortNames 里的键外也不受第 5 条限制。
     private func passesSingleWordRules(_ word: Word, key: String, entry: Entry, characters: [Character]) -> Bool {
         if case .intelWord = entry.kind { return true }
         // 第 4 条：虚词、1～2 个字符的词、全是数字的词不算匹配。
@@ -248,12 +307,18 @@ public struct TermMatcher: Sendable {
             return false
         }
         if entry.isAlias { return true }
+        let followedByStar = word.end < characters.count && characters[word.end] == "*"
+        let capitalizedOrStarred = word.first.isUppercase || followedByStar
+        if entry.isShipKind {
+            // 按命中的键判断：`sins` 经复数回退命中 `sin`，也要大写或带 `*`。
+            if IntelLexicon.caseSensitiveShipNames.contains(key) { return capitalizedOrStarred }
+            if !IntelLexicon.ambiguousShortNames.contains(key) { return true }
+        }
         // 第 5 条：3 个以内的 ASCII 字母，或也是普通英文词的名称，要首字母大写或后面紧跟 `*`。
         let isShortASCII = word.lower.count <= 3 && word.lower.allSatisfy { $0.isASCII && $0.isLetter }
         guard isShortASCII || IntelLexicon.ambiguousShortNames.contains(key)
             || IntelLexicon.ambiguousShortNames.contains(word.lower) else { return true }
-        let followedByStar = word.end < characters.count && characters[word.end] == "*"
-        return word.first.isUppercase || followedByStar
+        return capitalizedOrStarred
     }
 
     /// 取词：连续的字母或数字，中间可以夹 `'`、`’`、`-`。被字符键盖住的位置不算。
@@ -312,12 +377,12 @@ public struct TermMatcher: Sendable {
         }
     }
 
-    /// 情报用语：每个词各建一个键，种类是 intelWord。
+    /// 情报用语：每个词各建一个键，种类是 intelWord。中文的词作为字符键匹配时看边界（intelWord）。
     private static func addIntelWords(to builder: inout IndexBuilder) {
         for (words, word, english) in [(IntelLexicon.clearWords, IntelWord.clear, "clear"),
                                        (IntelLexicon.noVisualWords, IntelWord.noVisual, "no visual")] {
             let entry = Entry(kind: .intelWord(word), english: english, localized: [:], rank: 4,
-                              isKnownSpace: false, id: 0, isAlias: false)
+                              isKnownSpace: false, id: 0, isAlias: false, boundary: .intelWord)
             builder.add(names: words.sorted(), entry: entry)
         }
     }

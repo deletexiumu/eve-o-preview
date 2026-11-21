@@ -42,7 +42,8 @@ struct TranslationPage: View {
             // 第 2 组：翻译频道，「从日志添加」里另列 4 个内置频道。
             Section {
                 ChannelListEditor(channels: model.translationBinding(\.channels), discovered: model.discoveredChannels,
-                                  includesBuiltIns: true, onRefresh: { model.refreshDiscoveredChannels() })
+                                  includesBuiltIns: true, onRefresh: { model.refreshDiscoveredChannels() },
+                                  autoRefresh: model.profile.translation.enabled && model.isWatchingChatLogs)
             } footer: {
                 Text(strings.channelsHelp).foregroundStyle(.secondary)
             }

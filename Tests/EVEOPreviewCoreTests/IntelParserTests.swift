@@ -164,6 +164,15 @@ import Foundation
     }
 
     /// 全小写的句子没有人名；没有认出星系或舰船时不推断人名。
+    /// 没有字母的词（时刻 `15:30`、`1/2`）不是人名的候选；有字母和数字的仍是。
+    @Test func pilotNeedsLetter() {
+        #expect(parse("Jita Rifter 15:30").pilots.isEmpty)
+        #expect(parse("Jita Rifter 1/2").pilots.isEmpty)
+        #expect(parse("Jita Rifter Kael7").pilots == ["Kael7"])
+        #expect(!IntelParser.isPilotCandidate("15:30"))
+        #expect(IntelParser.isPilotCandidate("Kael7"))
+    }
+
     @Test func pilotPreconditions() {
         #expect(parse("Jita gate camp hostile").pilots.isEmpty)
         let noTerms = parse("Kael Doran says hello")
