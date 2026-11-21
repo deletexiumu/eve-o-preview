@@ -866,7 +866,7 @@ macOS 14 起应用激活是协作式的，系统不保证后台应用的激活�
 
 用户已同意（Q2）把私有接口 `_SLPSSetFrontProcessWithOptions` 作为后备：第 5 步核对仍不在前台时，用 `GetProcessForPID` 取 `ProcessSerialNumber`，经 `dlsym` 在 SkyLight 框架里查找该符号并调用（`kCPSUserGenerated`），再核对一次。符号查找失败时跳过这一步，不崩溃。后备方案放在 `Windows/PrivateActivation.swift` 一个文件里，便于以后移除。
 
-v1.1.1 起，AX 窗口列表为空时（窗口在其他空间里，典型情况是原生全屏的客户端），`AXWorker` 改取应用的 `kAXMainWindowAttribute`：它不受空间限制，角色是 `AXWindow` 且标题相同时，照常还原、提升，系统随之切到窗口所在的空间（实测 2026-11-21，只用公开接口）。读窗口状态时同时读 `AXFullScreen`，写进 `WindowInfo.isFullScreen` 与 `EVEClient.isFullScreen`。曾试过 `SLPSPostEventRecordTo` 与 `_AXUIElementCreateWithRemoteToken` 的做法，前者实际是向目标窗口发一次合成的鼠标点击，不符合 R7，已放弃。
+v1.1.1 起，AX 窗口列表为空时（窗口在其他空间里，典型情况是原生全屏的客户端），`AXWorker` 改取应用的 `kAXMainWindowAttribute`：它不受空间限制，角色是 `AXWindow` 且标题相同时，照常还原、提升，系统随之切到窗口所在的空间（实测 2026-11-21，只用公开接口）。读窗口状态时同时读 `AXFullScreen`，写进 `WindowInfo.isFullScreen` 与 `EVEClient.isFullScreen`；读不到时沿用上一轮的值。没有辅助功能权限时，窗口列表里 layer 大于 0 的主窗口（前台的全屏窗口在 layer 25）也记为全屏。主窗口不比标题，只要求角色是 `AXWindow`。曾试过 `SLPSPostEventRecordTo` 与 `_AXUIElementCreateWithRemoteToken` 的做法，前者实际是向目标窗口发一次合成的鼠标点击，不符合 R7，已放弃。
 
 ### 6.5 热键
 
@@ -964,7 +964,7 @@ v1.1 起启动顺序加入日志初始化、会话标记、状态文件与更新
 
 - `styleMask = [.borderless, .nonactivatingPanel]`，`canBecomeKey` 与 `canBecomeMain` 返回 `false`。
 - `collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]`，`hidesOnDeactivate = false`，`hasShadow = false`，`isMovable = false`。
-- `level`：`isAlwaysOnTop` 时是 `.floating`；同时有客户端原生全屏（`isOverFullScreen`）时是 `ThumbnailPanel.fullScreenLevel`（状态栏层级加 1，即 26），否则会被全屏的 EVE 窗口（layer 25）盖住；不置顶时是 `.normal`。
+- `level`：`isAlwaysOnTop` 时是 `.floating`；同时前台是原生全屏的客户端（`isOverFullScreen`）时是 `ThumbnailPanel.fullScreenLevel`（状态栏层级加 1，即 26），否则会被全屏的 EVE 窗口（layer 25）盖住；不置顶时是 `.normal`。
 - 透明度用 `alphaValue`。
 - 内容视图的 `acceptsFirstMouse(for:)` 返回 `true`。
 - 悬停用 `NSTrackingArea`，选项是 `[.mouseEnteredAndExited, .activeAlways, .inVisibleRect]`。本应用几乎不在前台，不用 `.activeAlways` 就收不到悬停事件。

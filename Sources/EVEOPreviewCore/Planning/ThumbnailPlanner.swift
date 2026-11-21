@@ -129,13 +129,20 @@ public enum ThumbnailPlanner {
                                                    titleBarCropHeight: cropHeight(for: client, input: input)),
             placeholder: placeholder(for: client, input: input),
             borderColor: border, borderThickness: Double(profile.overlay.borderThickness), alert: alert,
-            isOverFullScreen: profile.behavior.alwaysOnTop && input.clients.contains { $0.isFullScreen == true })
+            isOverFullScreen: profile.behavior.alwaysOnTop && isFrontmostFullScreen(input))
     }
 
     /// 活动客户端的 PID：前台是客户端时取它，否则取最后一次处于前台的客户端。
     private static func activePID(_ input: PlannerInput) -> Int32? {
         if case .client(let pid) = input.frontmost { return pid }
         return input.session.lastActivePID
+    }
+
+    /// 前台是否是原生全屏的客户端。只在这时提高面板层级：客户端全屏、用户却在普通桌面时，
+    /// 缩略图不该盖住 Dock、菜单栏与系统对话框（v1.1.1 复审）。前台变化是事件驱动的，会立即重算。
+    private static func isFrontmostFullScreen(_ input: PlannerInput) -> Bool {
+        guard case .client(let pid) = input.frontmost else { return false }
+        return input.clients.contains { $0.pid == pid && $0.isFullScreen == true }
     }
 
     /// 标题栏裁剪高度：原生全屏（`isFullScreen`）或源窗口高度不小于所在屏幕高度时视为全屏，不裁。

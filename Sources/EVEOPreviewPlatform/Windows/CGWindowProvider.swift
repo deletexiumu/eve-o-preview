@@ -110,11 +110,14 @@ public actor CGWindowProvider: WindowProvider {
               let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
               let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else { return nil }
         let name = entry[kCGWindowName as String] as? String
+        // 不依赖辅助功能权限的全屏信号：前台的原生全屏窗口在 layer 1～25（实测 25）。layer 0 时不知道，
+        // 由 AX 的 `AXFullScreen` 补上（在其他空间的全屏窗口也是 layer 0）。
+        let layer = (entry[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
         return WindowInfo(windowID: WindowID(rawValue: number), pid: pid,
                           title: (name?.isEmpty ?? true) ? nil : name,
                           frame: CoordinateConversion.screenRect(bounds),
                           isOnScreen: (entry[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue ?? false,
-                          isMinimized: nil)
+                          isMinimized: nil, isFullScreen: layer > 0 ? true : nil)
     }
 
     // MARK: - AX 补全
@@ -125,7 +128,14 @@ public actor CGWindowProvider: WindowProvider {
     /// AX 失败时沿用上一轮的值；上一轮也没有时，`isMinimized` 保持 nil。
     private func applyAXState(pid: Int32, to windows: inout [WindowInfo]) async {
         let states: [AXWindowState]
-        if let fresh = await ax.windowStates(pid: pid) {
+        if var fresh = await ax.windowStates(pid: pid) {
+            // 某一轮读不到全屏状态（批量读取里那一项失败）时沿用上一轮的值，免得面板层级与裁剪闪一下。
+            if let previous = lastAXStates[pid] {
+                for index in fresh.indices where fresh[index].isFullScreen == nil {
+                    let match = previous.first { $0.title == fresh[index].title } ?? previous.first
+                    fresh[index].isFullScreen = match?.isFullScreen
+                }
+            }
             states = fresh
             lastAXStates[pid] = fresh
         } else if let previous = lastAXStates[pid] {
@@ -137,7 +147,8 @@ public actor CGWindowProvider: WindowProvider {
             guard let index = targetIndex(for: state, pid: pid, in: windows) else { continue }
             if windows[index].title == nil { windows[index].title = state.title }
             windows[index].isMinimized = state.isMinimized
-            windows[index].isFullScreen = state.isFullScreen
+            // AX 读不到时保留窗口列表给出的判断（见 windowInfo(from:)）。
+            if let isFullScreen = state.isFullScreen { windows[index].isFullScreen = isFullScreen }
         }
     }
 

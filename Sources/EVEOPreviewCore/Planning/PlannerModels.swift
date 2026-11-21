@@ -90,7 +90,7 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
     public var isSkipped: Bool
     /// 面板是否置顶。
     public var isAlwaysOnTop: Bool
-    /// 置顶时是否要盖过原生全屏的客户端（v1.1.1）：有客户端是原生全屏时为真。全屏客户端的窗口在
+    /// 置顶时是否要盖过原生全屏的客户端（v1.1.1）：前台是原生全屏的客户端时为真。全屏客户端的窗口在
     /// 状态栏层级（25），面板这时要用更高的层级；窗口模式下保持 `.floating`，不盖住 Dock、菜单栏与系统对话框。
     public var isOverFullScreen: Bool
     /// frame 是否为悬停放大后的尺寸。

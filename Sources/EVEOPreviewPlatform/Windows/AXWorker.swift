@@ -103,7 +103,7 @@ public actor AXWorker {
         guard AXWorker.isTrusted else { return nil }
         let app = applicationElement(pid)
         if let windows = windows(of: pid, app: app), !windows.isEmpty { return windows.map(windowState) }
-        guard let main = elementAttribute(app, kAXMainWindowAttribute) else { return nil }
+        guard let main = mainWindow(of: app) else { return nil }
         return [windowState(main)]
     }
 
@@ -197,7 +197,7 @@ public actor AXWorker {
     /// 按 4.1 节选目标窗口：先按标题匹配，再取第一个 `AXStandardWindow`，最后取第一个窗口。
     /// 窗口列表为空时（窗口在另一个空间，如原生全屏）取应用的主窗口；有目标标题时要求标题相同。
     private func window(of pid: Int32, app: AXUIElement, title: String?) -> AXUIElement? {
-        guard let list = windows(of: pid, app: app), !list.isEmpty else { return mainWindow(of: app, title: title) }
+        guard let list = windows(of: pid, app: app), !list.isEmpty else { return mainWindow(of: app) }
         if let title, let match = list.first(where: { stringAttribute($0, kAXTitleAttribute) == title }) {
             return match
         }
@@ -205,11 +205,11 @@ public actor AXWorker {
         return standard ?? list.first
     }
 
-    /// 应用的主窗口（`kAXMainWindowAttribute`，不受空间限制）。角色不是窗口，或给了标题而标题不同时返回 nil。
-    private func mainWindow(of app: AXUIElement, title: String?) -> AXUIElement? {
+    /// 应用的主窗口（`kAXMainWindowAttribute`，不受空间限制）。角色不是窗口时返回 nil。
+    /// 不比标题：每个 EVE 进程只有一个主窗口（事实 E7），标题里多一个空格就拒绝会让原来的问题回来。
+    private func mainWindow(of app: AXUIElement) -> AXUIElement? {
         guard let main = elementAttribute(app, kAXMainWindowAttribute),
               stringAttribute(main, kAXRoleAttribute) == kAXWindowRole else { return nil }
-        if let title, stringAttribute(main, kAXTitleAttribute) != title { return nil }
         return main
     }
 

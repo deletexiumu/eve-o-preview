@@ -16,12 +16,13 @@ struct ThumbnailPlannerFullScreenTests {
     }
 
     /// 两个角色都有布局记录，避免自动排位干扰断言。
-    private func plan(_ clients: [EVEClient], alwaysOnTop: Bool = true) -> ThumbnailPlan {
+    private func plan(_ clients: [EVEClient], alwaysOnTop: Bool = true,
+                      frontmost: FrontmostContext = .client(pid: Fixtures.pidA)) -> ThumbnailPlan {
         var profile = Profile(name: "T")
         profile.layouts = [Fixtures.pilotAlpha: ThumbnailLayout(x: 100, y: 100),
                            Fixtures.pilotBravo: ThumbnailLayout(x: 600, y: 100)]
         profile.behavior.alwaysOnTop = alwaysOnTop
-        return ThumbnailPlanner.plan(Fixtures.plannerInput(clients: clients, profile: profile, frontmost: .other,
+        return ThumbnailPlanner.plan(Fixtures.plannerInput(clients: clients, profile: profile, frontmost: frontmost,
                                                            session: SessionState(), permissions: .granted,
                                                            captureStates: nil))
     }
@@ -33,12 +34,16 @@ struct ThumbnailPlannerFullScreenTests {
         #expect(plan([fullScreenClient(false)]).presentations[0].contentsRect != .full)
     }
 
-    /// 有任一客户端全屏且置顶时，全部面板都标为要盖过全屏窗口；没有全屏客户端或不置顶时不标。
+    /// 前台是全屏客户端且置顶时，全部面板都标为要盖过全屏窗口；前台是全屏客户端以外的应用或窗口模式的客户端、
+    /// 或不置顶时不标（客户端全屏、用户在普通桌面时不该盖住 Dock 与菜单栏）。
     @Test func overFullScreenFlag() {
         let other = Fixtures.character(Fixtures.pilotBravo, id: 2, pid: Fixtures.pidB)
-        let mixed = plan([fullScreenClient(true), other])
-        #expect(mixed.presentations.map(\.isOverFullScreen) == [true, true])
+        let clients = [fullScreenClient(true), other]
+        #expect(plan(clients).presentations.map(\.isOverFullScreen) == [true, true])
+        #expect(plan(clients, frontmost: .other).presentations.allSatisfy { !$0.isOverFullScreen })
+        #expect(plan(clients, frontmost: .selfApp).presentations.allSatisfy { !$0.isOverFullScreen })
+        #expect(plan(clients, frontmost: .client(pid: Fixtures.pidB)).presentations.allSatisfy { !$0.isOverFullScreen })
         #expect(plan([fullScreenClient(false), other]).presentations.allSatisfy { !$0.isOverFullScreen })
-        #expect(plan([fullScreenClient(true), other], alwaysOnTop: false).presentations.allSatisfy { !$0.isOverFullScreen })
+        #expect(plan(clients, alwaysOnTop: false).presentations.allSatisfy { !$0.isOverFullScreen })
     }
 }
