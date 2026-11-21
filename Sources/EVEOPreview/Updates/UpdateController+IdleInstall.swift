@@ -53,7 +53,7 @@ extension UpdateController {
 
     /// 是否在等待安装：已下载好，两个开关都打开。
     private var isWaitingToInstall: Bool {
-        guard case .readyToInstall = phase else { return false }
+        guard case .readyToInstall = phase, capability == .canInstall else { return false }
         return general.checkForUpdates && general.autoInstallUpdates
     }
 

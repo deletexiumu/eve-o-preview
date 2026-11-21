@@ -172,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     /// 点 Dock 图标，或在访达里再次打开正在运行的应用：本应用没有打开的普通窗口时打开设置窗口。
-    /// 不用系统给的 hasVisibleWindows：它把缩略图面板也算进去，玩游戏时点 Dock 图标会没有反应。
+    /// 不用系统给的 hasVisibleWindows：它可能把缩略图面板也算进去，那样玩游戏时点 Dock 图标会没有反应。
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         let hasTitledWindow = NSApp.windows.contains { $0.isVisible && $0.styleMask.contains(.titled) }
         if !hasTitledWindow { coordinator?.openSettings?(.clients) }

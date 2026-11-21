@@ -171,6 +171,7 @@ extension UpdateController {
             case .failure(let error):
                 recordFailure(error, version: release.version)
                 setPhase(.failed(error, release: release))
+                presentFailure()
                 return
             }
         }
@@ -186,11 +187,7 @@ extension UpdateController {
         guard case .success(let outcome) = apply(result, prepared: prepared) else {
             if case .failure(let error) = result { setPhase(.failed(error, release: release)) }
             coordinator.setAttention(.updateReady, on: false)
-            // 空闲时自动安装或菜单项触发的安装失败时，更新窗口可能没开；经推迟弹出机制显示失败原因
-            // （EVE 客户端在前台时等它切走）。窗口已开着时 show 只是把它放到前面。
-            coordinator.presenter.present(key: UpdateController.presenterKey) { [weak self] in
-                self?.presentWindow?(false)
-            }
+            presentFailure()
             return
         }
         coordinator.setAttention(.updateReady, on: false)
@@ -199,11 +196,20 @@ extension UpdateController {
         guard relaunch, !isTerminating else { return }
         setPhase(.relaunching)
         log.info("已安装 \(outcome.installedVersion, privacy: .public)，重新启动")
-        coordinator.services.permissions.relaunch()
+        // 不激活新实例：空闲时自动安装后的重新启动不该抢焦点；用户点安装时应用本来就在前台附近，影响不大。
+        coordinator.services.permissions.relaunch(activates: false)
         // relaunch() 成功时本进程随后退出；等了一段时间仍在运行，说明新实例没有启动。
         try? await Task.sleep(for: UpdateController.relaunchGrace)
         log.error("安装后重新启动没有完成，请用户手动重新打开应用")
         markRelaunchFailed()
+    }
+
+    /// 空闲时自动安装或菜单项触发的下载、安装失败时，更新窗口可能没开；经推迟弹出机制显示失败原因
+    /// （EVE 客户端在前台时等它切走）。窗口已开着时什么也不变。
+    private func presentFailure() {
+        coordinator.presenter.present(key: UpdateController.presenterKey) { [weak self] in
+            self?.presentWindow?(false)
+        }
     }
 
     /// 把安装结果写进 `state.updates`：成功时清掉 `prepared`、记 `lastInstall` 与旧包位置、删 dmg；

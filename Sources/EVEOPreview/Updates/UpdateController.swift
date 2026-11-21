@@ -165,7 +165,9 @@ import EVEOPreviewPlatform
     /// 启动时的恢复与失败窗口关闭后（`remindLater`）都用它，保证圆点与阶段一致。
     func rederivePhaseFromState() {
         let updates = state.state.updates
-        if general.checkForUpdates, general.autoInstallUpdates, let prepared = updates.prepared, isUsable(prepared),
+        // 不能安装的构建（如应用已被挪到非 APFS 卷）不进入 `.readyToInstall`，退为普通提示。
+        if general.checkForUpdates, general.autoInstallUpdates, capability == .canInstall,
+           let prepared = updates.prepared, isUsable(prepared),
            !hasFailedInstall(of: prepared.version), let release = updates.cachedRelease {
             phase = .readyToInstall(release)
             coordinator.setAttention(.updateAvailable, on: false)

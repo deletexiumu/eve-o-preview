@@ -65,7 +65,7 @@ import os
     /// 新实例带 `--relaunched-from <本进程 PID>` 启动；否则它的单实例检查会看到还没退出的旧实例，
     /// 新实例退出自己，结果两个实例都没了。环境变量里以 `EVEO_` 开头的调试开关原样传给新实例。
     /// 只在作为 `.app` 运行时有效；用 `swift run` 直接运行可执行文件时没有包，只记日志不退出。
-    public func relaunch() {
+    public func relaunch(activates: Bool) {
         let bundleURL = Bundle.main.bundleURL
         guard bundleURL.pathExtension == "app" else {
             log.error("不是从 .app 运行，不能重新启动")
@@ -74,9 +74,9 @@ import os
         let configuration = NSWorkspace.OpenConfiguration()
         // 新实例与旧实例会短暂并存，所以要求系统另开一个实例，而不是激活旧实例。
         configuration.createsNewApplicationInstance = true
-        // 不把新实例带到前台：空闲时自动更新后的重新启动不该抢走焦点。要显示窗口时，
-        // 设置窗口等界面会自己激活应用。
-        configuration.activates = false
+        // 自动更新后的重新启动不把新实例带到前台，不抢焦点；用户点的「重新启动」照常激活，
+        // 新实例打开的权限页才不会被系统设置挡在后面。
+        configuration.activates = activates
         configuration.arguments = [SystemPermissionService.relaunchedFromArgument, String(getpid())]
         // 只在确有调试开关时才设：正式使用时没有 EVEO_ 变量，不改动新实例的环境。
         let debugEnvironment = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("EVEO_") }

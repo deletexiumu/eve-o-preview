@@ -318,7 +318,7 @@ final class FakePermissionService: PermissionService {
         log.info("演示模式不打开系统设置：\(String(describing: pane), privacy: .public)")
     }
 
-    func relaunch() {
+    func relaunch(activates: Bool) {
         log.info("演示模式不重新启动")
     }
 }

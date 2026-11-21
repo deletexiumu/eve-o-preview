@@ -1953,3 +1953,4 @@ README 的卸载说明应列出这 4 个位置。
 | 6（待改进，v1.1.0 不做） | 新旧实例重叠时（重新启动），旧进程的崩溃报告会按时间算到新会话头上。可改为再核对 `.ips` 里的 PID 与会话标记的 PID |
 | 9.1、9.5（独立审查后修订） | 新增 `InstallBlocker.unsupportedVolume`：`AppEnvironment.volumeSupportsSwap` 为假（卷不支持 `RENAME_SWAP`）时只提示，开关下方写明原因，不再下载后在预检时失败。上面「非 APFS 卷在第 1 步预检时返回 `swapFailed`」一行由此取代，预检保留作兜底 |
 | 第 19 节空闲安装（独立审查后修订） | 空闲检查改为一个运行到退出的循环，阶段暂时离开 `.readyToInstall` 只清零计数；退出开始时 `prepareForTermination` 停掉它，之后的安装不重新启动。安装失败（含空闲与菜单项触发的）经推迟弹出机制显示更新窗口。`relaunch` 设 `activates = false`，不抢焦点。点 Dock 图标时按本应用带标题栏的可见窗口判断，不用 `hasVisibleWindows`（会把缩略图算进去）。「已下载」状态行改为「没有 EVE 客户端运行时或退出时安装」 |
+| 第 19 节空闲安装（复审后修订） | `relaunch(activates:)`：权限页的「重新启动」激活新实例，自动更新后的不激活。不能安装的构建不进入 `.readyToInstall`，空闲循环也不对它动作。下载阶段的失败同样经推迟弹出机制显示更新窗口 |

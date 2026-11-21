@@ -95,7 +95,10 @@ public enum PermissionPane: Sendable {
     /// 打开系统设置的对应面板。
     func openSystemSettings(_ pane: PermissionPane)
     /// 以新实例重新打开本应用，然后退出当前进程。
-    func relaunch()
+    ///
+    /// - Parameter activates: 是否把新实例带到前台。用户点的「重新启动」为真；
+    ///   自动更新后的重新启动为假，不抢焦点。
+    func relaunch(activates: Bool)
 }
 
 /// 一个热键绑定不能生效的原因（反馈文档 6.4 节）。
