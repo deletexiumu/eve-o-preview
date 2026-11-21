@@ -13,6 +13,7 @@
 | N1 | 预警：指定频道，结合活动客户端所在星系，从情报消息里取出敌对数量、舰船和跳数 | 读 `Chatlogs` 下的聊天日志。消息按星系、舰船、人数、情报用语与推断的人名分段。跳数从活动角色所在的星系算，上限 15 跳 | 5、6 |
 | N2 | 聊天翻译：指定频道，把其他语言的消息翻译成目标语言，模型可自定义 | 术语先按星图数据钉成目标语言的官方名称，再交给用户自己的模型翻整句。提供 6 个服务预设与 1 个自定义项。Key 存在 macOS 钥匙串 | 7 |
 | N3 | 两项功能都是浮窗，类似缩略图：只显示活动客户端的信息，透明度可调，可上下滚动，最新消息在最下面，默认停在底部 | 一种可复用的浮窗面板，两个实例各自开关。面板不抢焦点，出现在所有空间。列表贴住底部；用户向上滚动后不再自动跳动，并显示新消息条数 | 8 |
+| N4 | 预警里的人名有时分不清是一个人、两个人还是三个人，主要是带空格的名字。星系名能从 SDE 认出，人名要调 zKillboard 或别的接口确定是哪几个角色。不必每次都查：只剩一个不带空格的词时，它就是一个人名（2026-11-21 增补） | 用 CCP 的 ESI 接口核对。只查两个词以上的人名段，按查到的角色名分人，结果存进缓存。zKillboard 没有按名字查角色的正式接口，只在右键菜单里提供打开角色页的链接 | 6.9、6.10 |
 
 各项的取舍：
 
@@ -26,6 +27,7 @@
 | 频道的标识 | 配置里同时存频道名与 Channel ID，匹配时二者满足其一 | 用户认得的是名字；ID 稳定，能区分内置频道（5.3 节） |
 | 浮窗显示谁的消息 | 只显示活动角色的日志文件里的消息。每个角色各留一份缓冲，切换客户端时立即换内容 | 用户的要求。同一条消息会写进每个收听角色的文件（C11），按收听者过滤后不用去重 |
 | 翻译哪些消息 | 只把活动角色收到的消息交给模型。相同的句子只翻译一次 | 控制调用次数与费用（7.6 节） |
+| 人名核对用哪个接口（6.9 增补） | ESI 的 `POST /universe/ids`，一次请求查至多 500 个名字 | 它是 CCP 的公开接口，不用登录，按整个名字匹配（E1、E3）。zKillboard 没有按名字查角色的正式接口（E8） |
 
 不在本轮范围内：
 
@@ -39,6 +41,7 @@
 | 私聊频道 | 涉及他人隐私。Channel ID 以 `private_` 开头的文件不跟踪，也不出现在频道列表里 |
 | 运行时自动更新星图数据 | 数据随应用版本更新。另留一个手动覆盖的位置（4.4 节） |
 | 把浮窗做成每个客户端一个 | 用户要的是「只显示当前窗口的信息」，一个浮窗换内容即可 |
+| zKillboard 的击杀统计、只有一个词的人名的核对、军团与联盟名的识别（6.9 增补） | 见 6.9 节末尾的表 |
 
 ## 2 已核实的事实
 
@@ -85,6 +88,19 @@ CCP 的静态数据（SDE）：
 | A3 | 仓库没有资源文件，没有第三方依赖。`scripts/build-app.sh` 建了 `Contents/Resources`，里面只有图标。架构文档 7.4 节不用 SwiftPM 资源包，原因是 `Bundle.module` 的查找路径与签名问题 | 数据文件由脚本直接复制进 `Contents/Resources`，用 `Bundle.main` 读取，不经过 SwiftPM 资源包 |
 | A4 | `ConfigSummary` 把 `combatAlert` 等设置结构原样写进问题报告 | 新设置含频道名与星系名，报告里只写数量与开关（3.4 节） |
 
+ESI 与人名（6.9 增补）。下表于 2026-11-21 用 `curl` 核实：发了 8 个查询请求，另下载了一次接口描述。最后一个请求用的是 6.10 节的 6 个请求头，返回 200。请求里只有公开的知名角色名、游戏里的物品名与编造的名字，没有用户日志里的内容。
+
+| 编号 | 事实 | 对设计的影响 |
+| --- | --- | --- |
+| E1 | `POST https://esi.evetech.net/universe/ids` 不用登录，请求体是名字的 JSON 数组。接口描述（`https://esi.evetech.net/meta/openapi.json`）规定数组有 1～500 项，每项 1～100 个字符，各项互不相同。请求头 `X-Compatibility-Date` 在接口描述里只有 `2020-01-01` 一个可选值；不带它或写成 `2026-11-01` 时请求照常成功，答复头里的值都是 `2020-01-01`。`X-Tenant` 的默认值是 `tranquility` | 请求的写法见 6.10 节 |
+| E2 | 答复按类别分组：`agents`、`alliances`、`characters`、`constellations`、`corporations`、`factions`、`inventory_types`、`regions`、`stations`、`systems`，每项是 `{"id", "name"}`。没有命中的类别不出现。一个都没命中时答复是 `{}`，状态码是 200 | 没查到的名字靠「答复里没有它」判断 |
+| E3 | 角色名按整个名字匹配，不区分大小写，答复里是角色名的标准写法：查 `chribba veldspar` 得到 `Chribba Veldspar`。只有大小写不同的两个名字只返回一项。名字后面多一个词时不匹配 | 按比较键把答复对回请求（6.10 节） |
+| E4 | 同一个名字可以命中多个类别：`Stabber` 同时是舰船与角色 `STABBER`，`Veldspar` 同时是矿石与角色。查 `Jita` 时，`alliances` 与 `corporations` 里各返回一项，它们的名称与 `Jita` 不同，推测是按简称匹配的 | 6.10 节的歧义规则。军团与联盟的结果不用 |
+| E5 | 请求体是空数组时返回 400。数组里有两项完全相同时返回 400（`'names' items are not all unique`）。每个 400 让答复头 `X-Esi-Error-Limit-Remain` 减 1，两次之后是 98；`X-Esi-Error-Limit-Reset` 是这一轮剩下的秒数。每个答复都带这两个头 | 发送前去重。400 不重试 |
+| E6 | 这条路由在接口描述里没有 `x-rate-limit` 分组，另有 135 条路由有。答复头里没有 `X-Ratelimit-*`，这些名字只出现在 `access-control-expose-headers` 里 | 节流只看错误额度，另外仍处理 420 与 429 |
+| E7 | CCP 的命名规则：角色名共 3～37 个字符；名至多 24 个字符，中间可以有一个空格；姓至多 12 个字符；可用的字符是英文字母、数字、连字符与单引号。依据是搜索结果对 CCP 支持站《EVE Online Naming Policy》的摘要。页面本身返回 403，没有读到原文（V42） | 一个角色名至多 3 个词 |
+| E8 | zKillboard 没有按名字查角色的正式接口。这是主会话的结论，本轮没有重新核对。角色页的地址是 `https://zkillboard.com/character/<角色 ID>/` | 用 ESI 核对，zKillboard 只作链接 |
+
 参考实现的依据：`desktop/eve_local/intel.py`（分段与人名推断）、`state.py`（位置与跳数）、`tail.py`（聊天日志的编码）、`llm.py`（服务预设与错误分类）、`translator.py`（分批与缓存）、`sde.py`（SDE 的取数），`backend/app/glossary/match.py`（术语匹配）、`translate.py`（提示词与语言判断）、`slang.py`（缩写表），`backend/app/combatlog/live.py`（情报用语与跳数）。
 
 ## 3 配置变更
@@ -104,6 +120,7 @@ CCP 的静态数据（SDE）：
 | `intel.alertJumps` | 整数 | 5 | 0～30。敌对在这个跳数以内时高亮；0 表示不高亮 |
 | `intel.showOriginal` | 布尔 | `true` | 每条下面是否显示原文 |
 | `intel.referenceSystem` | 字符串或 `null` | `null` | 参考星系的英文名。不知道角色位置时跳数从它算 |
+| `intel.resolvePilotNames` | 布尔 | `true` | 是否向 ESI 核对人名（6.9 增补）。预警关闭时不起作用 |
 | `intel.overlay` | 对象 | 见下 | 预警浮窗的位置与外观 |
 | `translation.enabled` | 布尔 | `false` | 是否显示翻译浮窗 |
 | `translation.channels` | 数组 | `[]` | 翻译频道，形式同上，至多 16 项 |
@@ -162,6 +179,7 @@ public struct IntelSettings: Sendable, Equatable, Codable {
     public var alertJumps: Int
     public var showOriginal: Bool
     public var referenceSystem: String?
+    public var resolvePilotNames: Bool          // 6.9 增补，默认 true
     public var overlay: OverlayPanelSettings
     public static let windowMinutesRange: ClosedRange<Int> = 5...120
     public static let maxJumpsRange: ClosedRange<Int> = 1...30
@@ -220,6 +238,7 @@ public struct ChatState: Sendable, Equatable, Codable {
 ### 3.3 升级后的变化
 
 - 两项功能默认关闭。升级后界面没有变化，设置窗口多出「预警」与「翻译」两页。
+- `intel.resolvePilotNames` 默认是开的，但它只在用户打开预警之后才起作用（6.10 节）。升级后应用不会自己向 ESI 发请求。
 - 旧版本读到含新键的文件时忽略它们，写回时会丢掉这些键。v1.1 设计 3.2 节对这个行为已有说明，这里不另作处理。
 
 ### 3.4 问题报告
@@ -232,6 +251,7 @@ public struct IntelSummary: Sendable, Equatable, Codable {
     public var enabled: Bool; public var channelCount: Int
     public var windowMinutes: Int; public var maxJumps: Int; public var alertJumps: Int
     public var hasReferenceSystem: Bool; public var hasCustomFrame: Bool
+    public var resolvePilotNames: Bool          // 6.9 增补
     public init(_ settings: IntelSettings)
 }
 public struct TranslationSummary: Sendable, Equatable, Codable {
@@ -243,8 +263,8 @@ public struct TranslationSummary: Sendable, Equatable, Codable {
 }
 ```
 
-`RuntimeSummary` 新增 3 个字符串：`chatLogStatus`（`stopped`、`watching`、`directoryNotFound`、`accessDenied`）、`staticData`（`build-<版本号>`、`missing`、`invalid`）、`translationStatus`（`off`、`idle`、`translating`、`waiting`、`blocked`）。`summary.md` 各加一行。
-`state.json` 不进问题报告（v1.1 设计 7.2 节的文件清单里没有它），手动位置里的角色名不会外泄。译文缓存文件同样不进报告。
+`RuntimeSummary` 新增 4 个字符串：`chatLogStatus`（`stopped`、`watching`、`directoryNotFound`、`accessDenied`）、`staticData`（`build-<版本号>`、`missing`、`invalid`）、`translationStatus`（`off`、`idle`、`translating`、`waiting`、`blocked`）、`pilotLookupStatus`（`off`、`idle`、`resolving`、`waiting`，6.9 增补）。`summary.md` 各加一行。
+`state.json` 不进问题报告（v1.1 设计 7.2 节的文件清单里没有它），手动位置里的角色名不会外泄。译文缓存文件与人名缓存文件（6.10 节）同样不进报告。
 
 ## 4 静态数据
 
@@ -687,6 +707,7 @@ public enum LocationLineParser {
 - 状态是 `accessDenied` 时，两页的状态行显示说明与「打开系统设置」按钮，文字复用 `L10n.combat.accessDeniedHelp` 与 `L10n.combat.openSystemSettings`。
 - 负载：空闲时没有事件；每 2 秒对每个文件做一次 `fstat`，每 30 秒列一次目录。写入最密时每分钟 11 条消息（C13）。启动时的补读一次至多读 48 × 512 KiB，加上位置线索的回读。
 - 聊天内容只留在内存里的缓冲（6.5 节、7.6 节）与译文缓存文件（7.8 节）里。写系统日志时，角色名、频道名、文件名与目录路径按 `.private` 记录；说话人与正文不写进任何日志。
+- 6.9 增补：打开「联网核对人名」后，预警消息里两个词以上的人名段会发给 ESI，查到的角色名与 ID 存进人名缓存文件。发送的内容、文件与日志的规则见 6.10 节。
 - 测试样例里的角色名与频道名全部用虚构的（14.1 节）。星系名与舰船名是游戏的公开数据，可以用真实的。
 
 ## 6 预警
@@ -700,7 +721,8 @@ ChatLogEvent
           → TermMatcher.matches：星系、星域、舰船、舰船分组、情报用语
           → IntelParser.parse：分段、人数、推断的人名 → IntelReport
           → IntelFeed.append：按收听者存进缓冲
-活动角色、位置、时间或配置变化
+          → PilotSegmenter.candidates → PilotLookupQueue → ESI → PilotNameCache（6.9、6.10 节增补）
+活动角色、位置、时间、配置或人名缓存变化
    → JumpGraph.distances：从活动角色所在的星系算跳数表（按出发星系缓存）
    → IntelPresenter.line：每条消息一行 OverlayLine
    → OverlayContent → 预警浮窗
@@ -908,6 +930,7 @@ WP-0 的空实现返回 `IntelReport.empty`（`segments` 里只有一段 `plain`
 8. `countIsExplicit`：最大值等于乙且乙大于 0，或最大值等于甲且至少一艘船有归给它的数字时为真。
 
 取最大值而不相加的理由：同一批敌对常常既写人名又写船型，相加会重复计数。
+6.9 增补：本节的人名与数量是不联网的推断。两个词以上的人名段经 ESI 核对后，人名与数量在显示时按 6.9 节重新算，本节的类型与规则不变。
 
 `remainder(of:)`：把全部 `plain` 段用空格连起来。人名的总词数超过 `maxPilotWords` 时，把人名也加进去（这时消息多半是一句话，应交给模型翻译）。
 
@@ -1021,6 +1044,7 @@ public enum IntelPresenter {
 - `emphasis`：`isClear` 为真时是 `clear`；否则 `alertJumps` 大于 0、且消息里某个星系的跳数不超过它时是 `alert`；其余是 `none`。
 - `copyText`：`[HH:mm:ss] 说话人 > 原文`，时间是日志里的 EVE 时间。
 - 名称的显示语言取界面语言（`L10n.language`）。它与翻译的目标语言无关（Q25）。
+- 6.9 增补：上表的「数量」与「人名」两行按 6.9 节末尾的表显示，并填 `OverlayLine.links`。`IntelPresentationContext` 多一个 `pilots` 字段。
 
 `nextRefresh`：有不足 60 秒的消息时是 `now + 10`；否则有消息时是 `now + 30`；没有消息时是 `nil`。
 
@@ -1044,6 +1068,385 @@ public enum IntelPresenter {
 | 活动角色没有位置，也没有参考星系 | `statusLocationUnknown` | `warning` |
 | 活动角色没有位置，有参考星系 | `statusUsingReference(星系名)` | `info` |
 | 其他 | `statusLocation(星系名, 来源, 多久以前)` | `info` |
+
+6.9 增补：`IntelFeedController` 另外持有 `PilotNameCache`、`PilotLookupQueue` 与一个发送任务，`init` 多收两个参数，对外多 3 个成员（6.10 节）。上表不变，核对的状态不进浮窗的状态行。
+
+### 6.9 人名核对（增补，2026-11-21）
+
+本节与 6.10 节是对用户新要求（第 1 节的 N4）的增补。6.4～6.8 节与这两节说法不一致时，以这两节为准。
+
+用户的要求有三点：
+
+- 带空格的人名连在一起时，要分清是一个人、两个人还是三个人，例如 `Brenn Ostvar Tyra Kelloway`（本节的人名都是虚构的）。
+- 用 zKillboard 或别的接口确定是哪几个角色。
+- 不必每次都查。消息里已经认出星系与舰船，剩下一个不带空格的词时，它就是一个人名。
+
+做法：
+
+- 6.4 节的分段不变。人名核对是分段之后的一步：把 `IntelReport` 里两个词以上的人名段交给 ESI 查（E1），按查到的角色名重新分人。
+- 只有一个词的人名段不查，直接算一个人。它只有一种分法，查了也不改变人数。
+- 核对的结果在显示时套用，`IntelReport`、`IntelParser.parse` 与 `remainder(of:)` 都不改。结果晚到时，同一条消息的那一行内容变了，浮窗按 8.5 节的 `changed` 更新那一行。
+- 查不到、离线或被限流时，显示与 6.4 节的推断相同。
+- 翻译不用核对的结果。`TranslationController` 调的仍是 6.4 节的分段，7.6 节的 `termsOnly` 判断不随 ESI 的答复变。
+
+各工作包的增补如下。WP-0 的 12 项是契约，三个并行的工作包开工前应已完成。
+
+WP-0 的增补：
+
+1. `Model/ChatSettings.swift`：`IntelSettings` 加 `resolvePilotNames`，默认 `true`，用 `decodeIfPresent` 解码（3.1 节）。校验规则不变。
+2. `Diagnostics/DiagnosticsSummary.swift`：`IntelSummary` 加 `resolvePilotNames`；`RuntimeSummary` 加字符串 `pilotLookupStatus`（3.4 节）。
+3. `Intel/PilotLookupModels.swift`：新建，完整实现。含 `PilotLookupOutcome`、`PilotLookupAnswer`（含 `key(for:)`）、`PilotLookupFailure`、`PilotNameCacheEntry`、`PilotLookupStatus`（6.10 节）。
+4. `Contracts/ChatFeatureContracts.swift`：加 `PilotNameResolver` 与 `PilotNameCacheStore` 两个协议（6.10 节）。
+5. `Overlay/OverlayModels.swift`：加 `OverlayLink`；`OverlayLine` 加 `links`，`init` 的这个参数默认是空数组（8.2 节）。
+6. `PlatformServices.swift`：加 `pilotNames: any PilotNameResolver` 与 `pilotNameCache: any PilotNameCacheStore`，`makeLive()` 用第 7 项的两个骨架。
+7. Platform 的两个骨架：`Intel/ESIPilotNameResolver.swift`，`resolve` 返回 `.failure(.network("not implemented"))`；`Intel/FilePilotNameCacheStore.swift`，`load` 返回空数组，`save` 不做事。
+8. `Debug/FakeChatStores.swift`：加 `FakePilotNameResolver` 与 `InMemoryPilotNameCacheStore`（9.5 节）；`Debug/FakeServices.swift` 接入它们。
+9. `Chat/IntelFeedController.swift` 的骨架：`init` 在原有的参数之外加 `resolver:` 与 `cacheStore:`，另加只读属性 `pilotLookupStatus: PilotLookupStatus`（骨架返回 `.off`）。`Chat/ChatFeatureController.swift` 把 `services.pilotNames` 与 `services.pilotNameCache` 传给它。
+10. `Diagnostics/ProblemReportBuilder.swift`：用 `chat.intel.pilotLookupStatus.code` 填 `pilotLookupStatus`，`summary.md` 加一行。
+11. 文字：`settings.aboutChatLogsNote` 改成第 11 节的新写法，8 种语言。条数不变。
+12. 测试：`ConfigCodableTests`、`DiagnosticsSummaryTests` 各补一组用例，新建 `PilotLookupModelsTests`（14.1 节）。
+
+`Intel/IntelModels.swift`、`Intel/IntelParser.swift`、`Config/ConfigValidator.swift` 与 `packaging/Info.plist` 不用为本节改动。ESI 只用 HTTPS。
+
+WP-A 的增补：右键菜单加「在浏览器中打开」（8.7 节），`OverlayStrings` 加 1 条（第 11 节）。
+
+WP-B 的增补：
+
+- Core：`Intel/PilotSegmenter.swift`、`Intel/ESINameWire.swift`、`Intel/PilotNameCache.swift`、`Intel/PilotLookupQueue.swift` 与它们的测试；`IntelPresenter` 按本节末尾的规则显示。
+- Platform：完成第 7 项的两个文件。
+- App：`Chat/IntelFeedController+PilotLookup.swift` 里的排队、发送与缓存（6.10 节）；「预警」页的开关、状态行与「清空人名缓存」；`IntelStrings` 的 7 条新文字与 `footnote` 的改写；`intel` 探针的两个选项。
+
+```swift
+// [Core] Intel/PilotSegmenter.swift（新文件，WP-B）
+public enum PilotStatus: Sendable, Equatable {
+    case unchecked                              // 还没有 ESI 的结果，或者这个人名段不查
+    case matched(characterID: Int)              // ESI 有同名的角色
+    case notFound                               // 查过，没有同名的角色
+}
+public struct IntelPilot: Sendable, Equatable {
+    public var name: String                     // 查到的用 ESI 返回的写法，其余用原文的写法
+    public var status: PilotStatus
+    public init(name: String, status: PilotStatus)
+}
+public struct ResolvedPilots: Sendable, Equatable {
+    public var pilots: [IntelPilot]             // 按出现顺序
+    public var hostileCount: Int?
+    public var countIsExplicit: Bool
+    public init(pilots: [IntelPilot], hostileCount: Int?, countIsExplicit: Bool)
+}
+public struct PilotDirectory: Sendable, Equatable {
+    public static let empty = PilotDirectory()
+    public init(_ outcomes: [String: PilotLookupOutcome] = [:])     // 键是 PilotLookupAnswer.key(for:) 的结果
+    public func outcome(for name: String) -> PilotLookupOutcome?
+    public var isEmpty: Bool { get }
+}
+public enum PilotSegmenter {
+    public static let maxNameWords = 3
+    public static let nameLengthRange: ClosedRange<Int> = 3...37
+    /// 报告里的各个人名段，每段是一串只隔一个空格的词。
+    public static func runs(in report: IntelReport) -> [[String]]
+    /// 要向 ESI 查的名字：两个词以上的人名段里 1～3 个词的连续组合，按比较键去重。
+    public static func candidates(in report: IntelReport) -> [String]
+    /// 给一个人名段分人。
+    public static func segment(run: [String], directory: PilotDirectory) -> [IntelPilot]
+    /// 整条消息的人名与敌对数量。
+    public static func resolve(_ report: IntelReport, directory: PilotDirectory) -> ResolvedPilots
+}
+// [Core] Intel/IntelPresenter.swift（WP-B）：IntelPresentationContext 新增
+//     public var pilots: PilotDirectory        // 核对的结果；开关关闭时是 .empty
+```
+
+人名段（`runs(in:)`）：
+
+- 按顺序看 `report.segments` 里种类是 `pilot` 的段。相邻两个 `pilot` 段之间只有一段 `plain`、且它正好是一个空格时，两段属于同一个人名段。其余情况另起一个人名段。
+- 人名段的词：把段里各 `pilot` 段的文字按空格切开，依次排列。
+- 6.4 节第 6 条把超过 3 个词的一串切成几个 `pilot` 段，中间各隔一个空格。上一条把它们接回一串。
+- 两个以上的空格、标点与认出的术语都是人名段的边界。角色名里没有连续的两个空格（E7）。
+
+候选名字（`candidates(in:)`）：
+
+1. 只有一个词的人名段没有候选名字。
+2. 两个词以上的人名段：取连续的 1 个、2 个、3 个词，各用一个空格连接。k 个词的人名段有 3k − 3 个组合。
+3. 只留下长度是 3～37 个字符、且只含英文字母、数字、`'`、`-` 与空格的组合（E7）。被这一条去掉的组合不查，分人时当作没查到。
+4. 按比较键（`PilotLookupAnswer.key(for:)`）去重，保留先出现的。
+
+单个的词也在候选名字里，原因有两个。它们已经作为两个词的组合的一部分发出去了，再列一次不多发内容，也不多一次请求。几个单个词的角色名连在一起时，要靠它们才能拆开。
+
+分人（`segment(run:directory:)`）。下文的「可用」指这个组合在 `directory` 里的结果是 `matched`；结果是 `ambiguous`、`notFound` 的都不可用。
+
+1. `directory` 为空（开关关着，或还没有任何结果）：整段按 6.4 节第 6 条分人，状态都是 `unchecked`。6.4 节第 6 条从左起每 3 个词算一个人。
+2. 人名段没有候选名字（只有一个词，或组合都被上面的第 3 条去掉）：同第 1 条。只有一个词时结果是一个人。
+3. 人名段有候选名字还没有结果：同第 1 条。一个人名段的结果只套用一次，不随答复分批变化。
+4. 在人名段里选一组互不重叠、可用的名字，每个名字是 2 个词或 3 个词，让它们盖住的词最多。
+5. 盖住的词一样多时，取名字个数少的选法。
+6. 仍相同时从左到右比较。在第一个不同的位置上，3 个词的名字优先于 2 个词的，取名字优先于空着。实现时从右到左计算。每个位置依次比较「取 3 个词」「取 2 个词」「空着」，后一种严格更好时才替换前一种。
+7. 没被盖住的词，连续的一串是一个「空缺」。空缺里每个词单独都可用时，每个词是一个人。否则这个空缺按 6.4 节第 6 条分人，状态是 `notFound`。
+8. 第 4～7 条选出的可用名字，状态是 `matched(characterID:)`，`name` 用 ESI 返回的写法。其余的 `name` 用原文的写法。
+
+第 4 条与第 7 条分两步的理由：用户的要求以带空格的名字为主，所以多个词的名字先选，单个词的名字只用来填空缺。常见的词也会被注册成单个词的角色名，例如 E4 的 `STABBER` 与 `Veldspar`。让它们与多个词的名字一起竞争，会把一个打错的两个词的名字拆成两个人。
+第 7 条要求空缺里每个词都可用，理由相同：`Kael Dorann` 是打错的名字时，`Kael` 可用而 `Dorann` 不可用，结果仍是一个人。
+
+样例（14.1 节 `PilotSegmenterTests` 的夹具）：
+
+| 人名段 | `directory` 里可用的组合 | 结果 |
+| --- | --- | --- |
+| `Brenn Ostvar Tyra Kelloway` | `Brenn Ostvar`、`Tyra Kelloway`、`Brenn`、`Tyra` | `Brenn Ostvar` 与 `Tyra Kelloway`，2 人，都查到 |
+| `Kael Doran Mira Voss` | `Kael Doran`、`Mira Voss` | 2 人，都查到。6.4 节的推断是 `Kael Doran Mira` 与 `Voss` |
+| `Jorn Halden Brask` | `Jorn Halden Brask`、`Jorn Halden`、`Brask` | `Jorn Halden Brask`，1 人，查到 |
+| `Jorn Halden Brask` | `Jorn Halden`、`Halden Brask` | `Jorn Halden`（查到）与 `Brask`（没查到），2 人 |
+| `Tarn Vex Ilya` | `Tarn`、`Vex`、`Ilya` | 3 人，都查到 |
+| `Ilya Morrow Tarn` | `Ilya Morrow`、`Tarn` | 2 人，都查到 |
+| `Kael Dorann` | `Kael` | `Kael Dorann`，1 人，没查到 |
+| `Jorn Halden`，有候选名字还没有结果 | 任意 | `Jorn Halden`，1 人，未核对 |
+| `Mira` | 不查 | 1 人，未核对 |
+
+敌对数量（`resolve(_:directory:)`）：
+
+1. `pilots` 是各人名段的分人结果，按出现顺序连起来。
+2. 新的人数是 `pilots` 的个数。6.4 节的推断让每个人名占满 3 个词，人数是各种分法里最少的。所以新的人数不小于 6.4 节的丙。
+3. 新的人数是 0 时，`hostileCount` 取 `report.hostileCount`。否则取 `report.hostileCount`（`nil` 记 0）与新的人数里较大的一个。这与把 6.4 节第 7 条的丙换成新的人数等价。
+4. `countIsExplicit`：新的 `hostileCount` 与 `report.hostileCount` 相同时取 `report.countIsExplicit`，否则为假。数量来自人名时仍显示成「约 ×N」。
+5. `directory` 为空时，`pilots` 与 `report.pilots` 逐项相同，状态都是 `unchecked`，数量与 `report` 相同。
+
+「查到」只说明有一个角色叫这个名字，不说明消息里指的就是这个角色（R44）。所以查到的人数不算「写明」。
+
+显示（改 6.7 节的表）：
+
+| 部分 | 内容 | 样式 |
+| --- | --- | --- |
+| 数量 | 用 `resolve` 给出的 `hostileCount` 与 `countIsExplicit` | `count` |
+| 人名，状态是 `matched` | 总是列出，`settings.showOriginal` 为真时也列。用 ESI 返回的写法 | `pilot` |
+| 人名，状态是 `unchecked` | 只在 `settings.showOriginal` 为假时列出 | `pilot` |
+| 人名，状态是 `notFound` | 只在 `settings.showOriginal` 为假时列出，名字后面加 `?` | `dim` |
+
+- 相邻两个人名之间加 ` · `（`dim` 样式）。人名里有空格，只隔一个空格分不清。
+- `OverlayLine.links`：每个状态是 `matched`、角色 ID 大于 0 的人名一项。`title` 是 `<名字> · zKillboard`，`url` 是 `https://zkillboard.com/character/<角色 ID>/`（E8）。地址里只有数字 ID，没有聊天里的文字。
+- `copyText`、`emphasis` 与其余部分不变。不新增 `OverlaySpanStyle`，`IntelLineFormatting` 不变。
+
+本轮不做的：
+
+| 项目 | 原因 |
+| --- | --- |
+| 从 zKillboard 取击杀统计、常用舰船 | 用户没有提出。它的接口按角色 ID 查，可在本节的结果上追加 |
+| 核对只有一个词的人名 | 用户的要求。它不改变人数 |
+| 把 ESI 认出是物品的「人名」改回普通文字 | `inventory_types` 的结果本轮只用来判断歧义 |
+| 认出军团与联盟的名称 | `alliances` 与 `corporations` 返回的名称与请求对不上（E4） |
+| 晨曦服务器（Serenity） | 它的 ESI 在另一个主机上。本轮只查 Tranquility（R46） |
+
+### 6.10 人名核对的请求、缓存与接入（增补，2026-11-21）
+
+```swift
+// [Core] Intel/PilotLookupModels.swift（新文件，WP-0，完整实现）
+public enum PilotLookupOutcome: Sendable, Equatable {
+    case matched(characterID: Int, name: String)    // ESI 有同名的角色；name 是 ESI 返回的写法
+    case ambiguous                                  // 有同名的角色，但同名的还有物品、星系等游戏对象
+    case notFound
+}
+public struct PilotLookupAnswer: Sendable, Equatable {
+    public var outcomes: [String: PilotLookupOutcome]   // 键是 key(for:) 的结果；请求里的每个名字各有一项
+    public var errorLimitRemain: Int?               // 答复头 X-Esi-Error-Limit-Remain
+    public var errorLimitReset: Int?                // 答复头 X-Esi-Error-Limit-Reset，单位是秒
+    public init(outcomes: [String: PilotLookupOutcome], errorLimitRemain: Int? = nil, errorLimitReset: Int? = nil)
+    /// 名字的比较键：去掉首尾空白，连续的空白并成一个空格，转成小写。
+    public static func key(for name: String) -> String
+}
+public enum PilotLookupFailure: Error, Sendable, Equatable {
+    case network(String)                            // 连不上、超时、答复过大
+    case rateLimited(retryAfter: Double)            // 420、429
+    case server(status: Int)                        // 408、5xx
+    case rejected(status: Int)                      // 3xx 与其他 4xx：请求本身有问题，不重试
+    case malformedAnswer                            // 200，但正文不是预期的 JSON
+}
+public struct PilotNameCacheEntry: Sendable, Equatable, Codable {
+    public var key: String
+    public var characterID: Int
+    public var name: String                         // ESI 返回的写法
+    public var time: Double                         // 查到的时刻，UTC，1970 年以来的秒数
+    public init(key: String, characterID: Int, name: String, time: Double)
+}
+public enum PilotLookupStatus: Sendable, Equatable {
+    case off, idle, resolving
+    case waiting(until: Double)
+    /// 写进问题报告的代号：off、idle、resolving、waiting。
+    public var code: String { get }
+}
+
+// [Core] Contracts/ChatFeatureContracts.swift（WP-0 增补）
+public protocol PilotNameResolver: Sendable {
+    /// 发一次请求。names 已去重，1～500 个。不重试。
+    func resolve(_ names: [String]) async -> Result<PilotLookupAnswer, PilotLookupFailure>
+}
+public protocol PilotNameCacheStore: Sendable {
+    func load() -> [PilotNameCacheEntry]
+    func save(_ entries: [PilotNameCacheEntry]) throws
+}
+// PlatformServices 新增：
+//     public let pilotNames: any PilotNameResolver
+//     public let pilotNameCache: any PilotNameCacheStore
+
+// [Core] Intel/ESINameWire.swift（新文件，WP-B）
+public struct ESINameRequest: Sendable, Equatable {
+    public var url: URL
+    public var headers: [String: String]
+    public var body: Data
+    public var timeoutSeconds: Double
+}
+public enum ESINameWire {
+    public static let endpoint = "https://esi.evetech.net/universe/ids"
+    public static let compatibilityDate = "2020-01-01"
+    public static let maxNamesPerRequest = 500
+    public static let maxNameLength = 100
+    public static let timeoutSeconds = 10.0
+    public static let maxResponseBytes = 1_048_576
+    public static func userAgent(appVersion: String) -> String
+    /// 把名字整理成可以发送的几组：去掉空的与超过 100 个字符的，按比较键去重，每组至多 500 个。
+    public static func batches(_ names: [String]) -> [[String]]
+    public static func request(names: [String], appVersion: String) -> ESINameRequest
+    /// headers 的键是小写。names 是这次请求发出的名字。
+    public static func answer(status: Int, headers: [String: String], body: Data,
+                              names: [String]) -> Result<PilotLookupAnswer, PilotLookupFailure>
+}
+
+// [Core] Intel/PilotNameCache.swift（新文件，WP-B）
+public struct PilotNameCache: Sendable {
+    public static let matchedTTL = 2_592_000.0      // 30 天
+    public static let unmatchedTTL = 21_600.0       // 6 小时；没查到与有歧义的只留在内存里
+    public static let matchedCapacity = 5_000
+    public static let unmatchedCapacity = 5_000
+    public init(entries: [PilotNameCacheEntry] = [], now: Double)
+    public mutating func store(_ outcomes: [String: PilotLookupOutcome], now: Double)
+    /// 没有结果或结果已过期时为真。
+    public func needsLookup(_ name: String, now: Double) -> Bool
+    public var directory: PilotDirectory { get }
+    public var matchedCount: Int { get }
+    public var isDirty: Bool { get }
+    /// 要存盘的条目（只有查到的、没过期的），并清掉 isDirty。
+    public mutating func snapshot(now: Double) -> [PilotNameCacheEntry]
+    public mutating func removeAll()
+}
+
+// [Core] Intel/PilotLookupQueue.swift（新文件，WP-B）
+public struct PilotLookupQueue: Sendable {
+    public static let debounceSeconds = 0.5
+    public static let minimumInterval = 2.0
+    public static let maxPending = 2_000
+    public static let lowErrorBudget = 20
+    public init()
+    public var status: PilotLookupStatus { get }    // 不含 off；off 由控制器按开关判断
+    /// 排进待查的名字；已在队列里或在途的不重复排。
+    public mutating func enqueue(_ names: [String], now: Double)
+    public mutating func takeBatch(now: Double) -> [String]?
+    /// 下一次可以调 takeBatch 的时刻；没有待查的名字时返回 nil。
+    public func nextAttempt(now: Double) -> Double?
+    public mutating func complete(_ answer: PilotLookupAnswer, now: Double)
+    public mutating func fail(_ failure: PilotLookupFailure, now: Double)
+    public mutating func removeAll()
+}
+```
+
+本节的时刻都用墙上时钟（9.2 节）。
+
+请求（`ESINameWire.request`，依据 E1）：
+
+- 地址是 `https://esi.evetech.net/universe/ids`，方法 `POST`，不带查询串。
+- 请求头：`Content-Type: application/json`、`Accept: application/json`、`Accept-Language: en`、`X-Compatibility-Date: 2020-01-01`、`X-Tenant: tranquility`、`User-Agent`。
+- `User-Agent` 是 `EVE-O-Preview-macOS/<版本> (+https://github.com/deletexiumu/eve-o-preview-macos)`。里面不写邮箱、角色名或任何能认出用户的内容。
+- 请求体是名字的 JSON 数组。
+- `batches` 保证每组不为空、各项的比较键互不相同、每项是 1～100 个字符。这三条任一条不满足，ESI 返回 400 并扣错误额度（E5）。
+- 超时 10 秒。答复正文超过 1 MiB 时是 `network("response too large")`。
+
+`ESIPilotNameResolver`（Platform，`Intel/ESIPilotNameResolver.swift`）：用 `.ephemeral` 会话，不用 cookie，不留缓存，不跟随重定向。一次 `resolve` 发一个请求，把状态码、小写键的答复头与正文交给 `ESINameWire.answer`。发送失败时返回 `network`。应用版本取本进程 `Info.plist` 的版本号，没有时是 `0.0.0`。
+
+答复（`ESINameWire.answer`）：
+
+| 状态码 | 结果 |
+| --- | --- |
+| 200 | 按下面的步骤解析 |
+| 420、429 | `rateLimited(retryAfter:)`。秒数先取 `retry-after` 头，没有时取 `x-esi-error-limit-reset` 头，都没有时取 60，再夹到 5～600 |
+| 408、5xx | `server(status:)` |
+| 3xx 与其他 4xx | `rejected(status:)` |
+
+状态码是 200 时：
+
+1. 正文应是 JSON 对象，否则是 `malformedAnswer`。
+2. 取 `characters` 里每项的 `id` 与 `name`，按 `key(for: name)` 建角色表。角色只从这个类别取。
+3. 取 `inventory_types`、`systems`、`constellations`、`regions`、`stations`、`factions` 里每项的 `name`，按比较键建「游戏对象」集合。`alliances`、`corporations` 与 `agents` 不读（E4）。
+4. 对 `names` 里的每个名字取比较键。它在角色表里、不在游戏对象集合里时是 `matched`；两边都在时是 `ambiguous`；其余是 `notFound`。
+5. 答复里比较键不在 `names` 里的项忽略。
+6. `errorLimitRemain` 与 `errorLimitReset` 取自 `x-esi-error-limit-remain`、`x-esi-error-limit-reset` 两个头，没有或不是整数时为 `nil`。
+
+第 4 条的 `ambiguous` 是本设计加的。星图数据里只有舰船，矿石、装备与无人机的名字不在 6.3 节的术语里，会被 6.4 节当成人名；这些名字又常被注册成角色名（E4 的 `Veldspar`）。同名的游戏对象存在时，消息里指的多半是它。
+
+排队与节流（`PilotLookupQueue`）：
+
+- `enqueue`：名字按比较键记进待查的集合，并记下排进来的时刻。已在待查或在途的不重复排。超过 2,000 个时丢最早的。
+- `takeBatch(now:)` 在以下任一情况返回 `nil`：有一批在途；状态是 `waiting` 且还没到时刻；没有待查的名字；最早的待查名字排进来还不足 0.5 秒；距上一批发出还不足 2 秒。其余情况取最早的至多 500 个，状态改成 `resolving`。
+- `complete`：这一批离开在途，连续失败的计数清零。`errorLimitRemain` 有值且小于 20 时，状态改成 `waiting(until: now + errorLimitReset)`，秒数夹到 1～120，没有这个头时取 60；否则状态回到 `idle`。
+- `fail`，`rateLimited`：这一批回到待查，状态改成 `waiting(until: now + retryAfter)`。
+- `fail`，`network`、`server`、`malformedAnswer`：这一批回到待查，等 30 秒；连续失败时每次加倍，上限 600 秒。
+- `fail`，`rejected`：这一批丢掉，不回到待查，等 300 秒。这种失败说明请求的写法有错，重发只会再扣错误额度。
+- 失败的请求不产生任何 `notFound`，缓存不变。
+
+请求量的上界：两批之间至少隔 2 秒，每分钟至多 30 个请求。只查两个词以上的人名段，缓存里有结果的不查，实际的请求远少于这个上界。本机写入最密的 1 分钟是 11 条消息（C13）。
+
+何时排进队列（`IntelFeedController`）。`intel.enabled` 与 `intel.resolvePilotNames` 都为真时才排：
+
+- 新消息：收听者是活动角色、不是补读的、`report.isIntelLike` 为真时，取 `PilotSegmenter.candidates`，把其中 `cache.needsLookup` 为真的排进队列。
+- 补排：对活动角色在缓冲里的消息，从最新的一条往前看，收集要查的名字，满 500 个为止。时机有 5 个：第一次确定活动角色；切换客户端；收到一批含活动角色补读消息的事件；开关从关变成开；星图数据到达、缓冲重新解析之后。
+- 其他角色的消息不排。显示它们时用同一份缓存，已有结果的名字直接套用。
+- 开关关掉时调 `queue.removeAll()` 并取消发送任务，`IntelPresenter` 拿到的是 `PilotDirectory.empty`，显示回到 6.4 节的推断。缓存留着。
+- `clear(character:)` 不清缓存。
+
+发送与结果：
+
+- 一个发送任务睡到 `queue.nextAttempt(now:)`，调 `takeBatch`，再调 `resolver.resolve`，回到主 actor 后调 `complete` 或 `fail`。没有待查的名字时任务结束，下次排进名字时再起。
+- 结果到达后调 `cache.store`，再调 `onChange`。`content(now:)` 每次都用 `cache.directory` 建 `IntelPresentationContext`，所以受影响的行在这次刷新里换成新内容。
+- 浮窗的状态行不显示核对的状态，失败时没有提示。「预警」页的开关下面有一行状态：`idle` 显示已保存的角色名个数，`resolving` 显示「核对中」，`waiting` 显示多少秒后重试。
+
+缓存（`PilotNameCache`）：
+
+- 键是比较键。`matched` 的结果保留 30 天。`ambiguous` 与 `notFound` 的结果保留 6 小时，只留在内存里。
+- `needsLookup`：没有结果，或结果已过期时为真。过期的结果在新结果到达之前仍在 `directory` 里。
+- 容量：`matched` 至多 5,000 条，其余至多 5,000 条，超过时丢最早查到的。
+- `FilePilotNameCacheStore`（Platform）把 `matched` 的条目存成 `~/Library/Application Support/EVE-O Preview/pilot-names.json`，内容是 `{"format": 1, "entries": [...]}`，每项有 `key`、`characterID`、`name`、`time`。文件权限 0600，原子写入。文件读不了或格式不对时从空缓存开始。
+- 读取：预警第一次启用时在后台任务里读一次，过期的条目丢掉。
+- 存盘的时机同 7.8 节：有改动且距上次存盘满 30 秒时存一次，`stop()` 时存一次。
+- 「预警」页显示已保存的条数，提供「清空人名缓存」按钮。
+- 演示模式用内存里的假实现，不读写这个文件。
+
+期限的理由：角色被删除后，它的名字还会在缓存里留至多 30 天，只影响那一行的显示。新建的角色第一次被查时缓存里没有它，直接能查到；6 小时的期限只管「先查过、后来才有人注册」的名字，以及 ESI 的名字索引晚于建号的情况（V43）。
+没查到的结果不落盘的理由：这些词多半不是人名，是消息正文里的片段。
+
+**注意：** `pilot-names.json` 里有其他玩家的角色名与角色 ID，都是游戏的公开数据。它只留在本机，不进问题报告。
+
+开关与隐私：
+
+- `intel.resolvePilotNames` 默认是 `true`（Q28）。理由有 4 条：它在 `intel.enabled` 之下，预警默认关闭，用户打开预警之前不发任何请求；接收方是 CCP，这些名字本来就在它的聊天服务器上；请求不带 Key、账号与用户的角色名；这是用户提出的要求。
+- 发给 ESI 的内容：预警频道里认作情报的消息中，两个词以上的人名段里的词及其组合。不发说话人、频道名、收听者与整条消息。用户自己的角色名只在别人把它写进情报时才会在其中。
+- CCP 能看到请求的来源 IP 与 `User-Agent`。「预警」页的说明文字与「关于」页都写明这一项（第 11 节）。
+- 候选名字是消息正文的一部分，不写进任何日志，`.private` 也不用（5.7 节）。日志只写个数、状态码、耗时与错误额度。
+- 问题报告只有开关（`IntelSummary.resolvePilotNames`）与状态代号（`RuntimeSummary.pilotLookupStatus`）。
+- 应用不向 zKillboard 发任何请求。用户点「在浏览器中打开」时，由系统的默认浏览器打开角色页。
+
+接入（App）：
+
+```swift
+// [App] Chat/IntelFeedController.swift（骨架 WP-0，完成 WP-B）
+@MainActor final class IntelFeedController: ChatFeedConsumer {
+    init(state: StateController, resolver: any PilotNameResolver, cacheStore: any PilotNameCacheStore)
+    /// 给问题报告与「预警」页。骨架返回 .off。
+    var pilotLookupStatus: PilotLookupStatus { get }
+    /// 已保存的角色名个数（WP-B）。
+    var pilotCacheCount: Int { get }
+    /// 清空内存与文件里的缓存（WP-B）。
+    func clearPilotCache()
+}
+```
+
+- `pilotLookupStatus`：`intel.enabled` 或 `intel.resolvePilotNames` 为假时是 `.off`，否则取 `queue.status`。它变了以后调 `onChange`，设置窗口经 `ChatFeatureController.onStatusChanged` 刷新。
+- `stop()`：取消发送任务，缓存有改动时存盘。
+- 线程：`resolve` 在 `URLSession` 的线程上收发，控制器在主 actor 上等结果；缓存文件的读写在后台任务里做（9.4 节）。
+- 假服务与探针见 9.5 节。
 
 ## 7 聊天翻译
 
@@ -1518,14 +1921,20 @@ public struct OverlaySpan: Sendable, Equatable {
     public init(_ text: String, _ style: OverlaySpanStyle)
 }
 public enum OverlayEmphasis: Sendable, Equatable { case none, alert, clear }
+public struct OverlayLink: Sendable, Equatable {    // 6.9 增补
+    public var title: String                    // 菜单项的文字
+    public var url: String                      // https 地址
+    public init(title: String, url: String)
+}
 public struct OverlayLine: Sendable, Equatable, Identifiable {
     public var id: UInt64
     public var primary: [OverlaySpan]           // 第一行
     public var secondary: [OverlaySpan]         // 第二行，字号小一级；空数组表示没有
     public var emphasis: OverlayEmphasis
     public var copyText: String                 // 右键「复制」时放进剪贴板的文字
+    public var links: [OverlayLink]             // 6.9 增补。右键「在浏览器中打开」的各项；空数组表示没有
     public init(id: UInt64, primary: [OverlaySpan], secondary: [OverlaySpan] = [],
-                emphasis: OverlayEmphasis = .none, copyText: String)
+                emphasis: OverlayEmphasis = .none, copyText: String, links: [OverlayLink] = [])
 }
 public enum OverlayStatusLevel: Sendable, Equatable { case info, warning, error }
 public struct OverlayStatus: Sendable, Equatable {
@@ -1713,11 +2122,14 @@ public enum OverlayScrollRules {
 | --- | --- |
 | 滚动到最新 | 滚到底部 |
 | 复制这一条 | 把光标下那一行的 `copyText` 放进剪贴板。光标不在某一行上时置灰 |
+| 在浏览器中打开（子菜单，6.9 增补） | 列出光标下那一行的 `links`，每项的文字是 `title`。点一项时，`url` 能解析且协议是 `https` 才用 `NSWorkspace.shared.open` 打开。那一行没有 `links` 时不显示这一项 |
 | 清空列表 | 清空活动角色在这个浮窗里的缓冲 |
 | 锁定布局（带勾选） | 切换 `behavior.lockLayout` |
 | 恢复默认位置与尺寸 | 把 `overlay.frame` 设回 `null` |
 | 隐藏此浮窗 | 把这个功能的 `enabled` 设成假 |
 | 打开设置… | 打开设置窗口的对应页 |
+
+「在浏览器中打开」由 `OverlayContextMenu` 自己处理，不经过 `InfoOverlayDelegate`，`OverlayMenuAction` 不加新值。面板不知道链接指向哪个网站；预警的链接指向 zKillboard（6.9 节）。浏览器会到前台，这是用户点菜单的结果。
 
 ```swift
 // [App] Overlays/InfoOverlayManager.swift（空实现 WP-0，完成 WP-A）
@@ -1862,6 +2274,7 @@ struct ChatFeedContext {
 - `URLSessionTranslationTransport.send` 是 `async` 方法，在 `URLSession` 的线程上收发，`TranslationController` 在主 actor 上等它的结果。
 - 星图数据的读取与解码、译文缓存的读写在后台任务里做，结果回到主线程。
 - `KeychainSecretStore` 的方法是同步调用，只在 7.7 节列出的 3 个时机调用，都在主线程。
+- 6.9 增补：`ESIPilotNameResolver.resolve` 是 `async` 方法，在 `URLSession` 的线程上收发，`IntelFeedController` 在主 actor 上等它的结果。人名缓存文件的读写在后台任务里做。分人与数量在主线程算，一条消息至多几十个候选名字。
 - Core 的新类型都是 `Sendable` 值类型。`ChatFeatureController`、两个功能控制器、`InfoOverlayManager` 与面板都是 `@MainActor`。
 - 术语匹配、分段与跳数表都在主线程算。一条消息至多几百个字符（C13），跳数表至多遍历 5,485 个星系（S5），每分钟至多十几条消息。
 
@@ -1872,6 +2285,7 @@ struct ChatFeedContext {
 - `FakeChatLogMonitor`（`Debug/FakeChatLogMonitor.swift`，WP-A）：启动后给每个假角色发一条位置线索，之后每 4 秒给一个假角色发一条消息。消息取自一张 12 条的固定表，有中英文的情报与英、俄、日文的闲聊，人名与频道名都是虚构的。频道是 `intel.Demo` 与 `chat.Demo`。`discoverChannels` 返回这两个频道。状态是 `watching(directory: "fake", followedFiles: 假角色数)`。
 - `FakeTranslationTransport`（`Debug/FakeTranslationTransport.swift`，WP-C）：0.6 秒后返回 OpenAI 兼容格式的答复，每条译文是原文前面加 `〔译〕`。
 - `InMemorySecretStore` 与 `InMemoryTranslationCacheStore`（`Debug/FakeChatStores.swift`，WP-0）：只在内存里。
+- `FakePilotNameResolver` 与 `InMemoryPilotNameCacheStore`（同一个文件，WP-0，6.9 增补）：前者不联网，0.4 秒后返回结果，正好两个词的名字是 `matched(characterID: 0, name: 原样)`，其余是 `notFound`。角色 ID 是 0 时没有链接（6.9 节）。后者只在内存里。
 - 星图数据用真实的提供者，读仓库或包里的文件。
 
 探针（`Sources/EVEOProbe/`）：
@@ -1880,12 +2294,14 @@ struct ChatFeedContext {
 | --- | --- | --- |
 | `EVEOProbe staticdata` | 打印数据文件的来源、SDE 版本、各类记录的数量、解码耗时、一次 15 跳的跳数表耗时 | WP-0 |
 | `EVEOProbe chatlog [目录] [--follow 秒数]` | 打印选中的目录，每个候选文件的频道种类、编码与文件头是否完整，消息行、系统消息与位置线索的数量。带 `--follow` 时用 `ChatLogTailer` 跟踪，逐条打印事件的种类、日志时间与收到时刻的差 | WP-A |
-| `EVEOProbe intel [目录]` | 用真实的星图数据解析最近 48 小时的玩家频道日志，打印消息数、认作情报的条数、有数量的条数、各情报用语的条数、推断出人名的条数 | WP-B |
+| `EVEOProbe intel [目录] [--resolve-sample] [--resolve]` | 用真实的星图数据解析最近 48 小时的玩家频道日志，打印消息数、认作情报的条数、有数量的条数、各情报用语的条数、推断出人名的条数。6.9 增补：另外打印人名段的个数、只有一个词的个数、两个词以上的个数与候选名字的个数。带 `--resolve-sample` 时向 ESI 发一个请求，内容是 3 个编造的名字，打印状态码、耗时、错误额度与各类结果的个数。带 `--resolve` 时把日志里的候选名字发给 ESI，打印请求数、查到、有歧义、没查到的个数，以及人数变了的消息条数 | WP-B |
 | `EVEOProbe translate [--provider 编号] [--model 模型] [--base-url 地址] [--target 语言]` | Key 取自环境变量 `EVEO_TRANSLATION_API_KEY`。发一次 `testContent`，打印状态码、耗时与解析出的译文 | WP-C |
 
 探针不打印角色名、频道名、说话人与消息内容。
 
 **注意：** `EVEOProbe translate` 向真实的模型服务发请求，会产生费用。实现方不自行运行它，由主会话在用户同意后运行（V36）。
+
+**注意：** `EVEOProbe intel --resolve` 把用户日志里的人名发给 ESI。实现方不自行运行它，由主会话在用户同意后运行。`--resolve-sample` 只发编造的名字，实现方可以运行。
 
 ## 10 设置界面
 
@@ -1904,6 +2320,8 @@ struct ChatFeedContext {
 | 最多计算 | `intel.maxJumps`，1～30 |
 | 高亮距离 | `intel.alertJumps`，0～30 |
 | 开关「显示原文」 | `intel.showOriginal` |
+| 开关「联网核对人名（ESI）」（6.9 增补） | `intel.resolvePilotNames`。下面是说明文字 `resolvePilotsHelp` 与一行状态：`idle` 是 `pilotLookupIdle(条数)`，`resolving` 是 `pilotLookupResolving`，`waiting` 是 `pilotLookupWaiting(秒数)`。开关关着时不显示状态 |
+| 人名缓存（6.9 增补） | 已保存的条数与「清空人名缓存」按钮 |
 | 浮窗 | `OverlaySettingsSection`，绑定 `intel.overlay` |
 | 页尾 | 星图数据的 SDE 版本；说明文字 `footnote` |
 
@@ -1946,7 +2364,7 @@ struct OverlaySettingsSection: View {
 `SettingsViewModel` 的改动：
 
 - WP-0 加运行时字段并在 `refreshRuntime()` 里从 `coordinator.chat` 复制：`chatLogStatus`、`discoveredChannels`、`staticDataState`。另加 `refreshDiscoveredChannels()`。
-- `Settings/SettingsViewModel+Intel.swift`（WP-B）：`intelBinding(_:)`、各角色位置的读取、`setIntelLocation`、`clearIntelLocation`。
+- `Settings/SettingsViewModel+Intel.swift`（WP-B）：`intelBinding(_:)`、各角色位置的读取、`setIntelLocation`、`clearIntelLocation`。6.9 增补：人名核对的状态、人名缓存的条数与清空。
 - `Settings/SettingsViewModel+Translation.swift`（WP-C）：`translationBinding(_:)`、`endpointBinding(_:)`、Key 的保存与删除、测试、重试、缓存条数与清空。
 
 菜单栏菜单（`StatusItemController.swift`，WP-0）：在「热键只在 EVE 内生效」之后加两项带勾选的菜单项「显示预警浮窗」「显示翻译浮窗」，点击时切换对应的 `enabled`。
@@ -1975,14 +2393,14 @@ struct OverlaySettingsSection: View {
 | `menu.showTranslationOverlay` | 显示翻译浮窗 | Show Translation Overlay |
 | `settings.pageIntel` | 预警 | Intel |
 | `settings.pageTranslation` | 翻译 | Translation |
-| `settings.aboutChatLogsNote` | 预警与翻译只读聊天日志和游戏日志。翻译会把聊天内容发给你选择的模型服务。 | Intel and translation only read chat logs and game logs. Translation sends chat text to the model service you choose. |
+| `settings.aboutChatLogsNote`（6.9 增补，改写） | 预警与翻译只读聊天日志和游戏日志。翻译会把聊天内容发给你选择的模型服务。打开「联网核对人名」时，预警消息里连在一起的人名会发给 CCP 的 ESI 接口。 | Intel and translation only read chat logs and game logs. Translation sends chat text to the model service you choose. When online name checking is on, pilot names that run together in intel messages are sent to CCP's ESI API. |
 | `settings.chatLogStatusStopped` | 未启用 | Off |
 | `settings.chatLogStatusWatching(directory, files)` | 监视中：{目录}，跟踪 {N} 个日志文件 | Watching {directory}, following {N} log files |
 | `settings.chatLogStatusDirectoryNotFound(path)` | 找不到聊天日志目录：{路径} | Chat log folder not found: {path} |
 | `settings.chatLogStatusAccessDenied(path)` | 没有读取权限：{路径} | No permission to read {path} |
 | `settings.chatLogHelp` | EVE 客户端应开启把聊天记录写入文件的设置。日志目录在「提醒」页里设置。 | The EVE client must be set to log chat to file. The log folder is set on the Alerts page. |
 
-`OverlayStrings`（WP-A，27 条）：
+`OverlayStrings`（WP-A，28 条，其中 `menuOpenInBrowser` 是 6.9 增补）：
 
 | 键 | 中文 | 英文 |
 | --- | --- | --- |
@@ -1991,6 +2409,7 @@ struct OverlaySettingsSection: View {
 | `emptyList` | 还没有消息 | No messages yet |
 | `menuScrollToLatest` | 滚动到最新 | Scroll to Latest |
 | `menuCopyLine` | 复制这一条 | Copy This Line |
+| `menuOpenInBrowser` | 在浏览器中打开 | Open in Browser |
 | `menuClear` | 清空列表 | Clear List |
 | `menuLockLayout` | 锁定布局 | Lock Layout |
 | `menuResetFrame` | 恢复默认位置与尺寸 | Reset Position and Size |
@@ -2011,7 +2430,7 @@ struct OverlaySettingsSection: View {
 | `channelListeners(count)` | {N} 个角色 | {N} characters |
 | `builtInLocal`、`builtInCorp`、`builtInAlliance`、`builtInFleet` | 本地、军团、联盟、舰队 | Local, Corp, Alliance, Fleet |
 
-`IntelStrings`（WP-B，46 条）：
+`IntelStrings`（WP-B，53 条，其中表末的 7 条是 6.9 增补，`footnote` 是 6.9 增补改写）：
 
 | 键 | 中文 | 英文 |
 | --- | --- | --- |
@@ -2043,7 +2462,7 @@ struct OverlaySettingsSection: View {
 | `staticDataLabel` | 星图数据 | Map Data |
 | `staticDataBuild(build)` | SDE 版本 {N} | SDE build {N} |
 | `staticDataMissing` | 缺少星图数据，不能识别星系和舰船 | Map data is missing; systems and ships cannot be recognized |
-| `footnote` | 本功能只读聊天日志与游戏日志，不向游戏发送任何输入。人名与数量按消息的格式推断，可能有误。 | This feature only reads chat logs and game logs and sends no input to the game. Pilot names and counts are inferred from message format and may be wrong. |
+| `footnote` | 本功能只读聊天日志与游戏日志，不向游戏发送任何输入。人名与数量按消息的格式推断，可能有误。联网核对只说明有角色叫这个名字，不保证消息里说的就是这个角色。 | This feature only reads chat logs and game logs and sends no input to the game. Pilot names and counts are inferred from message format and may be wrong. Online name checking only shows that a character with that name exists, not that the message refers to that character. |
 | `overlayTitle(character)` | 预警 · {角色} | Intel · {character} |
 | `statusNoStaticData` | 缺少星图数据 | Map data missing |
 | `statusNoChannels` | 还没有设置预警频道 | No intel channels set |
@@ -2058,6 +2477,13 @@ struct OverlaySettingsSection: View {
 | `jumpsUnreachable`、`jumpsUnknown` | 无星门、? | no gates, ? |
 | `count(value)`、`countInferred(value)` | ×{N}、约 ×{N} | ×{N}, ~×{N} |
 | `clear`、`noVisual` | 安全、未见 | clear, no visual |
+| `resolvePilotsToggle` | 联网核对人名（ESI） | Check pilot names online (ESI) |
+| `resolvePilotsHelp` | 几个带空格的人名连在一起时，向 CCP 的 ESI 接口查出它们各是哪个角色。只发送这些词，不发送说话人、频道名和你的角色名。只有一个词的人名不查。 | When several names with spaces run together, asks CCP's ESI API which characters they are. Only those words are sent, not the speaker, the channel name, or your character names. Single-word names are not looked up. |
+| `pilotLookupLabel` | 人名核对 | Name Check |
+| `pilotLookupIdle(count)` | 就绪，已保存 {N} 个角色名 | Ready, {N} character names saved |
+| `pilotLookupResolving` | 核对中 | Checking |
+| `pilotLookupWaiting(seconds)` | 暂时连不上 ESI，{N} 秒后重试 | ESI is unavailable; retrying in {N}s |
+| `clearPilotCache` | 清空人名缓存 | Clear Name Cache |
 
 `TranslationStrings`（WP-C，55 条）：
 
@@ -2130,6 +2556,8 @@ struct OverlaySettingsSection: View {
 | map data | 星图数据 |
 | model service | 模型服务 |
 | keychain | 钥匙串（用 macOS 的官方名称） |
+| name check | 人名核对 |
+| ESI | ESI（不翻译） |
 
 ## 12 文件计划
 
@@ -2146,7 +2574,7 @@ struct OverlaySettingsSection: View {
 | `Config/ConfigValidator.swift` | 3.2 节的规则 | 加 90 | WP-0 |
 | `Diagnostics/DiagnosticsSummary.swift` | 3.4 节 | 加 70 | WP-0 |
 | `Contracts/PlatformContracts.swift` | `ChatLogMonitor` | 加 25 | WP-0 |
-| `Contracts/ChatFeatureContracts.swift` | 新建。`StaticDataProvider`、`TranslationTransport`、`SecretStore`、`TranslationCacheStore` | 90 | WP-0 |
+| `Contracts/ChatFeatureContracts.swift` | 新建。`StaticDataProvider`、`TranslationTransport`、`SecretStore`、`TranslationCacheStore`；6.9 增补 `PilotNameResolver`、`PilotNameCacheStore` | 110 | WP-0 |
 | `Support/CharacterNameMatch.swift` | 新建。「先按原样、再不区分大小写」的角色名比较 | 40 | WP-0 |
 | `StaticData/StaticDataFile.swift`、`StaticData/EVEStaticData.swift` | 新建。4.3 节，含完整实现 | 70、230 | WP-0 |
 | `StaticData/TermMatcher.swift` | 新建。6.3 节 | 300 | WP-0 → WP-B |
@@ -2156,8 +2584,10 @@ struct OverlaySettingsSection: View {
 | `ChatLog/LocationTracker.swift` | 新建。6.2 节 | 140 | WP-B |
 | `Intel/IntelModels.swift` | 新建 | 110 | WP-0 |
 | `Intel/IntelParser.swift` | 新建。6.4 节。`remainder(of:)` 由 WP-0 写完整，WP-B 不改它 | 330 | WP-0 → WP-B |
-| `Intel/IntelFeed.swift`、`Intel/IntelPresenter.swift` | 新建 | 110、220 | WP-B |
-| `Overlay/OverlayModels.swift` | 新建 | 120 | WP-0 |
+| `Intel/IntelFeed.swift`、`Intel/IntelPresenter.swift` | 新建 | 110、260 | WP-B |
+| `Intel/PilotLookupModels.swift`（6.9 增补） | 新建。6.10 节的 5 个类型，含完整实现 | 90 | WP-0 |
+| `Intel/PilotSegmenter.swift`、`Intel/ESINameWire.swift`、`Intel/PilotNameCache.swift`、`Intel/PilotLookupQueue.swift`（6.9 增补） | 新建。6.9、6.10 节 | 230、170、130、170 | WP-B |
+| `Overlay/OverlayModels.swift` | 新建。含 6.9 增补的 `OverlayLink` 与 `OverlayLine.links` | 130 | WP-0 |
 | `Overlay/OverlayPlanner.swift` | 新建。8.6 节 | 170 | WP-0 → WP-A |
 | `Overlay/OverlayScrollRules.swift` | 新建。8.5 节 | 110 | WP-A |
 | `Translation/TranslationModels.swift` | 新建。7.2 节的模型，另含 WP-0 的代码引用到的 `TranslationHTTPRequest`、`TranslationHTTPResponse`、`TranslationTransportError`、`TranslationCacheEntry`、`TranslationStatus` | 210 | WP-0 |
@@ -2167,16 +2597,17 @@ struct OverlaySettingsSection: View {
 
 | 文件 | 归属 |
 | --- | --- |
-| `ConfigCodableTests`、`ConfigValidatorTests`、`DiagnosticsSummaryTests`、`StateStoreTests`（补用例）；`ChannelRefTests`、`StaticDataTests`、`ChatLogParserTests`、`ChatLogDirectoryTests`、`LocationLineParserTests`（新建）；`StaticDataFixtures.swift`、`ChatLogFixtures.swift`（新建，三个并行的工作包只读不改） | WP-0 |
+| `ConfigCodableTests`、`ConfigValidatorTests`、`DiagnosticsSummaryTests`、`StateStoreTests`（补用例）；`ChannelRefTests`、`StaticDataTests`、`ChatLogParserTests`、`ChatLogDirectoryTests`、`LocationLineParserTests`、`PilotLookupModelsTests`（新建，最后一个是 6.9 增补）；`StaticDataFixtures.swift`、`ChatLogFixtures.swift`（新建，三个并行的工作包只读不改） | WP-0 |
 | `OverlayPlannerTests`、`OverlayScrollRulesTests`（新建） | WP-A |
-| `TermMatcherTests`、`IntelParserTests`、`IntelFeedTests`、`JumpGraphTests`、`LocationTrackerTests`、`IntelPresenterTests`（新建） | WP-B |
+| `TermMatcherTests`、`IntelParserTests`、`IntelFeedTests`、`JumpGraphTests`、`LocationTrackerTests`、`IntelPresenterTests`（新建）；`PilotSegmenterTests`、`ESINameWireTests`、`PilotNameCacheTests`、`PilotLookupQueueTests`（新建，6.9 增补） | WP-B |
 | `TranslationProvidersTests`、`TranslationRulesTests`、`TranslationPromptTests`、`TranslationWireTests`、`TranslationCacheTests`、`TranslationQueueTests`、`TranslationPresenterTests`（新建） | WP-C |
 
 `Sources/EVEOPreviewPlatform/` 与 `Sources/EVEOProbe/`：
 
 | 文件 | 改动 | 行数 | 归属 |
 | --- | --- | --- | --- |
-| `PlatformServices.swift` | 加 `chatLog`、`staticData`、`translationTransport`、`secrets`、`translationCache` | 加 30 | WP-0 |
+| `PlatformServices.swift` | 加 `chatLog`、`staticData`、`translationTransport`、`secrets`、`translationCache`；6.9 增补 `pilotNames`、`pilotNameCache` | 加 40 | WP-0 |
+| `Intel/ESIPilotNameResolver.swift`、`Intel/FilePilotNameCacheStore.swift`（6.9 增补） | 新建。6.10 节 | 130、100 | WP-0 → WP-B |
 | `StaticData/BundleStaticDataProvider.swift` | 新建。4.4 节 | 120 | WP-0 |
 | `ChatLog/FileChatLogMonitor.swift` | 新建。主线程外壳，做法同 `FileCombatLogMonitor` | 130 | WP-0 → WP-A |
 | `ChatLog/ChatLogTailer.swift`、`ChatLog/FollowedLogFile.swift`、`ChatLog/LogTailReader.swift` | 新建。队列上的跟踪逻辑；单个文件的描述符、偏移量与分行器；补读与回读 | 480、220、140 | WP-A |
@@ -2193,6 +2624,7 @@ struct OverlaySettingsSection: View {
 | `AppCoordinator+ChatOverlays.swift` | 新建。9.3 节 | 190 | WP-0 |
 | `Chat/ChatFeedConsumer.swift`、`Chat/ChatFeatureController.swift` | 新建。9.2 节，含完整实现 | 60、300 | WP-0 |
 | `Chat/IntelFeedController.swift` | 新建。6.8 节 | 300 | WP-0 → WP-B |
+| `Chat/IntelFeedController+PilotLookup.swift`（6.9 增补） | 新建。6.10 节的排队、发送与缓存 | 220 | WP-B |
 | `Chat/IntelLineFormatter.swift` | 新建。用 `L10n.intel` 实现 `IntelLineFormatting` | 80 | WP-B |
 | `Chat/TranslationController.swift` | 新建。7.6、7.7、7.10 节 | 380 | WP-0 → WP-C |
 | `Chat/TranslationLineFormatter.swift` | 新建 | 50 | WP-C |
@@ -2204,12 +2636,12 @@ struct OverlaySettingsSection: View {
 | `Settings/TranslationPage.swift`、`Settings/SettingsViewModel+Translation.swift` | 新建 | 280、200 | WP-0 → WP-C（后一个由 WP-C 新建） |
 | `Settings/ChannelListEditor.swift`、`Settings/OverlaySettingsSection.swift` | 新建 | 170、80 | WP-0 → WP-A |
 | `Settings/AboutPage.swift`、`StatusItem/StatusItemController.swift` | 第 10 节末尾的两处 | 共加 25 | WP-0 |
-| `Diagnostics/ProblemReportBuilder.swift` | `RuntimeSummary` 的 3 个新字段 | 加 25 | WP-0 |
-| `Debug/FakeServices.swift`、`Debug/FakeChatStores.swift` | 接入假服务；内存里的钥匙串与缓存 | 加 20、60 | WP-0 |
+| `Diagnostics/ProblemReportBuilder.swift` | `RuntimeSummary` 的 4 个新字段 | 加 30 | WP-0 |
+| `Debug/FakeServices.swift`、`Debug/FakeChatStores.swift` | 接入假服务；内存里的钥匙串与缓存；6.9 增补的假核对服务与内存里的人名缓存 | 加 25、100 | WP-0 |
 | `Debug/FakeChatLogMonitor.swift`、`Debug/FakeTranslationTransport.swift` | 新建。9.5 节 | 170、70 | WP-0 → WP-A、WP-C |
 | `Localization/Strings.swift`、`SettingsStrings.swift`、8 个 `<语言>/Strings+<语言>.swift` | 第 11 节的 10 条 | 各加 10～15 | WP-0 |
 | `Localization/OverlayStrings.swift` 与 8 个语言文件 | 新建 | 70，每个语言 70 | WP-A |
-| `Localization/IntelStrings.swift` 与 8 个语言文件 | 新建 | 110，每个语言 90 | WP-B |
+| `Localization/IntelStrings.swift` 与 8 个语言文件 | 新建 | 125，每个语言 105 | WP-B |
 | `Localization/TranslationStrings.swift` 与 8 个语言文件 | 新建 | 130，每个语言 110 | WP-C |
 
 其他：
@@ -2220,7 +2652,7 @@ struct OverlaySettingsSection: View {
 | `scripts/build-app.sh` | 复制数据文件的一步（4.4 节） | WP-0 |
 | `packaging/Info.plist` | 改 `NSDocumentsFolderUsageDescription`（5.7 节），加 `NSAppTransportSecurity`（7.11 节） | WP-0 |
 | `docs/architecture.md`、本文 | 设计 | 主会话 |
-| `README.md` 与各语言的 README、`docs/manual-test-checklist.md` | 功能说明、隐私说明、14.2 节的条目 | 主会话，在集成时按各工作包回报的文字写 |
+| `README.md` 与各语言的 README、`docs/manual-test-checklist.md` | 功能说明、隐私说明、14.2 节的条目。6.9 增补：隐私说明写明人名核对发给 ESI 的内容与人名缓存文件的位置（6.10 节） | 主会话，在集成时按各工作包回报的文字写 |
 
 工作包发现要改表外的文件，或要改不属于自己的文件时，停下并报主会话。
 
@@ -2233,11 +2665,12 @@ struct OverlaySettingsSection: View {
 1. Core：完成第 12 节归属写 WP-0 的全部文件及其测试。`ChatLogParser`、`ChatLogDirectory`、`LocationLineParser`、`EVEStaticData`、`ChannelRef.matches` 与 `IntelParser.remainder(of:)` 是完整实现，并行的工作包依赖它们的真实行为。
 2. 骨架：`TermMatcher.matches(in:)` 返回空数组；`IntelParser.parse` 返回 `IntelReport.empty`；`OverlayPlanner.plan` 返回空的 `presentations` 与算好的 `activeCharacter`；`InfoOverlayManager` 的方法不做事；`IntelFeedController` 与 `TranslationController` 实现 `ChatFeedConsumer`，返回只有标题的空内容；`TranslationController` 另有只读属性 `status: TranslationStatus`（骨架返回 `.off`），`ProblemReportBuilder` 用它填 `translationStatus`；`FileChatLogMonitor` 不读文件，状态保持 `stopped`；翻译的 3 个平台实现返回「未实现」对应的失败。
 3. 数据：写 `scripts/build-sde-data.py`，生成并提交 `packaging/eve-static.json`，记录各类记录的数量与文件大小（V41）。改 `build-app.sh` 与 `Info.plist`。
-4. 平台与应用：`PlatformServices` 与 `FakeServices` 接入 5 个新服务；写完 `ChatFeatureController`、`AppCoordinator+ChatOverlays.swift` 与 9.3 节的接入点；设置窗口加两页（只有页标题）；菜单栏加两项；`ProblemReportBuilder` 填 3 个新字段。
+4. 平台与应用：`PlatformServices` 与 `FakeServices` 接入 7 个新服务；写完 `ChatFeatureController`、`AppCoordinator+ChatOverlays.swift` 与 9.3 节的接入点；设置窗口加两页（只有页标题）；菜单栏加两项；`ProblemReportBuilder` 填 4 个新字段。
 5. 探针：`staticdata` 是完整实现，在本机数据文件上跑通；其余 3 个命令打印「未实现」。
 6. 文字：第 11 节的 10 条，8 种语言。
+7. 人名核对的契约（6.9 增补）：6.9 节开头「WP-0 的增补」的 12 项。
 
-WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 项的脚本与第 1 项的 `EVEStaticData` 交给一个实现方先做，其余部分自己做。
+WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 300 行。主会话可把第 3 项的脚本与第 1 项的 `EVEStaticData` 交给一个实现方先做，其余部分自己做。
 
 ### 13.2 并行的三个工作包
 
@@ -2246,14 +2679,15 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 
 | 工作包 | 内容 | 完成标准 |
 | --- | --- | --- |
-| WP-A 聊天日志与浮窗 | 第 5 节的跟踪服务（5.4～5.6 节的读取部分）；第 8 节的面板、列表、手势、菜单、`OverlayPlanner`、`OverlayScrollRules`；`ChannelListEditor`、`OverlaySettingsSection`；假的聊天日志服务；`chatlog` 探针；浮窗域的文字（8 种语言） | `swift test` 通过，14.1 节 WP-A 的用例齐全；`EVEOProbe chatlog` 在本机日志目录上给出各类行数；回报 V28、V29、V30、V37 的核实办法与结果（不能启动应用时写明留给手工验证） |
-| WP-B 预警 | 第 6 节：`TermMatcher`、`IntelLexicon`、`IntelParser`、`JumpGraph`、`LocationTracker`、`IntelFeed`、`IntelPresenter`；`IntelFeedController`；「预警」页；`intel` 探针；预警域的文字（8 种语言） | `swift test` 通过，14.1 节 WP-B 的用例齐全；`EVEOProbe intel` 在本机日志上给出各项条数；回报 `ambiguousShortNames` 的最终内容 |
+| WP-A 聊天日志与浮窗 | 第 5 节的跟踪服务（5.4～5.6 节的读取部分）；第 8 节的面板、列表、手势、菜单（含 6.9 增补的「在浏览器中打开」）、`OverlayPlanner`、`OverlayScrollRules`；`ChannelListEditor`、`OverlaySettingsSection`；假的聊天日志服务；`chatlog` 探针；浮窗域的文字（8 种语言） | `swift test` 通过，14.1 节 WP-A 的用例齐全；`EVEOProbe chatlog` 在本机日志目录上给出各类行数；回报 V28、V29、V30、V37 的核实办法与结果（不能启动应用时写明留给手工验证） |
+| WP-B 预警 | 第 6 节：`TermMatcher`、`IntelLexicon`、`IntelParser`、`JumpGraph`、`LocationTracker`、`IntelFeed`、`IntelPresenter`；`IntelFeedController`；「预警」页；`intel` 探针；预警域的文字（8 种语言）。6.9 增补：`PilotSegmenter`、`ESINameWire`、`PilotNameCache`、`PilotLookupQueue`，两个平台实现，`IntelFeedController+PilotLookup.swift` | `swift test` 通过，14.1 节 WP-B 的用例齐全；`EVEOProbe intel` 在本机日志上给出各项条数；回报 `ambiguousShortNames` 的最终内容。6.9 增补：`EVEOProbe intel --resolve-sample` 返回 200；不自行运行 `--resolve`；回报 V43 里能核实的部分 |
 | WP-C 翻译 | 第 7 节：Core 的 7 个翻译文件；`TranslationController`；3 个平台实现；「翻译」页；假的传输实现；`translate` 探针；翻译域的文字（8 种语言） | `swift test` 通过，14.1 节 WP-C 的用例齐全；回报 V33、V34、V35 的核实结果；不自行发真实的模型请求 |
 
 三个工作包之间的接口都在 WP-0 里冻结：
 
 - WP-A 向外提供 `ChatLogEvent`（经 `ChatLogMonitor`）与 `InfoOverlayManager`，向内只接收 `OverlayContent` 与 `OverlayPresentation`。它不引用预警与翻译的任何类型。
 - WP-B 与 WP-C 只通过 `ChatFeedConsumer` 被调用，产出 `OverlayContent`。它们不引用面板与跟踪服务的任何类型。
+- 6.9 增补：WP-A 与 WP-B 之间只隔着 `OverlayLine.links`。WP-A 不知道链接指向哪里，WP-B 不碰菜单。合入 WP-B 之前 `links` 都是空的，菜单项不出现。
 - WP-C 的 Core 函数接收算好的 `[TermMatch]` 与 `IntelReport`，不直接调匹配与分段的规则。它的测试手工构造这两种值，不依赖 WP-B 的实现。`TranslationController` 里调 `data.matcher.matches(in:)` 与 `IntelParser.parse`，合入 WP-B 之前它们返回空值，翻译照常工作，只是不钉术语。
 - 并行的工作包引用到的其他符号都在 WP-0 里有完整实现：`ChatLogParser`、`ChatLogDirectory`、`LocationLineParser`、`EVEStaticData`、`IntelParser.remainder(of:)`、`TranslationStatus`，以及 `L10n.settings` 里聊天日志的 5 条文字。`L10n.overlay`、`L10n.intel`、`L10n.translation` 各只被自己的工作包使用。写代码时发现要用另一个并行工作包才有的符号，停下并报主会话。
 
@@ -2274,7 +2708,7 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 2. 三个工作包并行。
 3. 按 WP-A、WP-B、WP-C 的顺序合入，每合入一个运行一次 `swift build` 与 `swift test`。WP-B 在 WP-C 之前合入，术语钉住才有真实的匹配结果。
 4. 主会话用 `EVEO_FAKE=1` 看两个浮窗与两页设置（先与用户确认此刻可以启动应用），再更新 README 与手工验证清单，运行 `scripts/build-app.sh`。
-5. 交 `opus-architect` 独立审查。审查时核对：第 12 节的归属有没有被越界改动；Key、聊天内容与角色名有没有进日志或问题报告；UTF-16 的偏移量是否都取偶数；Core 的测试是否覆盖 14.1 节。
+5. 交 `opus-architect` 独立审查。审查时核对：第 12 节的归属有没有被越界改动；Key、聊天内容与角色名有没有进日志或问题报告；UTF-16 的偏移量是否都取偶数；Core 的测试是否覆盖 14.1 节。6.9 增补：候选名字有没有进日志；只有一个词的人名段有没有被发给 ESI；开关关着时有没有请求；400 有没有被重试。
 6. 测试方按 14.2 节做手工验证。第 2、3、5 组要用户配合。
 
 ## 14 测试
@@ -2298,9 +2732,10 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 
 | 测试文件 | 覆盖 |
 | --- | --- |
-| `ConfigCodableTests`（补） | 缺少全部新键的旧文件解码后两个功能都关闭、各项取默认值；新键的 JSON 名称与 3.1 节一致；`targetLanguage`、`provider` 是不认识的值时取默认值；`ChannelRef` 省略 `id`；默认配置往返一致 |
+| `ConfigCodableTests`（补） | 缺少全部新键的旧文件解码后两个功能都关闭、各项取默认值；新键的 JSON 名称与 3.1 节一致；`targetLanguage`、`provider` 是不认识的值时取默认值；`ChannelRef` 省略 `id`；默认配置往返一致。6.9 增补：缺 `resolvePilotNames` 时取 `true`，写成 `false` 时往返一致 |
 | `ConfigValidatorTests`（补） | 3.2 节的 7 条规则各一组用例，含每个范围的上下界、频道去重的两种情形、`private_` 的项被删除 |
-| `DiagnosticsSummaryTests`（补） | 摘要的 JSON 里没有频道名、参考星系名、接口地址与模型名 |
+| `DiagnosticsSummaryTests`（补） | 摘要的 JSON 里没有频道名、参考星系名、接口地址与模型名。6.9 增补：`IntelSummary` 有 `resolvePilotNames` |
+| `PilotLookupModelsTests`（6.9 增补，WP-0） | `key(for:)` 对首尾空白、连续的空格与大小写的处理；`PilotNameCacheEntry` 往返一致；`PilotLookupStatus.code` 的 4 个值 |
 | `StateStoreTests`（补） | 没有 `chat` 键的旧 `state.json` 解码成空的手动位置；往返一致 |
 | `ChannelRefTests` | 4 个内置频道按 ID 匹配、不看名字；`fleet` 匹配 `fleet_123`；玩家频道 ID 相同而名字不同时匹配；ID 不同而名字相同时匹配；只有名字时不区分大小写；`private_` 一律不匹配 |
 | `StaticDataTests` | 夹具解码后各类数量正确；`format` 不认识时抛 `unsupportedFormat`；没有星系时抛 `empty`；`system(named:)` 认英文、中文、带 `*`、大小写不同的写法；日文名相同的 `Onsooh` 与 `Aunsou` 取 ID 小的 `Onsooh`；`searchSystems` 把完全相同的排最前；`displaySecurity` 在 0.034（`Naga`，显示 0.1）、0.05、0.449、−0.386 上的取值；`name(in:)` 在没有译名时回到英文 |
@@ -2314,7 +2749,11 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 | `IntelFeedTests` | 按收听者分开；超过容量丢最早的；`prune`；收听者不区分大小写的回退 |
 | `JumpGraphTests` | 链上的跳数；支线；`maxJumps` 截断；不相连的星系是 `beyond`；没有星门的星系是 `unreachable`；`table` 为 `nil` 是 `unknownOrigin`；出发星系是 0 |
 | `LocationTrackerTests` | `Local` 线索与游戏日志线索各自生效；补读的线索只在更新时写入；运行中的线索不比较时间；手动位置被之后的线索覆盖；`setManual(nil)` 删除；句式不认识时取正文里最后一个星系；星系名查不到时不改记录；`origin` 的 3 种结果；`manualLocations` 只含手动的记录 |
-| `IntelPresenterTests` | 一条情报的各部分与样式；3 档新旧；4 档安全等级；跳数的 4 种样式与 `alertJumps` 为 0；`showOriginal` 的开与关；不是情报的消息；`emphasis` 的 3 种取值；`nextRefresh` 的 3 种结果 |
+| `IntelPresenterTests` | 一条情报的各部分与样式；3 档新旧；4 档安全等级；跳数的 4 种样式与 `alertJumps` 为 0；`showOriginal` 的开与关；不是情报的消息；`emphasis` 的 3 种取值；`nextRefresh` 的 3 种结果。6.9 增补：`showOriginal` 为真时也列出查到的人名；没查到的人名带 `?` 且用 `dim` 样式；两个人名之间有分隔；数量取核对后的值；`links` 每个查到的人名一项，角色 ID 是 0 时没有；`pilots` 为空时与增补前的输出相同 |
+| `PilotSegmenterTests`（6.9 增补） | 人名段：隔一个空格的 `pilot` 段接成一串，隔两个空格、标点或术语时分开，被 6.4 节切开的 4 个词接回一串。候选名字：一个词的人名段没有，2 个词的有 3 个，4 个词的有 9 个，按比较键去重，长度与字符不合的去掉。6.9 节样例表的 9 行。盖住的词一样多时取名字少的；完全相同时左边取长的（`A B C` 里 `A B` 与 `B C` 都可用）；`ambiguous` 不可用；空缺里只有部分词可用时不拆；有候选名字没有结果时整段是 `unchecked`。`resolve`：新的人数大于、等于原数量时的 `hostileCount` 与 `countIsExplicit`；`isClear` 且没有人名时仍是 0；`directory` 为空时与 `report` 相同 |
+| `ESINameWireTests`（6.9 增补） | 请求的地址、6 个请求头与请求体；`batches` 去掉空串与超过 100 个字符的、按比较键去重、501 个切成两组、输入为空时没有组。答复：`characters` 命中；大小写不同的名字对回请求；同名的物品是 `ambiguous`；`alliances` 里名称对不上的项被忽略；`{}` 时全是 `notFound`；正文不是 JSON 对象是 `malformedAnswer`；420 与 429 的 `retry-after`、回到 `x-esi-error-limit-reset`、都没有时取 60、夹取；503、400、302 的归类；错误额度两个头的读取 |
+| `PilotNameCacheTests`（6.9 增补） | 存入与读出；`matched` 30 天、其余 6 小时的期限；过期后 `needsLookup` 为真而 `directory` 里仍有；`snapshot` 只含没过期的 `matched` 并清掉 `isDirty`；从条目恢复时丢掉过期的；两个容量；`removeAll` |
+| `PilotLookupQueueTests`（6.9 增补） | 不足 0.5 秒时不取；两批之间隔 2 秒；一批至多 500 个；有一批在途时不取；已在待查或在途的名字不重复排；超过 2,000 个时丢最早的；`complete` 在错误额度小于 20 时进入等待；4 类失败各自的去向与等待时长；连续失败时加倍且有上限；`rejected` 的一批不回到待查；`nextAttempt` 的各种结果 |
 | `TranslationProvidersTests` | 7 个预设都能 `resolve`（`custom` 除外，它缺地址）；空串回到预设值；带用户名、查询串的地址是 `invalidURL`；公网的 `http` 是 `insecureRemoteHTTP`；`isLocalHost` 对 7.3 节列出的每一类各一例，另有 `172.32.0.1`、`example.com` 两个反例 |
 | `TranslationRulesTests` | `alreadyIn` 对 8 种目标语言各有正例与反例，含中日混排、没有字母的消息；`skipReason` 的 4 种原因与 `nil`；`cacheKey` 对空白、`*`、换行的处理；`nextBatch` 的条数上限、字数上限、相同原文只取一条、第一条超长时仍被取出；`renderTerms` 只换写法不同的术语 |
 | `TranslationPromptTests` | 系统提示里有目标语言的自称与 5 条规则；有术语与没有术语的用户消息；编号从 1 起且与 `ids` 对应；`pins` 去重、不钉写法相同的词、不钉情报用语 |
@@ -2330,7 +2769,7 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 第 1 组，升级与默认状态：
 
 1. 用旧的配置文件启动。预期：没有浮窗；设置窗口有「预警」「翻译」两页，两个开关都是关的。
-2. 生成一份问题报告。预期：`config-summary.json` 里没有频道名、星系名、接口地址与模型名。
+2. 生成一份问题报告。预期：`config-summary.json` 里没有频道名、星系名、接口地址与模型名。6.9 增补：报告里也搜不到任何情报里出现过的人名。
 
 第 2 组，聊天日志与位置（要用户配合）：
 
@@ -2348,6 +2787,11 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 2. 核对 3 个星系的跳数。预期：与游戏星图的最短路线跳数相同。
 3. 在 `alertJumps` 以内有敌对报告时。预期：那一行高亮。
 4. 等一条消息超过 2 分钟、5 分钟、30 分钟。预期：时间的颜色依次变化，30 分钟后那一行消失。
+5. 6.9 增补。等一条几个带空格的人名连在一起的情报。预期：几秒内第一行列出各个角色名，人数与游戏里一致；记录分错的条目。
+6. 6.9 增补。在那一行上点右键，选「在浏览器中打开」里的一项。预期：浏览器打开这个角色的 zKillboard 页，页面上的名字与菜单项一致。
+7. 6.9 增补。等一条只有一个人名词的情报，同时用 `nettop` 或防火墙工具看本应用的连接。预期：没有到 `esi.evetech.net` 的请求。
+8. 6.9 增补。断开网络后等新的情报。预期：浮窗的显示与关掉核对时相同，没有错误提示；「预警」页显示多少秒后重试；恢复网络后自动补上。
+9. 6.9 增补。关掉「联网核对人名」。预期：之后没有到 `esi.evetech.net` 的请求；重新打开后，缓存里已有的名字立即显示。
 
 第 4 组，浮窗：
 
@@ -2394,6 +2838,9 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 | V39 | 中文客户端 `Local` 文件的切换消息只有参考实现的记录（`频道更换为本地：<星系>*`），本机没有样例 | 规则只看最后一个冒号，不依赖措辞。拿到样例后补用例 |
 | V40 | App Nap 对文件事件与翻译定时的影响没有实测 | 两个功能任一开启时声明后台活动（9.3 节），做法同战斗提醒 |
 | V41 | 数据文件改用带短键的对象后的大小没有量过；原型用数组时是 0.64 MB（S5） | WP-0 生成后记录。超过 2 MiB 时报主会话 |
+| V42 | 角色名的规则（共 3～37 个字符、至多 3 个词、只有英文字母、数字、连字符与单引号）没有读到 CCP 的原文（E7）。早年建的角色是否有 4 个词的名字不清楚 | 这些规则只用来筛选候选名字。规则比实际严时，那个名字不查，显示回到 6.4 节的推断。第 3 组第 5 项收集分错的样例 |
+| V43 | 以下 4 点没有试过：新建的角色多久能在 ESI 里按名字查到；420 的答复带不带 `Retry-After`；名字里有 `'` 与 `-` 时能否匹配；`X-Compatibility-Date` 今后有了新的可选值时旧值是否仍可用 | WP-B 用 `--resolve-sample` 核实能核实的部分。`rateLimited` 在没有 `Retry-After` 时用错误额度的秒数，再没有时等 60 秒 |
+| V44 | 一条有 10 多个人名的消息在核对结果到达时，那一行的高度会变。贴住底部与不贴时列表是否都不跳，没有实测 | 走的是 8.5 节 `changed` 的路径，与译文晚到时相同（V37）。集成的第 4 步在 `EVEO_FAKE=1` 下看：假的核对服务 0.4 秒后给出结果 |
 | R31 | 人名与数量是推断的，会认错：句首大写的普通词被当成人名；全小写的角色名漏掉；「2 Naga 3 Machariel」之外的写法数量归错 | 浮窗默认显示原文；推断的数量显示成「约 ×N」；说明文字写明可能有误。第 3 组第 1 项收集认错的样例 |
 | R32 | 翻译把聊天内容发给第三方的模型服务，其中有其他玩家说的话 | 功能默认关闭；「翻译」页与「关于」页写明；只发正文，不发说话人与频道名 |
 | R33 | 聊天内容里夹带针对模型的指令 | 提示词第 5 条；应用把答复只当作文字显示，不执行任何操作；答复至多 1 MiB |
@@ -2404,9 +2851,16 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 | R38 | 读聊天日志是否符合 EVE 的用户协议 | 只读客户端自己写出的日志文件，不读内存、不改文件、不发送输入，与常见的预警工具做法相同；「关于」页写明 |
 | R39 | 24 个新的语言文件几乎没有注释，会拉低注释率 | 做法同反馈文档 R10：文字文件按页分组写注释，交付前运行 `check_quality.py` |
 | R40 | ad-hoc 与开发证书签名的构建每次重建后读钥匙串都要用户确认 | 7.7 节：后台读取不弹窗，只在用户操作设置窗口时弹窗。开发时用 `EVEO_FAKE=1` 可以不碰钥匙串 |
-| R41 | WP-0 的改动量约 3,500 行，是三个并行工作包的前置 | 13.1 节末尾的拆分办法 |
+| R41 | WP-0 的改动量约 3,800 行（含 6.9 增补），是三个并行工作包的前置 | 13.1 节末尾的拆分办法 |
 | R42 | 浮窗盖住游戏界面并挡住点击 | 可移动、可缩放、可调背景不透明度；菜单栏与右键菜单都能隐藏。是否做点击穿透见 Q20 |
 | R43 | 启动时补读到的位置线索可能来自上一次会话（文件在 48 小时内都会被看到），角色其实已在别处 | 状态行显示位置的来源与「多久以前」；之后的任何一条线索都会覆盖它；用户可手动改 |
+| R44 | 「查到」只说明有角色叫这个名字。句首大写的普通词正好是某个角色名时，它会被当成一个查到的人，人数多算 | 多个词的名字先选，单个词的名字只填空缺，且空缺里每个词都可用才拆（6.9 节）；同名的游戏对象存在时不算查到；数量仍显示成「约 ×N」；说明文字写明 |
+| R45 | 人名核对把预警消息里的词发给 CCP，其中有其他玩家的名字，也会有不是人名的词 | 只发两个词以上的人名段；接收方是游戏的运营方；不带用户的标识；开关在「预警」页，说明文字与「关于」页写明；没查到的词不落盘（6.10 节） |
+| R46 | 只查 Tranquility。在晨曦服务器上玩的用户会查不到，或者查到另一个服务器上同名的角色 | 用户可关掉开关。应用分不出客户端连的是哪个服务器；拿到晨曦服务器的 ESI 地址与样例后再加 |
+| R47 | ESI 改接口：路由、请求头的要求、答复的结构或限流办法变了 | 请求的写法都在 `ESINameWire` 里；`rejected` 与 `malformedAnswer` 不重试、不扣额度；核对失败时显示回到推断，预警的其余部分不受影响 |
+| R48 | 人名缓存文件里有其他玩家的角色名与 ID | 都是公开数据；文件权限 0600，只在本机，不进问题报告，可在「预警」页清空 |
+| R49 | WP-0 还没做完时加了 12 项契约 | 多数是新增的类型与成员。改动已有签名的有 3 处：`IntelFeedController.init`、`PlatformServices.init` 与 `OverlayLine.init`（新参数带默认值）；改写文字的有 1 处：`aboutChatLogsNote`。`IntelModels` 与 `IntelParser` 不改，三个并行工作包的分界不变 |
+| R50 | 查到的人名总是列在第一行，人多时第一行会折成几行 | 浮窗按内容量行高（8.4 节）。用户嫌长时见 Q30 |
 
 ## 16 待用户决定的问题
 
@@ -2422,6 +2876,9 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 | Q25 | 预警浮窗里的星系与舰船名用什么语言显示 | 用界面语言，不随翻译的目标语言变 |
 | Q26 | 翻译的默认服务预设选哪个 | DeepSeek，与参考实现相同。用户可在「翻译」页改 |
 | Q27 | 第 2、3、5 组手工验证要用户配合（各约 10 分钟），第 5 组会产生少量模型费用，何时做 | 集成后由主会话与用户约时间 |
+| Q28 | 「联网核对人名」默认开还是关 | 开。它只在用户打开预警之后起作用，接收方是 CCP，不带用户的标识（6.10 节）。用户可在「预警」页关掉 |
+| Q29 | 要不要在右键菜单里提供 zKillboard 的链接，要不要取击杀统计 | 提供链接，不取统计。链接只用角色 ID 拼成，应用自己不访问 zKillboard |
+| Q30 | 「显示原文」开着时，要不要在第一行列出查到的人名 | 列出。原文里的名字连在一起，第一行分开列出才看得出是哪几个角色 |
 
 ## 17 术语
 
@@ -2445,3 +2902,10 @@ WP-0 的改动量约 3,500 行（含测试与脚本）。主会话可把第 3 �
 | 服务预设 | 一组内置的接口地址、默认模型与接口种类 | 供应商、渠道 |
 | 一批 | 一次请求里一起翻译的消息，至多 20 条 | 批次 |
 | 译文缓存 | 按目标语言与原文保存的译文，避免重复请求 | 翻译记忆 |
+| 人名核对 | 把两个词以上的人名段发给 ESI，按查到的角色名分人 | 人名解析、核实（指 V 项） |
+| 人名段 | 消息里一串只隔一个空格的人名词，对应 `PilotSegmenter.runs` 的一项 | 人名串 |
+| 候选名字 | 人名段里 1～3 个词的连续组合，是发给 ESI 的名字 | n-gram |
+| 分人 | 定出一个人名段里有几个人、各是哪几个词 | 切分 |
+| 查到、没查到、未核对 | 一个人名的 3 种状态：ESI 有同名的角色；查过但没有；还没有结果或不查 | 确认、已验证 |
+| 比较键 | 名字去掉首尾空白、并掉连续空白、转成小写后的写法，用来比较与去重 | 规范名 |
+| 人名缓存 | 按比较键保存的核对结果；查到的存进 `pilot-names.json` | 角色库 |
