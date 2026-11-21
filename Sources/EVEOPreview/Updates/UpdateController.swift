@@ -34,6 +34,9 @@ import EVEOPreviewPlatform
     /// 安装成功、已请求重新启动，但等了 `relaunchGrace` 秒旧实例仍在运行（新实例没有启动）。
     /// 这时 `phase` 仍是 `.relaunching`，窗口应提示用户手动重新打开应用（`reopenManually`）。
     private(set) var relaunchFailed = false
+    /// 最新版与正在运行的版本之间各版本的说明（8.8 节），与 `state.updates.intermediateNotes` 同步。
+    /// 更新窗口按它在最新版的说明之后列出中间版本；取用见 UpdateController+History.swift。
+    var intermediateNotes: IntermediateReleaseNotes?
     /// 检查地址（正式地址或 `EVEO_UPDATE_FEED_URL` 的测试地址）。
     let feed: UpdateFeed
     /// 启动时读到的运行环境。
@@ -65,6 +68,11 @@ import EVEOPreviewPlatform
     @ObservationIgnored var preparationCancelRequested = false
     /// 当前这次下载的编号；进度回调晚到时据此丢掉。
     @ObservationIgnored var preparationID = 0
+    /// 正在取 Release 列表的任务，以及它是为哪个最新版取的（见 UpdateController+History.swift）。
+    @ObservationIgnored var historyTask: Task<Void, Never>?
+    @ObservationIgnored var historyTaskVersion: SemanticVersion?
+    /// 取 Release 列表失败后，这个时刻之前不再取（只在内存里，重启后可以再试）。
+    @ObservationIgnored var historyRetryAfter: Date?
     @ObservationIgnored let log = AppLog.logger("Updates")
 
     /// 定时循环第一次醒来前等多久。
@@ -84,6 +92,7 @@ import EVEOPreviewPlatform
         feed = UpdateFeed.resolve(override: override)
         feedOverrideRejected = !(override ?? "").isEmpty && !feed.isTestFeed
         lastCheckAt = state.state.updates.lastCheckAt
+        intermediateNotes = state.state.updates.intermediateNotes
         debugUIState = coordinator.isFakeMode ? variables["EVEO_UPDATE_UI_STATE"]?.lowercased() : nil
     }
 
@@ -106,6 +115,7 @@ import EVEOPreviewPlatform
         if let name = debugUIState, let sample = FakeUpdateService.samplePhase(named: name) {
             phase = sample.phase
             capability = sample.capability
+            intermediateNotes = FakeUpdateService.sampleIntermediateNotes
             switch sample.phase {
             case .available: coordinator.setAttention(.updateAvailable, on: true)
             case .readyToInstall: coordinator.setAttention(.updateReady, on: true)
@@ -153,9 +163,12 @@ import EVEOPreviewPlatform
             state.update {
                 $0.updates.cachedRelease = nil
                 $0.updates.etag = nil
+                $0.updates.intermediateNotes = nil
             }
+            intermediateNotes = nil
         }
         if let prepared = state.state.updates.prepared, !isUsable(prepared) { discardPrepared() }
+        discardStaleIntermediateNotes()
         rederivePhaseFromState()
     }
 
@@ -338,6 +351,8 @@ import EVEOPreviewPlatform
             }
             return
         }
+        // 有新版本要提示：在后台取中间版本的说明（只在缓存不合用时发请求，不等它）。
+        ensureIntermediateNotes(for: offered)
         // 同一个版本已下载好、等待安装：保持原样。
         if case .readyToInstall(let ready) = previous, ready.version == offered.version {
             phase = previous

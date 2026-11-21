@@ -1213,6 +1213,30 @@ SwiftUI 的 `Text` 只渲染行内 Markdown，不渲染标题与列表。`Releas
 - 剩下的 HTML 标签按纯文本显示，不解释。不加载图片。
 - 发布说明里宜只用标题、列表、段落、行内代码和链接。主会话写说明时按这个范围写。
 
+### 8.8 跨版本的发布说明（1.1.4）
+
+用户跳过了几个版本时（如正在运行 1.1.1、最新是 1.1.3），更新窗口在最新版的说明之后列出中间各版本（1.1.2）的说明，新版在前，每段前是版本小标题（「版本 1.1.3」），段间有分隔线。只有最新版一段时与以前一样，没有小标题。每段都按 8.2 节的规则取界面语言的块。
+
+```swift
+// [Core] Updates/ReleaseHistory.swift
+public struct ReleaseNotesEntry { var version: String; var notes: String }
+public struct ReleaseHistoryPage { var entries: [ReleaseNotesEntry]; var isFull: Bool }
+public struct IntermediateReleaseNotes { var latestVersion, runningVersion: String; var entries: [ReleaseNotesEntry]; var hasMore: Bool }
+public enum ReleaseHistory {
+    static func parse(_ data: Data) throws(UpdateError) -> ReleaseHistoryPage
+    static func intermediate(from:running:latest:) -> [ReleaseNotesEntry]
+    static func record(from:running:latest:) -> IntermediateReleaseNotes
+}
+// [Core] UpdateFeed.historyURL；UpdateService.fetchReleaseHistory(feed:appVersion:) -> ReleaseHistoryPage?
+```
+
+- 检查本身不变，仍只请求 `releases/latest`。有新版本要提示时（`UpdatePolicy.offer` 得到 `.offer`），以及更新窗口显示某个版本时，`UpdateController.ensureIntermediateNotes(for:)` 在后台请求一次 Release 列表：正式地址是 `…/releases?per_page=30`；测试地址把最后一段换成 `releases.json`（`make-update-test-feed.sh` 一起生成），地址没有 `.json` 文件名或带查询串时不取。
+- 请求头与 8.4 节相同，不带 ETag，超时 15 秒，正文上限 2 MiB。尽力而为：非 200、限流、网络错误、解析失败都只记日志，窗口只显示最新版的说明；失败后 1 小时内不再试；`rateLimitedUntil` 在将来时不发。不写 `rateLimitedUntil`，不改阶段，检查、下载与安装都不等它。
+- 列表解析跳过草稿、预发布与 tag 解析不了的项，正文截到 65,536 个字符。挑出「正在运行的版本 < v < 最新版」的版本，按版本号从新到旧排，最多 10 个、总共不超过 262,144 个字符（超出时留较新的）。一页满 30 项、却没有一项不比正在运行的版本新时，可能还有更早的中间版本，`hasMore` 为真。`hasMore` 为真时说明最后多一行「更早版本的更新内容请到发布页查看」。
+- 结果存在 `state.updates.intermediateNotes`，只存中间版本。缓存是为同一个最新版取的、且取的时候正在运行的版本不比现在新时直接用，所以每个新的最新版最多多一次请求；启动时只读缓存，不发请求。显示前再按正在运行的版本过滤一次。测试地址留下的缓存与 `cachedRelease` 一起丢掉。这个字段解不出来时单独丢掉，不连累 `state.updates` 的其他记录。
+- 同一时刻只有一个请求；要取的版本变了时取消旧的。请求回来时 `cachedRelease` 已不是这个版本，结果丢掉。正在运行的版本解析不了时不取。
+- 1.1.3 及更早的版本没有这段代码，从它们更新到 1.1.4 的那一次仍只显示 1.1.4 的说明。不在服务器侧把历史说明并进最新版的正文：旧版本只取第一个语言块，也不知道用户从哪个版本来，并进去后隔一个版本的用户会看到不相干的内容。
+
 ## 9 安装更新
 
 ### 9.1 能否安装
@@ -1367,6 +1391,7 @@ SwiftUI 的 `Text` 只渲染行内 Markdown，不渲染标题与列表。`Releas
 | 请求 | 何时 | 发送的内容 |
 | --- | --- | --- |
 | `GET api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` | 「自动检查更新」打开时，启动后与每 24 小时；用户点「检查更新…」时 | 请求头 `User-Agent: EVE-O-Preview-macOS/<版本号>`、`Accept`、`X-GitHub-Api-Version`、`Accept-Language: en`、`If-None-Match`（上次答复的 ETag），以及 `URLSession` 自己加的 `Host`、`Accept-Encoding`、`Connection` |
+| `GET api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=30` | 有新版本要提示、且还没有为这个版本取过时（8.8 节），每个新版本一般只一次 | 与上一行相同，不带 `If-None-Match` |
 | 下载 `SHA256SUMS.txt` 与 dmg（`github.com`，重定向到 GitHub 的文件存储） | 用户点「安装更新」时；「自动安装」打开且发现新版本时 | 请求头 `User-Agent`、`Accept-Language: en`，以及 `URLSession` 自己加的那 3 个 |
 
 - 不发送：角色名、配置、日志、硬件信息、系统版本、任何设备或安装的标识符。不用 cookie，不留缓存。

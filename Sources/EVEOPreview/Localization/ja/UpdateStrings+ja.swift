@@ -48,6 +48,8 @@ struct UpdateStringsJA: UpdateStrings {
     func headline(_ version: String) -> String { "EVE-O Preview \(version) が利用可能です" }
     func currentVersionLine(_ version: String) -> String { "現在のバージョンは \(version) です。" }
     var releaseNotesHeader: String { "新機能" }
+    func versionNotesTitle(_ version: String) -> String { "バージョン \(version)" }
+    var earlierVersionsOnReleasePage: String { "それ以前のバージョンの変更内容はリリースページをご覧ください。" }
     var installButton: String { "アップデートをインストール" }
     var installHelp: String { "インストール後にアプリが再起動します。サムネイルが数秒間消えます。" }
     var skipButton: String { "このバージョンをスキップ" }

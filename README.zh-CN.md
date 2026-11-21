@@ -201,6 +201,7 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 1.0.0 不发任何网络请求。从 1.1.0 起应用只访问 GitHub，并且只为了更新：
 
 - 检查更新：「自动检查更新」打开时，在启动后与每天请求一次 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest`；你点「检查更新…」时也请求一次。
+- 有新版本要提示时，再请求一次 Release 列表 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`（请求头相同），用来显示你跳过的中间版本的更新内容。
 - 安装更新：从 Release 下载 `SHA256SUMS.txt` 与 dmg。
 
 请求里只有 `User-Agent` 请求头里的应用版本号、固定的 `Accept-Language: en` 和一个缓存标签；不发送角色名、配置、日志、硬件信息、系统版本或任何标识符，不用 cookie。GitHub 能看到的是你的 IP 地址和请求时间。应用没有遥测，也不自动上传崩溃信息：「报告问题…」只在本机生成 zip，并打开一个网页，提交与否由你决定。

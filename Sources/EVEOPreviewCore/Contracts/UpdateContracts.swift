@@ -14,6 +14,9 @@ public struct UpdateFeed: Sendable, Equatable {
 
     /// 正式的检查地址。
     public static let productionURL = URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest")!
+    /// 正式的 Release 列表地址（8.8 节）。每页个数与 `ReleaseHistory.pageSize` 一致，由用例核对。
+    public static let productionHistoryURL =
+        URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=30")!
     /// 正式地址下，附件与发布页的地址应以它开头。
     public static let productionAssetPrefix = "https://github.com/deletexiumu/eve-o-preview-macos/releases/"
     /// 正式地址下，附件与发布页的主机。`html_url`、`browser_download_url` 与缓存的发布页都在这个主机上；
@@ -46,6 +49,24 @@ public struct UpdateFeed: Sendable, Equatable {
         default:
             return production
         }
+    }
+
+    /// Release 列表的地址，用来取中间版本的发布说明（8.8 节）。
+    ///
+    /// - 正式地址：只在 feedURL 正是 `productionURL` 时，取 `productionHistoryURL`。
+    /// - 测试地址：地址没有查询串、最后一段以 `.json` 结尾时，把最后一段换成 `releases.json`，如
+    ///   `http://127.0.0.1:8123/feed.json` → `http://127.0.0.1:8123/releases.json`，与 feedURL 同源
+    ///   （`make-update-test-feed.sh` 会一起生成）。
+    /// 其他情况返回 nil，调用方就不取中间版本，只显示最新版的说明。
+    public var historyURL: URL? {
+        if !isTestFeed { return feedURL == UpdateFeed.productionURL ? UpdateFeed.productionHistoryURL : nil }
+        guard var components = URLComponents(url: feedURL, resolvingAgainstBaseURL: false),
+              components.query == nil, components.fragment == nil,
+              feedURL.lastPathComponent.lowercased().hasSuffix(".json") else { return nil }
+        var segments = components.path.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+        segments[segments.count - 1] = "releases.json"
+        components.path = segments.joined(separator: "/")
+        return components.url
     }
 
     /// 附件与发布页的地址是否可用。测试地址下应与 feedURL 同源。正式地址下同时满足：
@@ -124,6 +145,9 @@ public enum ReleaseFetchResult: Sendable, Equatable {
 public protocol UpdateService: Sendable {
     /// 请求最新的正式版。etag 是上次答复的 ETag；appVersion 用于 `User-Agent`。
     func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult
+    /// 请求 Release 列表（`feed.historyURL`），返回各正式版的说明，供显示中间版本（8.8 节）。
+    /// 尽力而为：地址拼不出来、网络错误、非 200、限流或解析失败时都返回 nil，不影响检查与安装。
+    func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage?
     /// 下载校验和文件与 dmg，核对 SHA-256，返回放在缓存目录里的 dmg。
     func prepare(_ release: ReleaseInfo, feed: UpdateFeed,
                  progress: @escaping @Sendable (UpdateProgress) -> Void) async -> Result<PreparedUpdate, UpdateError>
@@ -133,4 +157,9 @@ public protocol UpdateService: Sendable {
     func install(_ prepared: PreparedUpdate, environment: AppEnvironment) async -> Result<InstallOutcome, UpdateError>
     /// 删除缓存目录里除 prepared 之外的文件，以及上次安装换下来的旧包。
     func removeLeftovers(keeping prepared: PreparedUpdate?, staleStagingPath: String?) async
+}
+
+extension UpdateService {
+    /// 默认不取 Release 列表：没有实现它的服务（如测试替身）只显示最新版的说明。
+    public func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? { nil }
 }

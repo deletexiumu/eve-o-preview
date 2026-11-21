@@ -43,6 +43,8 @@ struct UpdateStringsZH: UpdateStrings {
     func headline(_ version: String) -> String { "EVE-O Preview \(version) 可用" }
     func currentVersionLine(_ version: String) -> String { "当前版本是 \(version)。" }
     var releaseNotesHeader: String { "新内容" }
+    func versionNotesTitle(_ version: String) -> String { "版本 \(version)" }
+    var earlierVersionsOnReleasePage: String { "更早版本的更新内容请到发布页查看。" }
     var installButton: String { "安装更新" }
     var installHelp: String { "安装后应用会重新启动，缩略图会消失几秒。" }
     var skipButton: String { "跳过此版本" }

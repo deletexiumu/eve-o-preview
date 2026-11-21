@@ -203,6 +203,7 @@ Die App behält bis zu 5 Protokolldateien zu je 1 MiB in `~/Library/Logs/EVE-O P
 Version 1.0.0 stellte keine Netzwerkanfragen. Ab 1.1.0 verbindet sich die App nur mit GitHub, und nur für Updates:
 
 - Die Suche nach Updates fragt `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` beim Start und einmal täglich ab, solange „Automatisch nach Updates suchen“ aktiviert ist, sowie jedes Mal, wenn Sie „Nach Updates suchen …“ wählen.
+- Wird eine neue Version angeboten, fragt die App außerdem einmal die Release-Liste `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases` mit denselben Headern ab, um die Änderungen übersprungener Versionen anzuzeigen.
 - Die Installation eines Updates lädt `SHA256SUMS.txt` und das dmg aus dem Release herunter.
 
 Die Anfragen enthalten nur die App-Version im Header `User-Agent`, ein festes `Accept-Language: en` und ein Cache-Tag; es werden keine Charakternamen, Einstellungen, Protokolle, Hardwaredetails, Systemversion oder Kennungen gesendet, und es werden keine Cookies verwendet. GitHub sieht Ihre IP-Adresse und den Zeitpunkt der Anfrage. Es gibt keine Telemetrie und keinen automatischen Upload von Abstürzen: „Problem melden …“ erstellt nur eine ZIP-Datei auf Ihrem Mac und öffnet eine Webseite, auf der Sie selbst entscheiden, ob Sie absenden.

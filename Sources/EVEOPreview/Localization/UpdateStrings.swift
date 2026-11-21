@@ -71,6 +71,10 @@ protocol UpdateStrings: Sendable {
     func currentVersionLine(_ version: String) -> String
     /// 发布说明上方的小标题。
     var releaseNotesHeader: String { get }
+    /// 跳过了几个版本时，每个版本的说明前的小标题，参数是版本号（8.8 节）。
+    func versionNotesTitle(_ version: String) -> String
+    /// 中间版本没有列全时，说明最后的一行：更早版本的内容请看发布页。
+    var earlierVersionsOnReleasePage: String { get }
     /// 「安装更新」按钮。
     var installButton: String { get }
     /// 「安装更新」下方的说明。

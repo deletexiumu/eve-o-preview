@@ -203,6 +203,7 @@ La app conserva hasta 5 archivos de registro de 1 MiB cada uno en `~/Library/Log
 La versión 1.0.0 no hacía ninguna solicitud de red. Desde la 1.1.0, la app solo se conecta a GitHub, y solo para las actualizaciones:
 
 - La búsqueda de actualizaciones solicita `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` al arrancar y una vez al día mientras “Buscar actualizaciones automáticamente” está activado, y cada vez que eliges “Buscar actualizaciones…”.
+- Cuando se ofrece una versión nueva, la app también solicita una vez la lista de versiones `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`, con las mismas cabeceras, para mostrar las notas de las versiones que te saltaste.
 - La instalación de una actualización descarga `SHA256SUMS.txt` y el dmg de la versión.
 
 Las solicitudes solo llevan la versión de la app en la cabecera `User-Agent`, un `Accept-Language: en` fijo y una etiqueta de caché; no se envían nombres de personajes, ajustes, registros, datos del hardware, versión del sistema ni identificadores, y no se usan cookies. GitHub ve tu dirección IP y la hora de la solicitud. No hay telemetría ni envío automático de fallos: “Informar de un problema…” solo crea un zip en tu Mac y abre una página web que tú decides si enviar.

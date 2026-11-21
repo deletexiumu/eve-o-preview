@@ -50,6 +50,8 @@ struct UpdateStringsFR: UpdateStrings {
     func headline(_ version: String) -> String { "EVE-O Preview \(version) est disponible" }
     func currentVersionLine(_ version: String) -> String { "Vous avez la version \(version)." }
     var releaseNotesHeader: String { "Nouveautés" }
+    func versionNotesTitle(_ version: String) -> String { "Version \(version)" }
+    var earlierVersionsOnReleasePage: String { "Les changements des versions précédentes sont sur la page des versions." }
     // 按钮用动词不定式（Installer、Ignorer、Ouvrir），与 macOS 法文按钮的写法一致。
     var installButton: String { "Installer la mise à jour" }
     var installHelp: String { "L'app redémarre après l'installation. Les vignettes disparaissent quelques secondes." }

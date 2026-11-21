@@ -42,6 +42,8 @@ struct UpdateStringsEN: UpdateStrings {
     func headline(_ version: String) -> String { "EVE-O Preview \(version) is available" }
     func currentVersionLine(_ version: String) -> String { "You have \(version)." }
     var releaseNotesHeader: String { "What's New" }
+    func versionNotesTitle(_ version: String) -> String { "Version \(version)" }
+    var earlierVersionsOnReleasePage: String { "Changes in earlier versions are on the release page." }
     var installButton: String { "Install Update" }
     var installHelp: String { "The app restarts after installing. Thumbnails disappear for a few seconds." }
     var skipButton: String { "Skip This Version" }

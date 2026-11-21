@@ -61,11 +61,14 @@ public struct UpdateState: Sendable, Equatable, Codable {
     public var lastInstall: InstallRecord?
     /// 上次安装换下来的旧包所在的目录，下次启动时删除。
     public var staleStagingPath: String?
+    /// `cachedRelease` 与正在运行的版本之间各版本的说明（8.8 节），1.1.4 新增，缺键时为 nil。
+    public var intermediateNotes: IntermediateReleaseNotes?
 
     /// 用各字段建记录，默认全部为空。
     public init(lastCheckAt: Date? = nil, etag: String? = nil, cachedRelease: ReleaseInfo? = nil,
                 rateLimitedUntil: Date? = nil, skippedVersion: String? = nil, prepared: PreparedUpdate? = nil,
-                lastInstall: InstallRecord? = nil, staleStagingPath: String? = nil) {
+                lastInstall: InstallRecord? = nil, staleStagingPath: String? = nil,
+                intermediateNotes: IntermediateReleaseNotes? = nil) {
         self.lastCheckAt = lastCheckAt
         self.etag = etag
         self.cachedRelease = cachedRelease
@@ -74,6 +77,22 @@ public struct UpdateState: Sendable, Equatable, Codable {
         self.prepared = prepared
         self.lastInstall = lastInstall
         self.staleStagingPath = staleStagingPath
+        self.intermediateNotes = intermediateNotes
+    }
+
+    /// 缺键取 nil。其余字段结构不符时照旧整个解码失败（由 `load()` 退回默认状态）；只有 `intermediateNotes`
+    /// 解不出来时单独丢掉：它只是显示用的缓存，不应连累「跳过此版本」、待装的更新等记录。
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        lastCheckAt = try c.decodeIfPresent(Date.self, forKey: .lastCheckAt)
+        etag = try c.decodeIfPresent(String.self, forKey: .etag)
+        cachedRelease = try c.decodeIfPresent(ReleaseInfo.self, forKey: .cachedRelease)
+        rateLimitedUntil = try c.decodeIfPresent(Date.self, forKey: .rateLimitedUntil)
+        skippedVersion = try c.decodeIfPresent(String.self, forKey: .skippedVersion)
+        prepared = try c.decodeIfPresent(PreparedUpdate.self, forKey: .prepared)
+        lastInstall = try c.decodeIfPresent(InstallRecord.self, forKey: .lastInstall)
+        staleStagingPath = try c.decodeIfPresent(String.self, forKey: .staleStagingPath)
+        intermediateNotes = try? c.decodeIfPresent(IntermediateReleaseNotes.self, forKey: .intermediateNotes)
     }
 }
 

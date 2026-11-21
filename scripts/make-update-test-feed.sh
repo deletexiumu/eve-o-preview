@@ -11,7 +11,8 @@
 #   PORT   本地 HTTP 服务的端口，默认 8123
 #   NOTES  用作 body 的发布说明文件，默认 docs/release-notes/v<版本号>.md，不存在时用一段占位文字
 #
-# 另外写 dist/release/feed-SHA256SUMS.txt。这两个文件只用于本地测试，测完删掉，免得混进发布附件。
+# 另外写 dist/release/feed-SHA256SUMS.txt 与 releases.json（Release 列表，供显示中间版本的说明，设计 8.8 节）。
+# 这些文件只用于本地测试，测完删掉，免得混进发布附件。
 #
 # 生成后在 dist/release/ 下运行：python3 -m http.server "$PORT" --bind 127.0.0.1
 # 再用 open --env EVEO_UPDATE_FEED_URL=http://127.0.0.1:$PORT/feed.json 打开待测的应用。
@@ -75,4 +76,21 @@ feed = {
 with open(os.path.join(out, "feed.json"), "w", encoding="utf-8") as f:
     json.dump(feed, f, ensure_ascii=False, indent=2)
 print(f"已写 {os.path.join(out, 'feed.json')}：tag_name v{version}，附件指向 {base}")
+
+# releases.json 模仿 GitHub 的 Release 列表接口（设计 8.8 节），应用用它显示中间版本的说明：
+# 第一项是 feed 本身，其后是 docs/release-notes 里比 feed 版本旧的各版本，新版在前，只含应用读取的字段。
+import glob, re
+def key(text):
+    return tuple(int(x) for x in text.split("."))
+older = []
+for path in glob.glob("docs/release-notes/v*.md"):
+    match = re.fullmatch(r"v(\d+\.\d+\.\d+)\.md", os.path.basename(path))
+    if match and re.fullmatch(r"\d+\.\d+\.\d+", version) and key(match.group(1)) < key(version):
+        older.append((key(match.group(1)), match.group(1), open(path, encoding="utf-8").read()))
+older.sort(reverse=True)
+releases = [{"tag_name": f"v{version}", "draft": False, "prerelease": False, "body": body}]
+releases += [{"tag_name": f"v{v}", "draft": False, "prerelease": False, "body": text} for _, v, text in older]
+with open(os.path.join(out, "releases.json"), "w", encoding="utf-8") as f:
+    json.dump(releases, f, ensure_ascii=False, indent=2)
+print(f"已写 {os.path.join(out, 'releases.json')}：{len(releases)} 个版本")
 PY
