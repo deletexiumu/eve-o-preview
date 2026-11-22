@@ -412,7 +412,12 @@ import EVEOPreviewPlatform
         if settings.channels.isEmpty { return OverlayStatus(strings.statusNoChannels, .info) }
         if case .blocked = status { return OverlayStatus(strings.statusText(status, now: now), .error) }
         // EVE 没有为这些频道写日志时，浮窗只会是「还没有消息」，用户会以为翻译坏了（2026-11 的反馈）。
-        if let names = missingLogChannelNames() { return OverlayStatus(strings.statusNoLogFiles(names), .warning) }
+        if let names = missingLogChannelNames() {
+            // 缺的里有内置频道时，多半是客户端语言不是英文（EVE Mac 版此时不写系统频道的日志），提示里给出办法。
+            let builtIn = settings.channels.contains(where: \.isBuiltIn)
+            let text = builtIn ? strings.statusNoLogFilesBuiltIn(names) : strings.statusNoLogFiles(names)
+            return OverlayStatus(text, .warning)
+        }
         if case .waiting = status { return OverlayStatus(strings.statusText(status, now: now), .warning) }
         return nil
     }

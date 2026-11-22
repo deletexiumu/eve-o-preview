@@ -86,6 +86,9 @@ struct TranslationStringsJA: TranslationStrings {
     func statusNoLogFiles(_ channels: [String]) -> String {
         "直近 48 時間、EVE はこのキャラクターの\(channels.map { "「\($0)」" }.joined(separator: "、"))のチャットログを書き出していません"
     }
+    func statusNoLogFilesBuiltIn(_ channels: [String]) -> String {
+        "EVE が\(channels.map { "「\($0)」" }.joined(separator: "、"))のログを書いていません。英語以外のクライアントはシステムチャンネルを書かないことがあるため、EVE の言語を English に"
+    }
     var pending: String { "翻訳中…" }
     var failed: String { "未翻訳" }
 }

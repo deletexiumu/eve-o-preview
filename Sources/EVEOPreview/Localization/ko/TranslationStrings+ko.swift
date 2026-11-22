@@ -83,6 +83,9 @@ struct TranslationStringsKO: TranslationStrings {
     func statusNoLogFiles(_ channels: [String]) -> String {
         "최근 48시간 동안 EVE가 이 캐릭터의 \(channels.joined(separator: ", ")) 채팅 로그를 기록하지 않았습니다"
     }
+    func statusNoLogFilesBuiltIn(_ channels: [String]) -> String {
+        "EVE가 \(channels.joined(separator: ", ")) 로그를 쓰지 않았습니다. 영어가 아닌 클라이언트는 시스템 채널을 기록하지 않을 수 있으니 EVE 언어를 English로 바꾸세요"
+    }
     var pending: String { "번역 중…" }
     var failed: String { "번역 안 됨" }
 }

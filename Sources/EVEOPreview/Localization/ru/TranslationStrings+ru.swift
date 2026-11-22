@@ -99,6 +99,9 @@ struct TranslationStringsRU: TranslationStrings {
     func statusNoLogFiles(_ channels: [String]) -> String {
         "За последние 48 часов EVE не записала журнал чата \(channels.joined(separator: ", ")) для этого персонажа"
     }
+    func statusNoLogFilesBuiltIn(_ channels: [String]) -> String {
+        "EVE не пишет журнал \(channels.joined(separator: ", ")): клиент не на английском может пропускать системные каналы, переключите EVE на English"
+    }
     var pending: String { "перевод…" }
     var failed: String { "не переведено" }
 }
