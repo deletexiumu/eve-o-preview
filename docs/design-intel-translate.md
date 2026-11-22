@@ -573,6 +573,9 @@ public enum LocationLineParser {
     var onEvents: (@MainActor ([ChatLogEvent]) -> Void)? { get set }
     var onStatusChange: (@MainActor (ChatLogStatus) -> Void)? { get set }
     var status: ChatLogStatus { get }
+    /// v1.2.2：正在跟踪的聊天日志文件的收听者与频道；还没扫描完或没有在跟踪时为 nil。
+    var followedChannels: [FollowedChatChannel]? { get }
+    var onFollowedChannelsChange: (@MainActor ([FollowedChatChannel]?) -> Void)? { get set }
     /// 开始跟踪。请求与上次相同时不做任何事，不同时按新请求重建并重新补读。
     func start(_ request: ChatLogRequest)
     func stop()
@@ -1897,7 +1900,9 @@ Key 不写进 `config.json`、`state.json`、任何日志与问题报告。代�
 - `foreignOnly` 为真时，原因是 `sameLanguage` 或 `empty` 的 `skipped` 消息返回 `nil`，不显示。
 - `copyText`：`<说话人>: <原文>`；有译文时另起一行加译文。
 
-`TranslationController`（App，`Chat/TranslationController.swift`，WP-C）实现 `ChatFeedConsumer`，持有 `TranslationQueue`、`TranslationCache`、内存里的 Key 与一个发送任务。标题是 `L10n.translation.overlayTitle(角色名)`。状态行按顺序取第一个成立的：聊天日志的错误状态；没有设置翻译频道；队列的 `blocked`（`error`）；队列的 `waiting`（`warning`）；其余不显示状态行。
+`TranslationController`（App，`Chat/TranslationController.swift`，WP-C）实现 `ChatFeedConsumer`，持有 `TranslationQueue`、`TranslationCache`、内存里的 Key 与一个发送任务。标题是 `L10n.translation.overlayTitle(角色名)`。状态行按顺序取第一个成立的：聊天日志的错误状态；没有设置翻译频道；队列的 `blocked`（`error`）；活动角色在所选的每个翻译频道都没有被跟踪的日志文件（`statusNoLogFiles(频道名)`，`warning`，v1.2.2）；队列的 `waiting`（`warning`）；其余不显示状态行。
+
+v1.2.2 增补：EVE 有时不为某个频道写日志文件（用户本机观察到：客户端为中文时 Mac 版不写 Local、Corp、Alliance 的文件），浮窗原来只显示「还没有消息」，用户以为翻译坏了。`ChatLogTailer` 每次扫描聊天日志目录后，把选中文件的（收听者，Channel ID，Channel Name）去重排序，变了时交给 `FileChatLogMonitor.followedChannels`（新的跟踪服务扫描完之前为 nil）；`ChatFeatureController` 把它放进 `ChatFeedContext.followedChannels`，变化时更新两个功能。判断用 Core 的 `ChatLogCoverage.lacksAllLogs`：收听者按 `CharacterNameMatch` 比较，频道按 `ChannelRef.matches`；还没扫描完时不提示，只缺一部分频道时也不提示（例如没进舰队时总缺 Fleet）。
 
 ### 7.11 明文 HTTP
 

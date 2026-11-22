@@ -169,6 +169,10 @@ public struct HotkeyRegistrationFailure: Sendable, Equatable {
     var onStatusChange: (@MainActor (ChatLogStatus) -> Void)? { get set }
     /// 当前状态。
     var status: ChatLogStatus { get }
+    /// 正在跟踪的聊天日志文件的收听者与频道；还没扫描完或没有在跟踪时为 nil。
+    var followedChannels: [FollowedChatChannel]? { get }
+    /// followedChannels 变化时在主线程调用。
+    var onFollowedChannelsChange: (@MainActor ([FollowedChatChannel]?) -> Void)? { get set }
     /// 开始跟踪。请求与上次相同时不做任何事，不同时按新请求重建并重新补读。
     func start(_ request: ChatLogRequest)
     /// 停止跟踪，关闭全部文件描述符，状态变成 `stopped`。

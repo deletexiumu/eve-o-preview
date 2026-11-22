@@ -80,6 +80,9 @@ struct TranslationStringsKO: TranslationStrings {
     // MARK: 浮窗
     func overlayTitle(_ character: String) -> String { "번역 · \(character)" }
     var statusNoChannels: String { "번역 채널이 설정되지 않았습니다" }
+    func statusNoLogFiles(_ channels: [String]) -> String {
+        "최근 48시간 동안 EVE가 이 캐릭터의 \(channels.joined(separator: ", ")) 채팅 로그를 기록하지 않았습니다"
+    }
     var pending: String { "번역 중…" }
     var failed: String { "번역 안 됨" }
 }

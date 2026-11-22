@@ -12,6 +12,7 @@
 // - 星图数据：第一次有功能启用时读一次，结果留到应用退出。
 // - 分发：消息交给「已启用、且频道列表里有一项与它匹配」的功能，两个都匹配时各给一份；位置线索只给预警。
 // - 任何影响内容的变化之后，对两个功能各调一次 update(context:)。
+// - 跟踪的文件（收听者与频道）变了时也更新两个功能：翻译据此提示「EVE 没有写这些频道的日志」。
 // - 按时间的刷新：对可见的浮窗取 nextRefresh 里最早的时刻，到时对这些浮窗调 onContentChanged。
 // 时钟：日志时间与「多久以前」用墙上时钟（Date）；浮窗的隐藏延迟用单调时钟，由协调器管。
 // 系统日志里不写角色名、频道名、说话人与正文。
@@ -81,6 +82,7 @@ import EVEOPreviewPlatform
     func start(config: AppConfig) {
         services.chatLog.onEvents = { [weak self] events in self?.eventsArrived(events) }
         services.chatLog.onStatusChange = { [weak self] status in self?.statusChanged(status) }
+        services.chatLog.onFollowedChannelsChange = { [weak self] _ in self?.followedChannelsChanged() }
         chatLogStatus = services.chatLog.status
         for consumer in consumers {
             let kind = consumer.kind
@@ -262,6 +264,13 @@ import EVEOPreviewPlatform
         notifyAllContent()
     }
 
+    /// 跟踪的文件变了（例如 EVE 新建了某个频道的日志）：更新两个功能，浮窗的状态行可能要换。
+    private func followedChannelsChanged() {
+        guard !isStopped else { return }
+        updateConsumers()
+        notifyAllContent()
+    }
+
     /// 某个功能的内容或状态变了：刷新它的浮窗与设置窗口，重新安排按时间的刷新。
     private func consumerChanged(_ kind: OverlayKind) {
         guard !isStopped else { return }
@@ -285,7 +294,8 @@ import EVEOPreviewPlatform
         guard let config else { return }
         let context = ChatFeedContext(profile: config.activeProfile, general: config.general,
                                       staticData: staticData, activeCharacter: activeCharacter,
-                                      chatLogStatus: chatLogStatus)
+                                      chatLogStatus: chatLogStatus,
+                                      followedChannels: services.chatLog.followedChannels)
         for consumer in consumers { consumer.update(context: context) }
     }
 

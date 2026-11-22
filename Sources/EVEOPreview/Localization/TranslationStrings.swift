@@ -132,6 +132,8 @@ protocol TranslationStrings: Sendable {
     func overlayTitle(_ character: String) -> String
     /// 状态行：没有设置翻译频道。
     var statusNoChannels: String { get }
+    /// 状态行：近 48 小时里，活动角色在所选的每个翻译频道都没有日志文件（EVE 没有写入）。channels 是频道的显示名。
+    func statusNoLogFiles(_ channels: [String]) -> String
     /// 等待翻译的状态词。
     var pending: String { get }
     /// 翻译失败的状态词。

@@ -96,6 +96,9 @@ struct TranslationStringsRU: TranslationStrings {
     // MARK: 浮窗
     func overlayTitle(_ character: String) -> String { "Перевод · \(character)" }
     var statusNoChannels: String { "Каналы для перевода не выбраны" }
+    func statusNoLogFiles(_ channels: [String]) -> String {
+        "За последние 48 часов EVE не записала журнал чата \(channels.joined(separator: ", ")) для этого персонажа"
+    }
     var pending: String { "перевод…" }
     var failed: String { "не переведено" }
 }

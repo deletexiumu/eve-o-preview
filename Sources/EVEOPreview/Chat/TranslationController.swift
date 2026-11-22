@@ -15,6 +15,7 @@
 // - 一批在途时同一时刻不发第二批。设置、Key 或目标语言变了时，在途的请求变成「旧请求」：它的结果仍按发出时的
 //   目标语言存进缓存，目标语言没变时也填给仍在等的消息，但不改队列的状态。
 // - 译文缓存在启动后于后台读取；读完之前不存盘，读完后与内存里的条目合并。有改动时满 30 秒存一次，停止时同步存一次。
+// - 活动角色在所选的每个翻译频道都没有被跟踪的日志文件时，状态行提示 EVE 没有写日志（ChatLogCoverage）。
 // - 日志只写条数、状态码与失败的种类，不写 Key、请求头、接口地址、模型名、聊天内容、角色名与服务给的说明。
 // 时刻用墙上时钟的秒数，与日志里的消息时间同一个时钟。
 // 初始化方法 init(services:) 与只读属性 status 的签名在 WP-0 冻结。
@@ -397,7 +398,8 @@ import EVEOPreviewPlatform
         if refreshStatus() { onChange?() }
     }
 
-    /// 浮窗的状态行：聊天日志的错误；没有翻译频道；暂停（error）；等待重试（warning）；其余不显示。
+    /// 浮窗的状态行：聊天日志的错误；没有翻译频道；暂停（error）；活动角色在所选频道都没有日志文件（warning）；
+    /// 等待重试（warning）；其余不显示。
     private func statusLine(_ strings: any TranslationStrings, now: Double) -> OverlayStatus? {
         switch context?.chatLogStatus {
         case .directoryNotFound(let path)?:
@@ -408,10 +410,26 @@ import EVEOPreviewPlatform
             break
         }
         if settings.channels.isEmpty { return OverlayStatus(strings.statusNoChannels, .info) }
-        switch status {
-        case .blocked: return OverlayStatus(strings.statusText(status, now: now), .error)
-        case .waiting: return OverlayStatus(strings.statusText(status, now: now), .warning)
-        default: return nil
+        if case .blocked = status { return OverlayStatus(strings.statusText(status, now: now), .error) }
+        // EVE 没有为这些频道写日志时，浮窗只会是「还没有消息」，用户会以为翻译坏了（2026-11 的反馈）。
+        if let names = missingLogChannelNames() { return OverlayStatus(strings.statusNoLogFiles(names), .warning) }
+        if case .waiting = status { return OverlayStatus(strings.statusText(status, now: now), .warning) }
+        return nil
+    }
+
+    /// 活动角色在所选的每个翻译频道都没有被跟踪的日志文件时，返回这些频道的显示名；否则为 nil。
+    /// 跟踪服务还没扫描完、没有活动角色时也是 nil。
+    private func missingLogChannelNames() -> [String]? {
+        guard let context, let character = context.activeCharacter else { return nil }
+        let channels = settings.channels
+        guard ChatLogCoverage.lacksAllLogs(for: character, channels: channels,
+                                           followed: context.followedChannels) else { return nil }
+        let overlay = L10n.overlay
+        return channels.map { channel in
+            // 内置频道显示本地化的名字，与设置里的频道列表一致；名字为空时显示 ID。
+            if channel.isBuiltIn, let name = overlay.builtInName(id: channel.id) { return name }
+            let name = channel.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return name.isEmpty ? (channel.id ?? "") : name
         }
     }
 

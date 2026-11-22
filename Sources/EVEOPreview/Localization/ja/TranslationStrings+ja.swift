@@ -83,6 +83,9 @@ struct TranslationStringsJA: TranslationStrings {
     // MARK: 浮窗
     func overlayTitle(_ character: String) -> String { "翻訳 · \(character)" }
     var statusNoChannels: String { "翻訳チャンネルが設定されていません" }
+    func statusNoLogFiles(_ channels: [String]) -> String {
+        "直近 48 時間、EVE はこのキャラクターの\(channels.map { "「\($0)」" }.joined(separator: "、"))のチャットログを書き出していません"
+    }
     var pending: String { "翻訳中…" }
     var failed: String { "未翻訳" }
 }

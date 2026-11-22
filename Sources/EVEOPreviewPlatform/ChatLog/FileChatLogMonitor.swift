@@ -21,6 +21,10 @@ import EVEOPreviewCore
     public var onStatusChange: (@MainActor (ChatLogStatus) -> Void)?
     /// 当前状态。
     public private(set) var status: ChatLogStatus = .stopped
+    /// followedChannels 变化时在主线程调用。
+    public var onFollowedChannelsChange: (@MainActor ([FollowedChatChannel]?) -> Void)?
+    /// 正在跟踪的聊天日志文件的收听者与频道；新的跟踪服务还没扫描完或没有在跟踪时为 nil。
+    public private(set) var followedChannels: [FollowedChatChannel]?
     /// 最近一次的请求；nil 表示没有在跟踪。
     private var request: ChatLogRequest?
     /// 当前的跟踪服务；nil 表示没有在跟踪。
@@ -53,8 +57,14 @@ import EVEOPreviewCore
             onStatus: { [weak self] status in
                 guard let self, self.generation == current else { return }
                 self.update(status)
+            },
+            onFollowed: { [weak self] followed in
+                guard let self, self.generation == current else { return }
+                self.updateFollowed(followed)
             })
         self.tailer = tailer
+        // 新的跟踪服务从头扫描，旧的覆盖情况作废。
+        updateFollowed(nil)
         tailer.start()
     }
 
@@ -67,12 +77,20 @@ import EVEOPreviewCore
             generation += 1
         }
         update(.stopped)
+        updateFollowed(nil)
     }
 
     /// 列出最近 14 天出现过的频道，按最后修改时间从新到旧排序。
     public func discoverChannels(logDirectory: String?) async -> [DiscoveredChannel] {
         let candidates = ChatLogDirectory.candidates(configured: logDirectory, homeDirectory: homeDirectory)
         return await discovery.discover(candidates: candidates)
+    }
+
+    /// 记下新的覆盖情况，变了时通知。
+    private func updateFollowed(_ followed: [FollowedChatChannel]?) {
+        guard followed != followedChannels else { return }
+        followedChannels = followed
+        onFollowedChannelsChange?(followed)
     }
 
     /// 记下新状态，变了时通知。
