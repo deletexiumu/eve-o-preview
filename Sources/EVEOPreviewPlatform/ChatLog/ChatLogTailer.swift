@@ -62,6 +62,8 @@ public final class ChatLogTailer: @unchecked Sendable {
     private let queue = DispatchQueue(label: "io.github.deletexiumu.eveopreview.chatlog", qos: .utility)
     private let onEvents: @MainActor @Sendable ([ChatLogEvent]) -> Void
     private let onStatus: @MainActor @Sendable (ChatLogStatus) -> Void
+    /// 跟踪的聊天日志文件的收听者与频道变了时调用；nil 表示调用方不关心。
+    private let onFollowed: (@MainActor @Sendable ([FollowedChatChannel]) -> Void)?
     private let log = PlatformLog.logger("ChatLog")
 
     // 以下状态只在 queue 上访问。
@@ -93,6 +95,8 @@ public final class ChatLogTailer: @unchecked Sendable {
     private var retryTimer: DispatchSourceTimer?
     /// 当前对外报告的状态；只在变化时才回调。
     private var status: ChatLogStatus = .stopped
+    /// 最近一次上报的覆盖情况；nil 表示还没上报过。只在变化时才回调。
+    private var reportedFollowed: [FollowedChatChannel]?
 
     /// 建跟踪服务，调用 `start()` 后才开始工作。
     ///
@@ -101,12 +105,15 @@ public final class ChatLogTailer: @unchecked Sendable {
     ///   - homeDirectory: 用户的主目录，用来展开 `~` 与拼默认路径。
     ///   - onEvents: 一批事件，按日志里的先后顺序，在主线程调用。
     ///   - onStatus: 状态变化，在主线程调用。
+    ///   - onFollowed: 跟踪的聊天日志文件的收听者与频道变了，在主线程调用；可不给。
     public init(request: ChatLogRequest, homeDirectory: String,
                 onEvents: @escaping @MainActor @Sendable ([ChatLogEvent]) -> Void,
-                onStatus: @escaping @MainActor @Sendable (ChatLogStatus) -> Void) {
+                onStatus: @escaping @MainActor @Sendable (ChatLogStatus) -> Void,
+                onFollowed: (@MainActor @Sendable ([FollowedChatChannel]) -> Void)? = nil) {
         self.request = request
         self.onEvents = onEvents
         self.onStatus = onStatus
+        self.onFollowed = onFollowed
         chat = Watch(isChat: true, candidates: ChatLogDirectory.candidates(configured: request.logDirectory,
                                                                            homeDirectory: homeDirectory))
         game = request.followsLocation
@@ -325,6 +332,27 @@ public final class ChatLogTailer: @unchecked Sendable {
             guard let header = chatHeaders[name] else { continue }
             followChat(name, path: directory + "/" + name, header: header, createdAt: createdAt[name])
         }
+        // 用 48 个上限之前的候选：被上限挤掉的文件仍然存在，提示「EVE 没有写日志」不对。
+        // 第一次上报前若还有文件头没写完的文件，先不报，免得启动时闪一下提示（2 秒后的保险会再扫描）。
+        if pending.isEmpty || reportedFollowed != nil { reportFollowed(candidates) }
+    }
+
+    /// 把候选文件（48 小时内、频道匹配）的收听者与频道交给主线程（去重、排序后与上次相同时不交）。
+    /// 没被选中或没打开成功的文件也算：文件在，提示「没有日志文件」反而误导。
+    private func reportFollowed(_ candidates: [ChatLogDirectory.Candidate]) {
+        guard let onFollowed else { return }
+        var seen: Set<FollowedChatChannel> = []
+        for candidate in candidates {
+            seen.insert(FollowedChatChannel(listener: candidate.listener, channelID: candidate.channelID,
+                                            channelName: chatHeaders[candidate.name]?.channelName))
+        }
+        // 排序让结果稳定，只在内容真的变了时回调。
+        let followed = seen.sorted {
+            ($0.listener, $0.channelID, $0.channelName ?? "") < ($1.listener, $1.channelID, $1.channelName ?? "")
+        }
+        guard followed != reportedFollowed else { return }
+        reportedFollowed = followed
+        DispatchQueue.main.async { MainActor.assumeIsolated { onFollowed(followed) } }
     }
 
     /// 游戏日志的扫描：48 小时内修改过、有收听者的文件，每个收听者取文件名最大的一个，至多 16 个。

@@ -7,6 +7,7 @@
 // - 频道是 intel.Demo 与 chat.Demo，discoverChannels 返回这两个频道，Channel ID 与消息里的一致。
 //   假服务不按请求的频道过滤，由 ChatFeatureController 按频道分发。
 // - 状态是 watching(directory: "fake", followedFiles: 假角色数)。请求变了时重新开始。
+// - 覆盖情况：每个假角色都有两个演示频道的「文件」，所以浮窗不会出现「没有日志文件」的提示。
 
 import Foundation
 import EVEOPreviewCore
@@ -53,6 +54,10 @@ final class FakeChatLogMonitor: ChatLogMonitor {
     var onStatusChange: (@MainActor (ChatLogStatus) -> Void)?
     /// 当前状态。
     private(set) var status: ChatLogStatus = .stopped
+    /// 覆盖情况变化的回调。
+    var onFollowedChannelsChange: (@MainActor ([FollowedChatChannel]?) -> Void)?
+    /// 每个假角色都有两个演示频道；没有在运行时为 nil。
+    private(set) var followedChannels: [FollowedChatChannel]?
     /// 假世界，从中取假角色名。
     private let world: FakeWorld
     /// 当前的请求；nil 表示没有在运行。
@@ -76,6 +81,7 @@ final class FakeChatLogMonitor: ChatLogMonitor {
         self.request = request
         let names = characterNames()
         update(.watching(directory: "fake", followedFiles: names.count))
+        updateFollowed(names)
         let followsLocation = request.followsLocation
         task = Task { [weak self] in
             // 推迟到下一轮主线程再发，调用方在 start 之后才处理事件。
@@ -95,6 +101,8 @@ final class FakeChatLogMonitor: ChatLogMonitor {
         task = nil
         request = nil
         update(.stopped)
+        followedChannels = nil
+        onFollowedChannelsChange?(nil)
     }
 
     /// 返回两个演示频道。
@@ -125,6 +133,7 @@ final class FakeChatLogMonitor: ChatLogMonitor {
     private func emitMessage() {
         let names = characterNames()
         update(.watching(directory: "fake", followedFiles: names.count))
+        updateFollowed(names)
         guard !names.isEmpty else { return }
         let name = names[nextCharacter % names.count]
         let sample = FakeChatLogMonitor.samples[nextSample % FakeChatLogMonitor.samples.count]
@@ -140,6 +149,18 @@ final class FakeChatLogMonitor: ChatLogMonitor {
     /// 已登录的假角色名，按名称排序。登录界面的假客户端没有角色名，不参与。
     private func characterNames() -> [String] {
         world.snapshot().compactMap { TitleParser.identity(fromTitle: $0.title).characterName }.sorted()
+    }
+
+    /// 按假角色算出覆盖情况（每人两个演示频道），变了时通知。
+    private func updateFollowed(_ names: [String]) {
+        let followed = names.flatMap { name in
+            [FakeChatLogMonitor.intelChannel, FakeChatLogMonitor.chatChannel].map { ref in
+                FollowedChatChannel(listener: name, channelID: ref.id ?? ref.name, channelName: ref.name)
+            }
+        }
+        guard followed != followedChannels else { return }
+        followedChannels = followed
+        onFollowedChannelsChange?(followed)
     }
 
     /// 记下新状态，变了时通知。

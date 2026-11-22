@@ -19,6 +19,8 @@ struct ChatFeedContext {
     var activeCharacter: String?
     /// 聊天日志跟踪服务的状态。
     var chatLogStatus: ChatLogStatus
+    /// 正在跟踪的聊天日志文件的收听者与频道；跟踪服务还没扫描完时为 nil。
+    var followedChannels: [FollowedChatChannel]? = nil
 }
 
 /// 一个聊天功能（预警或翻译）。全部方法在主线程调用。

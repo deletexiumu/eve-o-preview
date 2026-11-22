@@ -85,6 +85,12 @@ struct TranslationStringsDE: TranslationStrings {
     // MARK: 浮窗
     func overlayTitle(_ character: String) -> String { "Übersetzung · \(character)" }
     var statusNoChannels: String { "Keine Übersetzungskanäle festgelegt" }
+    func statusNoLogFiles(_ channels: [String]) -> String {
+        "EVE hat in den letzten 48 Stunden kein Chatprotokoll für \(channels.joined(separator: ", ")) dieses Charakters geschrieben"
+    }
+    func statusNoLogFilesBuiltIn(_ channels: [String]) -> String {
+        "EVE schreibt kein Protokoll für \(channels.joined(separator: ", ")): ein nicht englischer Client lässt Systemkanäle evtl. aus, stellen Sie EVE auf English"
+    }
     var pending: String { "wird übersetzt …" }
     var failed: String { "nicht übersetzt" }
 }

@@ -77,6 +77,12 @@ struct TranslationStringsZH: TranslationStrings {
     // MARK: 浮窗
     func overlayTitle(_ character: String) -> String { "翻译 · \(character)" }
     var statusNoChannels: String { "还没有设置翻译频道" }
+    func statusNoLogFiles(_ channels: [String]) -> String {
+        "近 48 小时 EVE 没有写入这个角色在\(channels.map { "「\($0)」" }.joined(separator: "、"))的聊天日志"
+    }
+    func statusNoLogFilesBuiltIn(_ channels: [String]) -> String {
+        "EVE 没有写\(channels.map { "「\($0)」" }.joined(separator: "、"))的日志：非英文客户端可能不写系统频道，可把 EVE 语言改为 English"
+    }
     var pending: String { "翻译中…" }
     var failed: String { "未翻译" }
 }

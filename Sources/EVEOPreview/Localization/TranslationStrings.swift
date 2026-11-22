@@ -132,6 +132,11 @@ protocol TranslationStrings: Sendable {
     func overlayTitle(_ character: String) -> String
     /// 状态行：没有设置翻译频道。
     var statusNoChannels: String { get }
+    /// 状态行：近 48 小时里，活动角色在所选的每个翻译频道都没有日志文件（EVE 没有写入）。channels 是频道的显示名。
+    func statusNoLogFiles(_ channels: [String]) -> String
+    /// 同上，所缺的频道里有内置频道（本地、军团、联盟、舰队）时用：EVE（Mac 版）客户端语言不是英文时不写系统频道的
+    /// 日志（2026-11 在用户本机确认：中文客户端不写，切成 English 后立即恢复），提示里直接给出办法。
+    func statusNoLogFilesBuiltIn(_ channels: [String]) -> String
     /// 等待翻译的状态词。
     var pending: String { get }
     /// 翻译失败的状态词。
