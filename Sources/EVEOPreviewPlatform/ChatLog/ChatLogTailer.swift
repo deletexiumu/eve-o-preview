@@ -332,19 +332,19 @@ public final class ChatLogTailer: @unchecked Sendable {
             guard let header = chatHeaders[name] else { continue }
             followChat(name, path: directory + "/" + name, header: header, createdAt: createdAt[name])
         }
-        reportFollowed(selected)
+        // 用 48 个上限之前的候选：被上限挤掉的文件仍然存在，提示「EVE 没有写日志」不对。
+        // 第一次上报前若还有文件头没写完的文件，先不报，免得启动时闪一下提示（2 秒后的保险会再扫描）。
+        if pending.isEmpty || reportedFollowed != nil { reportFollowed(candidates) }
     }
 
-    /// 把选中文件的收听者与频道交给主线程（去重、排序后与上次相同时不交）。
-    /// 选中而没打开成功的文件也算：文件在，只是这一轮读不了，提示「没有日志文件」反而误导。
-    private func reportFollowed(_ selected: Set<String>) {
+    /// 把候选文件（48 小时内、频道匹配）的收听者与频道交给主线程（去重、排序后与上次相同时不交）。
+    /// 没被选中或没打开成功的文件也算：文件在，提示「没有日志文件」反而误导。
+    private func reportFollowed(_ candidates: [ChatLogDirectory.Candidate]) {
         guard let onFollowed else { return }
         var seen: Set<FollowedChatChannel> = []
-        for name in selected {
-            guard let header = chatHeaders[name], let listener = header.listener, let id = header.channelID else {
-                continue
-            }
-            seen.insert(FollowedChatChannel(listener: listener, channelID: id, channelName: header.channelName))
+        for candidate in candidates {
+            seen.insert(FollowedChatChannel(listener: candidate.listener, channelID: candidate.channelID,
+                                            channelName: chatHeaders[candidate.name]?.channelName))
         }
         // 排序让结果稳定，只在内容真的变了时回调。
         let followed = seen.sorted {

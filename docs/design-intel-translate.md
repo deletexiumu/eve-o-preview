@@ -1902,7 +1902,7 @@ Key 不写进 `config.json`、`state.json`、任何日志与问题报告。代�
 
 `TranslationController`（App，`Chat/TranslationController.swift`，WP-C）实现 `ChatFeedConsumer`，持有 `TranslationQueue`、`TranslationCache`、内存里的 Key 与一个发送任务。标题是 `L10n.translation.overlayTitle(角色名)`。状态行按顺序取第一个成立的：聊天日志的错误状态；没有设置翻译频道；队列的 `blocked`（`error`）；活动角色在所选的每个翻译频道都没有被跟踪的日志文件（`statusNoLogFiles(频道名)`，`warning`，v1.2.2）；队列的 `waiting`（`warning`）；其余不显示状态行。
 
-v1.2.2 增补：EVE 有时不为某个频道写日志文件（用户本机观察到：客户端为中文时 Mac 版不写 Local、Corp、Alliance 的文件），浮窗原来只显示「还没有消息」，用户以为翻译坏了。`ChatLogTailer` 每次扫描聊天日志目录后，把选中文件的（收听者，Channel ID，Channel Name）去重排序，变了时交给 `FileChatLogMonitor.followedChannels`（新的跟踪服务扫描完之前为 nil）；`ChatFeatureController` 把它放进 `ChatFeedContext.followedChannels`，变化时更新两个功能。判断用 Core 的 `ChatLogCoverage.lacksAllLogs`：收听者按 `CharacterNameMatch` 比较，频道按 `ChannelRef.matches`；还没扫描完时不提示，只缺一部分频道时也不提示（例如没进舰队时总缺 Fleet）。
+v1.2.2 增补：EVE 有时不为某个频道写日志文件（用户本机观察到：客户端为中文时 Mac 版不写 Local、Corp、Alliance 的文件），浮窗原来只显示「还没有消息」，用户以为翻译坏了。`ChatLogTailer` 每次扫描聊天日志目录后，把候选文件（48 小时内、频道匹配，取 48 个上限之前的）的（收听者，Channel ID，Channel Name）去重排序；第一次上报前还有文件头没写完的文件时先不报，变了时交给 `FileChatLogMonitor.followedChannels`（新的跟踪服务扫描完之前为 nil）；`ChatFeatureController` 把它放进 `ChatFeedContext.followedChannels`，变化时更新两个功能。判断用 Core 的 `ChatLogCoverage.lacksAllLogs`：收听者按 `CharacterNameMatch` 比较，频道按 `ChannelRef.matches`；还没扫描完时不提示，只缺一部分频道时也不提示（例如没进舰队时总缺 Fleet）。
 
 ### 7.11 明文 HTTP
 
