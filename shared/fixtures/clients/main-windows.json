@@ -1,0 +1,631 @@
+{
+  "cases": [
+    {
+      "name": "E6 实测列表：16 个窗口选出 3 个主窗口，按 PID 升序",
+      "windows": [
+        {
+          "id": 9001,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 33,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9002,
+          "pid": 4101,
+          "title": "EVE - Pilot Alpha",
+          "x": 0,
+          "y": 33,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9003,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 1018,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9004,
+          "pid": 4101,
+          "title": null,
+          "x": 614,
+          "y": 292,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9005,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9101,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9102,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9103,
+          "pid": 4188,
+          "title": "EVE - bravo pilot",
+          "x": 40,
+          "y": 60,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9104,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 1045,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9105,
+          "pid": 4188,
+          "title": null,
+          "x": 300,
+          "y": 300,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9106,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 27,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9201,
+          "pid": 4252,
+          "title": "EVE - charlie pilot",
+          "x": 80,
+          "y": 90,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9202,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 90,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9203,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 1075,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9204,
+          "pid": 4252,
+          "title": null,
+          "x": 694,
+          "y": 349,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9205,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 57,
+          "width": 1728,
+          "height": 33
+        }
+      ],
+      "expected": [
+        9002,
+        9103,
+        9201
+      ]
+    },
+    {
+      "name": "输入顺序打乱后结果不变",
+      "windows": [
+        {
+          "id": 9205,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 57,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9204,
+          "pid": 4252,
+          "title": null,
+          "x": 694,
+          "y": 349,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9203,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 1075,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9202,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 90,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9201,
+          "pid": 4252,
+          "title": "EVE - charlie pilot",
+          "x": 80,
+          "y": 90,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9106,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 27,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9105,
+          "pid": 4188,
+          "title": null,
+          "x": 300,
+          "y": 300,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9104,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 1045,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9103,
+          "pid": 4188,
+          "title": "EVE - bravo pilot",
+          "x": 40,
+          "y": 60,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9102,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9101,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9005,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9004,
+          "pid": 4101,
+          "title": null,
+          "x": 614,
+          "y": 292,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9003,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 1018,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9002,
+          "pid": 4101,
+          "title": "EVE - Pilot Alpha",
+          "x": 0,
+          "y": 33,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9001,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 33,
+          "width": 1728,
+          "height": 33
+        }
+      ],
+      "expected": [
+        9002,
+        9103,
+        9201
+      ]
+    },
+    {
+      "name": "标题全读不到时按尺寸选，排除 500×500",
+      "windows": [
+        {
+          "id": 9001,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 33,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9002,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 33,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9003,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 1018,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9004,
+          "pid": 4101,
+          "title": null,
+          "x": 614,
+          "y": 292,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9005,
+          "pid": 4101,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9101,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9102,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9103,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 60,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9104,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 1045,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9105,
+          "pid": 4188,
+          "title": null,
+          "x": 300,
+          "y": 300,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9106,
+          "pid": 4188,
+          "title": null,
+          "x": 40,
+          "y": 27,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9201,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 90,
+          "width": 1728,
+          "height": 1018
+        },
+        {
+          "id": 9202,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 90,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9203,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 1075,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 9204,
+          "pid": 4252,
+          "title": null,
+          "x": 694,
+          "y": 349,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 9205,
+          "pid": 4252,
+          "title": null,
+          "x": 80,
+          "y": 57,
+          "width": 1728,
+          "height": 33
+        }
+      ],
+      "expected": [
+        9002,
+        9103,
+        9201
+      ]
+    },
+    {
+      "name": "只有小窗口的进程不产生客户端",
+      "windows": [
+        {
+          "id": 1,
+          "pid": 10,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 1728,
+          "height": 33
+        },
+        {
+          "id": 2,
+          "pid": 10,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 500,
+          "height": 500
+        },
+        {
+          "id": 3,
+          "pid": 10,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 639,
+          "height": 2000
+        }
+      ],
+      "expected": []
+    },
+    {
+      "name": "恰好 640×360 的无标题窗口可以作为主窗口",
+      "windows": [
+        {
+          "id": 5,
+          "pid": 10,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 640,
+          "height": 360
+        }
+      ],
+      "expected": [
+        5
+      ]
+    },
+    {
+      "name": "带标题的窗口优先于更大的无标题窗口，登录标题也算",
+      "windows": [
+        {
+          "id": 1,
+          "pid": 10,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 3000,
+          "height": 2000
+        },
+        {
+          "id": 2,
+          "pid": 10,
+          "title": "EVE",
+          "x": 0,
+          "y": 0,
+          "width": 1024,
+          "height": 768
+        }
+      ],
+      "expected": [
+        2
+      ]
+    },
+    {
+      "name": "多个候选取面积最大的",
+      "windows": [
+        {
+          "id": 7,
+          "pid": 10,
+          "title": "EVE",
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 600
+        },
+        {
+          "id": 8,
+          "pid": 10,
+          "title": "EVE",
+          "x": 0,
+          "y": 0,
+          "width": 1728,
+          "height": 1018
+        }
+      ],
+      "expected": [
+        8
+      ]
+    },
+    {
+      "name": "面积相同取窗口 ID 最小的",
+      "windows": [
+        {
+          "id": 12,
+          "pid": 10,
+          "title": null,
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 700
+        },
+        {
+          "id": 11,
+          "pid": 10,
+          "title": null,
+          "x": 50,
+          "y": 50,
+          "width": 1000,
+          "height": 700
+        }
+      ],
+      "expected": [
+        11
+      ]
+    },
+    {
+      "name": "无法识别的标题按无标题处理（够大）",
+      "windows": [
+        {
+          "id": 1,
+          "pid": 10,
+          "title": "Something",
+          "x": 0,
+          "y": 0,
+          "width": 1728,
+          "height": 1018
+        }
+      ],
+      "expected": [
+        1
+      ]
+    },
+    {
+      "name": "无法识别的标题按无标题处理（太小）",
+      "windows": [
+        {
+          "id": 1,
+          "pid": 10,
+          "title": "Something",
+          "x": 0,
+          "y": 0,
+          "width": 500,
+          "height": 500
+        }
+      ],
+      "expected": []
+    },
+    {
+      "name": "空输入",
+      "windows": [],
+      "expected": []
+    }
+  ]
+}

@@ -6,7 +6,7 @@
 #   与本文件时，后面的任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
 # - 推送 win-v* tag：同样检查。建 Release 的任务在 M9 加入，届时 Release 一律不标为 latest，
 #   并核对 /releases/latest 仍是 macOS 的 v* tag（已安装的 macOS 客户端靠它检查更新）。
-# Rust 工作区在 M2 加入 windows/Cargo.toml。在那之前 core 任务只跑与平台无关的检查，Rust 的步骤自动跳过。
+# Rust 工作区在 windows/Cargo.toml（M2 加入）；没有它时 Rust 的步骤自动跳过。
 # 在 Windows 运行器上构建、跑集成探针的 build 任务在 M3 加入。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
 
@@ -67,8 +67,8 @@ jobs:
             echo "windows=false" >> "$GITHUB_OUTPUT"
           fi
 
-  # 与平台无关的检查，在 Linux 上跑：质量门禁、发布说明、文档链接；有 Rust 工作区时再跑格式、
-  # 默认成员（与 Windows 无关的 crate）的测试，以及整个工作区对 Windows 目标的类型检查。
+  # 与平台无关的检查，在 Linux 上跑：质量门禁、发布说明、文档链接；有 Rust 工作区时再跑格式、clippy、
+  # 默认成员（与 Windows 无关的 crate）的测试与 shared/fixtures 一致性测试，以及整个工作区对 Windows 目标的类型检查。
   core:
     needs: changes
     if: needs.changes.outputs.windows == 'true'
@@ -115,6 +115,11 @@ jobs:
         if: hashFiles('windows/Cargo.toml') != ''
         working-directory: windows
         run: cargo fmt --all --check
+
+      - name: Clippy
+        if: hashFiles('windows/Cargo.toml') != ''
+        working-directory: windows
+        run: cargo clippy --locked --all-targets -- -D warnings
 
       - name: 默认成员的测试
         if: hashFiles('windows/Cargo.toml') != ''

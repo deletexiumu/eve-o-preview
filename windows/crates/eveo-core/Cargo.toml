@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# 纯逻辑层，对应 macOS 的 EVEOPreviewCore。不依赖 windows crate，Linux、macOS、Windows 都能编译与测试。
+
+[package]
+name = "eveo-core"
+description = "EVE-O Preview 的纯逻辑核心：模型、标题解析、客户端登记、几何与循环"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true
