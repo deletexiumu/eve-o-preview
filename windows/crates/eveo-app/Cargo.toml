@@ -18,6 +18,10 @@ publish.workspace = true
 name = "eve-o-preview"
 path = "src/main.rs"
 
+# 把应用图标编进 exe（build.rs）。只在 Windows 主机上实际调用。
+[build-dependencies]
+embed-resource = "3"
+
 [target.'cfg(windows)'.dependencies]
 eveo-core.workspace = true
 eveo-app-core.workspace = true

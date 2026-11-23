@@ -14,12 +14,14 @@ use std::collections::HashMap;
 
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::HBRUSH;
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Shell::{
     NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY, NOTIFYICONDATAW, Shell_NotifyIconW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, HICON, IDI_APPLICATION, LoadIconW,
-    RegisterWindowMessageW, WINDOW_EX_STYLE, WM_APP, WM_LBUTTONUP, WM_RBUTTONUP, WS_OVERLAPPED,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics, HICON, IDI_APPLICATION, IMAGE_ICON,
+    LR_DEFAULTCOLOR, LoadIconW, LoadImageW, RegisterWindowMessageW, SM_CXSMICON, SM_CYSMICON,
+    WINDOW_EX_STYLE, WM_APP, WM_LBUTTONUP, WM_RBUTTONUP, WS_OVERLAPPED,
 };
 use windows::core::{PCWSTR, Result};
 
@@ -30,6 +32,8 @@ use crate::window_class;
 pub const MAIN_WINDOW_CLASS: &str = "EVEOPreview.Main";
 /// 单实例唤醒消息的名字（`RegisterWindowMessageW`）。
 pub const ACTIVATE_MESSAGE_NAME: &str = "EVEOPreview.ActivateExisting";
+/// exe 里应用图标的资源编号（eveo-app 的 app.rc）。
+const APP_ICON_ID: u16 = 1;
 /// 托盘图标的回调消息。
 const WM_TRAY: u32 = WM_APP + 0x40;
 
@@ -131,8 +135,28 @@ impl Drop for TrayIcon {
     }
 }
 
-/// 应用图标。没有嵌入图标资源时用系统的通用应用图标。
+/// 应用图标：exe 里嵌入的图标，取小图标的尺寸（托盘按它显示，随系统缩放）。
+/// 没有嵌入图标资源时（探针等其他可执行文件）用系统的通用应用图标。
 fn default_icon() -> HICON {
+    // SAFETY: 取本进程 exe 的模块句柄；资源编号按 MAKEINTRESOURCE 的约定放进指针。
+    // ico 里有多个尺寸，LoadImageW 挑最接近的一张；图标随进程存在，不需要释放。
+    let embedded = unsafe {
+        let module = GetModuleHandleW(None).ok();
+        module.and_then(|module| {
+            LoadImageW(
+                Some(module.into()),
+                PCWSTR(APP_ICON_ID as usize as *const u16),
+                IMAGE_ICON,
+                GetSystemMetrics(SM_CXSMICON),
+                GetSystemMetrics(SM_CYSMICON),
+                LR_DEFAULTCOLOR,
+            )
+            .ok()
+        })
+    };
+    if let Some(handle) = embedded {
+        return HICON(handle.0);
+    }
     // SAFETY: 加载系统预置的图标，实例传 None；失败时不显示图标但不影响功能。
     unsafe { LoadIconW(None, IDI_APPLICATION) }.unwrap_or_default()
 }

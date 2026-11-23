@@ -187,7 +187,7 @@ Le menu contextuel propose « Faire défiler jusqu’au plus récent », « Copi
 
 ### Barre des menus
 
-L'icône de la barre des menus reprend l'icône de l'app : une molécule dans un octogone. Le menu propose : « Afficher toutes les vignettes » ou « Masquer toutes les vignettes », le changement de profil, « Réduire tous les clients », « Raccourcis seulement dans EVE », « Afficher l’overlay de renseignement », « Afficher l’overlay de traduction », « Rechercher les mises à jour… », « Signaler un problème… », « Réglages… » et « Quitter EVE-O Preview ». Quand une mise à jour est disponible ou que la session précédente s'est arrêtée inopinément, un point apparaît sur l'icône et le menu affiche un élément correspondant en haut. Quand une autorisation manque, le menu comporte un élément supplémentaire à ce sujet. Si vous arrêtez la capture d'un client depuis l'indicateur d'enregistrement du système, le menu affiche un élément « Reprendre la capture ».
+L'icône de la barre des menus représente une molécule dans un octogone. Le menu propose : « Afficher toutes les vignettes » ou « Masquer toutes les vignettes », le changement de profil, « Réduire tous les clients », « Raccourcis seulement dans EVE », « Afficher l’overlay de renseignement », « Afficher l’overlay de traduction », « Rechercher les mises à jour… », « Signaler un problème… », « Réglages… » et « Quitter EVE-O Preview ». Quand une mise à jour est disponible ou que la session précédente s'est arrêtée inopinément, un point apparaît sur l'icône et le menu affiche un élément correspondant en haut. Quand une autorisation manque, le menu comporte un élément supplémentaire à ce sujet. Si vous arrêtez la capture d'un client depuis l'indicateur d'enregistrement du système, le menu affiche un élément « Reprendre la capture ».
 
 EVE-O Preview affiche aussi son icône dans le Dock ; un clic dessus ouvre la fenêtre de réglages. Pour ne garder que l'icône de la barre des menus, décochez « Afficher l'icône dans le Dock » dans Réglages > Général.
 
@@ -269,4 +269,4 @@ L'app se connecte à GitHub pour rechercher et télécharger les mises à jour. 
 
 EVE Online et les logos associés sont des marques de CCP ehf. Ce projet n'est ni affilié à CCP ni approuvé par CCP.
 
-L'icône de l'app reprend l'icône de molécule du projet d'origine EveOPlus/eve-o-preview (GPL-3.0). L'arrière-plan est dessiné par `macos/scripts/make-app-icon.py` et ne contient aucune marque de CCP ni aucun visuel du jeu.
+L'icône de l'app est une faucheuse façon dessin animé fournie par le mainteneur du projet. `shared/branding/make-icons.py` génère les icônes macOS et Windows à partir de `shared/branding/logo-source.jpg`. L'icône ne contient aucune marque de CCP ni aucun visuel du jeu.

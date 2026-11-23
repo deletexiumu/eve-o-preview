@@ -185,7 +185,7 @@ The right-click menu offers Scroll to Latest, Copy This Line, Open in Browser (o
 
 ### Menu bar
 
-The menu bar icon matches the app icon: a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Show Intel Overlay, Show Translation Overlay, Check for Updates…, Report a Problem…, Settings and Quit. When an update is available or the previous run quit unexpectedly, a dot appears on the icon and the menu gets an item for it at the top. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
+The menu bar icon is a molecule inside an octagon. The menu offers: Show or Hide All Thumbnails, switch profile, Minimize All, Hotkeys Only in EVE, Show Intel Overlay, Show Translation Overlay, Check for Updates…, Report a Problem…, Settings and Quit. When an update is available or the previous run quit unexpectedly, a dot appears on the icon and the menu gets an item for it at the top. When a permission is missing, the menu has an extra item about it. If you stop a client's capture from the system's recording indicator, the menu gains a "Resume Capture" item.
 
 EVE-O Preview also shows its icon in the Dock; clicking it opens the settings window. To keep only the menu bar icon, clear "Show icon in Dock" under Settings > General.
 
@@ -267,4 +267,4 @@ The app connects to GitHub to check for and download updates. It connects to CCP
 
 EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP.
 
-The app icon reuses the molecule icon of upstream EveOPlus/eve-o-preview (GPL-3.0). The background is drawn by `macos/scripts/make-app-icon.py` and contains no CCP trademarks or game art.
+The app icon is a cartoon grim reaper supplied by the project maintainer. `shared/branding/make-icons.py` builds the macOS and Windows icons from `shared/branding/logo-source.jpg`. The icon contains no CCP trademarks or game art.

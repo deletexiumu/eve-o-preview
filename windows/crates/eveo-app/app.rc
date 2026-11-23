@@ -1,0 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// exe 的资源：应用图标，编号 1。资源管理器与任务栏显示它，托盘图标也从这里加载（tray.rs 的 APP_ICON_ID）。
+// 图标由 shared/branding/make-icons.py 生成。
+1 ICON "assets/app.ico"

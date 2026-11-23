@@ -187,7 +187,7 @@ Das Kontextmenü bietet „Zum Neuesten scrollen“, „Diese Zeile kopieren“,
 
 ### Menüleiste
 
-Das Symbol in der Menüleiste entspricht dem App-Symbol: ein Molekül in einem Achteck. Das Menü bietet: „Alle Miniaturen einblenden“ bzw. „Alle Miniaturen ausblenden“, Profil wechseln, „Alle Clients minimieren“, „Hotkeys nur in EVE“, „Aufklärungs-Overlay anzeigen“, „Übersetzungs-Overlay anzeigen“, „Nach Updates suchen …“, „Problem melden …“, „Einstellungen …“ und „EVE-O Preview beenden“. Wenn ein Update verfügbar ist oder der letzte Lauf unerwartet beendet wurde, erscheint ein Punkt auf dem Symbol, und oben im Menü erscheint ein Eintrag dazu. Fehlt eine Berechtigung, hat das Menü einen zusätzlichen Eintrag dazu. Wird die Aufnahme eines Clients über die Aufnahmeanzeige des Systems gestoppt, erhält das Menü einen Eintrag „Aufnahme fortsetzen“.
+Das Symbol in der Menüleiste zeigt ein Molekül in einem Achteck. Das Menü bietet: „Alle Miniaturen einblenden“ bzw. „Alle Miniaturen ausblenden“, Profil wechseln, „Alle Clients minimieren“, „Hotkeys nur in EVE“, „Aufklärungs-Overlay anzeigen“, „Übersetzungs-Overlay anzeigen“, „Nach Updates suchen …“, „Problem melden …“, „Einstellungen …“ und „EVE-O Preview beenden“. Wenn ein Update verfügbar ist oder der letzte Lauf unerwartet beendet wurde, erscheint ein Punkt auf dem Symbol, und oben im Menü erscheint ein Eintrag dazu. Fehlt eine Berechtigung, hat das Menü einen zusätzlichen Eintrag dazu. Wird die Aufnahme eines Clients über die Aufnahmeanzeige des Systems gestoppt, erhält das Menü einen Eintrag „Aufnahme fortsetzen“.
 
 EVE-O Preview zeigt sein Symbol auch im Dock; ein Klick darauf öffnet das Einstellungsfenster. Um nur das Symbol in der Menüleiste zu behalten, deaktivieren Sie „Symbol im Dock anzeigen“ unter Einstellungen > Allgemein.
 
@@ -269,4 +269,4 @@ Die App verbindet sich mit GitHub, um nach Updates zu suchen und sie zu laden. M
 
 EVE Online und zugehörige Logos sind Marken von CCP ehf. Dieses Projekt steht in keiner Verbindung zu CCP und wird nicht von CCP unterstützt.
 
-Das App-Symbol verwendet das Molekül-Symbol des Ursprungsprojekts EveOPlus/eve-o-preview (GPL-3.0) wieder. Der Hintergrund wird von `macos/scripts/make-app-icon.py` gezeichnet und enthält keine Marken oder Spielgrafiken von CCP.
+Das App-Symbol ist ein Sensenmann im Cartoon-Stil, den der Projektbetreuer bereitgestellt hat. `shared/branding/make-icons.py` erzeugt daraus die Symbole für macOS und Windows (Quelle: `shared/branding/logo-source.jpg`). Das Symbol enthält keine Marken oder Spielgrafiken von CCP.

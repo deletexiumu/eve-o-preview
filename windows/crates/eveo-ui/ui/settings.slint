@@ -43,6 +43,8 @@ export component SettingsWindow inherits Window {
     in property <string> ui-font: "Segoe UI Variable Text";
     // 首次打开的大小；可以缩小到最小尺寸，内容区滚动。
     title: "EVE-O Preview 设置";
+    // 标题栏与任务栏的图标：应用图标的头像版（shared/branding/make-icons.py 生成），小尺寸下认得出。
+    icon: @image-url("images/app-icon.png");
     preferred-width: 1040px;
     preferred-height: 760px;
     min-width: 760px;
