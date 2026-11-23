@@ -1,13 +1,25 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Windows 版的 Rust 工作区。crate 划分见 docs/windows/architecture.md 3.1 节：
-# 现在只有纯逻辑的 eveo-core，平台层、界面与可执行文件在后续里程碑加入。
-# 默认成员只放与 Windows 无关的 crate，这样在 Linux 上 `cargo test` 也能全过。
+# eveo-core 是纯逻辑；eveo-platform-win 是 Win32 实现；eveo-fake-client 与 eveo-probe 用于集成探针（M3）。
+# 界面与可执行文件在后续里程碑加入。
+# 默认成员只放与 Windows 无关的 crate，这样在 Linux 上 `cargo test` 也能全过；
+# 平台相关的 crate 在非 Windows 系统上编译成空壳，由 `cargo check --target x86_64-pc-windows-msvc` 检查。
 
 [workspace]
 resolver = "3"
-members = ["crates/eveo-core"]
-default-members = ["crates/eveo-core"]
+members = [
+    "crates/eveo-core",
+    "crates/eveo-platform-win",
+    "crates/eveo-fake-client",
+    "crates/eveo-probe",
+]
+default-members = [
+    "crates/eveo-core",
+    "crates/eveo-platform-win",
+    "crates/eveo-fake-client",
+    "crates/eveo-probe",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,6 +34,20 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 unicode-segmentation = "1"
 uuid = { version = "1", features = ["v4"] }
+eveo-core = { path = "crates/eveo-core" }
+eveo-platform-win = { path = "crates/eveo-platform-win" }
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_UI_Accessibility",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
