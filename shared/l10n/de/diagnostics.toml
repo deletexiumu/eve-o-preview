@@ -1,0 +1,45 @@
+# diagnostics 域的文字（de）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "Problem melden …"
+# 「意外退出」取 macOS 德文崩溃对话框的说法 „wurde unerwartet beendet“。
+menuCrashPending = "EVE-O Preview wurde unerwartet beendet – Melden …"
+
+sectionHeader = "Diagnose"
+verboseLoggingToggle = "Ausführliche Protokollierung"
+verboseLoggingHelp = "Schreibt mehr Details in die Protokolldatei. Vor dem Nachstellen eines Problems einschalten."
+logLocationLabel = "Protokolldateien"
+showLogsButton = "Protokolle im Finder zeigen"
+reportButton = "Problem melden …"
+
+windowTitle = "Problem melden"
+# 不称呼用户：「你自己把文件附到 Issue」改写成「附加由手动完成」。
+intro = "Erstellt eine ZIP-Datei mit den unten aufgeführten Elementen. Nichts wird automatisch gesendet: Das Anhängen an ein GitHub-Issue erfolgt von Hand."
+crashIntro = "EVE-O Preview wurde beim letzten Mal unerwartet beendet. Ein Bericht hilft, die Ursache zu beheben."
+redactionNote = "macOS-Benutzername, Computername und EVE-Charakternamen werden durch Platzhalter ersetzt."
+
+itemsHeader = "Im Bericht enthalten"
+itemSummary = "Umgebungsübersicht"
+itemConfig = "Einstellungen (ohne Namen)"
+itemLog = "App-Protokoll"
+itemCrash = "Absturzbericht {number}"
+itemManifest = "Dateiliste"
+previewTruncated = "Nur der Anfang wird angezeigt. Der Bericht enthält die ganze Datei."
+# 1 Ersetzung、2 Ersetzungen。
+replacements = { one = "{count} Ersetzung", other = "{count} Ersetzungen" }
+collecting = "Wird gesammelt …"
+
+createAndOpenButton = "Bericht erstellen und GitHub öffnen"
+createOnlyButton = "Nur Bericht erstellen"
+cancelButton = "Abbrechen"
+notNowButton = "Nicht jetzt"
+dontReportButton = "Nicht melden"
+
+doneTitle = "Bericht erstellt"
+# 三步操作写成不定式，与其他说明的文体一致。
+doneHelp = "Der Finder zeigt die ZIP-Datei. Diese in die Issue-Seite im Browser ziehen, das Geschehen beschreiben und absenden."
+revealButton = "Im Finder zeigen"
+openIssueButton = "GitHub erneut öffnen"
+closeButton = "Schließen"
+
+createFailed = "Der Bericht konnte nicht erstellt werden: {reason}"

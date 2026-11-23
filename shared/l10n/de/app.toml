@@ -1,0 +1,213 @@
+# app 域的文字（de）。键的用途见 ../keys/app.toml。
+
+[SettingsStrings]
+# 窗口与通用。
+# 用破折号连接应用名，避免德文复合词里夹着带空格的应用名。
+windowTitle = "EVE-O Preview – Einstellungen"
+points = "pt"
+reset = "Zurücksetzen"
+defaultColor = "Standard"
+cancel = "Abbrechen"
+confirm = "OK"
+delete = "Löschen"
+online = "Online"
+offline = "Offline"
+forward = "Vorwärts"
+backward = "Rückwärts"
+seconds = "{value:.1f_locale} s"
+# 帧率与毫秒取整，没有小数点，可以直接用格式串。
+fps = "{value:.0f} fps"
+milliseconds = "{value:.0f} ms"
+fakeModeNotice = "Demomodus: Die Miniaturen stammen von simulierten Clients. Wechseln und Minimieren ändern nur Demodaten."
+# 「保存」按 macOS 德文的习惯写 sichern。
+newerSchemaNotice = "Die Konfigurationsdatei hat Version {found}; dieser Build unterstützt höchstens Version {supported}. Es gelten die Standardwerte; Änderungen werden nicht gesichert."
+loadFailedNotice = "Die Konfigurationsdatei konnte nicht gelesen werden ({message}). Es gelten die Standardwerte; Änderungen werden nicht gesichert."
+quarantinedNotice = "Die Konfigurationsdatei war beschädigt und wurde nach {path} verschoben. Es gelten die Standardwerte."
+# 放进 loadFailedNotice 的括号里；德文的名词化动词（Lesen、Schreiben）本来就大写。
+configFileFailure = { read = "Lesen von {path} fehlgeschlagen: {reason}", write = "Schreiben von {path} fehlgeschlagen: {reason}", quarantine = "Verschieben der beschädigten Datei {path} fehlgeschlagen: {reason}", backup = "Backup der alten Konfiguration unter {path} fehlgeschlagen: {reason}" }
+configContentInvalid = "der Dateiinhalt ist keine gültige Konfiguration"
+
+# 页名称：侧栏窄，用单个词。「关于」按 macOS 德文系统设置的写法用 Info。
+pageClients = "Clients"
+pagePreviews = "Miniaturen"
+pageSwitching = "Umschalten"
+pageAlerts = "Warnungen"
+pageIntel = "Aufklärung"
+pageTranslation = "Übersetzung"
+pageProfiles = "Profile"
+pageGeneral = "Allgemein"
+pagePermissions = "Berechtigungen"
+pageAbout = "Info"
+
+# 客户端页。
+clientsSubtitle = "Laufende Clients und die diesem Profil bekannten Charaktere."
+# 会话开关「全部隐藏」用 ausblenden，与按角色的「显示缩略图」（anzeigen）区分开。
+hideAllThumbnails = "Alle Miniaturen ausblenden"
+hideAllHotkeyLabel = "Hotkey"
+# 「作用范围」写 Bereich，与热键域的 scopeMenuHelp 一致。
+hideAllScopeLabel = "Bereich"
+hideAllHotkeyFooter = "Möglich ist eine Kombination aus Sondertasten mit einer Taste (etwa ⌃⌥⌘H) oder mit der mittleren bzw. einer seitlichen Maustaste. Alle Hotkeys oben gelten in dem einen hier gewählten Bereich."
+charactersHeader = "Charaktere"
+charactersFooter = "Diese Farbe hat der Hervorhebungsrahmen, wenn der Charakter aktiv ist."
+noCharacters = "Noch keine Charaktere. EVE starten und mit einem Charakter einloggen."
+loginClientsHeader = "Clients am Anmeldebildschirm"
+showThumbnail = "Miniatur anzeigen"
+highlightColorHelp = "Hervorhebungsfarbe, wenn aktiv"
+
+# 预览与布局页。
+previewsSubtitle = "Größe, Darstellung und Verhalten der Miniaturen. Änderungen gelten sofort."
+defaultSize = "Standardgröße"
+minimumSize = "Mindestgröße"
+maximumSize = "Maximalgröße"
+unifySizes = "Alle Miniaturen auf Standardgröße zurücksetzen"
+appearanceHeader = "Darstellung"
+# 「不透明度」取 macOS 德文的 Deckkraft。
+opacity = "Deckkraft"
+showTitle = "Charaktername anzeigen"
+titleFontSize = "Schriftgröße des Namens"
+titleColor = "Farbe des Namens"
+borderEnabled = "Rahmen anzeigen"
+borderColor = "Rahmenfarbe"
+borderThickness = "Rahmenstärke"
+highlightEnabled = "Aktiven Client hervorheben"
+highlightColor = "Hervorhebungsfarbe"
+highlightThickness = "Hervorhebungsstärke"
+# 「悬停」译作 Überfahren（鼠标移到上方），macOS 德文帮助里的说法。
+zoomHeader = "Zoom beim Überfahren"
+zoomEnabled = "Beim Überfahren vergrößern"
+zoomFactor = "Zoomfaktor"
+zoomAnchor = "Ankerpunkt"
+behaviorHeader = "Verhalten"
+alwaysOnTop = "Miniaturen im Vordergrund halten"
+hideActiveClient = "Miniatur des aktiven Clients ausblenden"
+hideWhenNotEVE = "Miniaturen ausblenden, wenn EVE nicht aktiv ist"
+hideDelay = "Ausblendverzögerung"
+layoutHeader = "Layout"
+snapEnabled = "Beim Ziehen einrasten"
+lockAspectRatio = "Seitenverhältnis beim Skalieren beibehalten"
+lockLayout = "Layout sperren"
+# 键名用 macOS 德文的叫法，括号里附符号，方便与键盘对照。
+gestureHint = "Zum Bewegen mit der rechten Maustaste oder mit gedrückter Wahltaste (⌥) ziehen; zum Skalieren den Zeiger an den Rand bewegen und mit der linken Maustaste ziehen. Mit gedrückter Umschalttaste (⇧) wird nicht eingerastet."
+captureHeader = "Aufnahme & Position"
+frameRate = "Bildrate"
+# 标签右边是滑块，写成动作短语，说明裁掉的是标题栏。
+titleBarCrop = "Titelleiste abschneiden"
+pollInterval = "Abfrageintervall für Fenster"
+loginPositionX = "Anmelde-Miniatur X"
+loginPositionY = "Anmelde-Miniatur Y"
+# 九宫格的 9 个位置；德文习惯先说上下、再说左右。
+anchorName = { nw = "Oben links", n = "Oben", ne = "Oben rechts", w = "Links", center = "Mitte", e = "Rechts", sw = "Unten links", s = "Unten", se = "Unten rechts" }
+
+# 配置方案页。
+profilesSubtitle = "Jedes Profil ist ein vollständiger Satz aus Einstellungen, Layouts und Wechselgruppen."
+activeBadge = "Aktiv"
+switchTo = "Wechseln"
+rename = "Umbenennen"
+clone = "Duplizieren"
+newProfile = "Neues Profil"
+configFile = "Konfigurationsdatei"
+revealConfig = "Im Finder zeigen"
+profileName = "Profilname"
+profileNameRule = "1–64 Zeichen, eindeutig unter allen Profilen (Groß-/Kleinschreibung zählt nicht)."
+deleteProfileConfirm = "Profil „{name}“ löschen? Dies kann nicht widerrufen werden."
+cloneTitle = "„{name}“ duplizieren"
+renameTitle = "„{name}“ umbenennen"
+# 与 macOS 德文访达复制文件时的命名一致：「名称 Kopie」。
+copyName = "{name} Kopie"
+
+# 通用页。
+generalSubtitle = "Einstellungen für alle Profile."
+interfaceLanguage = "Sprache"
+# 语言选项「跟随系统」写成 Systemsprache，在菜单里比 „Wie System“ 清楚。
+followSystem = "Systemsprache"
+machineTranslationNote = "Einige Übersetzungen sind maschinell erstellt. Korrekturen sind willkommen."
+showDockIcon = "Symbol im Dock anzeigen"
+showDockIconHelp = "Wenn deaktiviert, erscheint EVE-O Preview nur in der Menüleiste."
+
+# 权限页。
+permissionsSubtitle = "Beide Berechtigungen werden unter „Systemeinstellungen“ > „Datenschutz & Sicherheit“ erteilt."
+# 权限名与 macOS 德文系统设置里的写法完全一致，便于照着查找。
+screenRecording = "Bildschirmaufnahme"
+screenRecordingDetail = "Nötig, um Client-Fenster aufzunehmen und Titel zu lesen. Wirkt meist erst nach einem Neustart."
+accessibility = "Bedienungshilfen"
+accessibilityDetail = "Nötig, um Client-Fenster wiederherzustellen, nach vorne zu holen und zu minimieren, sowie für Maustasten-Hotkeys. Wirkt sofort."
+granted = "Erteilt"
+notGranted = "Nicht erteilt"
+request = "Anfordern"
+openSystemSettings = "Systemeinstellungen öffnen"
+# 「重新启动」写 neu starten，与更新窗口一致。
+relaunchHint = "Nach Erteilen von „Bildschirmaufnahme“ neu starten"
+relaunch = "Neu starten"
+signingHint = "macOS speichert Berechtigungen anhand der Codesignatur. Ad-hoc-Builds müssen nach jedem Neubau erneut freigegeben werden; zu einem selbstsignierten Zertifikat siehe README."
+
+# 关于页。
+version = "Version"
+# `swift run` 时没有版本号，显示「开发构建」；Build 保留英文，德文开发者通用。
+devVersion = "Entwicklungs-Build"
+aboutSubtitle = "Live-Miniaturen und schnelles Wechseln für mehrere EVE Online-Clients, nativ für macOS."
+aboutSummary = "Eine Live-Miniatur pro Client, Wechseln per Klick, Hotkeys für Wechselgruppen und mehrere Profile."
+# 「上游」译作 Ursprungsprojekt（原始项目），比直译的 Upstream 好懂。
+upstreamHeader = "Ursprungsprojekt & Lizenz"
+upstreamText = "Diese App setzt die Funktionen von EveOPlus/eve-o-preview nativ für macOS neu um."
+licenseText = "Wie das Ursprungsprojekt steht sie unter der GNU General Public License v3.0."
+disclaimerHeader = "Hinweise"
+focusOnlyText = "Dieses Tool wechselt nur den Fensterfokus. Es sendet nie Eingaben an mehrere Clients gleichzeitig und liest oder verändert nie den Spielspeicher."
+gameLogText = "Kampfwarnungen lesen nur die Spielprotokolle, die der EVE-Client schreibt. Sie lesen nie den Spielspeicher, ändern keine Dateien und senden keine Eingaben."
+# 「通用」用通用页的页名 Allgemein（pageGeneral）。
+networkText = "EVE-O Preview kontaktiert GitHub nur, um nach Updates zu suchen und sie zu laden; abschaltbar unter „Allgemein“. Problemberichte werden nie automatisch gesendet."
+# 商标声明照英文原意翻译，不增删。
+eveIPText = "EVE Online und zugehörige Logos sind Marken von CCP ehf. Dieses Projekt steht in keiner Verbindung zu CCP und wird nicht von CCP unterstützt."
+aboutChatLogsNote = "Aufklärung und Übersetzung lesen nur Chatprotokolle und Spielprotokolle. Die Übersetzung sendet Chattext an den von dir gewählten Modelldienst. Wenn die Online-Namensprüfung aktiv ist, werden zusammenhängende Pilotennamen aus Aufklärungsmeldungen an die ESI-API von CCP gesendet."
+
+chatLogStatusStopped = "Aus"
+chatLogStatusWatching = { one = "Überwacht {files} Protokolldatei in {directory}", other = "Überwacht {files} Protokolldateien in {directory}" }
+chatLogStatusDirectoryNotFound = "Ordner der Chatprotokolle nicht gefunden: {path}"
+chatLogStatusAccessDenied = "Keine Leseberechtigung für {path}"
+chatLogHelp = "Im EVE-Client muss das Protokollieren des Chats in eine Datei aktiviert sein. Der Protokollordner wird auf der Seite „Warnungen“ festgelegt."
+
+[MenuStrings]
+showAll = "Alle Miniaturen einblenden"
+hideAll = "Alle Miniaturen ausblenden"
+profiles = "Profile"
+minimizeAll = "Alle Clients minimieren"
+# 打开窗口的菜单项以「空格 + 省略号」结尾，与 macOS 德文菜单一致。
+settings = "Einstellungen …"
+quit = "EVE-O Preview beenden"
+permissionsMissing = "Fehlende Berechtigungen …"
+# 「假客户端」译作 simuliert（模拟的），比 gefälscht（伪造的）中性。
+fakeMode = "Demomodus (simulierte Clients)"
+noClients = "Keine EVE-Clients gefunden"
+resumeCapture = "Aufnahme fortsetzen: {title}"
+# 德文与英文一样只区分单数与复数：1 Client、2 Clients。
+clientCount = { one = "{count} Client", other = "{count} Clients" }
+showIntelOverlay = "Aufklärungs-Overlay anzeigen"
+showTranslationOverlay = "Übersetzungs-Overlay anzeigen"
+
+[EditMenuStrings]
+title = "Bearbeiten"
+undo = "Widerrufen"
+redo = "Wiederholen"
+cut = "Ausschneiden"
+copy = "Kopieren"
+# macOS 德文的「粘贴」是 Einsetzen，不是 Einfügen。
+paste = "Einsetzen"
+selectAll = "Alles auswählen"
+closeWindow = "Fenster schließen"
+
+[ThumbnailStrings]
+minimize = "Minimieren"
+minimizeAll = "Alle minimieren"
+skipCycle = "Beim Wechseln überspringen"
+hide = "Diese Miniatur ausblenden"
+resetSize = "Standardgröße wiederherstellen"
+resumeCapture = "Aufnahme fortsetzen"
+# 接在不可用的菜单项后面，如「Minimieren (Bedienungshilfen erforderlich)」。
+needsAccessibility = "Bedienungshilfen erforderlich"
+unavailable = "{item} ({reason})"
+settings = "Einstellungen …"
+# 占位文字：缩略图很小，尽量短。
+waiting = "Warten auf Bilder …"
+needsScreenRecording = "Berechtigung „Bildschirmaufnahme“ erforderlich"
+# 「右键恢复」用不定式句，避免称呼用户。
+captureStopped = "Aufnahme gestoppt. Zum Fortsetzen rechtsklicken."
+minimized = "Minimiert"

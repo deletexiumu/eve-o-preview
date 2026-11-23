@@ -1,0 +1,40 @@
+# overlay 域的文字（ru）。键的用途见 ../keys/overlay.toml。
+
+[OverlayStrings]
+newMessages = { one = "{count} новое сообщение", few = "{count} новых сообщения", many = "{count} новых сообщений" }
+noActiveCharacter = "В текущем окне нет персонажа"
+emptyList = "Сообщений пока нет"
+
+menuScrollToLatest = "Прокрутить к последним"
+menuCopyLine = "Копировать эту строку"
+menuOpenInBrowser = "Открыть в браузере"
+menuClear = "Очистить список"
+menuLockLayout = "Закрепить расположение"
+menuResetFrame = "Вернуть положение и размер по умолчанию"
+menuHide = "Скрыть этот оверлей"
+menuOpenSettings = "Открыть настройки…"
+
+overlayHeader = "Оверлей"
+opacity = "Непрозрачность фона"
+fontSize = "Размер шрифта"
+resetFrame = "Вернуть положение по умолчанию"
+gestureHelp = "Перетаскивайте правой кнопкой или левой с Option, чтобы переместить оверлей; наведите указатель на край и тяните левой кнопкой, чтобы изменить размер; прокручивайте колесом, чтобы листать список."
+visibilityLabel = "Показывать"
+visibilityAlways = "Всегда"
+visibilityGameOnly = "Только в EVE: скрывать, когда ни одно окно EVE не на переднем плане"
+positionLabel = "Положение"
+sizeLabel = "Размер"
+frameHelp = "Положение отсчитывается в пунктах от левого верхнего угла основного дисплея. Размер ограничен от 220×120 до 900×900; положение за пределами экрана возвращается на экран."
+
+channelsHeader = "Каналы"
+addFromLogs = "Добавить из журналов"
+addByNamePlaceholder = "Введите название канала и нажмите Return"
+removeChannel = "Удалить"
+noChannels = "Каналов пока нет"
+refreshChannels = "Обновить"
+noDiscoveredChannels = "Недавних журналов чата не найдено"
+channelListeners = { one = "{count} персонаж", few = "{count} персонажа", many = "{count} персонажей" }
+builtInLocal = "Локал"
+builtInCorp = "Корпорация"
+builtInAlliance = "Альянс"
+builtInFleet = "Флот"

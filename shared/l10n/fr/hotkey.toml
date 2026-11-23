@@ -1,0 +1,48 @@
+# hotkey 域的文字（fr）。键的用途见 ../keys/hotkey.toml。
+
+[HotkeyStrings]
+switchingSubtitle = "Groupes de cycle et raccourcis. Chaque raccourci a une seule portée : Global (y compris dans EVE) ou Seulement dans EVE."
+cycleGroupsHeader = "Groupes de cycle"
+addGroup = "Nouveau groupe de cycle"
+noGroups = "Aucun groupe de cycle pour l'instant."
+groupName = "Nom"
+deleteGroup = "Supprimer le groupe"
+# 方向与设置域的 forward / backward（Suivant / Précédent）一致。
+forwardHotkeys = "Raccourcis « suivant »"
+backwardHotkeys = "Raccourcis « précédent »"
+noMembers = "Aucun membre pour l'instant."
+addMember = "Ajouter un membre"
+newGroupName = "Groupe {index}"
+
+characterHotkeysHeader = "Raccourcis des personnages"
+# 与英文一样避开「全局」：Global 已是作用范围的名称。
+globalHotkeysHeader = "Raccourcis généraux"
+hotkeyToggleHideAll = "Afficher ou masquer toutes les vignettes"
+hotkeyMinimizeAll = "Réduire tous les clients"
+hotkeyCycleLogin = "Parcourir les clients sur l'écran de connexion"
+hotkeyRulesHint = "Les raccourcis clavier nécessitent Control, Option ou Command, sauf F1–F20 et les chiffres du pavé numérique. Les boutons central et latéraux de la souris peuvent être utilisés seuls ; le clic n'est pas transmis au jeu."
+mouseHotkeyHint = "Les raccourcis souris nécessitent l'autorisation Accessibilité. Un bouton de souris réglé sur « Global » est intercepté dans toutes les apps. Supprimez d'abord les autres attributions de ce bouton dans le jeu ou dans le logiciel de votre souris."
+
+defaultScopeLabel = "Portée par défaut des raccourcis"
+scopeGlobal = "Global"
+scopeGame = "Seulement dans EVE"
+scopeGlobalOption = "Global : fonctionne dans toutes les apps, y compris EVE"
+scopeGameOption = "Seulement dans EVE : fonctionne uniquement quand une fenêtre EVE est au premier plan"
+defaultScopeFooter = "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici."
+scopeFollowDefault = "Par défaut ({current})"
+scopeMenuHelp = "Portée : {resolved}. Cliquez pour la modifier pour ce raccourci."
+menuHotkeysOnlyInEVE = "Raccourcis seulement dans EVE"
+
+addHotkey = "+ Ajouter"
+recordingPrompt = "Appuyez sur des touches ou un bouton latéral de souris (pointeur dans cette fenêtre)…"
+recorderHelp = "Cliquez, puis appuyez sur une combinaison de touches ou sur le bouton central ou latéral de la souris. Esc annule, Delete efface."
+removeHotkey = "Supprimer ce raccourci"
+
+hotkeyUnparsable = "Non reconnu"
+hotkeyMissingModifier = "Modificateur requis"
+hotkeyReserved = "Réservé par macOS"
+hotkeyAccessibilityRequired = "Accessibilité requise"
+hotkeyEventTapUnavailable = "Souris non surveillable"
+hotkeyDuplicate = "Déjà utilisé par {other}"
+# status 是 Carbon 的错误码，原样显示。
+hotkeyRegistrationFailed = "Échec de l'enregistrement ({status})"

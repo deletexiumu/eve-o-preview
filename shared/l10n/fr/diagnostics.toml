@@ -1,0 +1,43 @@
+# diagnostics 域的文字（fr）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "Signaler un problème…"
+menuCrashPending = "EVE-O Preview a quitté inopinément — Signaler…"
+
+sectionHeader = "Diagnostic"
+verboseLoggingToggle = "Journalisation détaillée"
+verboseLoggingHelp = "Écrit plus de détails dans le fichier journal. Activez-la avant de reproduire un problème."
+logLocationLabel = "Fichiers journaux"
+showLogsButton = "Afficher les journaux dans le Finder"
+reportButton = "Signaler un problème…"
+
+windowTitle = "Signaler un problème"
+intro = "Un fichier zip contenant les éléments ci-dessous va être créé. Rien n'est envoyé automatiquement : vous joignez vous-même le fichier à une issue GitHub."
+crashIntro = "EVE-O Preview a quitté inopinément la dernière fois. Un rapport aide à en corriger la cause."
+redactionNote = "Votre nom d'utilisateur macOS, le nom de l'ordinateur et les noms de vos personnages EVE sont remplacés par des marqueurs."
+
+itemsHeader = "Contenu du rapport"
+itemSummary = "Résumé de l'environnement"
+itemConfig = "Réglages (sans noms)"
+itemLog = "Journal de l'app"
+itemCrash = "Rapport de plantage {number}"
+itemManifest = "Liste des fichiers"
+previewTruncated = "Seul le début est affiché. Le rapport contient le fichier entier."
+# 0 remplacement、1 remplacement、2 remplacements。
+replacements = { one = "{count} remplacement", other = "{count} remplacements" }
+collecting = "Collecte…"
+
+createAndOpenButton = "Créer le rapport et ouvrir GitHub"
+createOnlyButton = "Créer le rapport seulement"
+cancelButton = "Annuler"
+notNowButton = "Plus tard"
+dontReportButton = "Ne pas signaler"
+
+doneTitle = "Rapport créé"
+doneHelp = "Le Finder affiche le fichier zip. Faites-le glisser dans la page de l'issue dans votre navigateur, décrivez ce qui s'est passé, puis envoyez."
+revealButton = "Afficher dans le Finder"
+openIssueButton = "Rouvrir GitHub"
+closeButton = "Fermer"
+
+# reason 是系统给的说明，不翻译。
+createFailed = "Impossible de créer le rapport : {reason}"

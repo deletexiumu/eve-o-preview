@@ -1,0 +1,63 @@
+# intel 域的文字（fr）。键的用途见 ../keys/intel.toml。
+
+[IntelStrings]
+pageSubtitle = "Lit les journaux des canaux de renseignement et indique où sont les hostiles, combien, avec quels vaisseaux et à quelle distance."
+enableToggle = "Afficher l’overlay de renseignement"
+statusLabel = "État"
+channelsHelp = "Choisissez les canaux où les hostiles sont signalés."
+
+locationHeader = "Ma position"
+locationHelp = "La position provient des sauts enregistrés dans le journal de jeu et du journal du canal Local. Saisissez-la ici si aucun des deux n’est disponible."
+locationUnknown = "Inconnue"
+locationValue = "{system} ({source}, il y a {age})"
+sourceGameLog = "journal de jeu"
+sourceLocal = "canal Local"
+sourceManual = "manuelle"
+systemPlaceholder = "Saisissez un nom de système puis appuyez sur Retour"
+clearLocation = "Effacer"
+systemNotFound = "Système introuvable"
+noOnlineCharacters = "Aucun personnage en ligne"
+referenceSystem = "Système de référence"
+referenceSystemHelp = "Les sauts sont comptés depuis le système de référence quand la position d’un personnage est inconnue."
+
+displayHeader = "Affichage"
+windowMinutes = "Conserver les dernières"
+minutes = "{count} min"
+maxJumps = "Compter jusqu’à"
+jumpsUnit = { one = "{count} saut", other = "{count} sauts" }
+alertJumps = "Surligner dans un rayon de"
+alertJumpsHelp = "Les signalements à ce nombre de sauts ou moins sont surlignés. Mettez 0 pour désactiver le surlignage."
+showOriginal = "Afficher le texte original"
+
+staticDataLabel = "Données de carte"
+staticDataBuild = "Version SDE {build}"
+staticDataMissing = "Données de carte absentes : systèmes et vaisseaux non reconnus"
+footnote = "Cette fonction lit uniquement les journaux de discussion et de jeu et n’envoie aucune saisie au jeu. Les noms de pilotes et les effectifs sont déduits du format des messages et peuvent être faux. La vérification en ligne indique seulement qu’un personnage porte ce nom, pas que le message parle de ce personnage."
+
+overlayTitle = "Renseignement · {character}"
+statusNoStaticData = "Données de carte absentes"
+statusNoChannels = "Aucun canal de renseignement choisi"
+statusLocationUnknown = "Position inconnue ; clic droit pour ouvrir les réglages"
+statusUsingReference = "Position inconnue ; calcul depuis {system}"
+statusLocation = "Position : {system} ({source}, il y a {age})"
+
+ageSeconds = "{count} s"
+ageMinutes = "{count} min"
+jumps = "{count} s."
+jumpsHere = "ici"
+jumpsBeyond = ">{limit} s."
+jumpsUnreachable = "sans portail"
+jumpsUnknown = "?"
+count = "×{value}"
+countInferred = "~×{value}"
+clear = "clair"
+noVisual = "non visible"
+
+resolvePilotsToggle = "Vérification des noms en ligne (ESI)"
+resolvePilotsHelp = "Quand plusieurs noms avec des espaces se suivent, demande à l’API ESI de CCP à quels personnages ils correspondent. Seuls ces mots sont envoyés, pas l’auteur du message, le nom du canal ni les noms de vos personnages. Les noms d’un seul mot ne sont pas vérifiés."
+pilotLookupLabel = "Vérification des noms"
+pilotLookupIdle = { one = "Prêt, {count} nom enregistré", other = "Prêt, {count} noms enregistrés" }
+pilotLookupResolving = "Vérification en cours"
+pilotLookupWaiting = "ESI indisponible ; nouvel essai dans {seconds} s"
+clearPilotCache = "Vider le cache des noms"
+pilotCacheCount = { one = "{count} nom enregistré", other = "{count} noms enregistrés" }

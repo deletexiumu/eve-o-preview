@@ -1,0 +1,43 @@
+# diagnostics 域的文字（es）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "Informar de un problema…"
+menuCrashPending = "EVE-O Preview se cerró inesperadamente — Informar…"
+
+sectionHeader = "Diagnóstico"
+verboseLoggingToggle = "Registro detallado"
+verboseLoggingHelp = "Escribe más detalles en el archivo de registro. Actívalo antes de reproducir un problema."
+logLocationLabel = "Archivos de registro"
+showLogsButton = "Mostrar registros en Finder"
+reportButton = "Informar de un problema…"
+
+windowTitle = "Informar de un problema"
+intro = "Se creará un archivo zip con los elementos siguientes. No se envía nada automáticamente: eres tú quien adjunta el archivo a un issue de GitHub."
+crashIntro = "EVE-O Preview se cerró inesperadamente la última vez. Un informe ayuda a corregir la causa."
+redactionNote = "Tu nombre de usuario de macOS, el nombre del ordenador y los nombres de los personajes de EVE se sustituyen por marcadores."
+
+itemsHeader = "Incluido en el informe"
+itemSummary = "Resumen del entorno"
+itemConfig = "Ajustes (sin nombres)"
+itemLog = "Registro de la app"
+itemCrash = "Informe de fallo {number}"
+itemManifest = "Lista de archivos"
+previewTruncated = "Solo se muestra la primera parte. El informe contiene el archivo completo."
+# 1 sustitución，0 / 2 sustituciones。
+replacements = { one = "{count} sustitución", other = "{count} sustituciones" }
+collecting = "Recopilando…"
+
+createAndOpenButton = "Crear informe y abrir GitHub"
+createOnlyButton = "Solo crear informe"
+cancelButton = "Cancelar"
+notNowButton = "Ahora no"
+dontReportButton = "No informar"
+
+doneTitle = "Informe creado"
+doneHelp = "Finder muestra el archivo zip. Arrástralo a la página del issue en tu navegador, describe lo ocurrido y envíalo."
+revealButton = "Mostrar en Finder"
+openIssueButton = "Volver a abrir GitHub"
+closeButton = "Cerrar"
+
+# reason 是系统给的说明，不翻译。
+createFailed = "No se ha podido crear el informe: {reason}"

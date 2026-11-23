@@ -1,0 +1,41 @@
+# combat 域的文字（es）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "La miniatura de un personaje parpadea cuando lo atacan."
+
+# 状态行显示目录全路径，文字保持短。
+enableToggle = "Hacer parpadear la miniatura al atacar a un personaje"
+statusLabel = "Estado"
+statusStopped = "Desactivado"
+statusWatching = { one = "Vigilando {files} archivo de registro en {directory}", other = "Vigilando {files} archivos de registro en {directory}" }
+statusDirectoryNotFound = "No se encuentra la carpeta de registros del juego: {path}"
+statusAccessDenied = "Sin permiso para leer {path}"
+# 系统设置的路径不加引号；单独提到的文件夹名加弯引号。
+accessDeniedHelp = "Permite que EVE-O Preview acceda a la carpeta “Documentos” en Ajustes del Sistema > Privacidad y seguridad > Archivos y carpetas."
+openSystemSettings = "Abrir Ajustes del Sistema…"
+
+logDirectoryHeader = "Registros del juego"
+logDirectoryLabel = "Carpeta"
+automaticSuffix = "(automático)"
+chooseDirectory = "Elegir…"
+useAutomaticLocation = "Usar ubicación automática"
+# 文件夹名 logs、Gamelogs 是磁盘上的名字，不翻译。
+chooseDirectoryMessage = "Elige la carpeta “logs” o “Gamelogs” de EVE."
+
+appearanceHeader = "Parpadeo"
+flashColor = "Color del parpadeo"
+duration = "Duración"
+seconds = "{value:secs_comma} s"
+style = "Estilo"
+styleBorder = "Borde"
+styleWash = "Tinte"
+styleBoth = "Ambos"
+
+triggersHeader = "Condiciones"
+includeMisses = "Avisar también de los ataques fallidos"
+minimumDamage = "Daño mínimo"
+minimumDamageHelp = "Se ignoran los impactos por debajo de esta cantidad. Los fallos dependen de la opción anterior."
+
+testFlash = "Probar parpadeo"
+testFlashHelp = "Hace parpadear todas las miniaturas una vez, aunque la alerta esté desactivada."
+footnote = "El cliente de EVE debe estar configurado para guardar los mensajes del juego en archivos de registro. Esta función solo lee los registros del juego y nunca envía ninguna entrada al juego."

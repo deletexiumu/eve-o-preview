@@ -1,0 +1,74 @@
+# update 域的文字（fr）。键的用途见 ../keys/update.toml。
+
+[UpdateStrings]
+# 以省略号结尾的菜单项会打开窗口（macOS 的约定）。
+menuCheckForUpdates = "Rechercher les mises à jour…"
+menuUpdateAvailable = "Mise à jour disponible : {version}…"
+menuRestartToUpdate = "Redémarrer pour passer à la version {version}"
+
+sectionHeader = "Mises à jour"
+autoCheckToggle = "Rechercher automatiquement les mises à jour"
+autoCheckHelp = "Contacte GitHub une fois par jour. Aucune donnée personnelle n'est envoyée."
+autoInstallToggle = "Installer automatiquement les mises à jour"
+autoInstallHelp = "Télécharge en arrière-plan. Installe et redémarre quand aucun client EVE n'a tourné depuis une minute, ou installe quand vous quittez EVE-O Preview."
+currentVersionLabel = "Version actuelle"
+lastCheckedLabel = "Dernière vérification"
+lastCheckedNever = "Jamais"
+checkNowButton = "Rechercher maintenant"
+
+# 状态行除进度外都是完整的句子，以句号结尾。
+statusChecking = "Recherche…"
+statusUpToDate = "EVE-O Preview est à jour."
+statusAvailable = "La version {version} est disponible."
+statusReady = "La version {version} est téléchargée. Elle sera installée quand aucun client EVE ne sera ouvert, ou quand vous quitterez l'app."
+# time 已按 fr 区域格式化（如「14:05」或带日期）。
+statusRateLimited = "GitHub limite les requêtes. Réessayez après {time}."
+statusRateLimitedLater = "GitHub limite les requêtes. Réessayez plus tard."
+statusUnavailable = "Les mises à jour ne sont pas disponibles dans cette version."
+
+windowTitle = "Mise à jour de logiciels"
+headline = "EVE-O Preview {version} est disponible"
+currentVersionLine = "Vous avez la version {version}."
+releaseNotesHeader = "Nouveautés"
+versionNotesTitle = "Version {version}"
+earlierVersionsOnReleasePage = "Les changements des versions précédentes sont sur la page des versions."
+# 按钮用动词不定式（Installer、Ignorer、Ouvrir），与 macOS 法文按钮的写法一致。
+installButton = "Installer la mise à jour"
+installHelp = "L'app redémarre après l'installation. Les vignettes disparaissent quelques secondes."
+skipButton = "Ignorer cette version"
+laterButton = "Plus tard"
+openReleasePageButton = "Ouvrir la page de la version"
+cancelButton = "Annuler"
+closeButton = "Fermer"
+retryButton = "Réessayer"
+# 两个大小已按 fr 区域格式化（如「1,2 Mo」）；总大小未知时只写已下载的大小。
+progressDownloading = { none = "Téléchargement… {received}", some = "Téléchargement… {received} sur {total}" }
+progressVerifying = "Vérification…"
+progressInstalling = "Installation…"
+progressRelaunching = "Redémarrage…"
+testFeedBadge = "Flux de test"
+notifyOnlyIntro = "Cette copie ne peut pas se mettre à jour elle-même."
+currentVersionUnchanged = "Votre version actuelle n'a pas été modifiée."
+reopenManually = "La mise à jour est installée. Quittez EVE-O Preview, puis rouvrez-la."
+
+# 每条都是完整的句子，说明原因并尽量给出下一步。
+blockerTranslocated = "macOS exécute l'app depuis un emplacement temporaire en lecture seule. Déplacez-la dans le dossier Applications, puis rouvrez-la."
+blockerReadOnlyVolume = "L'app se trouve sur un disque en lecture seule. Copiez-la d'abord dans le dossier Applications."
+blockerLocationNotWritable = "Vous n'avez pas l'autorisation de modifier le dossier qui contient l'app."
+blockerUnsupportedVolume = "L'app se trouve sur un disque qui n'est pas au format APFS ; les mises à jour ne peuvent donc pas être installées depuis l'app. Téléchargez la nouvelle version depuis la page de la version."
+blockerAdHocSignature = "Cette copie de l'app n'a pas de signature stable ; une nouvelle version ne peut donc pas être vérifiée."
+blockerDevelopmentSignature = "Il s'agit d'une version de développement signée localement."
+blockerUnsigned = "Cette copie de l'app n'est pas signée."
+
+# 「无法……」统一写 Impossible de …，与 macOS 法文的错误提示一致。
+errorNetwork = "Impossible de joindre GitHub. Vérifiez votre connexion Internet."
+# code 是 HTTP 状态码，原样显示。
+errorHTTPStatus = "GitHub a répondu par une erreur ({code})."
+errorMalformedFeed = "Impossible de lire les informations de la version."
+errorAssetMissing = "Cette version ne contient pas de programme d'installation pour les mises à jour automatiques."
+errorDiskSpace = "Espace disque insuffisant pour le téléchargement."
+errorChecksum = "Le téléchargement ne correspond pas à sa somme de contrôle et a été supprimé."
+errorDiskImage = "Impossible d'ouvrir l'image disque téléchargée."
+errorVerification = "La nouvelle version n'a pas pu être vérifiée ; elle n'a donc pas été installée."
+errorUnsupportedSystem = "Cette version nécessite macOS {minimum} ou une version ultérieure."
+errorSwapFailed = "Impossible de remplacer l'app."

@@ -1,0 +1,63 @@
+# intel 域的文字（en）。键的用途见 ../keys/intel.toml。
+
+[IntelStrings]
+pageSubtitle = "Reads intel channel logs and shows where hostiles are, how many, what ships, and how far."
+enableToggle = "Show intel overlay"
+statusLabel = "Status"
+channelsHelp = "Choose the channels where hostiles are reported."
+
+locationHeader = "My Location"
+locationHelp = "Location comes from jump records in the game log and from the Local channel log. Enter it here when neither is available."
+locationUnknown = "Unknown"
+locationValue = "{system} ({source}, {age} ago)"
+sourceGameLog = "game log"
+sourceLocal = "Local channel"
+sourceManual = "manual"
+systemPlaceholder = "Type a system name and press Return"
+clearLocation = "Clear"
+systemNotFound = "System not found"
+noOnlineCharacters = "No characters online"
+referenceSystem = "Reference System"
+referenceSystemHelp = "Jumps are counted from the reference system when a character's location is unknown."
+
+displayHeader = "Display"
+windowMinutes = "Keep the last"
+minutes = "{count} min"
+maxJumps = "Count up to"
+jumpsUnit = { one = "{count} jump", other = "{count} jumps" }
+alertJumps = "Highlight Within"
+alertJumpsHelp = "Reports within this many jumps are highlighted. Set to 0 to turn highlighting off."
+showOriginal = "Show original text"
+
+staticDataLabel = "Map Data"
+staticDataBuild = "SDE build {build}"
+staticDataMissing = "Map data is missing; systems and ships cannot be recognized"
+footnote = "This feature only reads chat logs and game logs and sends no input to the game. Pilot names and counts are inferred from message format and may be wrong. Online name checking only shows that a character with that name exists, not that the message refers to that character."
+
+overlayTitle = "Intel · {character}"
+statusNoStaticData = "Map data missing"
+statusNoChannels = "No intel channels set"
+statusLocationUnknown = "Location unknown; right-click to open settings"
+statusUsingReference = "Location unknown; counting from {system}"
+statusLocation = "Location: {system} ({source}, {age} ago)"
+
+ageSeconds = "{count}s"
+ageMinutes = "{count}m"
+jumps = "{count}j"
+jumpsHere = "here"
+jumpsBeyond = ">{limit}j"
+jumpsUnreachable = "no gates"
+jumpsUnknown = "?"
+count = "×{value}"
+countInferred = "~×{value}"
+clear = "clear"
+noVisual = "no visual"
+
+resolvePilotsToggle = "Check pilot names online (ESI)"
+resolvePilotsHelp = "When several names with spaces run together, asks CCP's ESI API which characters they are. Only those words are sent, not the speaker, the channel name, or your character names. Single-word names are not looked up."
+pilotLookupLabel = "Name Check"
+pilotLookupIdle = { one = "Ready, {count} character name saved", other = "Ready, {count} character names saved" }
+pilotLookupResolving = "Checking"
+pilotLookupWaiting = "ESI is unavailable; retrying in {seconds}s"
+clearPilotCache = "Clear Name Cache"
+pilotCacheCount = { one = "{count} character name saved", other = "{count} character names saved" }

@@ -1,0 +1,41 @@
+# diagnostics 域的文字（ru）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "Сообщить о проблеме…"
+menuCrashPending = "EVE-O Preview неожиданно завершилась — Сообщить…"
+
+sectionHeader = "Диагностика"
+verboseLoggingToggle = "Подробный журнал"
+verboseLoggingHelp = "Записывает в файл журнала больше подробностей. Включите перед тем, как воспроизвести проблему."
+logLocationLabel = "Файлы журнала"
+showLogsButton = "Показать журналы в Finder"
+reportButton = "Сообщить о проблеме…"
+
+windowTitle = "Сообщить о проблеме"
+intro = "Будет создан zip-файл с перечисленными ниже элементами. Ничего не отправляется автоматически: вы сами прикрепляете файл к issue на GitHub."
+crashIntro = "В прошлый раз EVE-O Preview неожиданно завершилась. Отчёт поможет найти причину."
+redactionNote = "Имя пользователя macOS, имя компьютера и имена персонажей EVE заменены заполнителями."
+
+itemsHeader = "Содержимое отчёта"
+itemSummary = "Сводка об окружении"
+itemConfig = "Сводка настроек (без имён)"
+itemLog = "Журнал приложения"
+itemCrash = "Отчёт о сбое {number}"
+itemManifest = "Список файлов"
+previewTruncated = "Показано только начало. В отчёт входит весь файл."
+replacements = { one = "{count} замена", few = "{count} замены", many = "{count} замен" }
+collecting = "Сбор данных…"
+
+createAndOpenButton = "Создать отчёт и открыть GitHub"
+createOnlyButton = "Только создать отчёт"
+cancelButton = "Отменить"
+notNowButton = "Не сейчас"
+dontReportButton = "Не сообщать"
+
+doneTitle = "Отчёт создан"
+doneHelp = "В Finder выделен zip-файл. Перетащите его на страницу issue в браузере, опишите, что произошло, и отправьте."
+revealButton = "Показать в Finder"
+openIssueButton = "Снова открыть GitHub"
+closeButton = "Закрыть"
+
+createFailed = "Не удалось создать отчёт: {reason}"

@@ -372,49 +372,47 @@ macOS 的协调器在 App 里，没有单元测试。Windows 版把协调器的�
 | Fluent `.ftl` | 标准格式，复数与选择器强，Rust 有成熟的库 | Swift 没有官方实现；要保留「漏一条就编译不过」就得把 Fluent 的模式编译成 Swift 代码，生成器复杂；CI 要多装一个解析库 | 不选 |
 | TOML + 代码生成 | 有注释与多行字符串；Python 3.11 的标准库能读；格式简单，一个生成器同时出两端代码 | 复数等语法要自己约定 | 选它 |
 
-约定：
+约定（完整说明见 `shared/tools/gen_l10n.py` 开头的注释）：
 
 ```toml
 # shared/l10n/keys/update.toml —— 键的定义，只有一份
-[menu_update_available]
-comment = "托盘或菜单栏菜单顶部的提示项：有可用更新"
-params = ["version"]
+swift_file = "UpdateStrings"          # 生成的 Swift 文件名
+notes = """更新域的文字……"""          # 域的说明，写进生成文件的开头
 
-[status_ready]
-comment = "状态行：新版本已下载"
-params = ["version"]
-platforms = ["macos", "windows"]     # 省略表示两端都有
+[protocols.UpdateStrings]
+doc = "更新域的全部文字。"
+accessor = "updates"                  # L10n 上的访问器名
+
+[UpdateStrings.statusReady]
+doc = "新版本已下载，退出时安装；参数是版本号。"
+params = ["_ version: String"]        # Swift 的参数写法：外部标签、内部名、类型
+# 一组的第一条可写 section = "…"，生成为 MARK
 ```
 
 ```toml
 # shared/l10n/zh/update.toml —— 每种语言一份
-menu_update_available = "有可用更新：{version}…"
-status_ready = "版本 {version} 已下载，将在没有 EVE 客户端运行时安装，或在退出时安装。"
+[UpdateStrings]
+statusReady = "新版本 {version} 已下载，将在没有 EVE 客户端运行时或退出时安装。"
 
-# 两端用词不同时写平台变体
-[quit]
-macos = "退出 EVE-O Preview"
-windows = "退出"
+# 按数量变化的文案：keys 里写 plural = "count"，值写成该语言复数类别的表
+clientCount = { one = "{count} client", other = "{count} clients" }   # en
+clientCount = "{count} 个客户端"                                       # zh：只有一种形式时直接写字符串
 
-# 按数量变化的文案
-[pilots_count]
-one = "{count} 名飞行员"
-other = "{count} 名飞行员"
+# 按参数取值分支：keys 里写 select = "<参数>"；字符串参数分 empty / other，可选值分 none / some，枚举写 cases
 ```
+
+占位符可带格式：`{value:secs}`（秒数，整数不带小数点）、`{fps:.0f}`、`{items:list}` 等，全部格式见生成器。字面的花括号写 `{{` 与 `}}`。
+
+两端用词不同时的平台变体（`macos = …`、`windows = …`）等到 Windows 接入时再加。
 
 生成与校验：
 
-1. `shared/tools/gen_l10n.py` 读全部 TOML，先校验：每种语言每个键都有、占位符与 `params` 一致、没有多余的键。任一项不满足就失败。编译期的完整性保证换成了生成期的保证，CI 里同样拦得住。
-2. 生成 Swift：协议与各语言的结构体，形状与现在手写的一致，`L10n` 的调用处不用改。
+1. `shared/tools/gen_l10n.py` 读全部 TOML，先校验：每种语言每个键都有、没有多余的键、占位符都是参数、格式适用于参数的类型、复数类别与分支的取值齐全。任一项不满足就失败，列出全部问题。
+2. 生成 Swift（`macos/Sources/EVEOPreview/Localization/Generated/`）：每个域的协议与 `L10n` 上的访问器，每种语言每个协议一个结构体，以及复数规则 `L10nPlural`。形状与原先手写的一致，调用处不用改。生成的文件开头有 `@generated` 标记，质量门禁不查。
 3. 生成 Rust：每个域一个 trait 与各语言的实现；Slint 侧通过视图模型取字符串，不用 Slint 自带的 gettext 机制（保持两端同一个来源）。
-4. 生成结果提交进仓库。CI 重新生成一遍并用 `git diff --exit-code` 核对没有漂移。这样 `swift build` 与 `cargo build` 都不依赖 Python。
+4. 生成结果提交进仓库。CI 运行 `gen_l10n.py --check`，生成结果过期或生成目录里有多余的文件时失败。这样 `swift build` 与 `cargo build` 都不依赖 Python。
 
-macOS 侧的迁移（在 M5 做，不阻塞 Windows 的前期工作）：
-
-1. 写一次性的提取脚本，把现有的 Swift 结构体转成 TOML。
-2. 生成新的 Swift 文件，放在与旧文件不同的类型名下。
-3. 加一个临时测试：对每种语言的每个键，用固定参数分别调用旧实现与新实现，断言结果逐字相同。
-4. 测试通过后删掉旧文件与临时测试，把类型名换回来。
+macOS 侧的迁移已在 M5 完成：一次性脚本把手写的结构体转成 TOML（467 条 × 8 种语言）；生成的结构体先用另一个类型名，与旧实现并存，临时测试对每种语言的每个键用一组固定参数调用新旧两个实现，结果逐字相同（Mac 上 11 组全部通过）；之后删掉了旧文件与临时测试，换回原来的类型名。各域共用的补充逻辑（`TranslationStrings+Status.swift`、`UpdateStrings+Format.swift`、`OverlayStrings+BuiltIn.swift`）仍是手写的协议扩展。
 
 ### 5.3 静态数据与词表
 

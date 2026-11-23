@@ -1,0 +1,40 @@
+# combat 域的文字（fr）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "Fait clignoter la vignette d'un personnage quand il est attaqué."
+
+# 状态行显示目录全路径，文字保持短。
+enableToggle = "Faire clignoter la vignette quand un personnage est attaqué"
+statusLabel = "État"
+statusStopped = "Désactivé"
+statusWatching = { one = "Surveillance de {files} fichier journal dans {directory}", other = "Surveillance de {files} fichiers journaux dans {directory}" }
+statusDirectoryNotFound = "Dossier des journaux de jeu introuvable : {path}"
+statusAccessDenied = "Lecture non autorisée : {path}"
+accessDeniedHelp = "Autorisez EVE-O Preview à accéder au dossier « Documents » dans Réglages Système > Confidentialité et sécurité > Fichiers et dossiers."
+openSystemSettings = "Ouvrir Réglages Système…"
+
+# 文件夹名 logs、Gamelogs 是磁盘上的真实名称，不翻译。
+logDirectoryHeader = "Journaux de jeu"
+logDirectoryLabel = "Dossier"
+automaticSuffix = "(automatique)"
+chooseDirectory = "Choisir…"
+useAutomaticLocation = "Utiliser l'emplacement automatique"
+chooseDirectoryMessage = "Choisissez le dossier « logs » ou « Gamelogs » d'EVE."
+
+appearanceHeader = "Clignotement"
+flashColor = "Couleur du clignotement"
+duration = "Durée"
+seconds = "{value:secs_comma} s"
+style = "Style"
+styleBorder = "Bordure"
+styleWash = "Teinte"
+styleBoth = "Les deux"
+
+triggersHeader = "Déclencheurs"
+includeMisses = "Alerter aussi pour les attaques manquées"
+minimumDamage = "Dégâts minimum"
+minimumDamageHelp = "Les coups en dessous de cette valeur sont ignorés. Les attaques manquées suivent l'option ci-dessus."
+
+testFlash = "Tester le clignotement"
+testFlashHelp = "Fait clignoter chaque vignette une fois, même si l'alerte est désactivée."
+footnote = "Le client EVE doit être réglé pour enregistrer les messages du jeu dans des fichiers journaux. Cette fonction lit uniquement les journaux de jeu et n'envoie jamais aucune entrée au jeu."

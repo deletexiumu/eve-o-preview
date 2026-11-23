@@ -1,0 +1,41 @@
+# diagnostics 域的文字（en）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "Report a Problem…"
+menuCrashPending = "EVE-O Preview quit unexpectedly — Report…"
+
+sectionHeader = "Diagnostics"
+verboseLoggingToggle = "Verbose logging"
+verboseLoggingHelp = "Writes more detail to the log file. Turn it on before you reproduce a problem."
+logLocationLabel = "Log files"
+showLogsButton = "Show Logs in Finder"
+reportButton = "Report a Problem…"
+
+windowTitle = "Report a Problem"
+intro = "This creates a zip file with the items below. Nothing is sent automatically: you attach the file to a GitHub issue yourself."
+crashIntro = "EVE-O Preview quit unexpectedly last time. A report helps to fix the cause."
+redactionNote = "Your macOS user name, computer name and EVE character names are replaced with placeholders."
+
+itemsHeader = "Included in the report"
+itemSummary = "Environment summary"
+itemConfig = "Settings summary (no names)"
+itemLog = "App log"
+itemCrash = "Crash report {number}"
+itemManifest = "File list"
+previewTruncated = "Only the first part is shown. The report contains the whole file."
+replacements = { one = "{count} replacement", other = "{count} replacements" }
+collecting = "Collecting…"
+
+createAndOpenButton = "Create Report and Open GitHub"
+createOnlyButton = "Create Report Only"
+cancelButton = "Cancel"
+notNowButton = "Not Now"
+dontReportButton = "Don't Report"
+
+doneTitle = "Report created"
+doneHelp = "Finder shows the zip file. Drag it into the issue page in your browser, describe what happened, then submit."
+revealButton = "Show in Finder"
+openIssueButton = "Open GitHub Again"
+closeButton = "Close"
+
+createFailed = "The report couldn't be created: {reason}"

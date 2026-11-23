@@ -1,0 +1,41 @@
+# diagnostics 域的文字（ko）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "문제 신고…"
+menuCrashPending = "EVE-O Preview가 예기치 않게 종료됨 — 신고…"
+
+sectionHeader = "진단"
+verboseLoggingToggle = "상세 로그"
+verboseLoggingHelp = "로그 파일에 더 자세한 내용을 기록합니다. 문제를 재현하기 전에 켜십시오."
+logLocationLabel = "로그 파일"
+showLogsButton = "Finder에서 로그 보기"
+reportButton = "문제 신고…"
+
+windowTitle = "문제 신고"
+intro = "아래 항목이 담긴 zip 파일을 만듭니다. 자동으로 전송되는 것은 없으며, 파일은 직접 GitHub 이슈에 첨부합니다."
+crashIntro = "지난번에 EVE-O Preview가 예기치 않게 종료되었습니다. 보고서는 원인을 찾는 데 도움이 됩니다."
+redactionNote = "macOS 사용자 이름, 컴퓨터 이름, EVE 캐릭터 이름은 자리 표시자로 바뀝니다."
+
+itemsHeader = "보고서에 포함되는 항목"
+itemSummary = "환경 요약"
+itemConfig = "설정 요약(이름 제외)"
+itemLog = "앱 로그"
+itemCrash = "충돌 보고서 {number}"
+itemManifest = "파일 목록"
+previewTruncated = "앞부분만 표시됩니다. 보고서에는 파일 전체가 들어 있습니다."
+replacements = "{count}건 바꿈"
+collecting = "수집 중…"
+
+createAndOpenButton = "보고서 만들고 GitHub 열기"
+createOnlyButton = "보고서만 만들기"
+cancelButton = "취소"
+notNowButton = "나중에"
+dontReportButton = "신고 안 함"
+
+doneTitle = "보고서를 만들었습니다"
+doneHelp = "Finder에 zip 파일이 표시되어 있습니다. 브라우저의 이슈 페이지로 끌어다 놓고, 무슨 일이 있었는지 적은 다음 제출하십시오."
+revealButton = "Finder에서 보기"
+openIssueButton = "GitHub 다시 열기"
+closeButton = "닫기"
+
+createFailed = "보고서를 만들 수 없습니다: {reason}"

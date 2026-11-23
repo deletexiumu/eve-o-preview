@@ -1,0 +1,41 @@
+# diagnostics 域的文字（ja）。键的用途见 ../keys/diagnostics.toml。
+
+[DiagnosticsStrings]
+menuReportProblem = "問題を報告…"
+menuCrashPending = "EVE-O Preview が予期せず終了しました — 報告…"
+
+sectionHeader = "診断"
+verboseLoggingToggle = "詳細ログ"
+verboseLoggingHelp = "ログファイルにより詳しい情報を書き込みます。問題を再現する前にオンにしてください。"
+logLocationLabel = "ログファイル"
+showLogsButton = "Finder でログを表示"
+reportButton = "問題を報告…"
+
+windowTitle = "問題を報告"
+intro = "以下の項目を含む zip ファイルを作成します。自動では何も送信されません。ファイルはご自身で GitHub の Issue に添付してください。"
+crashIntro = "前回 EVE-O Preview が予期せず終了しました。レポートは原因の解明に役立ちます。"
+redactionNote = "macOS のユーザ名、コンピュータ名、EVE のキャラクター名はプレースホルダに置き換えられます。"
+
+itemsHeader = "レポートに含まれる項目"
+itemSummary = "環境の概要"
+itemConfig = "設定の概要（名前なし）"
+itemLog = "アプリのログ"
+itemCrash = "クラッシュレポート {number}"
+itemManifest = "ファイル一覧"
+previewTruncated = "先頭部分のみ表示しています。レポートにはファイル全体が含まれます。"
+replacements = "{count} 件を置換"
+collecting = "収集中…"
+
+createAndOpenButton = "レポートを作成して GitHub を開く"
+createOnlyButton = "レポートのみ作成"
+cancelButton = "キャンセル"
+notNowButton = "あとで"
+dontReportButton = "報告しない"
+
+doneTitle = "レポートを作成しました"
+doneHelp = "Finder に zip ファイルが表示されています。ブラウザの Issue ページにドラッグし、何が起きたかを書いてから送信してください。"
+revealButton = "Finder で表示"
+openIssueButton = "GitHub をもう一度開く"
+closeButton = "閉じる"
+
+createFailed = "レポートを作成できませんでした: {reason}"

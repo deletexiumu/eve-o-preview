@@ -1,0 +1,117 @@
+# diagnostics 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/diagnostics.toml。
+
+swift_file = "DiagnosticsStrings"
+notes = """
+诊断域的文字（v1.1 设计 11.4 节）：菜单栏的「报告问题…」与崩溃提示项、「通用」页的诊断一组、报告窗口与完成页。
+Issue 的标题与正文、压缩包里的文件一律用英文，不在这里（v1.1 设计 7.5 节）。"""
+
+[protocols.DiagnosticsStrings]
+doc = "诊断域的文字。"
+accessor = "diagnostics"
+
+[DiagnosticsStrings.menuReportProblem]
+section = "菜单栏菜单"
+doc = "工具项「报告问题…」。"
+
+[DiagnosticsStrings.menuCrashPending]
+doc = "顶部的提示项：上次意外退出，点开报告。"
+
+[DiagnosticsStrings.sectionHeader]
+section = "「通用」页的诊断一组"
+doc = "一组的标题。"
+
+[DiagnosticsStrings.verboseLoggingToggle]
+doc = "「详细日志」开关。"
+
+[DiagnosticsStrings.verboseLoggingHelp]
+doc = "「详细日志」的说明。"
+
+[DiagnosticsStrings.logLocationLabel]
+doc = "日志文件位置一行的标签。"
+
+[DiagnosticsStrings.showLogsButton]
+doc = "「在访达中显示日志」按钮。"
+
+[DiagnosticsStrings.reportButton]
+doc = "「报告问题…」按钮。"
+
+[DiagnosticsStrings.windowTitle]
+section = "报告窗口的说明"
+doc = "窗口标题。"
+
+[DiagnosticsStrings.intro]
+doc = "手动情境的说明。"
+
+[DiagnosticsStrings.crashIntro]
+doc = "崩溃情境的说明。"
+
+[DiagnosticsStrings.redactionNote]
+doc = "脱敏的说明。"
+
+[DiagnosticsStrings.itemsHeader]
+section = "报告窗口的文件列表与预览"
+doc = "文件列表的标题。"
+
+[DiagnosticsStrings.itemSummary]
+doc = "`summary.md`。"
+
+[DiagnosticsStrings.itemConfig]
+doc = "`config-summary.json`。"
+
+[DiagnosticsStrings.itemLog]
+doc = "日志文件。"
+
+[DiagnosticsStrings.itemCrash]
+doc = "第 number 个崩溃报告。"
+params = ["_ number: Int"]
+
+[DiagnosticsStrings.itemManifest]
+doc = "`manifest.json`。"
+
+[DiagnosticsStrings.previewTruncated]
+doc = "预览只显示了开头时的说明。"
+
+[DiagnosticsStrings.replacements]
+doc = "替换次数，如「12 replacements」。"
+params = ["_ count: Int"]
+plural = "count"
+
+[DiagnosticsStrings.collecting]
+doc = "收集中的进度文字。"
+
+[DiagnosticsStrings.createAndOpenButton]
+section = "报告窗口的按钮"
+doc = "「生成报告并打开 GitHub」。"
+
+[DiagnosticsStrings.createOnlyButton]
+doc = "「只生成报告」。"
+
+[DiagnosticsStrings.cancelButton]
+doc = "「取消」（手动情境）。"
+
+[DiagnosticsStrings.notNowButton]
+doc = "「以后再说」（崩溃情境）。"
+
+[DiagnosticsStrings.dontReportButton]
+doc = "「不报告」（崩溃情境）。"
+
+[DiagnosticsStrings.doneTitle]
+section = "完成页"
+doc = "完成页的标题。"
+
+[DiagnosticsStrings.doneHelp]
+doc = "完成页的说明：把 zip 拖进浏览器里的 Issue 页面。"
+
+[DiagnosticsStrings.revealButton]
+doc = "「在访达中显示」。"
+
+[DiagnosticsStrings.openIssueButton]
+doc = "「再次打开 GitHub」。"
+
+[DiagnosticsStrings.closeButton]
+doc = "「关闭」。"
+
+[DiagnosticsStrings.createFailed]
+section = "错误"
+doc = "生成失败，附原因（系统的说明，不翻译）。"
+params = ["_ reason: String"]

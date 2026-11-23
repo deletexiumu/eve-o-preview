@@ -1,0 +1,211 @@
+# app 域的文字（fr）。键的用途见 ../keys/app.toml。
+
+[SettingsStrings]
+# 窗口与通用。
+windowTitle = "Réglages d'EVE-O Preview"
+points = "pt"
+reset = "Réinitialiser"
+defaultColor = "Par défaut"
+cancel = "Annuler"
+confirm = "OK"
+delete = "Supprimer"
+online = "En ligne"
+offline = "Hors ligne"
+# 循环方向接在循环组名后面（如「Groupe 1 · Suivant」），所以用「下一个 / 上一个」。
+forward = "Suivant"
+backward = "Précédent"
+seconds = "{value:.1f_locale} s"
+fps = "{value:.0f} i/s"
+milliseconds = "{value:.0f} ms"
+fakeModeNotice = "Mode démo : les vignettes proviennent de clients fictifs. Basculer et réduire ne modifient que les données de démo."
+# 「schema 版本」译作「格式」，避免与应用自己的版本号混淆。
+newerSchemaNotice = "Le fichier de configuration est au format {found} ; cette version gère jusqu'au format {supported}. Réglages par défaut utilisés ; les modifications ne seront pas enregistrées."
+loadFailedNotice = "Impossible de lire le fichier de configuration ({message}). Réglages par défaut utilisés ; les modifications ne seront pas enregistrées."
+quarantinedNotice = "Le fichier de configuration était corrompu et a été déplacé vers {path}. Réglages par défaut utilisés."
+# 放进 loadFailedNotice 的括号里，所以小写开头。
+configFileFailure = { read = "échec de la lecture de {path} : {reason}", write = "échec de l'écriture de {path} : {reason}", quarantine = "échec de la mise à l'écart du fichier corrompu {path} : {reason}", backup = "échec de la sauvegarde de l'ancienne configuration vers {path} : {reason}" }
+configContentInvalid = "le contenu du fichier n'est pas une configuration valide"
+
+# 页名称：侧栏窄，「预览与布局」写 Vignettes，「切换与热键」写 Raccourcis（循环组本身也靠热键驱动）。
+pageClients = "Clients"
+pagePreviews = "Vignettes"
+pageSwitching = "Raccourcis"
+pageAlerts = "Alertes"
+pageIntel = "Renseignement"
+pageTranslation = "Traduction"
+pageProfiles = "Profils"
+pageGeneral = "Général"
+pagePermissions = "Autorisations"
+pageAbout = "À propos"
+
+# 客户端页。
+# 「全部隐藏」是会话开关，「显示缩略图」是按角色的持久化开关：分别写 Masquer toutes les vignettes 与 Afficher la vignette。
+clientsSubtitle = "Clients en cours d'exécution et personnages connus de ce profil."
+hideAllThumbnails = "Masquer toutes les vignettes"
+hideAllHotkeyLabel = "Raccourci"
+hideAllScopeLabel = "Portée"
+# 修饰键与鼠标按键的符号（⌃⌥⌘H）原样保留。
+hideAllHotkeyFooter = "Utilisez des touches de modification avec une touche (comme ⌃⌥⌘H), ou avec le bouton central ou un bouton latéral de la souris. Tous les raccourcis ci-dessus utilisent la portée unique choisie ici."
+charactersHeader = "Personnages"
+charactersFooter = "Cette couleur sert à la bordure de surbrillance quand le personnage est actif."
+noCharacters = "Aucun personnage pour l'instant. Lancez EVE et connectez un personnage."
+loginClientsHeader = "Clients sur l'écran de connexion"
+showThumbnail = "Afficher la vignette"
+highlightColorHelp = "Couleur de surbrillance quand le personnage est actif"
+
+# 预览与布局页。表单行的标签在左，控件在右，标签尽量短。
+previewsSubtitle = "Taille, apparence et comportement des vignettes. Les modifications s'appliquent immédiatement."
+defaultSize = "Taille par défaut"
+minimumSize = "Taille minimale"
+maximumSize = "Taille maximale"
+unifySizes = "Remettre toutes les vignettes à la taille par défaut"
+# border 统一写 bordure，highlight 统一写 surbrillance，两者不混用。
+appearanceHeader = "Apparence"
+opacity = "Opacité"
+showTitle = "Afficher le nom du personnage"
+titleFontSize = "Taille de police du nom"
+titleColor = "Couleur du nom"
+borderEnabled = "Afficher la bordure"
+borderColor = "Couleur de la bordure"
+borderThickness = "Épaisseur de la bordure"
+highlightEnabled = "Mettre en surbrillance le client actif"
+highlightColor = "Couleur de surbrillance"
+highlightThickness = "Épaisseur de surbrillance"
+zoomHeader = "Zoom au survol"
+zoomEnabled = "Zoomer au survol"
+zoomFactor = "Facteur de zoom"
+zoomAnchor = "Point d'ancrage"
+# 「前台」写 au premier plan，与 macOS 法文的说法一致。
+behaviorHeader = "Comportement"
+alwaysOnTop = "Garder les vignettes au premier plan"
+hideActiveClient = "Masquer la vignette du client actif"
+hideWhenNotEVE = "Masquer les vignettes quand EVE n'est pas au premier plan"
+hideDelay = "Délai de masquage"
+layoutHeader = "Disposition"
+# 「吸附」写 aimanter（macOS 法文与常见软件的说法）。
+snapEnabled = "Aimanter pendant le déplacement"
+lockAspectRatio = "Conserver les proportions au redimensionnement"
+lockLayout = "Verrouiller la disposition"
+# 键名 Option、Shift 与英文一致，不改写成 Maj。
+gestureHint = "Faites glisser avec le bouton droit ou avec Option pour déplacer ; placez le pointeur sur un bord et faites glisser avec le bouton gauche pour redimensionner ; maintenez Shift pour désactiver l'aimantation."
+# 坐标标签用冒号分隔，与其他语言的写法一致。
+captureHeader = "Capture et position"
+frameRate = "Fréquence d'images"
+titleBarCrop = "Rognage de la barre de titre"
+pollInterval = "Intervalle d'analyse des fenêtres"
+loginPositionX = "Vignette de connexion : X"
+loginPositionY = "Vignette de connexion : Y"
+# 九宫格的 9 个位置。
+anchorName = { nw = "En haut à gauche", n = "En haut", ne = "En haut à droite", w = "À gauche", center = "Au centre", e = "À droite", sw = "En bas à gauche", s = "En bas", se = "En bas à droite" }
+
+# 配置方案页。「配置方案」写 profil，「配置文件」写 fichier de configuration（架构文档第 13 节）。
+profilesSubtitle = "Chaque profil est un ensemble complet de réglages, de dispositions et de groupes de cycle."
+activeBadge = "Actif"
+switchTo = "Activer"
+rename = "Renommer"
+clone = "Dupliquer"
+newProfile = "Nouveau profil"
+configFile = "Fichier de configuration"
+revealConfig = "Afficher dans le Finder"
+profileName = "Nom du profil"
+profileNameRule = "De 1 à 64 caractères, unique parmi les profils (sans tenir compte de la casse)."
+deleteProfileConfirm = "Supprimer le profil « {name} » ? Cette action est irréversible."
+# 对话框标题与确认文字里的名称用书名号括起来。
+cloneTitle = "Dupliquer « {name} »"
+renameTitle = "Renommer « {name} »"
+# 与 macOS 法文版访达复制文件时的命名一致：「名称 copie」。
+copyName = "{name} copie"
+
+# 通用页。
+# 语言选项本身用各语言的自称（AppLanguage.autonym），不翻译；「跟随系统」写 Selon le système。
+generalSubtitle = "Réglages communs à tous les profils."
+interfaceLanguage = "Langue de l'interface"
+followSystem = "Selon le système"
+machineTranslationNote = "Certaines traductions sont générées automatiquement. Les corrections sont les bienvenues."
+showDockIcon = "Afficher l'icône dans le Dock"
+showDockIconHelp = "Si cette option est désactivée, EVE-O Preview n'affiche que son icône dans la barre des menus."
+
+# 权限页。权限名与系统设置的路径取 macOS 法文版的官方叫法。
+permissionsSubtitle = "Les deux autorisations s'accordent dans Réglages Système > Confidentialité et sécurité."
+screenRecording = "Enregistrement de l'écran"
+screenRecordingDetail = "Nécessaire pour capturer les fenêtres des clients et lire leurs titres. Prend généralement effet après une relance."
+accessibility = "Accessibilité"
+accessibilityDetail = "Nécessaire pour restaurer, mettre au premier plan et réduire les fenêtres des clients, ainsi que pour les raccourcis de boutons de souris. Prend effet immédiatement."
+granted = "Autorisé"
+notGranted = "Non autorisé"
+request = "Demander"
+openSystemSettings = "Ouvrir Réglages Système"
+# 「重新启动」写 relancer（重新打开应用的说法），与更新域自动重启的 redémarrer 区分。
+relaunchHint = "Relancer après avoir accordé « Enregistrement de l'écran »"
+relaunch = "Relancer"
+# build、ad hoc 保留英文（法语开发者的通行说法），README 也是这样写。
+signingHint = "macOS associe les autorisations à la signature du code. Les builds signées ad hoc doivent être réautorisées après chaque recompilation ; le README explique comment utiliser un certificat auto-signé."
+
+# 关于页。「上游项目」写 projet d'origine。
+version = "Version"
+devVersion = "Version de développement"
+aboutSubtitle = "Vignettes en direct et bascule rapide entre plusieurs clients EVE Online, en natif sur macOS."
+aboutSummary = "Une vignette en direct par client, bascule d'un clic, raccourcis de groupes de cycle et plusieurs profils."
+upstreamHeader = "Projet d'origine et licence"
+upstreamText = "Cette app réimplémente en natif pour macOS les fonctionnalités d'EveOPlus/eve-o-preview."
+# 许可证名称 GNU General Public License v3.0 是正式名称，不翻译。
+licenseText = "Comme le projet d'origine, elle est publiée sous la GNU General Public License v3.0."
+disclaimerHeader = "Remarques"
+focusOnlyText = "Cet outil ne fait que changer le focus des fenêtres. Il ne diffuse jamais d'entrées vers plusieurs clients et ne lit ni ne modifie jamais la mémoire du jeu."
+gameLogText = "Les alertes de combat lisent uniquement les journaux de jeu écrits par le client EVE. Elles ne lisent jamais la mémoire du jeu, ne modifient aucun fichier et n'envoient aucune entrée."
+# 「通用」用通用页的页名 Général（pageGeneral）。
+networkText = "EVE-O Preview ne contacte GitHub que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement."
+eveIPText = "EVE Online et les logos associés sont des marques de CCP ehf. Ce projet n'est ni affilié à CCP ni approuvé par CCP."
+aboutChatLogsNote = "Le renseignement et la traduction lisent uniquement les journaux de discussion et les journaux de jeu. La traduction envoie le texte des discussions au service de modèle que vous choisissez. Lorsque la vérification des noms en ligne est activée, les noms de pilotes qui se suivent dans les messages de renseignement sont envoyés à l'API ESI de CCP."
+
+chatLogStatusStopped = "Désactivé"
+chatLogStatusWatching = { one = "Surveillance de {files} journal dans {directory}", other = "Surveillance de {files} journaux dans {directory}" }
+chatLogStatusDirectoryNotFound = "Dossier des journaux de discussion introuvable : {path}"
+chatLogStatusAccessDenied = "Lecture non autorisée : {path}"
+chatLogHelp = "Le client EVE doit être réglé pour enregistrer les discussions dans un fichier. Le dossier des journaux se règle sur la page « Alertes »."
+
+[MenuStrings]
+# 菜单项以动词不定式开头（Afficher、Masquer、Réduire），符合 macOS 法文菜单的写法。
+showAll = "Afficher toutes les vignettes"
+hideAll = "Masquer toutes les vignettes"
+profiles = "Profils"
+minimizeAll = "Réduire tous les clients"
+settings = "Réglages…"
+quit = "Quitter EVE-O Preview"
+permissionsMissing = "Autorisations manquantes…"
+fakeMode = "Mode démo (clients fictifs)"
+noClients = "Aucun client EVE trouvé"
+resumeCapture = "Reprendre la capture : {title}"
+# 0 client、1 client、2 clients。
+clientCount = { one = "{count} client", other = "{count} clients" }
+showIntelOverlay = "Afficher l’overlay de renseignement"
+showTranslationOverlay = "Afficher l’overlay de traduction"
+
+[EditMenuStrings]
+title = "Édition"
+# Annuler 在 macOS 法文里既是「撤销」也是对话框的「取消」，与系统一致，不另作区分。
+undo = "Annuler"
+redo = "Rétablir"
+cut = "Couper"
+copy = "Copier"
+paste = "Coller"
+selectAll = "Tout sélectionner"
+closeWindow = "Fermer la fenêtre"
+
+[ThumbnailStrings]
+# 右键菜单：动词不定式，与菜单栏菜单一致。
+minimize = "Réduire"
+minimizeAll = "Tout réduire"
+skipCycle = "Ignorer dans le cycle"
+hide = "Masquer cette vignette"
+resetSize = "Rétablir la taille par défaut"
+resumeCapture = "Reprendre la capture"
+# 既接在不可用的菜单项后面（「Réduire (Accessibilité requise)」），也用在热键问题提示里，所以写成名词短语。
+needsAccessibility = "Accessibilité requise"
+unavailable = "{item} ({reason})"
+settings = "Réglages…"
+# 占位文字：缩略图很小，尽量短。
+waiting = "En attente d'images…"
+needsScreenRecording = "Autorisation « Enregistrement de l'écran » requise"
+captureStopped = "Capture arrêtée. Clic droit pour reprendre."
+minimized = "Réduit"

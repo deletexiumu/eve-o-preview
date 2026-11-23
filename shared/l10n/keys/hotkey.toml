@@ -1,0 +1,135 @@
+# hotkey 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/hotkey.toml。
+
+swift_file = "HotkeyStrings"
+notes = """
+热键域的文字（反馈文档 5.3 节）：「切换与热键」页、录制器、热键问题提示、作用范围，
+以及菜单栏菜单里「热键只在 EVE 内生效」一项。
+用词按反馈文档 5.5 节的词表；「作用范围」「全局」「仅游戏内」按第 13 节的术语。"""
+
+[protocols.HotkeyStrings]
+doc = "热键域的全部文字。"
+accessor = "hotkeys"
+
+[HotkeyStrings.switchingSubtitle]
+section = "切换与热键页：页首与循环组"
+doc = "页首的副标题。"
+
+[HotkeyStrings.cycleGroupsHeader]
+doc = "循环组一节的标签。"
+
+[HotkeyStrings.addGroup]
+doc = "「新建循环组」按钮。"
+
+[HotkeyStrings.noGroups]
+doc = "没有循环组时的说明。"
+
+[HotkeyStrings.groupName]
+doc = "循环组名称一行的标签与占位文字。"
+
+[HotkeyStrings.deleteGroup]
+doc = "「删除循环组」按钮。"
+
+[HotkeyStrings.forwardHotkeys]
+doc = "前进热键一行的标签。"
+
+[HotkeyStrings.backwardHotkeys]
+doc = "后退热键一行的标签。"
+
+[HotkeyStrings.noMembers]
+doc = "循环组没有成员时的说明。"
+
+[HotkeyStrings.addMember]
+doc = "「添加成员」菜单。"
+
+[HotkeyStrings.newGroupName]
+doc = "新循环组的默认名称，参数是序号。"
+params = ["_ index: Int"]
+
+[HotkeyStrings.characterHotkeysHeader]
+section = "切换与热键页：角色热键与通用热键"
+doc = "角色直达热键一节的标题。"
+
+[HotkeyStrings.globalHotkeysHeader]
+doc = "全部隐藏、全部最小化、登录客户端循环三项所在一节的标题。"
+
+[HotkeyStrings.hotkeyToggleHideAll]
+doc = "「显示或隐藏全部缩略图」一行的标签。"
+
+[HotkeyStrings.hotkeyMinimizeAll]
+doc = "「全部最小化」一行的标签。"
+
+[HotkeyStrings.hotkeyCycleLogin]
+doc = "「登录客户端之间循环」一行的标签。"
+
+[HotkeyStrings.hotkeyRulesHint]
+doc = "热键规则的说明：键盘热键的修饰键要求，鼠标按键可以单独使用、触发时点击不传给游戏。"
+
+[HotkeyStrings.mouseHotkeyHint]
+doc = "鼠标热键的说明：需要辅助功能权限，全局范围的鼠标热键在所有应用里吞掉按键，先取消别处的绑定。"
+
+[HotkeyStrings.defaultScopeLabel]
+section = "作用范围"
+doc = "页首「热键的默认作用范围」一行的标签。"
+
+[HotkeyStrings.scopeGlobal]
+doc = "作用范围 global 的名称。"
+
+[HotkeyStrings.scopeGame]
+doc = "作用范围 game 的名称。"
+
+[HotkeyStrings.scopeGlobalOption]
+doc = "单选按钮里 global 一项的文字：名称加一句说明，讲清全局也包括游戏内。"
+
+[HotkeyStrings.scopeGameOption]
+doc = "单选按钮里 game 一项的文字：名称加一句说明，讲清只在 EVE 窗口位于前台时生效。"
+
+[HotkeyStrings.defaultScopeFooter]
+doc = "「切换与热键」页首默认范围下方的说明：每个热键只有一种范围，热键旁的标记显示并可单独修改它。"
+
+[HotkeyStrings.scopeFollowDefault]
+doc = "每行作用范围菜单的第 1 项「跟随默认」，参数是当前默认范围的名称。"
+params = ["_ current: String"]
+
+[HotkeyStrings.scopeMenuHelp]
+doc = "作用范围菜单的提示文字，参数是这一行已解析的作用范围名称。"
+params = ["_ resolved: String"]
+
+[HotkeyStrings.menuHotkeysOnlyInEVE]
+doc = "菜单栏菜单的一项：勾选时当前配置方案的默认作用范围是 game。"
+
+[HotkeyStrings.addHotkey]
+section = "录制器"
+doc = "「添加」按钮。"
+
+[HotkeyStrings.recordingPrompt]
+doc = "录制中按钮上的提示。"
+
+[HotkeyStrings.recorderHelp]
+doc = "录制按钮的提示文字。"
+
+[HotkeyStrings.removeHotkey]
+doc = "删除按钮的提示文字。"
+
+[HotkeyStrings.hotkeyUnparsable]
+section = "热键问题（显示在热键按钮左侧的同一行里，要短）"
+doc = "字符串无法解析。"
+
+[HotkeyStrings.hotkeyMissingModifier]
+doc = "键盘热键缺修饰键。"
+
+[HotkeyStrings.hotkeyReserved]
+doc = "系统保留的组合。"
+
+[HotkeyStrings.hotkeyAccessibilityRequired]
+doc = "鼠标热键：没有辅助功能权限。"
+
+[HotkeyStrings.hotkeyEventTapUnavailable]
+doc = "鼠标热键：有权限，但系统没有建出事件监听。"
+
+[HotkeyStrings.hotkeyDuplicate]
+doc = "与另一个动作重复，参数是那个动作的名称。"
+params = ["_ other: String"]
+
+[HotkeyStrings.hotkeyRegistrationFailed]
+doc = "Carbon 注册失败，参数是错误码。"
+params = ["_ status: Int32"]

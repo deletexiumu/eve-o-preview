@@ -1,0 +1,40 @@
+# overlay 域的文字（es）。键的用途见 ../keys/overlay.toml。
+
+[OverlayStrings]
+newMessages = { one = "{count} nuevo", other = "{count} nuevos" }
+noActiveCharacter = "No hay ningún personaje en la ventana actual"
+emptyList = "Todavía no hay mensajes"
+
+menuScrollToLatest = "Desplazar a lo más reciente"
+menuCopyLine = "Copiar esta línea"
+menuOpenInBrowser = "Abrir en el navegador"
+menuClear = "Vaciar lista"
+menuLockLayout = "Bloquear disposición"
+menuResetFrame = "Restablecer posición y tamaño"
+menuHide = "Ocultar esta superposición"
+menuOpenSettings = "Abrir ajustes…"
+
+overlayHeader = "Superposición"
+opacity = "Opacidad del fondo"
+fontSize = "Tamaño de letra"
+resetFrame = "Restablecer posición"
+gestureHelp = "Arrastra con el botón derecho, o con Opción y el botón izquierdo, para mover la superposición; coloca el puntero en un borde y arrastra con el botón izquierdo para cambiar el tamaño; desplázate para recorrer la lista."
+visibilityLabel = "Mostrar"
+visibilityAlways = "Siempre"
+visibilityGameOnly = "Solo en EVE: ocultar cuando ninguna ventana de EVE está al frente"
+positionLabel = "Posición"
+sizeLabel = "Tamaño"
+frameHelp = "La posición se mide en puntos desde la esquina superior izquierda de la pantalla principal. El tamaño se limita de 220×120 a 900×900; una posición fuera de la pantalla se devuelve a ella."
+
+channelsHeader = "Canales"
+addFromLogs = "Añadir desde los registros"
+addByNamePlaceholder = "Escribe el nombre de un canal y pulsa Retorno"
+removeChannel = "Quitar"
+noChannels = "Todavía no hay canales"
+refreshChannels = "Actualizar"
+noDiscoveredChannels = "No se encontraron registros de chat recientes"
+channelListeners = { one = "{count} personaje", other = "{count} personajes" }
+builtInLocal = "Local"
+builtInCorp = "Corporación"
+builtInAlliance = "Alianza"
+builtInFleet = "Flota"
