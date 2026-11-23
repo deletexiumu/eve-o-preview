@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  SPDX-License-Identifier: GPL-3.0-or-later
+  EVE-O Preview 的 Info.plist 模板（架构文档 9.1 节）。
+  macos/scripts/build-app.sh 把 __VERSION__ 换成环境变量 VERSION（默认取 macos/VERSION 文件）；
+  有 macos/packaging/AppIcon.png 时再加上 CFBundleIconFile。
+  不写屏幕录制、辅助功能的用途说明键：这两项权限的系统弹窗文字由系统提供（架构文档 4.4 节）。
+  NSDocumentsFolderUsageDescription 是读「文稿」里游戏日志与聊天日志时系统提示的说明
+  （反馈文档 7.9 节、docs/macos/design-intel-translate.md 5.7 节）。
+  NSAppTransportSecurity 的 NSAllowsLocalNetworking 只放行本机与局域网地址的明文 HTTP（Ollama 预设用到），
+  公网主机仍只能用 HTTPS；不加 NSAllowsArbitraryLoads（docs/macos/design-intel-translate.md 7.11 节）。
+  NSLocalNetworkUsageDescription 是第一次连局域网里的模型服务（如另一台电脑上的 Ollama）时，
+  系统「本地网络」权限提示里的说明（审查 m10）。连本机 localhost 不弹这个提示。
+  Info.plist 的文字不随界面语言变化（没有资源目录），所以用英文。
+-->
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.deletexiumu.eveopreview-macos</string>
+	<key>CFBundleName</key>
+	<string>EVE-O Preview</string>
+	<key>CFBundleDisplayName</key>
+	<string>EVE-O Preview</string>
+	<key>CFBundleExecutable</key>
+	<string>EVEOPreview</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__VERSION__</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>EVE-O Preview reads EVE game logs and chat logs in Documents/EVE/logs to flash thumbnails when a character is attacked and to show intel and chat translation overlays.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>EVE-O Preview connects to the translation model service you configure. If it runs on another computer on your local network (for example Ollama), macOS asks for local network access.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSHumanReadableCopyright</key>
+	<string>Licensed under GPL-3.0-or-later. Re-implementation of EveOPlus/eve-o-preview for macOS.</string>
+</dict>
+</plist>

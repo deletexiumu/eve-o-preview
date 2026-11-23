@@ -11,7 +11,8 @@
 - 不写「升级」小节：怎么升级由应用内更新和 README 说明，发布说明只讲本版本的变化。
   应用会把跳过的各版本说明拼在一起显示，每版都带一段升级说明会反复出现。
 
-用法：python3 scripts/check_release_notes.py [文件 ...]，默认检查 docs/release-notes/*.md。
+用法：python3 scripts/check_release_notes.py [文件 ...]，默认检查 docs/release-notes/ 下各平台目录
+（macos/、windows/）里的全部 .md。两个平台的版本号独立，说明的格式与规则相同。
 任一文件不合格时退出码为 1。
 """
 
@@ -76,7 +77,8 @@ def check(path: Path) -> list[str]:
 
 def main(argv: list[str]) -> int:
     """逐个检查文件，打印结果；有问题时返回 1。"""
-    paths = [Path(a) for a in argv] or sorted(Path("docs/release-notes").glob("*.md"))
+    notes = Path(__file__).resolve().parent.parent / "docs" / "release-notes"
+    paths = [Path(a) for a in argv] or sorted(notes.glob("*/*.md"))
     if not paths:
         print("没有找到发布说明文件")
         return 1

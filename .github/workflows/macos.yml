@@ -1,0 +1,334 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# 构建、测试并打包 EVE-O Preview for macOS（docs/macos/architecture.md 9.5 节，docs/windows/architecture.md 7.3 节）。
+# - 向 main 发起或更新 PR、推送到 main、手动运行：质量门禁、单元测试、打包，产物作为工作流制品上传。
+#   PR 上工作流总会触发，但 changes 任务看改动的路径：没有动 macos/、shared/、scripts/、docs/release-notes/macos/
+#   与本文件时，build 任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
+# - 推送 v* tag：同样构建，再把 dmg、源码包和校验和发布到 GitHub Release。
+# - 手动运行并勾选「演练发布」：同样构建，再建一个草稿 Release（不打 tag，不公开），用来在正式打 tag 前验证 release 任务。
+# 仓库是公开仓库，用 GitHub 托管的 macOS 运行器（打包要用 hdiutil 与 codesign）。
+# 签名：有 secret 时用固定的自签名证书「EVE-O Preview Release」，升级后系统权限不丢；来自 fork 的 PR 拿不到 secret，退回 ad-hoc。
+# 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
+
+name: macOS
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - "macos/**"
+      - "shared/**"
+      - "scripts/**"
+      - "docs/release-notes/macos/**"
+      - ".github/workflows/macos.yml"
+    # macOS 永久用 v* 的 tag；Windows 用 win-v*，由 windows.yml 处理，不会匹配这里。
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      rehearse_release:
+        description: 构建后建一个草稿 Release，演练发布流程
+        type: boolean
+        default: false
+
+# 默认只读；只有 release 任务单独提升为可写。
+permissions:
+  contents: read
+
+# 同一个 PR 推新提交时取消正在跑的旧运行；main 与 tag 不取消正在跑的运行（同组里排队的旧运行仍会被新运行替换）。
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # 判断这次运行要不要构建 macOS 版：只有 PR 看改动的路径，tag、推送到 main 与手动运行都构建。
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      macos: ${{ steps.diff.outputs.macos }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 改动的路径
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
+          echo "$CHANGED"
+          if grep -qE '^(macos/|shared/|scripts/|docs/release-notes/macos/|\.github/workflows/macos\.yml$)' <<< "$CHANGED"; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::这个 PR 没有改动 macOS 相关的路径，跳过构建"
+            echo "macos=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: changes
+    if: needs.changes.outputs.macos == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      label: ${{ steps.version.outputs.label }}
+    env:
+      # 正式发布与演练发布都要求用固定证书签名。
+      REQUIRE_SIGNING: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release) }}
+    steps:
+      # PR 构建检出 PR 头提交，而不是 GitHub 生成的合并提交，让制品名里的提交号与内容一致。
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      # Package.swift 要求 Swift 6，先打印工具链版本，失败时便于判断是不是编译器太旧。
+      - name: 工具链版本
+        run: |
+          swift --version
+          xcodebuild -version
+
+      # 只查 macOS 的 Swift 代码；windows/ 的 Rust 与 Slint 由 windows.yml 查。
+      - name: 质量门禁
+        run: python3 scripts/check_quality.py macos/Sources macos/Tests
+
+      # 发布说明的语言标记写错时，应用内的更新提示会退回英文或显示全文，在这里提前拦下（架构文档 9.7 节）。
+      - name: 发布说明标记
+        run: python3 scripts/check_release_notes.py docs/release-notes/macos/*.md
+
+      # 目录重组后文档之间的相对链接容易失效，GitHub 不报错，在这里拦下。
+      - name: 文档链接
+        run: python3 scripts/check_links.py
+
+      - name: 单元测试
+        working-directory: macos
+        run: swift test
+
+      # 算版本号与文件名标签：
+      # - tag v1.2.3：标签为 1.2.3，且应与 macos/VERSION 文件一致；
+      # - PR：<VERSION>-pr.<编号>.<PR 头提交的前 7 位>；
+      # - 其他：<VERSION>-dev.<提交的前 7 位>。
+      - name: 版本号
+        id: version
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          BASE="$(tr -d '[:space:]' < macos/VERSION)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$TAG_VERSION" != "$BASE" ]]; then
+              echo "::error::tag ${GITHUB_REF_NAME} 与 macos/VERSION 文件（${BASE}）不一致"
+              exit 1
+            fi
+            LABEL="$BASE"
+          elif [[ -n "$PR_NUMBER" ]]; then
+            LABEL="${BASE}-pr.${PR_NUMBER}.${PR_HEAD_SHA:0:7}"
+          else
+            LABEL="${BASE}-dev.${GITHUB_SHA:0:7}"
+          fi
+          echo "version=${BASE}" >> "$GITHUB_OUTPUT"
+          echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
+          echo "版本号 ${BASE}，文件标签 ${LABEL}"
+
+      # 把签名证书导入一个临时钥匙串。没有 secret 时：正式或演练发布直接失败，其他情况退回 ad-hoc。
+      - name: 导入签名证书
+        id: signing
+        env:
+          P12_BASE64: ${{ secrets.MACOS_SIGNING_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.MACOS_SIGNING_P12_PASSWORD }}
+        run: |
+          if [[ -z "$P12_BASE64" || -z "$P12_PASSWORD" ]]; then
+            if [[ "$REQUIRE_SIGNING" == "true" ]]; then
+              echo "::error::发布构建缺少签名证书 secret（MACOS_SIGNING_P12_BASE64、MACOS_SIGNING_P12_PASSWORD）"
+              exit 1
+            fi
+            echo "::warning::没有签名证书 secret（来自 fork 的 PR 拿不到），改用 ad-hoc 签名"
+            echo "identity=-" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          KC="$RUNNER_TEMP/signing.keychain-db"
+          KC_PASSWORD="$(uuidgen)"
+          echo "::add-mask::${KC_PASSWORD}"
+          security create-keychain -p "$KC_PASSWORD" "$KC"
+          # 1 小时内不自动上锁，足够跑完打包。
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$KC_PASSWORD" "$KC"
+          P12="$RUNNER_TEMP/signing.p12"
+          printf '%s' "$P12_BASE64" | base64 -D > "$P12"
+          security import "$P12" -k "$KC" -P "$P12_PASSWORD" -T /usr/bin/codesign > /dev/null
+          rm -f "$P12"
+          # 允许 codesign 直接用私钥，不弹授权框。
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASSWORD" "$KC" > /dev/null
+          # 加进用户钥匙串搜索列表，codesign 才找得到这个身份。
+          OLD_KEYCHAINS=()
+          while IFS= read -r line; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            OLD_KEYCHAINS+=("${line//\"/}")
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$KC" "${OLD_KEYCHAINS[@]}"
+          security find-identity -p codesigning "$KC"
+          echo "identity=EVE-O Preview Release" >> "$GITHUB_OUTPUT"
+          echo "keychain=${KC}" >> "$GITHUB_OUTPUT"
+
+      - name: 打包
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          LABEL: ${{ steps.version.outputs.label }}
+          UNIVERSAL: "1"
+          SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
+        run: macos/scripts/package-release.sh
+
+      # 核对 dmg 里的应用（不是 dist/ 下的）：通用二进制含两种架构、签名有效、版本号正确、带「应用程序」替身；
+      # 用固定证书签名时，指定要求应钉在 macos/packaging/release-cert-sha1.txt 记录的证书上。
+      # 同时核对 CI 与应用自动更新之间的契约（v1.1 设计 8.1 节）：附件名、dmg 顶层的应用是真实目录、
+      # SHA256SUMS.txt 有 dmg 那一行、Info.plist 的 5 个键。改这些会让已安装的版本无法自动更新。
+      - name: 检查产物
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          LABEL: ${{ steps.version.outputs.label }}
+          SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
+        run: |
+          (cd dist/release && shasum -a 256 -c SHA256SUMS.txt)
+          for f in "EVE-O-Preview-${LABEL}.dmg" "eve-o-preview-macos-${LABEL}-source.tar.gz" "eve-o-preview-macos-${LABEL}-source.zip" SHA256SUMS.txt; do
+            [[ -f "dist/release/$f" ]] || { echo "::error::缺少附件 ${f}"; exit 1; }
+          done
+          [[ "$(ls dist/release | wc -l | tr -d ' ')" == "4" ]] || { echo "::error::dist/release 里的文件数不是 4"; ls dist/release; exit 1; }
+          grep -q "  EVE-O-Preview-${LABEL}.dmg\$" dist/release/SHA256SUMS.txt || { echo "::error::SHA256SUMS.txt 里没有 dmg 那一行"; exit 1; }
+          MOUNT="$(mktemp -d)"
+          hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT" "dist/release/EVE-O-Preview-${LABEL}.dmg"
+          trap 'hdiutil detach "$MOUNT" -quiet || true' EXIT
+          APP="$MOUNT/EVE-O Preview.app"
+          [[ -L "$MOUNT/Applications" ]] || { echo "::error::dmg 里缺少「应用程序」替身"; exit 1; }
+          [[ -d "$APP" && ! -L "$APP" ]] || { echo "::error::dmg 顶层的 EVE-O Preview.app 不是真实目录"; exit 1; }
+          PLIST="$APP/Contents/Info.plist"
+          check_key() {
+            local actual
+            actual="$(plutil -extract "$1" raw "$PLIST" 2>/dev/null || true)"
+            [[ "$actual" == "$2" ]] || { echo "::error::Info.plist 的 $1 是「${actual}」，应为「$2」"; exit 1; }
+          }
+          check_key CFBundleIdentifier io.github.deletexiumu.eveopreview-macos
+          check_key CFBundleExecutable EVEOPreview
+          check_key CFBundleShortVersionString "$VERSION"
+          check_key EVEOBuildLabel "$LABEL"
+          check_key EVEOBuildCommit "$(git rev-parse --short=7 HEAD)"
+          ARCHS="$(lipo -archs "$APP/Contents/MacOS/EVEOPreview")"
+          echo "架构：${ARCHS}"
+          [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]] || { echo "::error::不是通用二进制"; exit 1; }
+          codesign --verify --strict --verbose=2 "$APP"
+          REQUIREMENT="$(codesign -d -r- "$APP" 2>&1 | grep '^designated')"
+          echo "$REQUIREMENT"
+          if [[ "$SIGN_IDENTITY" != "-" ]]; then
+            CERT_SHA1="$(tr -d '[:space:]' < macos/packaging/release-cert-sha1.txt)"
+            # 自签名证书只有一级，codesign 生成的要求可能写成 certificate root 或 certificate leaf，指的是同一张证书。
+            if [[ "$REQUIREMENT" != *"certificate root = H\"${CERT_SHA1}\""* && "$REQUIREMENT" != *"certificate leaf = H\"${CERT_SHA1}\""* ]]; then
+              echo "::error::指定要求没有钉在发布证书 ${CERT_SHA1} 上"
+              exit 1
+            fi
+            # 语义核对：不比字符串写法，直接让 codesign 判断签名是否满足「本标识符 + 这张证书」。
+            codesign --verify -R="identifier \"io.github.deletexiumu.eveopreview-macos\" and certificate leaf = H\"${CERT_SHA1}\"" "$APP"
+          fi
+
+      # 删掉临时钥匙串，即使前面的步骤失败也执行。
+      - name: 清理签名钥匙串
+        if: always() && steps.signing.outputs.keychain != ''
+        env:
+          KC: ${{ steps.signing.outputs.keychain }}
+        run: security delete-keychain "$KC" || true
+
+      # 删掉签名钥匙串后，模拟没有发布证书的用户机器核对签名：新应用应满足上一个正式版的指定要求，
+      # 这正是应用内更新在安装前做的核对（v1.1 设计 9.3 节）。用探针调用应用里同一段核对代码。
+      - name: 无证书环境核对签名
+        if: steps.signing.outputs.identity != '-'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ steps.version.outputs.label }}
+        run: |
+          swift build --package-path macos --product EVEOProbe
+          PROBE="$(swift build --package-path macos --show-bin-path)/EVEOProbe"
+          WORK="$(mktemp -d)"
+          NEW_MOUNT="$WORK/new"
+          OLD_MOUNT="$WORK/old"
+          mkdir -p "$NEW_MOUNT" "$OLD_MOUNT"
+          hdiutil attach -nobrowse -readonly -mountpoint "$NEW_MOUNT" "dist/release/EVE-O-Preview-${LABEL}.dmg" > /dev/null
+          trap 'hdiutil detach "$NEW_MOUNT" -quiet || true; hdiutil detach "$OLD_MOUNT" -quiet || true' EXIT
+          "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$NEW_MOUNT/EVE-O Preview.app"
+          # 先用 gh release view 判断有没有正式版：没有时跳过这一项；有却下载失败时报错，不静默跳过。
+          if ! gh release view --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::notice::还没有正式版，跳过与上一个正式版的核对"
+            exit 0
+          fi
+          # 不带 tag 时 gh release download 取最新的正式版。
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern 'EVE-O-Preview-*.dmg' --dir "$WORK"
+          OLD_DMG="$(ls "$WORK"/EVE-O-Preview-*.dmg | head -1)"
+          echo "上一个正式版：$(basename "$OLD_DMG")"
+          hdiutil attach -nobrowse -readonly -mountpoint "$OLD_MOUNT" "$OLD_DMG" > /dev/null
+          "$PROBE" update verify "$NEW_MOUNT/EVE-O Preview.app" "$OLD_MOUNT/EVE-O Preview.app"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: EVE-O-Preview-${{ steps.version.outputs.label }}
+          path: dist/release/
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release)
+    runs-on: macos-15
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      # 只为读 docs/release-notes/macos/ 下的发布说明，不留写权限的凭据。
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: EVE-O-Preview-${{ needs.build.outputs.label }}
+          path: release-files
+
+      # 说明取 docs/release-notes/macos/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号带 - 时标为预发布。
+      # 演练：建草稿 Release，名字带 -rehearsal，不打 tag、不公开，看完后在 Releases 页面删掉。
+      # Release 已存在时不覆盖附件：已经发出去的文件和校验和不应被悄悄换掉，要重发按架构文档 9.5 节重打 tag。
+      - name: 发布 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          REHEARSAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          NOTES="docs/release-notes/macos/v${VERSION}.md"
+          if [[ "$REHEARSAL" == "true" ]]; then
+            TAG="v${VERSION}-rehearsal.${GITHUB_RUN_NUMBER}"
+            args=(--draft --prerelease --target "$GITHUB_SHA")
+          else
+            TAG="$GITHUB_REF_NAME"
+            args=(--verify-tag)
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+              echo "::error::Release ${TAG} 已存在，不覆盖附件；要重发请按架构文档 9.5 节重打 tag"
+              exit 1
+            fi
+            if [[ "$TAG" == *-* ]]; then
+              args+=(--prerelease)
+            fi
+          fi
+          args+=(--repo "$GITHUB_REPOSITORY" --title "EVE-O Preview for macOS ${TAG}")
+          if [[ -f "$NOTES" ]]; then
+            args+=(--notes-file "$NOTES")
+          else
+            args+=(--generate-notes)
+          fi
+          gh release create "$TAG" release-files/* "${args[@]}"
+          echo "已建 Release：${TAG}"

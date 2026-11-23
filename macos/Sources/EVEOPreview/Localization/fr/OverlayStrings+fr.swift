@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 浮窗域的法文文字（docs/macos/design-intel-translate.md 第 11 节）。
+// 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
+// 用词与菜单栏一致：overlay、canal、« Verrouiller la disposition »。法文只区分单数与复数。
+
+import Foundation
+
+/// 浮窗与两页共用设置控件的法文文字。
+struct OverlayStringsFR: OverlayStrings {
+    // MARK: 浮窗的列表
+    func newMessages(_ count: Int) -> String { count <= 1 ? "\(count) nouveau" : "\(count) nouveaux" }
+    var noActiveCharacter: String { "Aucun personnage dans la fenêtre actuelle" }
+    var emptyList: String { "Aucun message pour l’instant" }
+
+    // MARK: 浮窗的右键菜单
+    var menuScrollToLatest: String { "Faire défiler jusqu’au plus récent" }
+    var menuCopyLine: String { "Copier cette ligne" }
+    var menuOpenInBrowser: String { "Ouvrir dans le navigateur" }
+    var menuClear: String { "Vider la liste" }
+    var menuLockLayout: String { "Verrouiller la disposition" }
+    var menuResetFrame: String { "Rétablir la position et la taille" }
+    var menuHide: String { "Masquer cet overlay" }
+    var menuOpenSettings: String { "Ouvrir les réglages…" }
+
+    // MARK: 浮窗设置
+    var overlayHeader: String { "Overlay" }
+    var opacity: String { "Opacité du fond" }
+    var fontSize: String { "Taille du texte" }
+    var resetFrame: String { "Rétablir la position" }
+    var gestureHelp: String { "Faites glisser avec le bouton droit, ou avec Option et le bouton gauche, pour déplacer l’overlay ; placez le pointeur sur un bord et faites glisser avec le bouton gauche pour le redimensionner ; faites défiler pour parcourir la liste." }
+    var visibilityLabel: String { "Afficher" }
+    var visibilityAlways: String { "Toujours" }
+    var visibilityGameOnly: String { "Seulement dans EVE : masquer quand aucune fenêtre EVE n’est au premier plan" }
+    var positionLabel: String { "Position" }
+    var sizeLabel: String { "Taille" }
+    var frameHelp: String { "La position est exprimée en points depuis le coin supérieur gauche de l’écran principal. La taille est limitée de 220×120 à 900×900 ; une position hors écran est ramenée à l’écran." }
+
+    // MARK: 频道列表
+    var channelsHeader: String { "Canaux" }
+    var addFromLogs: String { "Ajouter depuis les journaux" }
+    var addByNamePlaceholder: String { "Saisissez un nom de canal puis appuyez sur Retour" }
+    var removeChannel: String { "Retirer" }
+    var noChannels: String { "Aucun canal pour l’instant" }
+    var refreshChannels: String { "Actualiser" }
+    var noDiscoveredChannels: String { "Aucun journal de discussion récent" }
+    func channelListeners(_ count: Int) -> String { count <= 1 ? "\(count) personnage" : "\(count) personnages" }
+
+    // MARK: 内置频道
+    var builtInLocal: String { "Local" }
+    var builtInCorp: String { "Corporation" }
+    var builtInAlliance: String { "Alliance" }
+    var builtInFleet: String { "Flotte" }
+}

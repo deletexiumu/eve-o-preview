@@ -1,4 +1,4 @@
-<p align="center"><img src="packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS 图标"></p>
+<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS 图标"></p>
 
 # EVE-O Preview for macOS
 
@@ -64,7 +64,7 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 ### 从源码构建
 
-想自己构建应用，请看 [docs/development.md](docs/development.md)（英文），其中也介绍了调试工具、CI 和发布流程。
+想自己构建应用，请看 [docs/macos/development.md](docs/macos/development.md)（英文），其中也介绍了调试工具、CI 和发布流程。
 
 ## 权限
 
@@ -267,4 +267,4 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 
 EVE Online 及相关标志是 CCP ehf. 的商标。本项目与 CCP 没有关联，也未获其认可。
 
-应用图标沿用上游 EveOPlus/eve-o-preview 的分子图标（GPL-3.0），背景由 `scripts/make-app-icon.py` 绘制，不含 CCP 的商标或游戏美术。
+应用图标沿用上游 EveOPlus/eve-o-preview 的分子图标（GPL-3.0），背景由 `macos/scripts/make-app-icon.py` 绘制，不含 CCP 的商标或游戏美术。
