@@ -1,0 +1,2475 @@
+{
+  "cases": [
+    {
+      "name": "两遍定位：自动排位避开全部已知位置，同名只持久化第一个",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 4,
+          "pid": 400,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "frame": [
+              16,
+              16,
+              384,
+              216
+            ],
+            "isZoomed": false
+          },
+          {
+            "frame": [
+              16,
+              464,
+              384,
+              216
+            ]
+          },
+          {
+            "frame": [
+              5,
+              40,
+              384,
+              216
+            ],
+            "title": "EVE"
+          },
+          {
+            "frame": [
+              16,
+              688,
+              384,
+              216
+            ],
+            "title": "Bravo"
+          }
+        ],
+        "layoutsToPersist": {
+          "Bravo": {
+            "x": 16,
+            "y": 464
+          }
+        },
+        "visible": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "nextWakeAt": null
+      }
+    },
+    {
+      "name": "登录与未知客户端按 PID 升序阶梯排列，与输入顺序无关",
+      "clients": [
+        {
+          "id": 7,
+          "pid": 900,
+          "identity": {
+            "kind": "unknown"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 8,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 9,
+          "pid": 500,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "frame": [
+              53,
+              88,
+              384,
+              216
+            ],
+            "title": "EVE (900)"
+          },
+          {
+            "frame": [
+              5,
+              40,
+              384,
+              216
+            ],
+            "title": "EVE"
+          },
+          {
+            "frame": [
+              29,
+              64,
+              384,
+              216
+            ],
+            "title": "EVE"
+          }
+        ],
+        "layoutsToPersist": {},
+        "visible": [
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    {
+      "name": "默认外观",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": true,
+            "title": "Alpha",
+            "showsTitle": true,
+            "titleFontSize": 12,
+            "titleColor": "#FFFFFF",
+            "opacity": 0.5,
+            "highlightColor": null,
+            "highlightThickness": 3,
+            "borderColor": "#C0C0C0",
+            "borderThickness": 2,
+            "alert": null,
+            "isActive": false,
+            "isSkipped": false,
+            "isAlwaysOnTop": true,
+            "isOverFullScreen": false,
+            "isZoomed": false,
+            "placeholder": "none"
+          },
+          {
+            "frame": [
+              416,
+              16,
+              384,
+              216
+            ]
+          },
+          {}
+        ],
+        "layoutsToPersist": {},
+        "visible": [
+          1,
+          2,
+          3
+        ],
+        "nextWakeAt": null
+      }
+    },
+    {
+      "name": "全部隐藏",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {
+        "hideAll": true
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": false
+          },
+          {
+            "isVisible": false
+          },
+          {
+            "isVisible": false
+          }
+        ],
+        "visible": []
+      }
+    },
+    {
+      "name": "隐藏名单只管角色",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "hiddenCharacters": [
+          "Alpha",
+          "EVE"
+        ]
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": false
+          },
+          {
+            "isVisible": true
+          },
+          {
+            "isVisible": true
+          }
+        ],
+        "visible": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "隐藏前台客户端的缩略图",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 100
+      },
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "behavior": {
+          "hideActiveClientThumbnail": true
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": false,
+            "isActive": true
+          },
+          {
+            "isVisible": true
+          },
+          {
+            "isVisible": true
+          }
+        ],
+        "visible": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "前台不是 EVE 时不看最后活动的客户端",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "behavior": {
+          "hideActiveClientThumbnail": true
+        }
+      },
+      "session": {
+        "lastActivePID": 100
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": true,
+            "isActive": true
+          },
+          {},
+          {}
+        ],
+        "visible": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "离开 EVE 后延迟未到：仍可见，到期时重算",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "behavior": {
+          "hideWhenEVENotFrontmost": true
+        }
+      },
+      "session": {
+        "lastEVEContextAt": 10
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 10.5,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": true
+          },
+          {
+            "isVisible": true
+          },
+          {
+            "isVisible": true
+          }
+        ],
+        "visible": [
+          1,
+          2,
+          3
+        ],
+        "nextWakeAt": 11
+      }
+    },
+    {
+      "name": "离开 EVE 后延迟已到：隐藏，有提醒的除外",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "behavior": {
+          "hideWhenEVENotFrontmost": true
+        }
+      },
+      "session": {
+        "lastEVEContextAt": 10,
+        "combatAlerts": {
+          "2": {
+            "startedAt": 9,
+            "until": 20
+          }
+        }
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 11,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": false
+          },
+          {
+            "isVisible": true,
+            "alert": {
+              "color": "#FF3B30",
+              "style": "both"
+            },
+            "opacity": 1
+          },
+          {
+            "isVisible": false
+          }
+        ],
+        "visible": [
+          2
+        ],
+        "nextWakeAt": 20
+      }
+    },
+    {
+      "name": "前台是本应用时不隐藏，也不用定时重算",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "selfApp",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "behavior": {
+          "hideWhenEVENotFrontmost": true
+        }
+      },
+      "session": {
+        "lastEVEContextAt": 10
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 50,
+      "expect": {
+        "presentations": [
+          {
+            "isVisible": true
+          },
+          {
+            "isVisible": true
+          },
+          {
+            "isVisible": true
+          }
+        ],
+        "visible": [
+          1,
+          2,
+          3
+        ],
+        "nextWakeAt": null
+      }
+    },
+    {
+      "name": "高亮：前台客户端，按角色的颜色优先",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 100
+      },
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "highlightColors": {
+          "Alpha": "#FF0000"
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isActive": true,
+            "highlightColor": "#FF0000"
+          },
+          {
+            "isActive": false,
+            "highlightColor": null
+          },
+          {
+            "isActive": false,
+            "highlightColor": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "高亮：前台不是 EVE 时留在最后活动的客户端，登录客户端用全局颜色",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "highlightColors": {
+          "Alpha": "#FF0000"
+        }
+      },
+      "session": {
+        "lastActivePID": 300
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isActive": false,
+            "highlightColor": null
+          },
+          {
+            "isActive": false
+          },
+          {
+            "isActive": true,
+            "highlightColor": "#ADFF2F"
+          }
+        ]
+      }
+    },
+    {
+      "name": "关掉高亮与边框",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 100
+      },
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "overlay": {
+          "highlightEnabled": false,
+          "borderEnabled": false
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isActive": true,
+            "highlightColor": null,
+            "borderColor": null
+          },
+          {
+            "borderColor": null
+          },
+          {
+            "borderColor": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "悬停放大并不透明",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "thumbnail": {
+          "zoomEnabled": true,
+          "zoomFactor": 2,
+          "zoomAnchor": "nw"
+        }
+      },
+      "session": {
+        "hoveredWindow": 1
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "frame": [
+              16,
+              16,
+              768,
+              432
+            ],
+            "isZoomed": true,
+            "opacity": 1
+          },
+          {
+            "isZoomed": false,
+            "opacity": 0.5
+          },
+          {}
+        ],
+        "layoutsToPersist": {}
+      }
+    },
+    {
+      "name": "拖动中不放大，悬停照样不透明",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "thumbnail": {
+          "zoomEnabled": true
+        }
+      },
+      "session": {
+        "hoveredWindow": 1,
+        "interactingWindows": [
+          1
+        ]
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "frame": [
+              16,
+              16,
+              384,
+              216
+            ],
+            "isZoomed": false,
+            "opacity": 1
+          },
+          {},
+          {}
+        ]
+      }
+    },
+    {
+      "name": "没开放大时悬停只改不透明度",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {
+        "hoveredWindow": 1
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "frame": [
+              16,
+              16,
+              384,
+              216
+            ],
+            "isZoomed": false,
+            "opacity": 1
+          },
+          {},
+          {}
+        ]
+      }
+    },
+    {
+      "name": "战斗提醒到期前后",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "combatAlert": {
+          "color": "#00FF00",
+          "style": "wash",
+          "enabled": false
+        }
+      },
+      "session": {
+        "combatAlerts": {
+          "2": {
+            "startedAt": 0,
+            "until": 5
+          },
+          "3": {
+            "startedAt": 0,
+            "until": 2
+          }
+        }
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 3,
+      "expect": {
+        "presentations": [
+          {
+            "alert": null
+          },
+          {
+            "alert": {
+              "color": "#00FF00",
+              "style": "wash"
+            },
+            "opacity": 1
+          },
+          {
+            "alert": null
+          }
+        ],
+        "nextWakeAt": 5
+      }
+    },
+    {
+      "name": "提醒刚好到期",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {
+        "combatAlerts": {
+          "2": {
+            "startedAt": 0,
+            "until": 5
+          }
+        }
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 5,
+      "expect": {
+        "presentations": [
+          {},
+          {
+            "alert": null,
+            "opacity": 0.5
+          },
+          {}
+        ],
+        "nextWakeAt": null
+      }
+    },
+    {
+      "name": "跳过标记只看角色名",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {
+        "skippedCharacters": [
+          "Bravo",
+          "EVE"
+        ]
+      },
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isSkipped": false
+          },
+          {
+            "isSkipped": true
+          },
+          {
+            "isSkipped": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "前台是全屏客户端时置顶要盖过它",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "isFullScreen": true
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 100
+      },
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isOverFullScreen": true
+          },
+          {
+            "isOverFullScreen": true
+          },
+          {
+            "isOverFullScreen": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "全屏客户端不在前台时不用",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "isFullScreen": true
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 200
+      },
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isOverFullScreen": false
+          },
+          {
+            "isOverFullScreen": false
+          },
+          {
+            "isOverFullScreen": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "不置顶时也不用盖过全屏",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "isFullScreen": true
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 100
+      },
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        },
+        "behavior": {
+          "alwaysOnTop": false
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isAlwaysOnTop": false,
+            "isOverFullScreen": false
+          },
+          {},
+          {}
+        ]
+      }
+    },
+    {
+      "name": "最小化的客户端显示占位",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "isMinimized": true
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "placeholder": "minimized"
+          },
+          {
+            "placeholder": "none"
+          },
+          {
+            "placeholder": "none"
+          }
+        ]
+      }
+    },
+    {
+      "name": "有记录的布局被拉回屏幕时不写回",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 3,
+          "pid": 300,
+          "identity": {
+            "kind": "login"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": "other",
+      "profile": {
+        "layouts": {
+          "Alpha": {
+            "x": 3000,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "frame": [
+              1536,
+              16,
+              384,
+              216
+            ]
+          },
+          {},
+          {}
+        ],
+        "layoutsToPersist": {}
+      }
+    }
+  ]
+}
