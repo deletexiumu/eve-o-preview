@@ -156,6 +156,8 @@ struct App {
     logs_dir: std::path::PathBuf,
     /// 设置窗口是否已经摆过初始位置（只在第一次显示时居中）。
     settings_placed: bool,
+    /// 设置窗口显示后还没切到前台（见 focus_settings）。
+    settings_focus_pending: bool,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -209,6 +211,7 @@ pub fn run() -> ExitCode {
         recording: None,
         logs_dir: paths.logs_dir(),
         settings_placed: false,
+        settings_focus_pending: false,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -432,6 +435,8 @@ impl App {
                 _ => self.poll_soon(),
             }
         }
+        // 设置窗口第一次显示时，原生窗口在这之后才出现，切到前台留到这里做。
+        self.focus_settings();
         // 热键录制的结果：钩子回调只记下结果，这里取走并写进配置。
         self.check_recording(runtime);
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
@@ -678,13 +683,33 @@ impl App {
             self.settings_placed = true;
         }
         let _ = window.show();
-        // 窗口句柄在 show 之后才有；标题栏跟着系统的明暗走。
-        if let Some(hwnd) = settings_hwnd(window) {
-            appearance::set_dark_title_bar(hwnd, window.get_dark());
-            // 从托盘打开时前台还在托盘的溢出窗口上，新窗口会落在游戏后面：显式切到前台，
-            // 窗口最小化着时一并还原。用与切换客户端相同的升级步骤，单次 SetForegroundWindow 可能被系统拒绝。
-            let _ = activation::activate(eveo_platform_win::window_id(hwnd));
+        // 标题栏的明暗与切到前台要在原生窗口建好、显示出来之后做。第一次打开时 show 只是请求，
+        // 原生窗口到事件循环的下一轮才出现（真机测试：第一次打开没到前台，之后几次都到了），
+        // 所以记下来交给定时器做；窗口已经存在时这里立即就能做完。
+        self.settings_focus_pending = true;
+        self.focus_settings();
+    }
+
+    /// 设置窗口显示后的收尾：标题栏跟着系统的明暗走，并切到前台。原生窗口还没出现时什么也不做，
+    /// 留给下一次定时器。从托盘打开时前台还在托盘的溢出窗口上，不切的话新窗口会落在游戏后面；
+    /// 用与切换客户端相同的升级步骤，单次 SetForegroundWindow 可能被系统拒绝。最小化着时一并还原。
+    fn focus_settings(&mut self) {
+        if !self.settings_focus_pending {
+            return;
         }
+        let Some(window) = &self.settings else {
+            self.settings_focus_pending = false;
+            return;
+        };
+        // 句柄拿不到或窗口还没显示出来：下一轮定时器再试。
+        let Some(hwnd) =
+            settings_hwnd(window).filter(|&hwnd| activation::is_visible(eveo_platform_win::window_id(hwnd)))
+        else {
+            return;
+        };
+        self.settings_focus_pending = false;
+        appearance::set_dark_title_bar(hwnd, window.get_dark());
+        let _ = activation::activate(eveo_platform_win::window_id(hwnd));
     }
 
     /// 设置窗口里改了值：从当前配置出发读回「预览与布局」页，有变化才交给协调器。
