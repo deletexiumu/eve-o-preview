@@ -172,14 +172,15 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
     if code == HC_ACTION as i32 {
         // SAFETY: HC_ACTION 时 lparam 指向系统提供的 KBDLLHOOKSTRUCT，在回调期间有效。
         let info = unsafe { &*(lparam.0 as *const KBDLLHOOKSTRUCT) };
-        // 注入的按键（包括下面为打断开始菜单发的未分配键）不参与录制。
-        // LLKHF_INJECTED 标出 SendInput 等注入的按键。
-        let injected = info.flags.0 & LLKHF_INJECTED.0 != 0;
+        // 只跳过本应用自己注入的未分配键（下面为打断开始菜单发的那个）。别的注入按键照常录制：
+        // 键盘驱动软件的宏键、远程桌面与自动化工具都是注入的，真机测试里全部跳过时用它们录不进热键。
+        let own_key =
+            info.flags.0 & LLKHF_INJECTED.0 != 0 && info.vkCode == u32::from(activation::UNASSIGNED_VK);
         // 按下有 WM_KEYDOWN 与 WM_SYSKEYDOWN 两种（按着 Alt 时是后者），松开同理。
         let message = wparam.0 as u32;
         let action = STATE.with(|s| {
             let mut state = s.borrow_mut();
-            let Some(state) = state.as_mut().filter(|_| !injected) else {
+            let Some(state) = state.as_mut().filter(|_| !own_key) else {
                 return KeyAction::Pass;
             };
             match message {

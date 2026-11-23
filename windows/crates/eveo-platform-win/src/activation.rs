@@ -54,7 +54,7 @@ impl ActivationOutcome {
 }
 
 /// 未分配的虚拟键码，用于第 3 步：按下并抬起它不会对任何应用产生效果。不用 Alt，Alt 会让游戏进入菜单状态。
-const UNASSIGNED_VK: u16 = 0xE8;
+pub(crate) const UNASSIGNED_VK: u16 = 0xE8;
 
 /// 每步之后等前台切换生效的时间。SetForegroundWindow 通常同步生效，留一点余量给系统处理。
 const SETTLE: Duration = Duration::from_millis(30);

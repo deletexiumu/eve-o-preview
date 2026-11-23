@@ -52,6 +52,8 @@ const TICK: Duration = Duration::from_millis(50);
 const POLL_INTERVAL: Duration = Duration::from_millis(1000);
 /// 有窗口事件时，两次轮询之间至少隔这么久，避免客户端窗口连续移动时每 50 毫秒枚举一次。
 const EVENT_POLL_SPACING: Duration = Duration::from_millis(150);
+/// 设置窗口的首选尺寸（逻辑像素），与 settings.slint 的 preferred-width、preferred-height 相同。
+const SETTINGS_SIZE: (f64, f64) = (1040.0, 760.0);
 /// 配置改动后延迟多久写盘，连续改动合并成一次（与 macOS 的 ConfigController 相同）。
 const SAVE_DELAY: Duration = Duration::from_millis(500);
 
@@ -152,6 +154,8 @@ struct App {
     recording: Option<(switching::Slot, String, HotkeyRecorder)>,
     /// 日志文件夹，「通用」页显示它的位置。
     logs_dir: std::path::PathBuf,
+    /// 设置窗口是否已经摆过初始位置（只在第一次显示时居中）。
+    settings_placed: bool,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -204,6 +208,7 @@ pub fn run() -> ExitCode {
         settings: None,
         recording: None,
         logs_dir: paths.logs_dir(),
+        settings_placed: false,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -664,10 +669,21 @@ impl App {
             SettingsPage::Profiles => 6,
             SettingsPage::About => 8,
         });
+        // 第一次显示前放到主屏可用区域的正中：缩略图总在最前，多半排在屏幕左上，
+        // 放在系统默认的左上位置会被它们挡住导航（真机测试发现）。之后保留用户拖到的位置。
+        if !window.window().is_visible() && !self.settings_placed {
+            if let Some(position) = centered_position(&self.screens) {
+                window.window().set_position(position);
+            }
+            self.settings_placed = true;
+        }
         let _ = window.show();
         // 窗口句柄在 show 之后才有；标题栏跟着系统的明暗走。
         if let Some(hwnd) = settings_hwnd(window) {
             appearance::set_dark_title_bar(hwnd, window.get_dark());
+            // 从托盘打开时前台还在托盘的溢出窗口上，新窗口会落在游戏后面：显式切到前台，
+            // 窗口最小化着时一并还原。用与切换客户端相同的升级步骤，单次 SetForegroundWindow 可能被系统拒绝。
+            let _ = activation::activate(eveo_platform_win::window_id(hwnd));
         }
     }
 
@@ -903,6 +919,20 @@ fn cursor_for(edges: ResizeEdges) -> CursorShape {
 /// 当前光标位置（弹菜单用）。
 fn cursor_point() -> eveo_core::geometry::ScreenPoint {
     eveo_platform_win::thumbnail::cursor_position()
+}
+
+/// 设置窗口首次显示的位置：主屏可用区域（去掉任务栏）的正中，物理像素。
+/// 窗口大小按 settings.slint 的首选尺寸与主屏的缩放算；屏幕比窗口小时贴左上角。
+fn centered_position(screens: &[ScreenInfo]) -> Option<slint::PhysicalPosition> {
+    let screen = eveo_core::geometry::main_screen(screens)?;
+    let area = screen.visible_frame;
+    let (width, height) = (
+        SETTINGS_SIZE.0 * screen.size_scale,
+        SETTINGS_SIZE.1 * screen.size_scale,
+    );
+    let x = area.x + ((area.width - width) / 2.0).max(0.0);
+    let y = area.y + ((area.height - height) / 2.0).max(0.0);
+    Some(slint::PhysicalPosition::new(x.round() as i32, y.round() as i32))
 }
 
 /// 设置窗口的 Win32 句柄；窗口还没显示或不是 Win32 窗口时返回 `None`。
