@@ -8,6 +8,7 @@
 //!
 //! - [`geometry`]：屏幕坐标中的点、尺寸、矩形与显示器信息。
 //! - [`model`]：窗口与客户端的值类型。
+//! - [`chat_log`]：聊天日志的解析、目录与文件取舍、覆盖情况与位置线索。
 //! - [`clients`]：窗口标题解析、主窗口挑选与客户端登记。
 //! - [`switching`]：循环组与登录客户端的循环顺序。
 //! - [`layout`]：缩略图的基准位置、吸附、边缘缩放、悬停放大与画面裁剪。
@@ -21,6 +22,7 @@
 #[macro_use]
 pub mod support;
 
+pub mod chat_log;
 pub mod clients;
 pub mod combat_log;
 pub mod config;

@@ -39,9 +39,15 @@ pub fn parse(line: &str) -> Option<CombatLogLine> {
 /// 用于 [`super::replay`] 过滤晚跟踪文件的积压行。正常跟踪新增内容时，提醒不看日志时间。
 /// 不是合法日志行或日期不合法时返回 `None`。
 pub fn log_time(line: &str) -> Option<f64> {
-    let parts = split(line)?;
-    let t = parts.timestamp;
-    // 各字段在时间串里的位置，形式已由 split 核对过，这里只取数值。
+    utc_seconds(&split(line)?.timestamp)
+}
+
+/// 19 字节的 `yyyy.MM.dd HH:mm:ss` 换算成 UTC 秒数；形式或数值不合法时返回 `None`。聊天日志的解析也用它。
+pub(crate) fn utc_seconds(t: &[u8]) -> Option<f64> {
+    if !is_timestamp(t) {
+        return None;
+    }
+    // 各字段在时间串里的位置，形式已核对过，这里只取数值。
     let number = |start: usize, length: usize| {
         t[start..start + length]
             .iter()
@@ -91,18 +97,18 @@ pub fn plain_text(markup: &str) -> String {
     out
 }
 
-/// 一行拆出的三部分。
-struct LineParts {
+/// 一行拆出的三部分。游戏日志的位置线索（聊天日志模块）也用它。
+pub(crate) struct LineParts {
     /// 时间部分的 19 个 ASCII 字节。
-    timestamp: Vec<u8>,
+    pub(crate) timestamp: Vec<u8>,
     /// 类别，小写。
-    category: String,
+    pub(crate) category: String,
     /// 正文（可能为空）。
-    body: String,
+    pub(crate) body: String,
 }
 
 /// 核对行的形式并拆成时间、类别与正文。行首的 U+FEFF 与行尾的回车、换行先去掉。
-fn split(line: &str) -> Option<LineParts> {
+pub(crate) fn split(line: &str) -> Option<LineParts> {
     let mut bytes = line.as_bytes();
     // 行首可能有一个或多个 BOM（UTF-8 编码是 EF BB BF），上游记录聊天日志每行都带。
     while let Some(rest) = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]) {

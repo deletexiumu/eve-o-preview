@@ -52,12 +52,12 @@ pub fn parse<S: AsRef<str>>(lines: &[S]) -> CombatLogHeader {
 }
 
 /// 去掉首尾空白，含行首可能残留的 BOM（U+FEFF）。
-fn trim(text: &str) -> &str {
+pub(crate) fn trim(text: &str) -> &str {
     text.trim_matches(|c: char| c.is_whitespace() || c == '\u{FEFF}')
 }
 
 /// 是否为分隔线：非空且全是 `-`。
-fn is_separator(line: &str) -> bool {
+pub(crate) fn is_separator(line: &str) -> bool {
     !line.is_empty() && line.chars().all(|c| c == '-')
 }
 
