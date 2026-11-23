@@ -65,6 +65,8 @@ fn screens(v: &Value) -> Vec<ScreenInfo> {
             frame: rect(&s["frame"]),
             visible_frame: rect(&s["visibleFrame"]),
             scale: s["scale"].as_f64().unwrap(),
+            // 共用用例来自 macOS，全局坐标是点，尺寸不换算。
+            size_scale: 1.0,
             is_main: s["isMain"].as_bool().unwrap(),
         })
         .collect()
