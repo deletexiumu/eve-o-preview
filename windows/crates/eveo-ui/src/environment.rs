@@ -78,9 +78,10 @@ pub fn show_privileges(ui: &SettingsWindow, self_elevated: bool, elevated_client
     }
 }
 
-/// 填日志目录部分。
-pub fn show_logs(ui: &SettingsWindow, logs: &LogFolders) {
+/// 填日志目录部分。`checked_time` 是这次检查的本地时间（时:分:秒），显示在「重新检查」旁边。
+pub fn show_logs(ui: &SettingsWindow, logs: &LogFolders, checked_time: &str) {
     let model = ui.global::<EnvironmentModel>();
+    model.set_checked_time(checked_time.into());
     model.set_log_directory(logs.root.as_str().into());
     model.set_log_found(logs.root_found);
     model.set_chatlogs_found(logs.chatlogs_found);
@@ -138,8 +139,9 @@ pub(crate) mod tests {
             chatlogs_found: false,
             gamelogs_found: true,
         };
-        show_logs(ui, &logs);
+        show_logs(ui, &logs, "22:51:03");
         assert_eq!(model.get_log_directory(), r"D:\EVE\logs");
+        assert_eq!(model.get_checked_time(), "22:51:03");
         assert!(model.get_log_found() && !model.get_chatlogs_found() && model.get_gamelogs_found());
     }
 }

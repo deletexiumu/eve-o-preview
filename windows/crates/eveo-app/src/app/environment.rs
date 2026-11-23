@@ -11,6 +11,7 @@
 use std::path::Path;
 use std::rc::Rc;
 
+use eveo_platform_win::events::local_timestamp;
 use eveo_ui::environment;
 use slint::ComponentHandle;
 
@@ -57,7 +58,8 @@ impl App {
     /// 填整页，包括读磁盘的日志目录检查。在打开窗口、配置变化与「重新检查」时调用。
     pub(super) fn show_environment(&self, window: &eveo_ui::SettingsWindow) {
         self.show_privileges(window);
-        environment::show_logs(window, &environment::check_log_folders(&self.log_root()));
+        let folders = environment::check_log_folders(&self.log_root());
+        environment::show_logs(window, &folders, &time_of_day(&local_timestamp()));
     }
 
     /// 只填权限部分，不碰磁盘：每批事件之后调一次，客户端的启动与退出随即反映出来。
@@ -72,5 +74,15 @@ impl App {
             .map(|client| client.display_title())
             .collect();
         environment::show_privileges(window, self.self_elevated, &names);
+    }
+}
+
+/// 从平台层的本地时间戳（`YYYYMMDD-HHMMSS`）取出「时:分:秒」。格式不对时（不应出现）原样返回。
+fn time_of_day(timestamp: &str) -> String {
+    match timestamp.split_once('-') {
+        Some((_, hms)) if hms.len() == 6 && hms.is_ascii() => {
+            format!("{}:{}:{}", &hms[0..2], &hms[2..4], &hms[4..6])
+        }
+        _ => timestamp.to_owned(),
     }
 }

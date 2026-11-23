@@ -187,6 +187,7 @@ chatlogsFolder = "チャットログ（Chatlogs）"
 gamelogsFolder = "ゲームログ（Gamelogs）"
 logsHelp = "インテルと翻訳は Chatlogs を、被弾アラートは Gamelogs を読みます。見つからない場合は、EVE でチャットをファイルに記録する設定を確認するか、「アラート」ページでログフォルダーを指定してください。"
 recheck = "再チェック"
+lastChecked = "最終チェック：{time}"
 
 [MenuStrings]
 showAll = "すべてのサムネイルを表示"

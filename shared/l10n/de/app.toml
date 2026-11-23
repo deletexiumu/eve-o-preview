@@ -206,6 +206,7 @@ chatlogsFolder = "Chatprotokolle (Chatlogs)"
 gamelogsFolder = "Spielprotokolle (Gamelogs)"
 logsHelp = "Aufklärung und Übersetzung lesen Chatlogs, Kampfwarnungen lesen Gamelogs. Fehlen sie, prüfen Sie, ob EVE den Chat in eine Datei protokolliert, oder legen Sie den Protokollordner auf der Seite „Warnungen“ fest."
 recheck = "Erneut prüfen"
+lastChecked = "Zuletzt geprüft: {time}"
 
 [MenuStrings]
 showAll = "Alle Miniaturen einblenden"

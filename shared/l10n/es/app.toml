@@ -211,6 +211,7 @@ chatlogsFolder = "Registros de chat (Chatlogs)"
 gamelogsFolder = "Registros de juego (Gamelogs)"
 logsHelp = "La inteligencia y la traducción leen Chatlogs; las alertas de combate leen Gamelogs. Si no aparecen, comprueba que EVE guarda el chat en un archivo o indica la carpeta de registros en la página Alertas."
 recheck = "Volver a comprobar"
+lastChecked = "Última comprobación: {time}"
 
 [MenuStrings]
 # 菜单项用不定式（Mostrar、Ocultar、Minimizar），与 macOS 西班牙文菜单一致。
