@@ -692,7 +692,7 @@ impl App {
 
     /// 设置窗口显示后的收尾：标题栏跟着系统的明暗走，并切到前台。原生窗口还没出现时什么也不做，
     /// 留给下一次定时器。从托盘打开时前台还在托盘的溢出窗口上，不切的话新窗口会落在游戏后面；
-    /// 用与切换客户端相同的升级步骤，单次 SetForegroundWindow 可能被系统拒绝。最小化着时一并还原。
+    /// 先直接设前台，被系统拒绝时挂接输入队列再试（不分发消息，见 bring_forward）。最小化着时一并还原。
     fn focus_settings(&mut self) {
         if !self.settings_focus_pending {
             return;
@@ -709,7 +709,8 @@ impl App {
         };
         self.settings_focus_pending = false;
         appearance::set_dark_title_bar(hwnd, window.get_dark());
-        let _ = activation::activate(eveo_platform_win::window_id(hwnd));
+        // 这里可能在定时器里（Slint 的事件回调中），不能用会分发消息的 activate，见 bring_forward。
+        let _ = activation::bring_forward(eveo_platform_win::window_id(hwnd));
     }
 
     /// 设置窗口里改了值：从当前配置出发读回「预览与布局」页，有变化才交给协调器。
