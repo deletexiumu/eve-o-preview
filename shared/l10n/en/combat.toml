@@ -1,0 +1,39 @@
+# combat 域的文字（en）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "Flash a character's thumbnail when it comes under attack."
+
+# 状态行显示目录全路径，文字保持短。
+enableToggle = "Flash thumbnail when a character is attacked"
+statusLabel = "Status"
+statusStopped = "Off"
+statusWatching = { one = "Watching {files} log file in {directory}", other = "Watching {files} log files in {directory}" }
+statusDirectoryNotFound = "Game log folder not found: {path}"
+statusAccessDenied = "No permission to read {path}"
+accessDeniedHelp = "Allow EVE-O Preview to access the Documents folder in System Settings > Privacy & Security > Files and Folders."
+openSystemSettings = "Open System Settings…"
+
+logDirectoryHeader = "Game logs"
+logDirectoryLabel = "Folder"
+automaticSuffix = "(automatic)"
+chooseDirectory = "Choose…"
+useAutomaticLocation = "Use Automatic Location"
+chooseDirectoryMessage = "Choose the EVE \"logs\" or \"Gamelogs\" folder."
+
+appearanceHeader = "Flash"
+flashColor = "Flash color"
+duration = "Duration"
+seconds = "{value:secs} s"
+style = "Style"
+styleBorder = "Border"
+styleWash = "Tint"
+styleBoth = "Both"
+
+triggersHeader = "Triggers"
+includeMisses = "Also alert on attacks that miss"
+minimumDamage = "Minimum damage"
+minimumDamageHelp = "Hits below this amount are ignored. Misses follow the switch above."
+
+testFlash = "Test Flash"
+testFlashHelp = "Flashes every thumbnail once, even when the alert is off."
+footnote = "The EVE client must be set to write game messages to log files. This feature only reads the game logs and never sends any input to the game."

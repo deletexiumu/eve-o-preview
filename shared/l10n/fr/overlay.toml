@@ -1,0 +1,40 @@
+# overlay 域的文字（fr）。键的用途见 ../keys/overlay.toml。
+
+[OverlayStrings]
+newMessages = { one = "{count} nouveau", other = "{count} nouveaux" }
+noActiveCharacter = "Aucun personnage dans la fenêtre actuelle"
+emptyList = "Aucun message pour l’instant"
+
+menuScrollToLatest = "Faire défiler jusqu’au plus récent"
+menuCopyLine = "Copier cette ligne"
+menuOpenInBrowser = "Ouvrir dans le navigateur"
+menuClear = "Vider la liste"
+menuLockLayout = "Verrouiller la disposition"
+menuResetFrame = "Rétablir la position et la taille"
+menuHide = "Masquer cet overlay"
+menuOpenSettings = "Ouvrir les réglages…"
+
+overlayHeader = "Overlay"
+opacity = "Opacité du fond"
+fontSize = "Taille du texte"
+resetFrame = "Rétablir la position"
+gestureHelp = "Faites glisser avec le bouton droit, ou avec Option et le bouton gauche, pour déplacer l’overlay ; placez le pointeur sur un bord et faites glisser avec le bouton gauche pour le redimensionner ; faites défiler pour parcourir la liste."
+visibilityLabel = "Afficher"
+visibilityAlways = "Toujours"
+visibilityGameOnly = "Seulement dans EVE : masquer quand aucune fenêtre EVE n’est au premier plan"
+positionLabel = "Position"
+sizeLabel = "Taille"
+frameHelp = "La position est exprimée en points depuis le coin supérieur gauche de l’écran principal. La taille est limitée de 220×120 à 900×900 ; une position hors écran est ramenée à l’écran."
+
+channelsHeader = "Canaux"
+addFromLogs = "Ajouter depuis les journaux"
+addByNamePlaceholder = "Saisissez un nom de canal puis appuyez sur Retour"
+removeChannel = "Retirer"
+noChannels = "Aucun canal pour l’instant"
+refreshChannels = "Actualiser"
+noDiscoveredChannels = "Aucun journal de discussion récent"
+channelListeners = { one = "{count} personnage", other = "{count} personnages" }
+builtInLocal = "Local"
+builtInCorp = "Corporation"
+builtInAlliance = "Alliance"
+builtInFleet = "Flotte"

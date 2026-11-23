@@ -1,0 +1,38 @@
+# combat 域的文字（ja）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "キャラクターが攻撃されたとき、そのサムネイルを点滅させます。"
+
+enableToggle = "キャラクターが攻撃されたらサムネイルを点滅"
+statusLabel = "状態"
+statusStopped = "オフ"
+statusWatching = "監視中：{directory}（ログファイル {files} 件）"
+statusDirectoryNotFound = "ゲームログのフォルダが見つかりません：{path}"
+statusAccessDenied = "読み取り権限がありません：{path}"
+accessDeniedHelp = "「システム設定 > プライバシーとセキュリティ > ファイルとフォルダ」で、EVE-O Preview に「書類」フォルダへのアクセスを許可してください。"
+openSystemSettings = "システム設定を開く…"
+
+logDirectoryHeader = "ゲームログ"
+logDirectoryLabel = "フォルダ"
+automaticSuffix = "（自動）"
+chooseDirectory = "選択…"
+useAutomaticLocation = "自動検出を使用"
+chooseDirectoryMessage = "EVE の「logs」または「Gamelogs」フォルダを選択してください。"
+
+appearanceHeader = "点滅"
+flashColor = "点滅の色"
+duration = "持続時間"
+seconds = "{value:secs} 秒"
+style = "スタイル"
+styleBorder = "枠線"
+styleWash = "塗り"
+styleBoth = "両方"
+
+triggersHeader = "条件"
+includeMisses = "外れた攻撃でも通知する"
+minimumDamage = "最小ダメージ"
+minimumDamageHelp = "この値未満のダメージでは通知しません。外れた攻撃は上のスイッチに従います。"
+
+testFlash = "点滅をテスト"
+testFlashHelp = "機能がオフでも、すべてのサムネイルを一度点滅させます。"
+footnote = "EVE クライアントでゲームメッセージをログファイルに書き出す設定を有効にしてください。この機能はゲームログを読むだけで、ゲームに入力を送ることはありません。"

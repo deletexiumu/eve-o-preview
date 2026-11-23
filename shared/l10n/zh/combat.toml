@@ -1,0 +1,38 @@
+# combat 域的文字（zh）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "角色被攻击时，让它的缩略图闪烁。"
+
+enableToggle = "角色被攻击时闪烁缩略图"
+statusLabel = "状态"
+statusStopped = "未启用"
+statusWatching = "监视中：{directory}，跟踪 {files} 个日志文件"
+statusDirectoryNotFound = "找不到游戏日志目录：{path}"
+statusAccessDenied = "没有读取权限：{path}"
+accessDeniedHelp = "请在「系统设置 > 隐私与安全性 > 文件与文件夹」里允许 EVE-O Preview 访问「文稿」文件夹。"
+openSystemSettings = "打开系统设置…"
+
+logDirectoryHeader = "游戏日志"
+logDirectoryLabel = "目录"
+automaticSuffix = "（自动）"
+chooseDirectory = "选择…"
+useAutomaticLocation = "使用自动位置"
+chooseDirectoryMessage = "选择 EVE 的 logs 或 Gamelogs 文件夹。"
+
+appearanceHeader = "闪烁"
+flashColor = "闪烁颜色"
+duration = "持续时间"
+seconds = "{value:secs} 秒"
+style = "样式"
+styleBorder = "边框"
+styleWash = "底色"
+styleBoth = "两者"
+
+triggersHeader = "触发条件"
+includeMisses = "未命中的攻击也提醒"
+minimumDamage = "最小伤害"
+minimumDamageHelp = "低于这个数值的伤害不提醒。未命中按上面的开关处理。"
+
+testFlash = "测试闪烁"
+testFlashHelp = "让全部缩略图闪烁一次，功能关闭时也可以用。"
+footnote = "EVE 客户端应开启把游戏消息写入日志文件的设置。本功能只读游戏日志，不向游戏发送任何输入。"

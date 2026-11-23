@@ -1,0 +1,40 @@
+# overlay 域的文字（de）。键的用途见 ../keys/overlay.toml。
+
+[OverlayStrings]
+newMessages = "{count} neu"
+noActiveCharacter = "Kein Charakter im aktuellen Fenster"
+emptyList = "Noch keine Nachrichten"
+
+menuScrollToLatest = "Zum Neuesten scrollen"
+menuCopyLine = "Diese Zeile kopieren"
+menuOpenInBrowser = "Im Browser öffnen"
+menuClear = "Liste leeren"
+menuLockLayout = "Layout sperren"
+menuResetFrame = "Position und Größe zurücksetzen"
+menuHide = "Dieses Overlay ausblenden"
+menuOpenSettings = "Einstellungen öffnen …"
+
+overlayHeader = "Overlay"
+opacity = "Deckkraft des Hintergrunds"
+fontSize = "Schriftgröße"
+resetFrame = "Position zurücksetzen"
+gestureHelp = "Mit der rechten Maustaste oder mit Wahltaste und linker Maustaste ziehen, um das Overlay zu bewegen; den Zeiger an den Rand bewegen und mit der linken Maustaste ziehen, um die Größe zu ändern; scrollen, um die Liste zu durchblättern."
+visibilityLabel = "Anzeigen"
+visibilityAlways = "Immer"
+visibilityGameOnly = "Nur in EVE: ausblenden, wenn kein EVE-Fenster im Vordergrund ist"
+positionLabel = "Position"
+sizeLabel = "Größe"
+frameHelp = "Die Position wird in Punkten ab der linken oberen Ecke des Hauptbildschirms angegeben. Die Größe ist auf 220×120 bis 900×900 begrenzt; eine Position außerhalb des Bildschirms wird zurückgeholt."
+
+channelsHeader = "Kanäle"
+addFromLogs = "Aus Protokollen hinzufügen"
+addByNamePlaceholder = "Kanalnamen eingeben und Zeilenschalter drücken"
+removeChannel = "Entfernen"
+noChannels = "Noch keine Kanäle"
+refreshChannels = "Aktualisieren"
+noDiscoveredChannels = "Keine aktuellen Chatprotokolle gefunden"
+channelListeners = { one = "{count} Charakter", other = "{count} Charaktere" }
+builtInLocal = "Lokal"
+builtInCorp = "Corporation"
+builtInAlliance = "Allianz"
+builtInFleet = "Flotte"

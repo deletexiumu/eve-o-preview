@@ -1,0 +1,199 @@
+# update 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/update.toml。
+
+swift_file = "UpdateStrings"
+
+[protocols.UpdateStrings]
+doc = "更新域的全部文字。"
+
+[UpdateStrings.menuCheckForUpdates]
+section = "菜单栏菜单"
+doc = "工具项「检查更新…」。"
+
+[UpdateStrings.menuUpdateAvailable]
+doc = "顶部的提示项：有可用更新，参数是新版本号。"
+params = ["_ version: String"]
+
+[UpdateStrings.menuRestartToUpdate]
+doc = "顶部的提示项：新版本已下载好，点击后安装并重新启动；参数是新版本号。更新窗口的同名按钮也用它。"
+params = ["_ version: String"]
+
+[UpdateStrings.sectionHeader]
+section = "「通用」页的更新一组"
+doc = "一组的标题。"
+
+[UpdateStrings.autoCheckToggle]
+doc = "「自动检查更新」开关。"
+
+[UpdateStrings.autoCheckHelp]
+doc = "「自动检查更新」的说明。"
+
+[UpdateStrings.autoInstallToggle]
+doc = "「自动安装更新」开关。"
+
+[UpdateStrings.autoInstallHelp]
+doc = "「自动安装更新」的说明。"
+
+[UpdateStrings.currentVersionLabel]
+doc = "「当前版本」一行的标签。"
+
+[UpdateStrings.lastCheckedLabel]
+doc = "「上次检查」一行的标签。"
+
+[UpdateStrings.lastCheckedNever]
+doc = "从来没有检查过。"
+
+[UpdateStrings.checkNowButton]
+doc = "「立即检查」按钮；更新窗口在空闲时也用它。"
+
+[UpdateStrings.statusChecking]
+section = "状态行（「通用」页与更新窗口）"
+doc = "检查中。"
+
+[UpdateStrings.statusUpToDate]
+doc = "已是最新版本。"
+
+[UpdateStrings.statusAvailable]
+doc = "有新版本，参数是版本号。"
+params = ["_ version: String"]
+
+[UpdateStrings.statusReady]
+doc = "新版本已下载，退出时安装；参数是版本号。"
+params = ["_ version: String"]
+
+[UpdateStrings.statusRateLimited]
+doc = "GitHub 限流，参数是可以再试的时刻（已按界面语言格式化）。"
+params = ["_ time: String"]
+
+[UpdateStrings.statusRateLimitedLater]
+doc = "GitHub 限流，可以再试的时刻未知。"
+
+[UpdateStrings.statusUnavailable]
+doc = "这个构建整个停用更新功能（不是从 .app 运行）。"
+
+[UpdateStrings.windowTitle]
+section = "更新窗口"
+doc = "窗口标题。"
+
+[UpdateStrings.headline]
+doc = "标题行，参数是新版本号。"
+params = ["_ version: String"]
+
+[UpdateStrings.currentVersionLine]
+doc = "标题下一行，参数是正在运行的版本。"
+params = ["_ version: String"]
+
+[UpdateStrings.releaseNotesHeader]
+doc = "发布说明上方的小标题。"
+
+[UpdateStrings.versionNotesTitle]
+doc = "跳过了几个版本时，每个版本的说明前的小标题，参数是版本号（8.8 节）。"
+params = ["_ version: String"]
+
+[UpdateStrings.earlierVersionsOnReleasePage]
+doc = "中间版本没有列全时，说明最后的一行：更早版本的内容请看发布页。"
+
+[UpdateStrings.installButton]
+doc = "「安装更新」按钮。"
+
+[UpdateStrings.installHelp]
+doc = "「安装更新」下方的说明。"
+
+[UpdateStrings.skipButton]
+doc = "「跳过此版本」按钮。"
+
+[UpdateStrings.laterButton]
+doc = "「稍后」按钮。"
+
+[UpdateStrings.openReleasePageButton]
+doc = "「打开发布页」按钮。"
+
+[UpdateStrings.cancelButton]
+doc = "「取消」按钮。"
+
+[UpdateStrings.closeButton]
+doc = "「关闭」按钮。"
+
+[UpdateStrings.retryButton]
+doc = "「重试」按钮。"
+
+[UpdateStrings.progressDownloading]
+doc = "下载进度；两个参数是已格式化的大小，total 为 nil 表示总大小未知。"
+params = ["received: String", "total: String?"]
+select = "total"
+cases = ["none", "some"]
+
+[UpdateStrings.progressVerifying]
+doc = "核对中。"
+
+[UpdateStrings.progressInstalling]
+doc = "安装中。"
+
+[UpdateStrings.progressRelaunching]
+doc = "重新启动中。"
+
+[UpdateStrings.testFeedBadge]
+doc = "使用测试地址时标题旁的字样。"
+
+[UpdateStrings.notifyOnlyIntro]
+doc = "只提示时，原因前面的一句。"
+
+[UpdateStrings.currentVersionUnchanged]
+doc = "失败时：当前版本没有变化。"
+
+[UpdateStrings.reopenManually]
+doc = "安装成功但重新启动失败时的说明。"
+
+[UpdateStrings.blockerTranslocated]
+section = "不能自动安装的原因（InstallBlocker）"
+doc = "`translocated`。"
+
+[UpdateStrings.blockerReadOnlyVolume]
+doc = "`readOnlyVolume`。"
+
+[UpdateStrings.blockerLocationNotWritable]
+doc = "`locationNotWritable`。"
+
+[UpdateStrings.blockerUnsupportedVolume]
+doc = "`unsupportedVolume`。"
+
+[UpdateStrings.blockerAdHocSignature]
+doc = "`adHocSignature`。"
+
+[UpdateStrings.blockerDevelopmentSignature]
+doc = "`developmentSignature`。"
+
+[UpdateStrings.blockerUnsigned]
+doc = "`unsigned`。"
+
+[UpdateStrings.errorNetwork]
+section = "错误（UpdateError，按类合并）"
+doc = "`network`。"
+
+[UpdateStrings.errorHTTPStatus]
+doc = "`httpStatus`，参数是状态码。"
+params = ["_ code: Int"]
+
+[UpdateStrings.errorMalformedFeed]
+doc = "`malformedFeed`。"
+
+[UpdateStrings.errorAssetMissing]
+doc = "`assetMissing`。"
+
+[UpdateStrings.errorDiskSpace]
+doc = "`insufficientDiskSpace`、`downloadTooLarge`。"
+
+[UpdateStrings.errorChecksum]
+doc = "`checksumListInvalid`、`checksumEntryMissing`、`checksumMismatch`。"
+
+[UpdateStrings.errorDiskImage]
+doc = "`imageMountFailed`、`appMissingInImage`。"
+
+[UpdateStrings.errorVerification]
+doc = "`signatureInvalid`、`requirementNotSatisfied`、`bundleMismatch`、`versionMismatch`、`notNewer`。"
+
+[UpdateStrings.errorUnsupportedSystem]
+doc = "`unsupportedSystem`，参数是要求的最低系统版本。"
+params = ["_ minimum: String"]
+
+[UpdateStrings.errorSwapFailed]
+doc = "`swapFailed`。"

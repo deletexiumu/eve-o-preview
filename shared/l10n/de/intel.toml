@@ -1,0 +1,63 @@
+# intel 域的文字（de）。键的用途见 ../keys/intel.toml。
+
+[IntelStrings]
+pageSubtitle = "Liest die Chatprotokolle der Aufklärungskanäle und zeigt, wo Feinde sind, wie viele, mit welchen Schiffen und wie weit entfernt."
+enableToggle = "Aufklärungs-Overlay anzeigen"
+statusLabel = "Status"
+channelsHelp = "Wähle die Kanäle, in denen Feinde gemeldet werden."
+
+locationHeader = "Mein Standort"
+locationHelp = "Der Standort stammt aus den Sprungeinträgen im Spielprotokoll und aus dem Protokoll des Kanals „Lokal“. Wenn beides fehlt, gib ihn hier ein."
+locationUnknown = "Unbekannt"
+locationValue = "{system} ({source}, vor {age})"
+sourceGameLog = "Spielprotokoll"
+sourceLocal = "Kanal „Lokal“"
+sourceManual = "manuell"
+systemPlaceholder = "Systemnamen eingeben und Return drücken"
+clearLocation = "Löschen"
+systemNotFound = "System nicht gefunden"
+noOnlineCharacters = "Keine Charaktere online"
+referenceSystem = "Bezugssystem"
+referenceSystemHelp = "Ist der Standort eines Charakters unbekannt, werden die Sprünge vom Bezugssystem aus gezählt."
+
+displayHeader = "Anzeige"
+windowMinutes = "Behalten für"
+minutes = "{count} Min."
+maxJumps = "Zählen bis"
+jumpsUnit = { one = "{count} Sprung", other = "{count} Sprünge" }
+alertJumps = "Hervorheben bis"
+alertJumpsHelp = "Meldungen innerhalb dieser Sprungzahl werden hervorgehoben. 0 schaltet die Hervorhebung aus."
+showOriginal = "Originaltext anzeigen"
+
+staticDataLabel = "Kartendaten"
+staticDataBuild = "SDE-Build {build}"
+staticDataMissing = "Kartendaten fehlen; Systeme und Schiffe werden nicht erkannt"
+footnote = "Diese Funktion liest nur Chat- und Spielprotokolle und sendet keine Eingaben an das Spiel. Pilotennamen und Anzahlen werden aus dem Nachrichtenformat abgeleitet und können falsch sein. Die Online-Prüfung zeigt nur, dass ein Charakter dieses Namens existiert, nicht dass die Nachricht diesen Charakter meint."
+
+overlayTitle = "Aufklärung · {character}"
+statusNoStaticData = "Kartendaten fehlen"
+statusNoChannels = "Keine Aufklärungskanäle festgelegt"
+statusLocationUnknown = "Standort unbekannt; Rechtsklick öffnet die Einstellungen"
+statusUsingReference = "Standort unbekannt; gezählt ab {system}"
+statusLocation = "Standort: {system} ({source}, vor {age})"
+
+ageSeconds = "{count} s"
+ageMinutes = "{count} Min."
+jumps = "{count} Spr."
+jumpsHere = "hier"
+jumpsBeyond = ">{limit} Spr."
+jumpsUnreachable = "keine Tore"
+jumpsUnknown = "?"
+count = "×{value}"
+countInferred = "~×{value}"
+clear = "frei"
+noVisual = "nicht sichtbar"
+
+resolvePilotsToggle = "Online-Namensprüfung (ESI)"
+resolvePilotsHelp = "Wenn mehrere Namen mit Leerzeichen aufeinanderfolgen, fragt die App bei der ESI-API von CCP, welche Charaktere es sind. Gesendet werden nur diese Wörter, nicht der Sprecher, der Kanalname oder die Namen deiner Charaktere. Einwortnamen werden nicht abgefragt."
+pilotLookupLabel = "Namensprüfung"
+pilotLookupIdle = { one = "Bereit, {count} Charaktername gespeichert", other = "Bereit, {count} Charakternamen gespeichert" }
+pilotLookupResolving = "Wird geprüft"
+pilotLookupWaiting = "ESI nicht erreichbar; neuer Versuch in {seconds} s"
+clearPilotCache = "Namenscache leeren"
+pilotCacheCount = { one = "{count} Charaktername gespeichert", other = "{count} Charakternamen gespeichert" }

@@ -1,0 +1,194 @@
+# intel 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/intel.toml。
+
+swift_file = "IntelStrings"
+
+[protocols.IntelStrings]
+doc = "预警域的全部文字。"
+
+[IntelStrings.pageSubtitle]
+section = "页头、开关与频道"
+doc = "页标题下的一句说明。"
+
+[IntelStrings.enableToggle]
+doc = "总开关「显示预警浮窗」。"
+
+[IntelStrings.statusLabel]
+doc = "状态行的标签。"
+
+[IntelStrings.channelsHelp]
+doc = "频道列表下的说明。"
+
+[IntelStrings.locationHeader]
+section = "我的位置"
+doc = "一组的标题。"
+
+[IntelStrings.locationHelp]
+doc = "一组的说明。"
+
+[IntelStrings.locationUnknown]
+doc = "位置未知。"
+
+[IntelStrings.locationValue]
+doc = "位置的文字：星系（来源，多久以前）。"
+params = ["system: String", "source: String", "age: String"]
+
+[IntelStrings.sourceGameLog]
+doc = "来源：游戏日志。"
+
+[IntelStrings.sourceLocal]
+doc = "来源：本地频道。"
+
+[IntelStrings.sourceManual]
+doc = "来源：手动。"
+
+[IntelStrings.systemPlaceholder]
+doc = "星系输入框的占位文字。"
+
+[IntelStrings.clearLocation]
+doc = "「清除」按钮。"
+
+[IntelStrings.systemNotFound]
+doc = "输入的星系名查不到。"
+
+[IntelStrings.noOnlineCharacters]
+doc = "没有在线的角色。"
+
+[IntelStrings.referenceSystem]
+doc = "参考星系一行的标签。"
+
+[IntelStrings.referenceSystemHelp]
+doc = "参考星系的说明。"
+
+[IntelStrings.displayHeader]
+section = "显示"
+doc = "一组的标题。"
+
+[IntelStrings.windowMinutes]
+doc = "「保留最近」。"
+
+[IntelStrings.minutes]
+doc = "分钟数，如「30 分钟」。"
+params = ["_ count: Int"]
+
+[IntelStrings.maxJumps]
+doc = "「最多计算」。"
+
+[IntelStrings.jumpsUnit]
+doc = "跳数的单位，如「15 跳」。"
+params = ["_ count: Int"]
+plural = "count"
+
+[IntelStrings.alertJumps]
+doc = "「高亮距离」。"
+
+[IntelStrings.alertJumpsHelp]
+doc = "高亮距离的说明。"
+
+[IntelStrings.showOriginal]
+doc = "「显示原文」开关。"
+
+[IntelStrings.staticDataLabel]
+section = "星图数据与页尾"
+doc = "星图数据一行的标签。"
+
+[IntelStrings.staticDataBuild]
+doc = "SDE 版本号。"
+params = ["_ build: Int"]
+
+[IntelStrings.staticDataMissing]
+doc = "缺少星图数据。"
+
+[IntelStrings.footnote]
+doc = "页尾的说明。"
+
+[IntelStrings.overlayTitle]
+section = "浮窗的标题与状态行"
+doc = "浮窗标题，参数是活动角色名。"
+params = ["_ character: String"]
+
+[IntelStrings.statusNoStaticData]
+doc = "状态行：缺少星图数据。"
+
+[IntelStrings.statusNoChannels]
+doc = "状态行：没有预警频道。"
+
+[IntelStrings.statusLocationUnknown]
+doc = "状态行：位置未知。"
+
+[IntelStrings.statusUsingReference]
+doc = "状态行：位置未知，按参考星系计算。"
+params = ["_ system: String"]
+
+[IntelStrings.statusLocation]
+doc = "状态行：位置（星系、来源、多久以前）。"
+params = ["system: String", "source: String", "age: String"]
+
+[IntelStrings.ageSeconds]
+section = "浮窗每一行"
+doc = "不足 1 分钟的时间，如「40 秒」。"
+params = ["_ count: Int"]
+
+[IntelStrings.ageMinutes]
+doc = "1 分钟以上的时间，如「3 分钟」。"
+params = ["_ count: Int"]
+
+[IntelStrings.jumps]
+doc = "跳数，如「3 跳」。"
+params = ["_ count: Int"]
+
+[IntelStrings.jumpsHere]
+doc = "就在本星系（0 跳）。"
+
+[IntelStrings.jumpsBeyond]
+doc = "超过上限。"
+params = ["_ limit: Int"]
+
+[IntelStrings.jumpsUnreachable]
+doc = "没有星门。"
+
+[IntelStrings.jumpsUnknown]
+doc = "不知道从哪里算。"
+
+[IntelStrings.count]
+doc = "写明的数量，如「×3」。"
+params = ["_ value: Int"]
+
+[IntelStrings.countInferred]
+doc = "推断的数量，如「约 ×3」。"
+params = ["_ value: Int"]
+
+[IntelStrings.clear]
+doc = "「安全」。"
+
+[IntelStrings.noVisual]
+doc = "「未见」。"
+
+[IntelStrings.resolvePilotsToggle]
+section = "人名核对（6.9 节增补）"
+doc = "开关「联网核对人名（ESI）」；措辞与 settings.aboutChatLogsNote 里引用的名称一致。"
+
+[IntelStrings.resolvePilotsHelp]
+doc = "开关下的说明。"
+
+[IntelStrings.pilotLookupLabel]
+doc = "核对状态一行的标签。"
+
+[IntelStrings.pilotLookupIdle]
+doc = "就绪，附已保存的角色名个数。"
+params = ["_ count: Int"]
+plural = "count"
+
+[IntelStrings.pilotLookupResolving]
+doc = "核对中。"
+
+[IntelStrings.pilotLookupWaiting]
+doc = "暂时连不上，附多少秒后重试。"
+params = ["_ seconds: Int"]
+
+[IntelStrings.clearPilotCache]
+doc = "「清空人名缓存」按钮。"
+
+[IntelStrings.pilotCacheCount]
+doc = "人名缓存一行：已保存的角色名个数（WP-B 增加的一条）。"
+params = ["_ count: Int"]
+plural = "count"

@@ -1,0 +1,38 @@
+# combat 域的文字（ru）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "Миниатюра персонажа мигает, когда его атакуют."
+
+enableToggle = "Мигать миниатюрой при атаке на персонажа"
+statusLabel = "Состояние"
+statusStopped = "Выключено"
+statusWatching = { one = "Отслеживается {files} файл журнала в {directory}", few = "Отслеживается {files} файла журнала в {directory}", many = "Отслеживается {files} файлов журнала в {directory}" }
+statusDirectoryNotFound = "Папка игровых журналов не найдена: {path}"
+statusAccessDenied = "Нет доступа к {path}"
+accessDeniedHelp = "Разрешите EVE-O Preview доступ к папке «Документы» в разделе «Системные настройки > Конфиденциальность и безопасность > Файлы и папки»."
+openSystemSettings = "Открыть Системные настройки…"
+
+logDirectoryHeader = "Игровые журналы"
+logDirectoryLabel = "Папка"
+automaticSuffix = "(автоматически)"
+chooseDirectory = "Выбрать…"
+useAutomaticLocation = "Определять автоматически"
+chooseDirectoryMessage = "Выберите папку EVE «logs» или «Gamelogs»."
+
+appearanceHeader = "Мигание"
+flashColor = "Цвет мигания"
+duration = "Длительность"
+seconds = "{value:secs} с"
+style = "Стиль"
+styleBorder = "Рамка"
+styleWash = "Заливка"
+styleBoth = "Оба"
+
+triggersHeader = "Условия"
+includeMisses = "Оповещать и о промахах противника"
+minimumDamage = "Минимальный урон"
+minimumDamageHelp = "Урон меньше этого значения не вызывает оповещения. Промахи — по переключателю выше."
+
+testFlash = "Проверить мигание"
+testFlashHelp = "Все миниатюры мигнут один раз, даже если оповещение выключено."
+footnote = "В клиенте EVE должна быть включена запись игровых сообщений в файлы журналов. Эта функция только читает игровые журналы и ничего не отправляет в игру."

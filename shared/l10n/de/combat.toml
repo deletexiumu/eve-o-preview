@@ -1,0 +1,42 @@
+# combat 域的文字（de）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "Die Miniatur eines Charakters blinkt, wenn er angegriffen wird."
+
+# 状态行显示目录全路径，文字保持短。
+enableToggle = "Miniatur bei Angriff auf einen Charakter blinken lassen"
+statusLabel = "Status"
+statusStopped = "Aus"
+statusWatching = { one = "Überwacht {files} Protokolldatei in {directory}", other = "Überwacht {files} Protokolldateien in {directory}" }
+statusDirectoryNotFound = "Ordner der Spielprotokolle nicht gefunden: {path}"
+statusAccessDenied = "Keine Leseberechtigung für {path}"
+# 不定式句，不称呼用户；路径按系统设置里的层级写全。
+accessDeniedHelp = "EVE-O Preview unter „Systemeinstellungen > Datenschutz & Sicherheit > Dateien und Ordner“ den Zugriff auf den Ordner „Dokumente“ erlauben."
+openSystemSettings = "Systemeinstellungen öffnen …"
+
+logDirectoryHeader = "Spielprotokolle"
+logDirectoryLabel = "Ordner"
+automaticSuffix = "(automatisch)"
+chooseDirectory = "Auswählen …"
+useAutomaticLocation = "Automatischen Ort verwenden"
+# 文件夹名 logs、Gamelogs 是 EVE 客户端写死的目录名，不翻译。
+chooseDirectoryMessage = "Den EVE-Ordner „logs“ oder „Gamelogs“ auswählen."
+
+appearanceHeader = "Blinken"
+flashColor = "Blinkfarbe"
+duration = "Dauer"
+seconds = "{value:secs_comma} s"
+style = "Stil"
+styleBorder = "Rahmen"
+# 「底色」指整张缩略图罩一层颜色，德文用 Tönung（着色）。
+styleWash = "Tönung"
+styleBoth = "Beides"
+
+triggersHeader = "Auslöser"
+includeMisses = "Auch bei verfehlten Angriffen warnen"
+minimumDamage = "Mindestschaden"
+minimumDamageHelp = "Treffer unter diesem Wert werden ignoriert. Für Fehlschüsse gilt der Schalter oben."
+
+testFlash = "Blinken testen"
+testFlashHelp = "Lässt jede Miniatur einmal blinken, auch wenn die Warnung aus ist."
+footnote = "Der EVE-Client muss Spielnachrichten in Protokolldateien schreiben. Diese Funktion liest nur die Spielprotokolle und sendet nie Eingaben an das Spiel."

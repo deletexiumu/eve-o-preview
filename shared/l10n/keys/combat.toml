@@ -1,0 +1,107 @@
+# combat 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/combat.toml。
+
+swift_file = "CombatStrings"
+
+[protocols.CombatStrings]
+doc = "「提醒」页的文字。"
+
+[CombatStrings.pageSubtitle]
+section = "页头"
+doc = "页标题下的一句说明。"
+
+[CombatStrings.enableToggle]
+section = "开关与状态行"
+doc = "总开关。"
+
+[CombatStrings.statusLabel]
+doc = "状态行的标签。"
+
+[CombatStrings.statusStopped]
+doc = "状态：未启用。"
+
+[CombatStrings.statusWatching]
+doc = "状态：监视中，附目录与跟踪的文件数。"
+params = ["directory: String", "files: Int"]
+plural = "files"
+
+[CombatStrings.statusDirectoryNotFound]
+doc = "状态：找不到日志目录，附查找的路径。"
+params = ["_ path: String"]
+
+[CombatStrings.statusAccessDenied]
+doc = "状态：没有访问权限，附目录。"
+params = ["_ path: String"]
+
+[CombatStrings.accessDeniedHelp]
+doc = "没有访问权限时的说明（「文件与文件夹」权限）。"
+
+[CombatStrings.openSystemSettings]
+doc = "「打开系统设置」按钮。"
+
+[CombatStrings.logDirectoryHeader]
+section = "日志目录"
+doc = "日志目录一组的标题。"
+
+[CombatStrings.logDirectoryLabel]
+doc = "日志目录一行的标签。"
+
+[CombatStrings.automaticSuffix]
+doc = "没有指定目录时，路径后面的「自动」标注。"
+
+[CombatStrings.chooseDirectory]
+doc = "「选择…」按钮。"
+
+[CombatStrings.useAutomaticLocation]
+doc = "「使用自动位置」按钮。"
+
+[CombatStrings.chooseDirectoryMessage]
+doc = "选择目录的对话框里的说明。"
+
+[CombatStrings.appearanceHeader]
+section = "闪烁的外观"
+doc = "外观一组的标题。"
+
+[CombatStrings.flashColor]
+doc = "闪烁颜色。"
+
+[CombatStrings.duration]
+doc = "持续时间。"
+
+[CombatStrings.seconds]
+doc = "秒数的显示，如「3.5 秒」。"
+params = ["_ value: Double"]
+
+[CombatStrings.style]
+doc = "样式。"
+
+[CombatStrings.styleBorder]
+doc = "样式：边框。"
+
+[CombatStrings.styleWash]
+doc = "样式：底色。"
+
+[CombatStrings.styleBoth]
+doc = "样式：两者。"
+
+[CombatStrings.triggersHeader]
+section = "触发条件"
+doc = "触发条件一组的标题。"
+
+[CombatStrings.includeMisses]
+doc = "「未命中的攻击也提醒」开关。"
+
+[CombatStrings.minimumDamage]
+doc = "最小伤害。"
+
+[CombatStrings.minimumDamageHelp]
+doc = "最小伤害的说明。"
+
+[CombatStrings.testFlash]
+section = "测试与说明"
+doc = "「测试闪烁」按钮。"
+
+[CombatStrings.testFlashHelp]
+doc = "「测试闪烁」的说明。"
+
+[CombatStrings.footnote]
+doc = "页尾的说明：游戏日志的设置与只读的承诺。"

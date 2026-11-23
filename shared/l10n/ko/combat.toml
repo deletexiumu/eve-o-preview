@@ -1,0 +1,38 @@
+# combat 域的文字（ko）。键的用途见 ../keys/combat.toml。
+
+[CombatStrings]
+pageSubtitle = "캐릭터가 공격받으면 해당 썸네일이 깜박입니다."
+
+enableToggle = "캐릭터가 공격받으면 썸네일 깜박이기"
+statusLabel = "상태"
+statusStopped = "꺼짐"
+statusWatching = "감시 중: {directory} (로그 파일 {files}개)"
+statusDirectoryNotFound = "게임 로그 폴더를 찾을 수 없음: {path}"
+statusAccessDenied = "읽기 권한 없음: {path}"
+accessDeniedHelp = "시스템 설정 > 개인정보 보호 및 보안 > 파일 및 폴더에서 EVE-O Preview가 '문서' 폴더에 접근하도록 허용하십시오."
+openSystemSettings = "시스템 설정 열기…"
+
+logDirectoryHeader = "게임 로그"
+logDirectoryLabel = "폴더"
+automaticSuffix = "(자동)"
+chooseDirectory = "선택…"
+useAutomaticLocation = "자동 위치 사용"
+chooseDirectoryMessage = "EVE의 'logs' 또는 'Gamelogs' 폴더를 선택하십시오."
+
+appearanceHeader = "깜박임"
+flashColor = "깜박임 색상"
+duration = "지속 시간"
+seconds = "{value:secs}초"
+style = "스타일"
+styleBorder = "테두리"
+styleWash = "채우기"
+styleBoth = "둘 다"
+
+triggersHeader = "조건"
+includeMisses = "빗나간 공격도 알림"
+minimumDamage = "최소 피해량"
+minimumDamageHelp = "이 값보다 작은 피해는 알리지 않습니다. 빗나간 공격은 위의 스위치를 따릅니다."
+
+testFlash = "깜박임 테스트"
+testFlashHelp = "기능이 꺼져 있어도 모든 썸네일을 한 번 깜박입니다."
+footnote = "EVE 클라이언트에서 게임 메시지를 로그 파일에 기록하도록 설정해야 합니다. 이 기능은 게임 로그를 읽기만 하며 게임에 어떤 입력도 보내지 않습니다."

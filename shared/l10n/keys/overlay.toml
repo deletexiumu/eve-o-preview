@@ -1,0 +1,116 @@
+# overlay 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/overlay.toml。
+
+swift_file = "OverlayStrings"
+
+[protocols.OverlayStrings]
+doc = "浮窗与两页共用设置控件的文字。"
+
+[OverlayStrings.newMessages]
+section = "浮窗的列表"
+doc = "新消息条：离开底部后新到了几条。"
+params = ["_ count: Int"]
+plural = "count"
+
+[OverlayStrings.noActiveCharacter]
+doc = "没有活动角色时列表位置的说明。"
+
+[OverlayStrings.emptyList]
+doc = "有活动角色但还没有消息时的说明。"
+
+[OverlayStrings.menuScrollToLatest]
+section = "浮窗的右键菜单"
+doc = "滚动到最新。"
+
+[OverlayStrings.menuCopyLine]
+doc = "复制光标下的那一条。"
+
+[OverlayStrings.menuOpenInBrowser]
+doc = "「在浏览器中打开」子菜单（6.9 节增补）。"
+
+[OverlayStrings.menuClear]
+doc = "清空活动角色在这个浮窗里的列表。"
+
+[OverlayStrings.menuLockLayout]
+doc = "锁定布局（带勾选）。"
+
+[OverlayStrings.menuResetFrame]
+doc = "恢复默认位置与尺寸。"
+
+[OverlayStrings.menuHide]
+doc = "隐藏此浮窗（关掉这个功能）。"
+
+[OverlayStrings.menuOpenSettings]
+doc = "打开设置窗口的对应页。"
+
+[OverlayStrings.overlayHeader]
+section = "浮窗设置（OverlaySettingsSection）"
+doc = "一组的标题。"
+
+[OverlayStrings.opacity]
+doc = "背景不透明度。"
+
+[OverlayStrings.fontSize]
+doc = "字号。"
+
+[OverlayStrings.resetFrame]
+doc = "「恢复默认位置」按钮。"
+
+[OverlayStrings.gestureHelp]
+doc = "手势说明。"
+
+[OverlayStrings.visibilityLabel]
+doc = "「显示范围」单选的标签，v1.2.1。"
+
+[OverlayStrings.visibilityAlways]
+doc = "「始终显示」选项（仍受「离开 EVE 时隐藏」约束），v1.2.1。"
+
+[OverlayStrings.visibilityGameOnly]
+doc = "「仅游戏内」选项：游戏窗口都不在前台时隐藏，v1.2.1。"
+
+[OverlayStrings.positionLabel]
+doc = "「位置」一行的标签（X、Y 两个数字框），v1.2.1。"
+
+[OverlayStrings.sizeLabel]
+doc = "「尺寸」一行的标签（宽、高两个数字框），v1.2.1。"
+
+[OverlayStrings.frameHelp]
+doc = "位置与尺寸的说明：坐标原点、单位、尺寸上下限与拉回屏幕的规则，v1.2.1。"
+
+[OverlayStrings.channelsHeader]
+section = "频道列表（ChannelListEditor）"
+doc = "一组的标题。"
+
+[OverlayStrings.addFromLogs]
+doc = "「从日志添加」菜单。"
+
+[OverlayStrings.addByNamePlaceholder]
+doc = "「按名称添加」输入框的占位文字。"
+
+[OverlayStrings.removeChannel]
+doc = "「移除」按钮。"
+
+[OverlayStrings.noChannels]
+doc = "列表为空时的说明。"
+
+[OverlayStrings.refreshChannels]
+doc = "菜单末尾的「刷新」。"
+
+[OverlayStrings.noDiscoveredChannels]
+doc = "日志里没有最近的聊天日志时，菜单里置灰的一项。"
+
+[OverlayStrings.channelListeners]
+doc = "菜单项里频道名后面的「N 个角色」。"
+params = ["_ count: Int"]
+plural = "count"
+
+[OverlayStrings.builtInLocal]
+doc = "内置频道：本地。"
+
+[OverlayStrings.builtInCorp]
+doc = "内置频道：军团。"
+
+[OverlayStrings.builtInAlliance]
+doc = "内置频道：联盟。"
+
+[OverlayStrings.builtInFleet]
+doc = "内置频道：舰队。"

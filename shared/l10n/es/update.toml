@@ -1,0 +1,74 @@
+# update 域的文字（es）。键的用途见 ../keys/update.toml。
+
+[UpdateStrings]
+menuCheckForUpdates = "Buscar actualizaciones…"
+# 菜单项以省略号结尾，表示点了会打开窗口。
+menuUpdateAvailable = "Actualización disponible: {version}…"
+menuRestartToUpdate = "Reiniciar para actualizar a {version}"
+
+sectionHeader = "Actualizaciones"
+autoCheckToggle = "Buscar actualizaciones automáticamente"
+autoCheckHelp = "Se conecta a GitHub una vez al día. No se envían datos personales."
+autoInstallToggle = "Instalar actualizaciones automáticamente"
+autoInstallHelp = "Descarga en segundo plano. Instala y reinicia cuando no se ha ejecutado ningún cliente de EVE durante un minuto, o instala al salir de EVE-O Preview."
+# 「通用」页表单行的标签，宜短。
+currentVersionLabel = "Versión actual"
+lastCheckedLabel = "Última comprobación"
+lastCheckedNever = "Nunca"
+checkNowButton = "Comprobar ahora"
+
+statusChecking = "Comprobando…"
+# 应用名按阳性处理（el programa），形容词写 actualizado。
+statusUpToDate = "EVE-O Preview está actualizado."
+statusAvailable = "La versión {version} está disponible."
+statusReady = "La versión {version} se ha descargado. Se instalará cuando no haya ningún cliente de EVE en ejecución o al salir."
+statusRateLimited = "GitHub está limitando las solicitudes. Vuelve a intentarlo después de {time}."
+statusRateLimitedLater = "GitHub está limitando las solicitudes. Vuelve a intentarlo más tarde."
+statusUnavailable = "Las actualizaciones no están disponibles en esta compilación."
+
+windowTitle = "Actualización de software"
+headline = "EVE-O Preview {version} está disponible"
+currentVersionLine = "Tienes la versión {version}."
+releaseNotesHeader = "Novedades"
+versionNotesTitle = "Versión {version}"
+earlierVersionsOnReleasePage = "Los cambios de versiones anteriores están en la página de versiones."
+installButton = "Instalar actualización"
+installHelp = "La app se reinicia tras la instalación. Las miniaturas desaparecen unos segundos."
+# 按钮文字取 macOS 软件更新的西班牙文说法。
+skipButton = "Omitir esta versión"
+laterButton = "Más tarde"
+openReleasePageButton = "Abrir página de la versión"
+cancelButton = "Cancelar"
+closeButton = "Cerrar"
+retryButton = "Reintentar"
+# 两个大小已按界面语言格式化；总大小未知时只显示已下载的大小。
+progressDownloading = { none = "Descargando… {received}", some = "Descargando… {received} de {total}" }
+progressVerifying = "Verificando…"
+progressInstalling = "Instalando…"
+progressRelaunching = "Reiniciando…"
+# feed 写 canal。
+testFeedBadge = "Canal de prueba"
+notifyOnlyIntro = "Esta copia no puede actualizarse sola."
+currentVersionUnchanged = "Tu versión actual no ha cambiado."
+reopenManually = "La actualización está instalada. Sal de EVE-O Preview y vuelve a abrirlo."
+
+# 每条是一整句，跟在 notifyOnlyIntro 后面显示。
+blockerTranslocated = "macOS está ejecutando la app desde una ubicación temporal de solo lectura. Muévela a la carpeta “Aplicaciones” y vuelve a abrirla."
+blockerReadOnlyVolume = "La app está en un disco de solo lectura. Cópiala primero a la carpeta “Aplicaciones”."
+blockerLocationNotWritable = "No tienes permiso para modificar la carpeta que contiene la app."
+blockerUnsupportedVolume = "La app está en un disco sin formato APFS, por lo que no se pueden instalar actualizaciones desde la app. Descarga la nueva versión desde la página de la versión."
+blockerAdHocSignature = "Esta compilación no tiene una firma estable, así que no se puede verificar una nueva versión con ella."
+blockerDevelopmentSignature = "Esta es una compilación de desarrollo firmada localmente."
+blockerUnsigned = "Esta compilación no está firmada."
+
+# 错误说明都是完整的句子，以句号结尾。
+errorNetwork = "No se ha podido conectar con GitHub. Comprueba tu conexión a internet."
+errorHTTPStatus = "GitHub respondió con un error ({code})."
+errorMalformedFeed = "No se ha podido leer la información de la versión."
+errorAssetMissing = "Esta versión no incluye un instalador para actualizaciones automáticas."
+errorDiskSpace = "No hay suficiente espacio libre en el disco para la descarga."
+errorChecksum = "La descarga no coincide con su suma de comprobación y se ha descartado."
+errorDiskImage = "No se ha podido abrir la imagen de disco descargada."
+errorVerification = "No se ha podido verificar la nueva versión, así que no se ha instalado."
+errorUnsupportedSystem = "Esta versión requiere macOS {minimum} o posterior."
+errorSwapFailed = "No se ha podido sustituir la app."

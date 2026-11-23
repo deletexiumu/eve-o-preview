@@ -1,0 +1,534 @@
+# app 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/app.toml。
+
+swift_file = "Strings"
+
+[protocols.SettingsStrings]
+doc = "设置窗口的文字。"
+
+[protocols.MenuStrings]
+doc = "菜单栏菜单的文字。菜单每次打开时重建，语言切换后不用另外刷新。"
+
+[protocols.EditMenuStrings]
+doc = "主菜单「编辑」菜单的文字。应用没有 Dock 图标，菜单栏上看不到这个菜单， 但设置窗口的文本框要靠它响应 Cmd+C、Cmd+V 等快捷键。语言切换后由 AppDelegate 重建。 译文取 macOS 自己在该语言下的菜单名（AppKit 的 MenuCommands.loctable）。"
+
+[protocols.ThumbnailStrings]
+doc = "缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置。"
+
+[SettingsStrings.windowTitle]
+section = "窗口与通用"
+doc = "设置窗口的标题。"
+
+[SettingsStrings.points]
+doc = "长度单位「点」，接在数字后面（如「28 点」）。"
+
+[SettingsStrings.reset]
+doc = "把按角色的颜色恢复成默认值的按钮。"
+
+[SettingsStrings.defaultColor]
+doc = "颜色没有单独设置、使用全局颜色时的说明。"
+
+[SettingsStrings.cancel]
+doc = "对话框的取消按钮。"
+
+[SettingsStrings.confirm]
+doc = "对话框的确定按钮。"
+
+[SettingsStrings.delete]
+doc = "删除按钮。"
+
+[SettingsStrings.online]
+doc = "角色在线的标记。"
+
+[SettingsStrings.offline]
+doc = "角色离线的标记。"
+
+[SettingsStrings.forward]
+doc = "循环方向：前进。"
+
+[SettingsStrings.backward]
+doc = "循环方向：后退。"
+
+[SettingsStrings.seconds]
+doc = "秒数，保留 1 位小数，如「2.5 秒」。用在隐藏延迟的滑块旁。"
+params = ["_ value: Double"]
+
+[SettingsStrings.fps]
+doc = "帧率，取整，如「10 帧每秒」。用在帧率的滑块旁。"
+params = ["_ value: Double"]
+
+[SettingsStrings.milliseconds]
+doc = "毫秒数，取整，如「500 毫秒」。用在窗口检测间隔的滑块旁。"
+params = ["_ value: Double"]
+
+[SettingsStrings.fakeModeNotice]
+doc = "演示模式下各页顶部的提示条。"
+
+[SettingsStrings.newerSchemaNotice]
+doc = "配置文件来自更新的版本，本次以默认设置运行且不保存。"
+params = ["found: Int", "supported: Int"]
+
+[SettingsStrings.loadFailedNotice]
+doc = "读配置文件失败，括号里是系统给的错误说明。"
+params = ["_ message: String"]
+
+[SettingsStrings.quarantinedNotice]
+doc = "损坏的配置文件已被改名隔离，参数是改名后的路径。"
+params = ["_ path: String"]
+
+[SettingsStrings.configFileFailure]
+doc = "读写配置文件某一步失败的说明，放进 `loadFailedNotice` 的括号里。reason 是系统给的说明。"
+params = ["_ operation: ConfigFileOperation", "path: String", "reason: String"]
+select = "operation"
+cases = ["read", "write", "quarantine", "backup"]
+
+[SettingsStrings.configContentInvalid]
+doc = "配置文件内容不能解析的通用说明，放进 `loadFailedNotice` 的括号里。"
+
+[SettingsStrings.pageClients]
+section = "页名称"
+doc = "客户端页。"
+
+[SettingsStrings.pagePreviews]
+doc = "预览与布局页。"
+
+[SettingsStrings.pageSwitching]
+doc = "切换与热键页（页内文字属于热键域，页名留在这里，侧栏统一取）。"
+
+[SettingsStrings.pageAlerts]
+doc = "提醒页（页内文字属于战斗提醒域）。"
+
+[SettingsStrings.pageIntel]
+doc = "预警页（页内文字属于预警域 `IntelStrings`；页名留在这里，侧栏统一取）。"
+
+[SettingsStrings.pageTranslation]
+doc = "翻译页（页内文字属于翻译域 `TranslationStrings`）。"
+
+[SettingsStrings.pageProfiles]
+doc = "配置方案页。"
+
+[SettingsStrings.pageGeneral]
+doc = "通用页：界面语言。"
+
+[SettingsStrings.pagePermissions]
+doc = "权限页。"
+
+[SettingsStrings.pageAbout]
+doc = "关于页。"
+
+[SettingsStrings.clientsSubtitle]
+section = "客户端页"
+doc = "页标题下的说明。"
+
+[SettingsStrings.hideAllThumbnails]
+doc = "「全部隐藏」开关。"
+
+[SettingsStrings.hideAllHotkeyLabel]
+doc = "「全部隐藏」的快捷键一行的标题。"
+
+[SettingsStrings.hideAllScopeLabel]
+doc = "「全部隐藏」快捷键的生效范围（全局或仅游戏内）一行的标题。"
+
+[SettingsStrings.hideAllHotkeyFooter]
+doc = "「全部隐藏」一组下方的说明：快捷键可以是键盘组合或修饰键加鼠标按键，范围作用于这一组全部快捷键。"
+
+[SettingsStrings.charactersHeader]
+doc = "角色列表的组标题。"
+
+[SettingsStrings.charactersFooter]
+doc = "角色列表下方的说明：每行的颜色是该角色活动时的高亮颜色。"
+
+[SettingsStrings.noCharacters]
+doc = "还没有任何角色时的说明。"
+
+[SettingsStrings.loginClientsHeader]
+doc = "停在登录界面、还没有角色名的客户端的组标题。"
+
+[SettingsStrings.showThumbnail]
+doc = "按角色的「显示缩略图」开关。"
+
+[SettingsStrings.highlightColorHelp]
+doc = "角色颜色按钮的悬停说明。"
+
+[SettingsStrings.previewsSubtitle]
+section = "预览与布局页"
+doc = "页标题下的说明。"
+
+[SettingsStrings.defaultSize]
+doc = "缩略图的默认尺寸（宽 × 高）。"
+
+[SettingsStrings.minimumSize]
+doc = "缩略图的最小尺寸。"
+
+[SettingsStrings.maximumSize]
+doc = "缩略图的最大尺寸。"
+
+[SettingsStrings.unifySizes]
+doc = "清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。"
+
+[SettingsStrings.appearanceHeader]
+doc = "「外观」组的标题。"
+
+[SettingsStrings.opacity]
+doc = "未悬停时缩略图的不透明度。"
+
+[SettingsStrings.showTitle]
+doc = "是否在缩略图左上角显示角色名。"
+
+[SettingsStrings.titleFontSize]
+doc = "角色名的字号。"
+
+[SettingsStrings.titleColor]
+doc = "角色名的颜色。"
+
+[SettingsStrings.borderEnabled]
+doc = "每个缩略图都有的中性色边框的开关（第一轮反馈 F1）。"
+
+[SettingsStrings.borderColor]
+doc = "边框的颜色。"
+
+[SettingsStrings.borderThickness]
+doc = "边框的粗细，单位是点。"
+
+[SettingsStrings.highlightEnabled]
+doc = "活动客户端高亮边框的开关。"
+
+[SettingsStrings.highlightColor]
+doc = "高亮边框的颜色（全局，客户端页可以按角色覆盖）。"
+
+[SettingsStrings.highlightThickness]
+doc = "高亮边框的粗细。"
+
+[SettingsStrings.zoomHeader]
+doc = "「悬停放大」组的标题。"
+
+[SettingsStrings.zoomEnabled]
+doc = "鼠标悬停时放大缩略图的开关。"
+
+[SettingsStrings.zoomFactor]
+doc = "放大倍数。"
+
+[SettingsStrings.zoomAnchor]
+doc = "放大时保持不动的那个点（锚点）。"
+
+[SettingsStrings.behaviorHeader]
+doc = "「行为」组的标题。"
+
+[SettingsStrings.alwaysOnTop]
+doc = "缩略图置于其他窗口之上。"
+
+[SettingsStrings.hideActiveClient]
+doc = "隐藏当前活动客户端自己的缩略图。"
+
+[SettingsStrings.hideWhenNotEVE]
+doc = "前台应用不是 EVE 时隐藏全部缩略图。"
+
+[SettingsStrings.hideDelay]
+doc = "上一条的隐藏延迟。"
+
+[SettingsStrings.layoutHeader]
+doc = "「布局」组的标题。"
+
+[SettingsStrings.snapEnabled]
+doc = "拖动时吸附到屏幕边缘与其他缩略图。"
+
+[SettingsStrings.lockAspectRatio]
+doc = "缩放时保持宽高比。"
+
+[SettingsStrings.lockLayout]
+doc = "锁定布局：禁止移动与缩放。"
+
+[SettingsStrings.gestureHint]
+doc = "鼠标手势的说明（小字）。"
+
+[SettingsStrings.captureHeader]
+doc = "「捕获与位置」组的标题。"
+
+[SettingsStrings.frameRate]
+doc = "捕获帧率。"
+
+[SettingsStrings.titleBarCrop]
+doc = "从画面顶部裁掉的标题栏高度。"
+
+[SettingsStrings.pollInterval]
+doc = "检测窗口变化的轮询间隔。"
+
+[SettingsStrings.loginPositionX]
+doc = "登录界面客户端的缩略图起始位置的 X 坐标。"
+
+[SettingsStrings.loginPositionY]
+doc = "同上，Y 坐标。"
+
+[SettingsStrings.anchorName]
+doc = "悬停放大锚点的名称（九宫格的 9 个位置）。"
+params = ["_ anchor: ZoomAnchor"]
+select = "anchor"
+cases = ["nw", "n", "ne", "w", "center", "e", "sw", "s", "se"]
+
+[SettingsStrings.profilesSubtitle]
+section = "配置方案页"
+doc = "页标题下的说明。"
+
+[SettingsStrings.activeBadge]
+doc = "当前配置方案旁的标记。"
+
+[SettingsStrings.switchTo]
+doc = "切换到这个配置方案的按钮。"
+
+[SettingsStrings.rename]
+doc = "改名按钮。"
+
+[SettingsStrings.clone]
+doc = "克隆按钮。"
+
+[SettingsStrings.newProfile]
+doc = "新建配置方案的按钮。"
+
+[SettingsStrings.configFile]
+doc = "配置文件路径一行的标签。"
+
+[SettingsStrings.revealConfig]
+doc = "在访达中显示配置文件的按钮（「访达」即 Finder，用该语言下 macOS 的叫法）。"
+
+[SettingsStrings.profileName]
+doc = "名称输入框的占位文字。"
+
+[SettingsStrings.profileNameRule]
+doc = "名称规则的说明。"
+
+[SettingsStrings.deleteProfileConfirm]
+doc = "删除前的确认，参数是配置方案名称。"
+params = ["_ name: String"]
+
+[SettingsStrings.cloneTitle]
+doc = "克隆对话框的标题。"
+params = ["_ name: String"]
+
+[SettingsStrings.renameTitle]
+doc = "改名对话框的标题。"
+params = ["_ name: String"]
+
+[SettingsStrings.copyName]
+doc = "克隆时建议的新名称，如「主号 副本」。"
+params = ["_ name: String"]
+
+[SettingsStrings.generalSubtitle]
+section = "通用页"
+doc = "页标题下的说明。"
+
+[SettingsStrings.interfaceLanguage]
+doc = "语言选择器的标签。"
+
+[SettingsStrings.followSystem]
+doc = "语言选项「跟随系统」。"
+
+[SettingsStrings.machineTranslationNote]
+doc = "语言选择下方的说明：部分译文由机器生成，欢迎指正（反馈文档 5.2 节）。"
+
+[SettingsStrings.showDockIcon]
+doc = "「通用」页：「在 Dock 中显示图标」开关（v1.1）。"
+
+[SettingsStrings.showDockIconHelp]
+doc = "开关下方的说明。"
+
+[SettingsStrings.permissionsSubtitle]
+section = "权限页"
+doc = "页标题下的说明：两项权限在系统设置的哪里授予。"
+
+[SettingsStrings.screenRecording]
+doc = "屏幕录制权限的名称。"
+
+[SettingsStrings.screenRecordingDetail]
+doc = "屏幕录制权限的用途。"
+
+[SettingsStrings.accessibility]
+doc = "辅助功能权限的名称。"
+
+[SettingsStrings.accessibilityDetail]
+doc = "辅助功能权限的用途，含鼠标按键热键（反馈文档 6.6 节）。"
+
+[SettingsStrings.granted]
+doc = "已授权。"
+
+[SettingsStrings.notGranted]
+doc = "未授权。"
+
+[SettingsStrings.request]
+doc = "请求授权的按钮。"
+
+[SettingsStrings.openSystemSettings]
+doc = "打开系统设置的按钮。"
+
+[SettingsStrings.relaunchHint]
+doc = "「重新启动」一行的标签。"
+
+[SettingsStrings.relaunch]
+doc = "重新启动本应用的按钮。"
+
+[SettingsStrings.signingHint]
+doc = "代码签名与授权的说明（小字）。"
+
+[SettingsStrings.version]
+section = "关于页"
+doc = "版本一行的标签。"
+
+[SettingsStrings.devVersion]
+doc = "没有 Info.plist（`swift run`）时显示的版本。"
+
+[SettingsStrings.aboutSubtitle]
+doc = "应用名下方的一句话介绍。"
+
+[SettingsStrings.aboutSummary]
+doc = "功能概述。"
+
+[SettingsStrings.upstreamHeader]
+doc = "「上游项目与许可证」组的标题。"
+
+[SettingsStrings.upstreamText]
+doc = "与上游项目的关系。"
+
+[SettingsStrings.licenseText]
+doc = "许可证说明。"
+
+[SettingsStrings.disclaimerHeader]
+doc = "「说明」组的标题。"
+
+[SettingsStrings.focusOnlyText]
+doc = "只切换焦点、不广播输入、不碰游戏内存。"
+
+[SettingsStrings.gameLogText]
+doc = "战斗提醒只读游戏日志（反馈文档 R17）。"
+
+[SettingsStrings.networkText]
+doc = "联网说明：只在检查和下载更新时访问 GitHub，可在「通用」页关闭；问题报告不会自动发送（v1.1 设计 10.1 节）。\n「通用」用该语言下通用页的页名（`pageGeneral`）。"
+
+[SettingsStrings.eveIPText]
+doc = "CCP 的商标声明。"
+
+[SettingsStrings.aboutChatLogsNote]
+doc = "预警与翻译只读聊天日志和游戏日志；翻译会把聊天内容发给用户选择的模型服务（R32、R38）；\n打开「联网核对人名」时，连在一起的人名会发给 CCP 的 ESI 接口（6.9 节）。"
+
+[SettingsStrings.chatLogStatusStopped]
+section = "聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）"
+doc = "两个功能都没开、没有在读聊天日志。"
+
+[SettingsStrings.chatLogStatusWatching]
+doc = "正在监视聊天日志目录，跟踪 files 个文件。"
+params = ["directory: String", "files: Int"]
+plural = "files"
+
+[SettingsStrings.chatLogStatusDirectoryNotFound]
+doc = "找不到聊天日志目录。"
+params = ["_ path: String"]
+
+[SettingsStrings.chatLogStatusAccessDenied]
+doc = "没有读取聊天日志目录的权限。"
+params = ["_ path: String"]
+
+[SettingsStrings.chatLogHelp]
+doc = "说明：EVE 客户端要开启把聊天写入文件的设置；日志目录在「提醒」页设置（用该语言的提醒页页名）。"
+
+[MenuStrings.showAll]
+doc = "「全部隐藏」打开时显示的菜单项：显示全部缩略图。"
+
+[MenuStrings.hideAll]
+doc = "「全部隐藏」关闭时显示的菜单项：隐藏全部缩略图。"
+
+[MenuStrings.profiles]
+doc = "「配置方案」子菜单的标题。"
+
+[MenuStrings.minimizeAll]
+doc = "把全部 EVE 客户端窗口最小化的菜单项。"
+
+[MenuStrings.settings]
+doc = "打开设置窗口的菜单项，以省略号结尾（macOS 的约定：点了会打开窗口）。"
+
+[MenuStrings.quit]
+doc = "退出本应用的菜单项。"
+
+[MenuStrings.permissionsMissing]
+doc = "缺少系统权限时出现的菜单项，点击后打开设置窗口的权限页。"
+
+[MenuStrings.fakeMode]
+doc = "演示模式下菜单顶部的提示行（不可点击）。"
+
+[MenuStrings.noClients]
+doc = "没有发现任何 EVE 客户端时菜单顶部的提示行。"
+
+[MenuStrings.resumeCapture]
+doc = "「恢复捕获」菜单项，后面接客户端的窗口标题。"
+params = ["_ title: String"]
+
+[MenuStrings.clientCount]
+doc = "菜单顶部的客户端数量，如「3 个客户端」。俄语按数字选复数形式。"
+params = ["_ count: Int"]
+plural = "count"
+
+[MenuStrings.showIntelOverlay]
+doc = "带勾选的菜单项：显示预警浮窗（docs/macos/design-intel-translate.md 第 10 节、第 11 节）。"
+
+[MenuStrings.showTranslationOverlay]
+doc = "带勾选的菜单项：显示翻译浮窗。"
+
+[EditMenuStrings.title]
+doc = "菜单标题「编辑」。"
+
+[EditMenuStrings.undo]
+doc = "撤销。"
+
+[EditMenuStrings.redo]
+doc = "重做。"
+
+[EditMenuStrings.cut]
+doc = "剪切。"
+
+[EditMenuStrings.copy]
+doc = "拷贝。"
+
+[EditMenuStrings.paste]
+doc = "粘贴。"
+
+[EditMenuStrings.selectAll]
+doc = "全选。"
+
+[EditMenuStrings.closeWindow]
+doc = "关闭窗口（Cmd+W）。"
+
+[ThumbnailStrings.minimize]
+doc = "最小化这个客户端的窗口。"
+
+[ThumbnailStrings.minimizeAll]
+doc = "最小化全部客户端的窗口。"
+
+[ThumbnailStrings.skipCycle]
+doc = "循环切换时跳过这个角色（勾选项，只在本次运行有效）。"
+
+[ThumbnailStrings.hide]
+doc = "隐藏这个角色的缩略图（对应客户端页的「显示缩略图」开关）。"
+
+[ThumbnailStrings.resetSize]
+doc = "恢复默认尺寸。"
+
+[ThumbnailStrings.resumeCapture]
+doc = "捕获停止后重新开始捕获。"
+
+[ThumbnailStrings.needsAccessibility]
+doc = "缺少辅助功能权限的说明，接在不可用的菜单项后面，也用在热键问题提示里。"
+
+[ThumbnailStrings.unavailable]
+doc = "菜单项不可用时在后面附上原因，如「最小化（需要辅助功能权限）」。括号写法随语言：中日文用全角括号，其他语言用半角括号加空格。"
+params = ["_ item: String", "reason: String"]
+
+[ThumbnailStrings.settings]
+doc = "打开设置窗口。"
+
+[ThumbnailStrings.waiting]
+doc = "已建捕获会话，还没收到第一帧。"
+
+[ThumbnailStrings.needsScreenRecording]
+doc = "没有屏幕录制权限，拿不到画面。"
+
+[ThumbnailStrings.captureStopped]
+doc = "捕获出错停止，提示用户用右键菜单恢复。"
+
+[ThumbnailStrings.minimized]
+doc = "客户端窗口已最小化。"

@@ -1,0 +1,63 @@
+# intel 域的文字（ru）。键的用途见 ../keys/intel.toml。
+
+[IntelStrings]
+pageSubtitle = "Читает журналы каналов разведки и показывает, где враги, сколько их, на каких кораблях и как далеко."
+enableToggle = "Показывать оверлей разведки"
+statusLabel = "Состояние"
+channelsHelp = "Выберите каналы, в которых сообщают о врагах."
+
+locationHeader = "Моё местоположение"
+locationHelp = "Местоположение берётся из записей о прыжках в игровом журнале и из журнала канала «Местный». Если нет ни того, ни другого, укажите его здесь."
+locationUnknown = "Неизвестно"
+locationValue = "{system} ({source}, {age} назад)"
+sourceGameLog = "игровой журнал"
+sourceLocal = "канал «Местный»"
+sourceManual = "вручную"
+systemPlaceholder = "Введите название системы и нажмите Return"
+clearLocation = "Очистить"
+systemNotFound = "Система не найдена"
+noOnlineCharacters = "Нет персонажей в сети"
+referenceSystem = "Опорная система"
+referenceSystemHelp = "Если местоположение персонажа неизвестно, прыжки считаются от опорной системы."
+
+displayHeader = "Отображение"
+windowMinutes = "Хранить последние"
+minutes = "{count} мин"
+maxJumps = "Считать до"
+jumpsUnit = { one = "{count} прыжка", few = "{count} прыжков", many = "{count} прыжков" }
+alertJumps = "Подсвечивать в пределах"
+alertJumpsHelp = "Сообщения в пределах этого числа прыжков подсвечиваются. Значение 0 отключает подсветку."
+showOriginal = "Показывать исходный текст"
+
+staticDataLabel = "Данные карты"
+staticDataBuild = "Сборка SDE {build}"
+staticDataMissing = "Нет данных карты: системы и корабли не распознаются"
+footnote = "Эта функция только читает журналы чата и игровые журналы и не отправляет в игру никакого ввода. Имена пилотов и численность определяются по формату сообщения и могут быть неверны. Онлайн-проверка лишь показывает, что персонаж с таким именем существует, но не гарантирует, что в сообщении речь именно о нём."
+
+overlayTitle = "Разведка · {character}"
+statusNoStaticData = "Нет данных карты"
+statusNoChannels = "Каналы разведки не выбраны"
+statusLocationUnknown = "Местоположение неизвестно; откройте настройки правой кнопкой"
+statusUsingReference = "Местоположение неизвестно; отсчёт от {system}"
+statusLocation = "Местоположение: {system} ({source}, {age} назад)"
+
+ageSeconds = "{count} с"
+ageMinutes = "{count} мин"
+jumps = "{count} пр."
+jumpsHere = "здесь"
+jumpsBeyond = ">{limit} пр."
+jumpsUnreachable = "нет врат"
+jumpsUnknown = "?"
+count = "×{value}"
+countInferred = "~×{value}"
+clear = "чисто"
+noVisual = "не видно"
+
+resolvePilotsToggle = "Онлайн-проверка имён (ESI)"
+resolvePilotsHelp = "Когда несколько имён с пробелами идут подряд, приложение спрашивает у ESI API компании CCP, каким персонажам они принадлежат. Отправляются только эти слова, без автора сообщения, названия канала и имён ваших персонажей. Имена из одного слова не проверяются."
+pilotLookupLabel = "Проверка имён"
+pilotLookupIdle = { one = "Готово, сохранено {count} имя", few = "Готово, сохранено {count} имени", many = "Готово, сохранено {count} имён" }
+pilotLookupResolving = "Проверка"
+pilotLookupWaiting = "ESI недоступен; повтор через {seconds} с"
+clearPilotCache = "Очистить кэш имён"
+pilotCacheCount = { one = "Сохранено {count} имя", few = "Сохранено {count} имени", many = "Сохранено {count} имён" }
