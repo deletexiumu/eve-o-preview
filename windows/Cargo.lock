@@ -968,6 +968,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "eveo-app-core"
+version = "0.1.0"
+dependencies = [
+ "eveo-core",
+]
+
+[[package]]
 name = "eveo-core"
 version = "0.1.0"
 dependencies = [

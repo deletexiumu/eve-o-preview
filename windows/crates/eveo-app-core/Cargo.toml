@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# 应用层的协调器（架构文档 3.1 节、3.3 节），对应 macOS 的 AppCoordinator 与 ConfigController。
+# 只依赖 eveo-core 与标准库，不依赖 windows crate：事件进、效果出，在 Linux 上也能用事件序列测试。
+
+[package]
+name = "eveo-app-core"
+description = "EVE-O Preview Windows 版的协调器：事件驱动的状态机、配置存储与数据位置"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+eveo-core.workspace = true
+
+[lints]
+workspace = true
