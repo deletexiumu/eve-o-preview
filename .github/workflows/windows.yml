@@ -178,3 +178,15 @@ jobs:
           name: windows-probe
           path: windows/probe-out/
           if-no-files-found: warn
+
+      # 内部测试包：应用与探针的可执行文件，供在真机（登录了 EVE 的 Windows）上手动验证。
+      # 只在探针通过后上传；调试版带符号，崩溃时栈信息完整。不是发布物，保留 14 天。
+      - name: 上传测试包
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-test-build
+          path: |
+            windows/target/debug/eve-o-preview.exe
+            windows/target/debug/eveo-probe.exe
+          if-no-files-found: error
+          retention-days: 14

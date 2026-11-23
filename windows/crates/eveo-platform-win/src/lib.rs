@@ -18,6 +18,7 @@ pub mod hotkey;
 pub mod menu;
 pub mod message_loop;
 pub mod mouse_hook;
+pub mod overlay;
 pub mod process;
 pub mod screens;
 pub mod screenshot;
