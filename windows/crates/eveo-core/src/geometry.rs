@@ -6,14 +6,13 @@
 
 //! 屏幕坐标中的几何类型。
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// 全局屏幕坐标中的一个点。
 ///
 /// 原点在主屏左上角，y 轴向下；副屏在主屏左侧或上方时坐标可以是负数。
-/// 解码时缺失的键取 0，保证旧配置或手改的配置能读出来。
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
-#[serde(default)]
+/// 解码时缺失的键或 null 取 0，保证旧配置或手改的配置能读出来。
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize)]
 pub struct ScreenPoint {
     /// 水平坐标。
     pub x: f64,
@@ -30,9 +29,8 @@ impl ScreenPoint {
 
 /// 一个尺寸。宽高可以是 0，负数没有意义，由调用方夹取。
 ///
-/// 解码时缺失的键取 0；越界值由配置校验改正。
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
-#[serde(default)]
+/// 解码时缺失的键或 null 取 0；越界值由配置校验改正。
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize)]
 pub struct ScreenSize {
     /// 宽度。
     pub width: f64,
@@ -54,9 +52,8 @@ impl ScreenSize {
 
 /// 全局屏幕坐标中的矩形，(x, y) 是左上角。
 ///
-/// JSON 键名固定为 `x`、`y`、`width`、`height`，与 macOS 的配置文件相同；缺失的键取 0。
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
-#[serde(default)]
+/// JSON 键名固定为 `x`、`y`、`width`、`height`，与 macOS 的配置文件相同；缺失的键或 null 取 0。
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize)]
 pub struct ScreenRect {
     /// 左边的 x 坐标。
     pub x: f64,
@@ -181,6 +178,52 @@ impl ScreenRect {
     }
 }
 
+/// 几何类型解码用的影子结构：每个分量都可以缺失或为 null，缺失时取 0（与 macOS 的 decodeIfPresent 相同）。
+#[derive(Deserialize)]
+struct RawComponents {
+    /// 水平坐标。
+    x: Option<f64>,
+    /// 垂直坐标。
+    y: Option<f64>,
+    /// 宽度。
+    width: Option<f64>,
+    /// 高度。
+    height: Option<f64>,
+}
+
+impl RawComponents {
+    /// 读一个 JSON 对象；多余的键忽略。
+    fn read<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Self::deserialize(deserializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ScreenPoint {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = RawComponents::read(deserializer)?;
+        Ok(Self::new(raw.x.unwrap_or(0.0), raw.y.unwrap_or(0.0)))
+    }
+}
+
+impl<'de> Deserialize<'de> for ScreenSize {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = RawComponents::read(deserializer)?;
+        Ok(Self::new(raw.width.unwrap_or(0.0), raw.height.unwrap_or(0.0)))
+    }
+}
+
+impl<'de> Deserialize<'de> for ScreenRect {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = RawComponents::read(deserializer)?;
+        Ok(Self::new(
+            raw.x.unwrap_or(0.0),
+            raw.y.unwrap_or(0.0),
+            raw.width.unwrap_or(0.0),
+            raw.height.unwrap_or(0.0),
+        ))
+    }
+}
+
 /// 归一化矩形，各分量在 0～1 之间，表示源画面中要显示的部分。
 ///
 /// 约定：原点在画面左上角，y 轴向下，与屏幕坐标同向。Windows 上换算成 DWM 缩略图的 `rcSource`。
@@ -245,6 +288,8 @@ mod tests {
         assert_eq!(rect, ScreenRect::new(5.0, 0.0, 10.0, 0.0));
         let size: ScreenSize = serde_json::from_str("{}").unwrap();
         assert_eq!(size, ScreenSize::default());
+        let point: ScreenPoint = serde_json::from_str(r#"{"x": null, "y": 3}"#).unwrap();
+        assert_eq!(point, ScreenPoint::new(0.0, 3.0));
     }
 
     /// 编码后的键名与 macOS 的配置文件一致。

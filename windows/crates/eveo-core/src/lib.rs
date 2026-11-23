@@ -10,8 +10,17 @@
 //! - [`model`]：窗口与客户端的值类型。
 //! - [`clients`]：窗口标题解析、主窗口挑选与客户端登记。
 //! - [`switching`]：循环组与登录客户端的循环顺序。
+//! - [`config`]：配置的迁移、校验与配置方案的增删改。
+//! - [`support`]：字符串枚举与宽松解码、十六进制颜色、与 Foundation 对齐的文本处理。
+
+// 声明宏要在使用它们的模块之前引入，所以 support 放在最前面。
+#[macro_use]
+pub mod support;
 
 pub mod clients;
+pub mod config;
 pub mod geometry;
+pub mod hotkeys;
+pub mod logging;
 pub mod model;
 pub mod switching;

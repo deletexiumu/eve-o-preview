@@ -7,16 +7,12 @@
 //! 窗口标题解析。
 
 use crate::model::{ClientIdentity, Pid};
+use crate::support::text;
 
 /// 登录界面客户端的标题。
 pub const LOGIN_TITLE: &str = "EVE";
 /// 角色客户端标题的前缀，后面紧跟角色名。
 pub const CHARACTER_PREFIX: &str = "EVE - ";
-
-/// 是否是换行类字符，对应 Foundation 的 `CharacterSet.newlines`。
-fn is_newline(c: char) -> bool {
-    matches!(c, '\u{000A}'..='\u{000D}' | '\u{0085}' | '\u{2028}' | '\u{2029}')
-}
 
 /// 由窗口标题得出客户端身份。
 ///
@@ -28,15 +24,14 @@ pub fn identity(title: Option<&str>) -> ClientIdentity {
     let Some(title) = title else {
         return ClientIdentity::Unknown;
     };
-    // Rust 的 `char::is_whitespace` 与 Foundation 的 whitespacesAndNewlines 覆盖同一批字符。
-    let trimmed = title.trim();
-    if trimmed.to_lowercase() == LOGIN_TITLE.to_lowercase() {
+    let trimmed = text::trim_whitespace_and_newlines(title);
+    if text::eq_ignore_case(trimmed, LOGIN_TITLE) {
         return ClientIdentity::Login;
     }
     let Some(rest) = trimmed.strip_prefix(CHARACTER_PREFIX) else {
         return ClientIdentity::Unknown;
     };
-    let name = rest.trim_matches(|c: char| c.is_whitespace() && !is_newline(c));
+    let name = text::trim_whitespace(rest);
     if name.is_empty() {
         ClientIdentity::Unknown
     } else {
