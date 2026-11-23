@@ -28,6 +28,11 @@ pub fn pump_until(timeout: Duration, mut stop: impl FnMut(&MSG) -> bool) -> bool
                 let _ = TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
+            // 队列可能永远取不空：winit 在自己的回调里被重入时，收到 WM_PAINT 只会再请求一次重绘，
+            // 下一次 PeekMessageW 又取到 WM_PAINT。不在这里核对时限就会一直转下去（真机上设置窗口因此空白、卡住）。
+            if Instant::now() >= deadline {
+                return false;
+            }
         }
         let now = Instant::now();
         if now >= deadline {

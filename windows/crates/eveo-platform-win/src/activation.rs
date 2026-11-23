@@ -96,6 +96,29 @@ pub fn activate(target: WindowId) -> ActivationOutcome {
     }
 }
 
+/// 把本进程自己的窗口切到前台，不分发消息：只做还原、直接设前台与挂接输入队列，不等待。
+/// 返回之后是否在前台。
+///
+/// 给在 Slint（winit）事件回调里调用的场合用，例如定时器。[`activate`] 每步之后要分发消息等切换生效，
+/// 在 winit 的回调里分发消息是重入：winit 只把事件攒着，新窗口的第一帧画不出来，关闭也没有反应。
+pub fn bring_forward(target: WindowId) -> bool {
+    let window = hwnd(target);
+    // SAFETY: 只读窗口状态。
+    if unsafe { IsIconic(window) }.as_bool() {
+        // SAFETY: 异步还原，不等待。
+        let _ = unsafe { ShowWindowAsync(window, SW_RESTORE) };
+    } else if is_foreground(window) {
+        return true;
+    }
+    set_foreground(window);
+    if is_foreground(window) {
+        return true;
+    }
+    // 直接设前台被系统拒绝：挂接前台线程的输入队列再试。这一步同步生效，不需要等。
+    attach_and_set_foreground(window);
+    is_foreground(window)
+}
+
 /// 窗口是否已经显示（IsWindowVisible；最小化的窗口也算显示）。句柄失效时返回假。
 pub fn is_visible(target: WindowId) -> bool {
     // SAFETY: 只读窗口状态。
