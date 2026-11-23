@@ -70,7 +70,7 @@ struct ReleaseHistoryTests {
         #expect(page.entries.first?.notes.count == ReleaseFeedParser.maxNotesCharacters)
     }
 
-    /// 不是 JSON、不是数组、超过 2 MiB 时抛 malformedFeed。
+    /// 不是 JSON、不是数组、超过 4 MiB 时抛 malformedFeed。
     @Test func malformedLists() throws {
         #expect(throws: UpdateError.malformedFeed("release list is not JSON")) {
             try ReleaseHistory.parse(Data("{".utf8))
@@ -79,7 +79,7 @@ struct ReleaseHistoryTests {
             try ReleaseHistory.parse(Data(#"{"tag_name":"v1.0.0"}"#.utf8))
         }
         let huge = Data(repeating: 0x20, count: ReleaseHistory.maxListBytes + 1)
-        #expect(throws: UpdateError.malformedFeed("release list larger than 2 MiB")) {
+        #expect(throws: UpdateError.malformedFeed("release list larger than 4 MiB")) {
             try ReleaseHistory.parse(huge)
         }
     }

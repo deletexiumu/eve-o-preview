@@ -7,7 +7,7 @@
 // （`UpdateFeed.historyURL`），由这里解析并挑出「正在运行的版本 < v < 最新版」的各个版本。
 //
 // 解析规则：
-// - 顶层是 JSON 数组，超过 2 MiB 时按 `malformedFeed` 处理。数组的元素不是对象时跳过这一项。
+// - 顶层是 JSON 数组，超过 4 MiB 时按 `malformedFeed` 处理。数组的元素不是对象时跳过这一项。
 // - 跳过草稿、预发布，以及 tag 解析不了或带预发布标识的项（与 `UpdatePolicy.offer` 的口径一致）。
 // - `body` 超过 65,536 个字符时截短，缺失或为 null 时取空串。
 // 挑选与上限见 `intermediate(from:running:latest:)` 与 `record(from:running:latest:)`。全部是纯函数，测试在 ReleaseHistoryTests。
@@ -68,10 +68,10 @@ public struct IntermediateReleaseNotes: Sendable, Equatable, Codable {
 
 /// Release 列表的解析与中间版本的挑选。
 public enum ReleaseHistory {
-    /// 列表答复正文的上限：2 MiB。每个 Release 的正文约 10～15 KB，加上附件信息，30 个约 0.6 MiB。
-    public static let maxListBytes = 2_097_152
-    /// 列表请求每页的个数（与 `UpdateFeed.productionHistoryURL` 的 `per_page` 一致）。预发布版本也占位置。
-    public static let pageSize = 30
+    /// 列表答复正文的上限：4 MiB。每个 Release 的正文约 10～15 KB，加上附件信息，100 个约 2 MiB。
+    public static let maxListBytes = 4_194_304
+    /// 列表请求每页的个数（与 `UpdateFeed.productionHistoryURL` 的 `per_page` 一致）。预发布版本与 Windows 版也占位置。
+    public static let pageSize = 100
     /// 最多保留的中间版本数。落后更多的用户只看到最近的这些，其余请看发布页。
     public static let maxEntries = 10
     /// 保留的中间版本说明的总字符数上限，约 256 KB：这些说明存在 state.json 里，每次写状态都要重写。
@@ -79,7 +79,7 @@ public enum ReleaseHistory {
 
     /// 解析列表接口（`GET /releases`）的 200 答复。内容不符合规则时抛 `malformedFeed`。
     public static func parse(_ data: Data) throws(UpdateError) -> ReleaseHistoryPage {
-        guard data.count <= maxListBytes else { throw .malformedFeed("release list larger than 2 MiB") }
+        guard data.count <= maxListBytes else { throw .malformedFeed("release list larger than 4 MiB") }
         let object: Any
         do {
             object = try JSONSerialization.jsonObject(with: data)

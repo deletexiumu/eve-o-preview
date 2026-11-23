@@ -8,6 +8,10 @@
 // - `html_url` 应通过 `feed.accepts`；附件地址不通过时只丢掉这个附件。附件多于 100 个时只看前 100 个。
 // - `body` 超过 65,536 个字符时截短，缺失或为 null 时取空串。
 //
+// 列表回退（1.3.0 起）：仓库以后也发布 Windows 版，tag 是 `win-v*`。正常情况下 Windows 的 Release 不标为 latest，
+// 但万一被误标，`releases/latest` 的 `tag_name` 解析不了。这时 `needsListFallback` 为真，调用方改取 Release 列表，
+// 由 `parseLatestFromList` 挑出版本号最高的正式版（跳过草稿、预发布与 tag 解析不了的项），其余规则与上面相同。
+//
 // 限流：403 或 429，且 `x-ratelimit-remaining` 是 0 或有 `retry-after` 时是限流。
 // 可以再试的时刻先看 `retry-after`（GitHub 文档：有它时按它等待），再看 `x-ratelimit-reset`，都没有时取现在加 1 小时。
 // 两个头的值都应是有限的非负数，否则当作没有（`Double` 能解析 `inf`、`nan`）。得到的时刻不早于现在、不晚于现在加 24 小时：
@@ -28,18 +32,54 @@ public enum ReleaseFeedParser {
     /// 可以再试的时刻最多推后多少秒：24 小时。
     public static let maxRateLimitDelay: TimeInterval = 86_400
 
+    /// `tag_name` 解析不了时 `malformedFeed` 的原因。`needsListFallback` 按它判断要不要改取列表。
+    public static let unparsableTagReason = "tag_name is not a version"
+
     /// 解析 200 答复的正文。内容不符合规则时抛 `malformedFeed`，关联值是原因（英文，不含正文内容）。
     public static func parse(_ data: Data, feed: UpdateFeed) throws(UpdateError) -> ReleaseInfo {
         guard data.count <= maxFeedBytes else { throw .malformedFeed("response larger than 1 MiB") }
-        let object: Any
+        guard let root = try json(data) as? [String: Any] else { throw .malformedFeed("top level is not an object") }
+        return try release(from: root, feed: feed)
+    }
+
+    /// `releases/latest` 的解析错误是否说明最新 Release 不是 macOS 版（tag 解析不了，如 `win-v0.1.0`）。
+    /// 为真时调用方应改取 Release 列表，用 `parseLatestFromList` 找 macOS 的最新正式版。
+    public static func needsListFallback(_ error: UpdateError) -> Bool {
+        error == .malformedFeed(unparsableTagReason)
+    }
+
+    /// 从 Release 列表（`GET /releases`）里挑出版本号最高的正式版。
+    ///
+    /// 跳过草稿、预发布、tag 解析不了（如 `win-v*`）或带预发布标识的项，以及按 `parse` 的规则解析不了的项。
+    /// 正文超过 `ReleaseHistory.maxListBytes`、不是数组或没有可用的项时抛 `malformedFeed`。
+    public static func parseLatestFromList(_ data: Data, feed: UpdateFeed) throws(UpdateError) -> ReleaseInfo {
+        guard data.count <= ReleaseHistory.maxListBytes else { throw .malformedFeed("release list too large") }
+        guard let items = try json(data) as? [Any] else { throw .malformedFeed("release list is not an array") }
+        var best: (version: SemanticVersion, info: ReleaseInfo)?
+        for case let object as [String: Any] in items {
+            // 草稿与预发布不参加挑选；单项解析失败只跳过这一项，不影响其他项。
+            guard object["draft"] as? Bool != true, object["prerelease"] as? Bool != true,
+                  let info = try? release(from: object, feed: feed),
+                  let version = SemanticVersion(info.version), !version.isPrerelease else { continue }
+            if best.map({ version > $0.version }) ?? true { best = (version, info) }
+        }
+        guard let best else { throw .malformedFeed("no release with a version tag in list") }
+        return best.info
+    }
+
+    /// 把正文解成 JSON 对象；不是 JSON 时抛 `malformedFeed`。
+    private static func json(_ data: Data) throws(UpdateError) -> Any {
         do {
-            object = try JSONSerialization.jsonObject(with: data)
+            return try JSONSerialization.jsonObject(with: data)
         } catch {
             throw .malformedFeed("not JSON")
         }
-        guard let root = object as? [String: Any] else { throw .malformedFeed("top level is not an object") }
+    }
+
+    /// 一个 Release 对象（`releases/latest` 的顶层，或列表里的一项）按本文件开头的规则转成 `ReleaseInfo`。
+    private static func release(from root: [String: Any], feed: UpdateFeed) throws(UpdateError) -> ReleaseInfo {
         guard let tag = root["tag_name"] as? String else { throw .malformedFeed("missing tag_name") }
-        guard let version = SemanticVersion(tag) else { throw .malformedFeed("tag_name is not a version") }
+        guard let version = SemanticVersion(tag) else { throw .malformedFeed(unparsableTagReason) }
         guard let page = root["html_url"] as? String, feed.accepts(page) else {
             throw .malformedFeed("html_url not accepted")
         }

@@ -10,6 +10,10 @@
 // - 答复的处理见 8.4 节的表：200 解析，304 `.notModified`，404 `.noRelease`，限流 `.rateLimited`，
 //   其他状态码 `.failed(.httpStatus)`，网络错误 `.failed(.network)`。
 //
+// 列表回退（1.3.0 起）：200 答复的 `tag_name` 解析不了（最新 Release 是 Windows 版 `win-v*`）时，改取 Release 列表
+// （`feed.historyURL`），用 `ReleaseFeedParser.parseLatestFromList` 找 macOS 的最新正式版。这时不返回 ETag：
+// 下次检查若拿 ETag 得到 304，就会一直停在这次挑出的版本，看不到之后发布的 macOS 新版本。
+//
 // 另有 `fetchHistory`：有新版本要提示时取 Release 列表（8.8 节），只用来显示中间版本的说明。请求头与会话配置
 // 同上，不带 ETag；任何失败都只返回 nil。
 
@@ -57,8 +61,34 @@ public enum ReleaseFeedClient {
         } catch {
             return .failed(.network(describe(error)))
         }
-        return result(status: response.statusCode, headers: lowercasedHeaders(response), body: body, feed: feed,
-                      now: now)
+        let outcome = result(status: response.statusCode, headers: lowercasedHeaders(response), body: body, feed: feed,
+                             now: now)
+        // 最新 Release 不是 macOS 版时改取列表；列表也失败时保留原来的解析错误，便于在日志里看出原因。
+        if case .failed(let error) = outcome, ReleaseFeedParser.needsListFallback(error),
+           let fallback = await fetchLatestFromList(feed: feed, session: session) {
+            return fallback
+        }
+        return outcome
+    }
+
+    /// 列表回退：取 Release 列表，挑出 macOS 的最新正式版，不带 ETag。任何失败都返回 nil 并记一条日志。
+    static func fetchLatestFromList(feed: UpdateFeed, session: URLSession) async -> ReleaseFetchResult? {
+        guard let url = feed.historyURL else { return nil }
+        do {
+            let (bytes, rawResponse) = try await session.bytes(for: apiRequest(url: url))
+            guard let http = rawResponse as? HTTPURLResponse, http.statusCode == 200 else {
+                let status = (rawResponse as? HTTPURLResponse)?.statusCode ?? 0
+                log.notice("最新 Release 不是 macOS 版，取列表：状态码 \(status, privacy: .public)")
+                return nil
+            }
+            let body = try await readLimited(bytes, limit: ReleaseHistory.maxListBytes)
+            let info = try ReleaseFeedParser.parseLatestFromList(body, feed: feed)
+            log.notice("最新 Release 不是 macOS 版，改用列表里的 \(info.tagName, privacy: .public)")
+            return .release(info, etag: nil)
+        } catch {
+            log.notice("最新 Release 不是 macOS 版，取列表失败：\(describeHistoryError(error), privacy: .public)")
+            return nil
+        }
     }
 
     /// 请求 Release 列表（8.8 节），返回各正式版的说明。尽力而为：任何失败都返回 nil 并记一条日志，
