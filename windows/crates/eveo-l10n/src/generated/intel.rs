@@ -19,6 +19,8 @@ pub trait IntelStrings: Sync {
     fn enable_toggle(&self) -> &'static str;
     /// 状态行的标签。
     fn status_label(&self) -> &'static str;
+    /// Windows「预警」页：状态行。读聊天日志与浮窗随 M6 加上之前显示。
+    fn not_available_yet(&self) -> &'static str;
     /// 频道列表下的说明。
     fn channels_help(&self) -> &'static str;
     // 我的位置
@@ -141,6 +143,9 @@ impl IntelStrings for IntelStringsEn {
     }
     fn status_label(&self) -> &'static str {
         "Status"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Reading chat logs and the intel overlay arrive in a later test build; you can fill in the settings now"
     }
     fn channels_help(&self) -> &'static str {
         "Choose the channels where hostiles are reported."
@@ -319,6 +324,9 @@ impl IntelStrings for IntelStringsZh {
     fn status_label(&self) -> &'static str {
         "状态"
     }
+    fn not_available_yet(&self) -> &'static str {
+        "读聊天日志与预警浮窗在后续测试版加上，现在可以先把设置填好"
+    }
     fn channels_help(&self) -> &'static str {
         "选择报告敌情的频道。"
     }
@@ -486,6 +494,9 @@ impl IntelStrings for IntelStringsRu {
     }
     fn status_label(&self) -> &'static str {
         "Состояние"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Чтение журналов чата и окно разведки появятся в следующей тестовой сборке; настройки можно заполнить уже сейчас"
     }
     fn channels_help(&self) -> &'static str {
         "Выберите каналы, в которых сообщают о врагах."
@@ -667,6 +678,9 @@ impl IntelStrings for IntelStringsJa {
     fn status_label(&self) -> &'static str {
         "状態"
     }
+    fn not_available_yet(&self) -> &'static str {
+        "チャットログの読み取りとインテルのオーバーレイは今後のテスト版で追加されます。設定は今のうちに入力できます"
+    }
     fn channels_help(&self) -> &'static str {
         "敵情が報告されるチャンネルを選択してください。"
     }
@@ -835,6 +849,9 @@ impl IntelStrings for IntelStringsKo {
     fn status_label(&self) -> &'static str {
         "상태"
     }
+    fn not_available_yet(&self) -> &'static str {
+        "채팅 로그 읽기와 정보 오버레이는 이후 테스트 빌드에서 추가됩니다. 설정은 지금 미리 채울 수 있습니다"
+    }
     fn channels_help(&self) -> &'static str {
         "적이 보고되는 채널을 선택하십시오."
     }
@@ -1002,6 +1019,9 @@ impl IntelStrings for IntelStringsFr {
     }
     fn status_label(&self) -> &'static str {
         "État"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "La lecture des journaux de chat et la fenêtre de renseignement arriveront dans une prochaine version de test ; vous pouvez déjà remplir les réglages"
     }
     fn channels_help(&self) -> &'static str {
         "Choisissez les canaux où les hostiles sont signalés."
@@ -1180,6 +1200,9 @@ impl IntelStrings for IntelStringsDe {
     fn status_label(&self) -> &'static str {
         "Status"
     }
+    fn not_available_yet(&self) -> &'static str {
+        "Das Lesen der Chatprotokolle und das Aufklärungsfenster kommen in einem späteren Testbuild; die Einstellungen können Sie schon jetzt ausfüllen"
+    }
     fn channels_help(&self) -> &'static str {
         "Wähle die Kanäle, in denen Feinde gemeldet werden."
     }
@@ -1356,6 +1379,9 @@ impl IntelStrings for IntelStringsEs {
     }
     fn status_label(&self) -> &'static str {
         "Estado"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "La lectura de los registros de chat y la ventana de inteligencia llegarán en una próxima versión de prueba; ya puedes rellenar los ajustes"
     }
     fn channels_help(&self) -> &'static str {
         "Elige los canales donde se informa de hostiles."

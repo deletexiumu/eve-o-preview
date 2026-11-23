@@ -15,7 +15,8 @@ mod profile;
 pub use chat::{
     ChannelRef, INTEL_ALERT_JUMPS_RANGE, INTEL_MAX_JUMPS_RANGE, INTEL_WINDOW_MINUTES_RANGE, IntelSettings,
     MAX_CHANNELS, OVERLAY_FONT_SIZE_RANGE, OVERLAY_OPACITY_RANGE, OverlayPanelSettings, OverlayVisibility,
-    TranslationEndpointSettings, TranslationProviderId, TranslationSettings, TranslationTarget,
+    TranslationEndpointSettings, TranslationPreset, TranslationProviderId, TranslationSettings,
+    TranslationTarget,
 };
 pub use client::{ClientChange, ClientIdentity, EveClient, Pid, RegistryDiff, WindowId, WindowInfo};
 pub use combat::{

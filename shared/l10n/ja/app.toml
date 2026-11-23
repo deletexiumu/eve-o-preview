@@ -4,7 +4,6 @@
 # 窗口与通用。
 windowTitle = "EVE-O Preview 設定"
 searchSettings = "設定の検索"
-comingSoon = "このページは作成中です。今後のテスト版で追加されます。"
 points = "pt"
 reset = "リセット"
 defaultColor = "デフォルト"

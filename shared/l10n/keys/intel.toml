@@ -10,6 +10,7 @@ notes = """
 [protocols.IntelStrings]
 doc = "预警域的全部文字。"
 accessor = "intel"
+slint = true
 
 [IntelStrings.pageSubtitle]
 section = "页头、开关与频道"
@@ -20,6 +21,10 @@ doc = "总开关「显示预警浮窗」。"
 
 [IntelStrings.statusLabel]
 doc = "状态行的标签。"
+
+[IntelStrings.notAvailableYet]
+doc = "Windows「预警」页：状态行。读聊天日志与浮窗随 M6 加上之前显示。"
+platforms = ["windows"]
 
 [IntelStrings.channelsHelp]
 doc = "频道列表下的说明。"

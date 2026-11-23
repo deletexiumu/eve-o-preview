@@ -9,8 +9,6 @@ export global SettingsText {
     in property <string> window-title: "EVE-O Preview Settings";
     // Windows 设置窗口导航顶部查找框的占位文字。
     in property <string> search-settings: "Find a setting";
-    // Windows 测试版：还没做完的设置页，页标题下的说明。
-    in property <string> coming-soon: "This page is still in progress and will arrive in a later test build.";
     // 长度单位「点」，接在数字后面（如「28 点」）。
     in property <string> points: "pt";
     // 把按角色的颜色恢复成默认值的按钮。
@@ -563,6 +561,318 @@ export global HotkeyText {
     in property <string> hotkey-in-use: "In use by another program";
     // Windows「客户端」页：一条热键与它的作用范围，如「F13（仅游戏内）」。
     pure callback hotkey-with-scope(hotkey: string, scope: string) -> string;
+}
+
+// 预警域的全部文字。
+export global IntelText {
+    // 页标题下的一句说明。
+    in property <string> page-subtitle: "Reads intel channel logs and shows where hostiles are, how many, what ships, and how far.";
+    // 总开关「显示预警浮窗」。
+    in property <string> enable-toggle: "Show intel overlay";
+    // 状态行的标签。
+    in property <string> status-label: "Status";
+    // Windows「预警」页：状态行。读聊天日志与浮窗随 M6 加上之前显示。
+    in property <string> not-available-yet: "Reading chat logs and the intel overlay arrive in a later test build; you can fill in the settings now";
+    // 频道列表下的说明。
+    in property <string> channels-help: "Choose the channels where hostiles are reported.";
+    // 一组的标题。
+    in property <string> location-header: "My Location";
+    // 一组的说明。
+    in property <string> location-help: "Location comes from jump records in the game log and from the Local channel log. Enter it here when neither is available.";
+    // 位置未知。
+    in property <string> location-unknown: "Unknown";
+    // 位置的文字：星系（来源，多久以前）。
+    pure callback location-value(system: string, source: string, age: string) -> string;
+    // 来源：游戏日志。
+    in property <string> source-game-log: "game log";
+    // 来源：本地频道。
+    in property <string> source-local: "Local channel";
+    // 来源：手动。
+    in property <string> source-manual: "manual";
+    // 星系输入框的占位文字。
+    in property <string> system-placeholder: "Type a system name and press Return";
+    // 「清除」按钮。
+    in property <string> clear-location: "Clear";
+    // 输入的星系名查不到。
+    in property <string> system-not-found: "System not found";
+    // 没有在线的角色。
+    in property <string> no-online-characters: "No characters online";
+    // 参考星系一行的标签。
+    in property <string> reference-system: "Reference System";
+    // 参考星系的说明。
+    in property <string> reference-system-help: "Jumps are counted from the reference system when a character's location is unknown.";
+    // 一组的标题。
+    in property <string> display-header: "Display";
+    // 「保留最近」。
+    in property <string> window-minutes: "Keep the last";
+    // 分钟数，如「30 分钟」。
+    pure callback minutes(count: int) -> string;
+    // 「最多计算」。
+    in property <string> max-jumps: "Count up to";
+    // 跳数的单位，如「15 跳」。
+    pure callback jumps-unit(count: int) -> string;
+    // 「高亮距离」。
+    in property <string> alert-jumps: "Highlight Within";
+    // 高亮距离的说明。
+    in property <string> alert-jumps-help: "Reports within this many jumps are highlighted. Set to 0 to turn highlighting off.";
+    // 「显示原文」开关。
+    in property <string> show-original: "Show original text";
+    // 星图数据一行的标签。
+    in property <string> static-data-label: "Map Data";
+    // SDE 版本号。
+    pure callback static-data-build(build: int) -> string;
+    // 缺少星图数据。
+    in property <string> static-data-missing: "Map data is missing; systems and ships cannot be recognized";
+    // 页尾的说明。
+    in property <string> footnote: "This feature only reads chat logs and game logs and sends no input to the game. Pilot names and counts are inferred from message format and may be wrong. Online name checking only shows that a character with that name exists, not that the message refers to that character.";
+    // 浮窗标题，参数是活动角色名。
+    pure callback overlay-title(character: string) -> string;
+    // 状态行：缺少星图数据。
+    in property <string> status-no-static-data: "Map data missing";
+    // 状态行：没有预警频道。
+    in property <string> status-no-channels: "No intel channels set";
+    // 状态行：位置未知。
+    in property <string> status-location-unknown: "Location unknown; right-click to open settings";
+    // 状态行：位置未知，按参考星系计算。
+    pure callback status-using-reference(system: string) -> string;
+    // 状态行：位置（星系、来源、多久以前）。
+    pure callback status-location(system: string, source: string, age: string) -> string;
+    // 不足 1 分钟的时间，如「40 秒」。
+    pure callback age-seconds(count: int) -> string;
+    // 1 分钟以上的时间，如「3 分钟」。
+    pure callback age-minutes(count: int) -> string;
+    // 跳数，如「3 跳」。
+    pure callback jumps(count: int) -> string;
+    // 就在本星系（0 跳）。
+    in property <string> jumps-here: "here";
+    // 超过上限。
+    pure callback jumps-beyond(limit: int) -> string;
+    // 没有星门。
+    in property <string> jumps-unreachable: "no gates";
+    // 不知道从哪里算。
+    in property <string> jumps-unknown: "?";
+    // 写明的数量，如「×3」。
+    pure callback count(value: int) -> string;
+    // 推断的数量，如「约 ×3」。
+    pure callback count-inferred(value: int) -> string;
+    // 「安全」。
+    in property <string> clear: "clear";
+    // 「未见」。
+    in property <string> no-visual: "no visual";
+    // 开关「联网核对人名（ESI）」；措辞与 settings.aboutChatLogsNote 里引用的名称一致。
+    in property <string> resolve-pilots-toggle: "Check pilot names online (ESI)";
+    // 开关下的说明。
+    in property <string> resolve-pilots-help: "When several names with spaces run together, asks CCP's ESI API which characters they are. Only those words are sent, not the speaker, the channel name, or your character names. Single-word names are not looked up.";
+    // 核对状态一行的标签。
+    in property <string> pilot-lookup-label: "Name Check";
+    // 就绪，附已保存的角色名个数。
+    pure callback pilot-lookup-idle(count: int) -> string;
+    // 核对中。
+    in property <string> pilot-lookup-resolving: "Checking";
+    // 暂时连不上，附多少秒后重试。
+    pure callback pilot-lookup-waiting(seconds: int) -> string;
+    // 「清空人名缓存」按钮。
+    in property <string> clear-pilot-cache: "Clear Name Cache";
+    // 人名缓存一行：已保存的角色名个数（WP-B 增加的一条）。
+    pure callback pilot-cache-count(count: int) -> string;
+}
+
+// 浮窗与两页共用设置控件的文字。
+export global OverlayText {
+    // 新消息条：离开底部后新到了几条。
+    pure callback new-messages(count: int) -> string;
+    // 没有活动角色时列表位置的说明。
+    in property <string> no-active-character: "No character in the current window";
+    // 有活动角色但还没有消息时的说明。
+    in property <string> empty-list: "No messages yet";
+    // 滚动到最新。
+    in property <string> menu-scroll-to-latest: "Scroll to Latest";
+    // 复制光标下的那一条。
+    in property <string> menu-copy-line: "Copy This Line";
+    // 「在浏览器中打开」子菜单（6.9 节增补）。
+    in property <string> menu-open-in-browser: "Open in Browser";
+    // 清空活动角色在这个浮窗里的列表。
+    in property <string> menu-clear: "Clear List";
+    // 锁定布局（带勾选）。
+    in property <string> menu-lock-layout: "Lock Layout";
+    // 恢复默认位置与尺寸。
+    in property <string> menu-reset-frame: "Reset Position and Size";
+    // 隐藏此浮窗（关掉这个功能）。
+    in property <string> menu-hide: "Hide This Overlay";
+    // 打开设置窗口的对应页。
+    in property <string> menu-open-settings: "Open Settings…";
+    // 一组的标题。
+    in property <string> overlay-header: "Overlay";
+    // 背景不透明度。
+    in property <string> opacity: "Background Opacity";
+    // 字号。
+    in property <string> font-size: "Font Size";
+    // 「恢复默认位置」按钮。
+    in property <string> reset-frame: "Reset Position";
+    // 手势说明。
+    in property <string> gesture-help: "Right-drag or Option-drag to move the overlay, move the pointer to an edge and left-drag to resize, and scroll to browse the list.";
+    // 「显示范围」单选的标签，v1.2.1。
+    in property <string> visibility-label: "Show";
+    // 「始终显示」选项（仍受「离开 EVE 时隐藏」约束），v1.2.1。
+    in property <string> visibility-always: "Always";
+    // 「仅游戏内」选项：游戏窗口都不在前台时隐藏，v1.2.1。
+    in property <string> visibility-game-only: "Only in EVE: hide when no EVE window is in front";
+    // 「位置」一行的标签（X、Y 两个数字框），v1.2.1。
+    in property <string> position-label: "Position";
+    // 「尺寸」一行的标签（宽、高两个数字框），v1.2.1。
+    in property <string> size-label: "Size";
+    // 位置与尺寸的说明：坐标原点、单位、尺寸上下限与拉回屏幕的规则，v1.2.1。
+    in property <string> frame-help: "Position is measured in points from the top-left corner of the main display. Size is limited to 220×120 through 900×900; an off-screen position is pulled back.";
+    // 一组的标题。
+    in property <string> channels-header: "Channels";
+    // 「从日志添加」菜单。
+    in property <string> add-from-logs: "Add from Logs";
+    // 「按名称添加」输入框的占位文字。
+    in property <string> add-by-name-placeholder: "Type a channel name and press Return";
+    // Windows「翻译」页：频道列表下添加内置频道（本地、军团、联盟、舰队）的一行的名字。
+    in property <string> add-built-in: "Add a built-in channel";
+    // Windows：频道列表下按名称添加一行的名字。
+    in property <string> add-by-name: "Add by name";
+    // 「移除」按钮。
+    in property <string> remove-channel: "Remove";
+    // 列表为空时的说明。
+    in property <string> no-channels: "No channels yet";
+    // 菜单末尾的「刷新」。
+    in property <string> refresh-channels: "Refresh";
+    // 日志里没有最近的聊天日志时，菜单里置灰的一项。
+    in property <string> no-discovered-channels: "No recent chat logs found";
+    // 菜单项里频道名后面的「N 个角色」。
+    pure callback channel-listeners(count: int) -> string;
+    // 内置频道：本地。
+    in property <string> built-in-local: "Local";
+    // 内置频道：军团。
+    in property <string> built-in-corp: "Corp";
+    // 内置频道：联盟。
+    in property <string> built-in-alliance: "Alliance";
+    // 内置频道：舰队。
+    in property <string> built-in-fleet: "Fleet";
+}
+
+// 翻译域的文字。
+export global TranslationText {
+    // 页标题下的一句说明。
+    in property <string> page-subtitle: "Translates messages in other languages from the chosen channels.";
+    // 总开关。
+    in property <string> enable-toggle: "Show translation overlay";
+    // 状态行的标签。
+    in property <string> status-label: "Status";
+    // Windows「翻译」页：状态行。翻译功能随 M6 加上之前显示。
+    in property <string> not-available-yet: "The translation overlay arrives in a later test build; you can fill in the settings now";
+    // 状态：未启用。
+    in property <string> status-off: "Off";
+    // 状态：就绪。
+    in property <string> status-idle: "Ready";
+    // 状态：翻译中。
+    in property <string> status-translating: "Translating";
+    // 状态：几秒后重试，附原因。
+    pure callback status-waiting(seconds: int, reason: string) -> string;
+    // 状态：已暂停，附原因。
+    pure callback status-blocked(reason: string) -> string;
+    // 「立即重试」按钮。
+    in property <string> retry-now: "Retry Now";
+    // 没有接口地址。
+    in property <string> failure-missing-base-url: "No API address set";
+    // 没有模型名。
+    in property <string> failure-missing-model: "No model name set";
+    // 接口地址的格式不对。
+    in property <string> failure-invalid-url: "The API address is not valid";
+    // 公网的 http 地址。
+    in property <string> failure-insecure-http: "http addresses are only allowed for this Mac or the local network";
+    // 没有 Key。
+    in property <string> failure-missing-key: "No API key set";
+    // 读不到钥匙串里的 Key。
+    in property <string> failure-keychain: "Cannot read the key from the keychain; save it again on the Translation page";
+    // Key 无效，附状态码。
+    pure callback failure-unauthorized(status: int) -> string;
+    // 地址或模型名不对。
+    in property <string> failure-not-found: "Wrong API address or model name (HTTP 404)";
+    // 余额不足。
+    in property <string> failure-balance: "Insufficient balance (HTTP 402)";
+    // 请求被拒绝，附状态码与服务给的说明。
+    pure callback failure-rejected(status: int, message: string) -> string;
+    // 限流或额度用完。
+    in property <string> failure-rate-limited: "Rate limited or out of quota (HTTP 429)";
+    // 服务出错，附状态码。
+    pure callback failure-server(status: int) -> string;
+    // 连不上。
+    in property <string> failure-network: "Cannot reach the model service";
+    // 答复的格式不对。
+    in property <string> failure-malformed: "The model did not answer in the expected format";
+    // 模型拒绝了这批消息。
+    in property <string> failure-refused: "The model declined these messages";
+    // 答复被截断。
+    in property <string> failure-truncated: "The model's answer was cut off";
+    // 频道列表的说明。
+    in property <string> channels-help: "Choose the channels to translate.";
+    // 目标语言一组的标题。
+    in property <string> target-header: "Target Language";
+    // 「翻译成」。
+    in property <string> target-language: "Translate into";
+    // 「跟随界面语言」。
+    in property <string> target-follow-ui: "Same as interface language";
+    // 「同时显示原文」。
+    in property <string> show-original: "Also show original text";
+    // 「只显示翻译过的消息」。
+    in property <string> foreign-only: "Only show translated messages";
+    // 模型一组的标题。
+    in property <string> model-header: "Model";
+    // 「服务」。
+    in property <string> provider: "Service";
+    // 「其他（OpenAI 兼容接口）」。
+    in property <string> provider-custom: "Other (OpenAI-compatible)";
+    // 「接口地址」。
+    in property <string> base-url: "API Address";
+    // 「模型名」。
+    in property <string> model: "Model Name";
+    // 「API Key」。
+    in property <string> api-key: "API Key";
+    // Windows「翻译」页：API Key 一行。保存 Key 随翻译功能在 M6 加上之前显示。
+    in property <string> api-key-not-available-yet: "The key will be stored in Windows Credential Manager; this arrives with translation in a later test build";
+    // 「已保存在钥匙串」。
+    in property <string> api-key-stored: "Saved in the keychain";
+    // Key 输入框的占位文字。
+    in property <string> api-key-placeholder: "Paste the key, then click Save";
+    // 「保存」。
+    in property <string> save-key: "Save";
+    // 「删除 Key」。
+    in property <string> delete-key: "Delete Key";
+    // 「这个服务不用 Key」。
+    in property <string> key-not-required: "This service needs no key";
+    // 自定义接口：要 Key 时填写，不要时留空。
+    in property <string> key-optional: "Enter a key if the service needs one; otherwise leave it empty.";
+    // 钥匙串写入或删除失败，附 OSStatus。
+    pure callback keychain-error(status: int) -> string;
+    // 「测试」。
+    in property <string> test: "Test";
+    // 「测试中…」。
+    in property <string> testing: "Testing…";
+    // 测试成功，附译文。
+    pure callback test-succeeded(text: string) -> string;
+    // 测试失败，附原因。
+    pure callback test-failed(reason: string) -> string;
+    // 译文缓存一组的标题。
+    in property <string> cache-header: "Translation Cache";
+    // 缓存的条数。
+    pure callback cache-count(count: int) -> string;
+    // 「清空缓存」。
+    in property <string> clear-cache: "Clear Cache";
+    // 页尾的隐私说明。
+    in property <string> privacy-note: "Message text from these channels is sent to the model service you choose. The key is stored only in this PC's Windows Credential Manager and sent only to that service.";
+    // 页尾的费用说明。
+    in property <string> cost-note: "Only messages received by the active client's character are translated. Identical sentences are translated once.";
+    // 浮窗标题，附角色名。
+    pure callback overlay-title(character: string) -> string;
+    // 状态行：没有设置翻译频道。
+    in property <string> status-no-channels: "No translation channels set";
+    // 等待翻译的状态词。
+    in property <string> pending: "translating…";
+    // 翻译失败的状态词。
+    in property <string> failed: "not translated";
 }
 
 // 更新域的全部文字。

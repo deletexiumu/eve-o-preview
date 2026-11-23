@@ -18,6 +18,8 @@ pub trait TranslationStrings: Sync {
     fn enable_toggle(&self) -> &'static str;
     /// 状态行的标签。
     fn status_label(&self) -> &'static str;
+    /// Windows「翻译」页：状态行。翻译功能随 M6 加上之前显示。
+    fn not_available_yet(&self) -> &'static str;
     /// 状态：未启用。
     fn status_off(&self) -> &'static str;
     /// 状态：就绪。
@@ -89,6 +91,8 @@ pub trait TranslationStrings: Sync {
     fn model(&self) -> &'static str;
     /// 「API Key」。
     fn api_key(&self) -> &'static str;
+    /// Windows「翻译」页：API Key 一行。保存 Key 随翻译功能在 M6 加上之前显示。
+    fn api_key_not_available_yet(&self) -> &'static str;
     /// 「已保存在钥匙串」。
     fn api_key_stored(&self) -> &'static str;
     /// Key 输入框的占位文字。
@@ -150,6 +154,9 @@ impl TranslationStrings for TranslationStringsEn {
     }
     fn status_label(&self) -> &'static str {
         "Status"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "The translation overlay arrives in a later test build; you can fill in the settings now"
     }
     fn status_off(&self) -> &'static str {
         "Off"
@@ -257,6 +264,9 @@ impl TranslationStrings for TranslationStringsEn {
     fn api_key(&self) -> &'static str {
         "API Key"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "The key will be stored in Windows Credential Manager; this arrives with translation in a later test build"
+    }
     fn api_key_stored(&self) -> &'static str {
         "Saved in the keychain"
     }
@@ -303,7 +313,7 @@ impl TranslationStrings for TranslationStringsEn {
         "Clear Cache"
     }
     fn privacy_note(&self) -> &'static str {
-        "Message text from these channels is sent to the model service you choose. The key is stored only in this Mac's keychain and sent only to that service."
+        "Message text from these channels is sent to the model service you choose. The key is stored only in this PC's Windows Credential Manager and sent only to that service."
     }
     fn cost_note(&self) -> &'static str {
         "Only messages received by the active client's character are translated. Identical sentences are translated once."
@@ -340,6 +350,9 @@ impl TranslationStrings for TranslationStringsZh {
     }
     fn status_label(&self) -> &'static str {
         "状态"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "翻译浮窗在后续测试版加上，现在可以先把设置填好"
     }
     fn status_off(&self) -> &'static str {
         "未启用"
@@ -447,6 +460,9 @@ impl TranslationStrings for TranslationStringsZh {
     fn api_key(&self) -> &'static str {
         "API Key"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "Key 将保存在 Windows 凭据管理器，随翻译功能在后续测试版加上"
+    }
     fn api_key_stored(&self) -> &'static str {
         "已保存在钥匙串"
     }
@@ -490,7 +506,7 @@ impl TranslationStrings for TranslationStringsZh {
         "清空缓存"
     }
     fn privacy_note(&self) -> &'static str {
-        "翻译时，频道里的消息正文会发给你选择的模型服务。Key 只保存在本机的钥匙串里，只发给这个服务。"
+        "翻译时，频道里的消息正文会发给你选择的模型服务。Key 只保存在本机的 Windows 凭据管理器里，只发给这个服务。"
     }
     fn cost_note(&self) -> &'static str {
         "只翻译活动客户端的角色收到的消息。相同的句子只翻译一次。"
@@ -527,6 +543,9 @@ impl TranslationStrings for TranslationStringsRu {
     }
     fn status_label(&self) -> &'static str {
         "Состояние"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Окно перевода появится в следующей тестовой сборке; настройки можно заполнить уже сейчас"
     }
     fn status_off(&self) -> &'static str {
         "Выключено"
@@ -634,6 +653,9 @@ impl TranslationStrings for TranslationStringsRu {
     fn api_key(&self) -> &'static str {
         "Ключ API"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "Ключ будет храниться в диспетчере учётных данных Windows; это появится вместе с переводом в следующей тестовой сборке"
+    }
     fn api_key_stored(&self) -> &'static str {
         "Сохранён в связке ключей"
     }
@@ -681,7 +703,7 @@ impl TranslationStrings for TranslationStringsRu {
         "Очистить кэш"
     }
     fn privacy_note(&self) -> &'static str {
-        "Текст сообщений из этих каналов отправляется выбранному вами сервису модели. Ключ хранится только в связке ключей этого Mac и отправляется только этому сервису."
+        "Текст сообщений из этих каналов отправляется выбранному сервису модели. Ключ хранится только в диспетчере учётных данных Windows на этом компьютере и отправляется только этому сервису."
     }
     fn cost_note(&self) -> &'static str {
         "Переводятся только сообщения, полученные персонажем активного клиента. Одинаковые фразы переводятся один раз."
@@ -718,6 +740,9 @@ impl TranslationStrings for TranslationStringsJa {
     }
     fn status_label(&self) -> &'static str {
         "状態"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "翻訳のオーバーレイは今後のテスト版で追加されます。設定は今のうちに入力できます"
     }
     fn status_off(&self) -> &'static str {
         "オフ"
@@ -825,6 +850,9 @@ impl TranslationStrings for TranslationStringsJa {
     fn api_key(&self) -> &'static str {
         "API キー"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "キーは Windows 資格情報マネージャーに保存されます。翻訳機能とともに今後のテスト版で追加されます"
+    }
     fn api_key_stored(&self) -> &'static str {
         "キーチェーンに保存済み"
     }
@@ -868,7 +896,7 @@ impl TranslationStrings for TranslationStringsJa {
         "キャッシュを消去"
     }
     fn privacy_note(&self) -> &'static str {
-        "これらのチャンネルのメッセージ本文は、選択したモデルサービスに送信されます。キーはこの Mac のキーチェーンにのみ保存され、そのサービスにのみ送信されます。"
+        "翻訳するとき、これらのチャンネルのメッセージ本文は選んだモデルサービスに送られます。キーはこの PC の Windows 資格情報マネージャーにだけ保存され、そのサービスにだけ送られます。"
     }
     fn cost_note(&self) -> &'static str {
         "アクティブなクライアントのキャラクターが受け取ったメッセージだけを翻訳します。同じ文は一度だけ翻訳します。"
@@ -905,6 +933,9 @@ impl TranslationStrings for TranslationStringsKo {
     }
     fn status_label(&self) -> &'static str {
         "상태"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "번역 오버레이는 이후 테스트 빌드에서 추가됩니다. 설정은 지금 미리 채울 수 있습니다"
     }
     fn status_off(&self) -> &'static str {
         "꺼짐"
@@ -1012,6 +1043,9 @@ impl TranslationStrings for TranslationStringsKo {
     fn api_key(&self) -> &'static str {
         "API 키"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "키는 Windows 자격 증명 관리자에 저장됩니다. 번역 기능과 함께 이후 테스트 빌드에서 추가됩니다"
+    }
     fn api_key_stored(&self) -> &'static str {
         "키체인에 저장됨"
     }
@@ -1055,7 +1089,7 @@ impl TranslationStrings for TranslationStringsKo {
         "캐시 지우기"
     }
     fn privacy_note(&self) -> &'static str {
-        "이 채널들의 메시지 본문은 선택한 모델 서비스로 전송됩니다. 키는 이 Mac의 키체인에만 저장되며 해당 서비스로만 전송됩니다."
+        "번역할 때 이 채널들의 메시지 본문이 선택한 모델 서비스로 전송됩니다. 키는 이 PC의 Windows 자격 증명 관리자에만 저장되며 그 서비스로만 전송됩니다."
     }
     fn cost_note(&self) -> &'static str {
         "활성 클라이언트의 캐릭터가 받은 메시지만 번역합니다. 같은 문장은 한 번만 번역합니다."
@@ -1092,6 +1126,9 @@ impl TranslationStrings for TranslationStringsFr {
     }
     fn status_label(&self) -> &'static str {
         "État"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "La fenêtre de traduction arrivera dans une prochaine version de test ; vous pouvez déjà remplir les réglages"
     }
     fn status_off(&self) -> &'static str {
         "Désactivé"
@@ -1199,6 +1236,9 @@ impl TranslationStrings for TranslationStringsFr {
     fn api_key(&self) -> &'static str {
         "Clé d'API"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "La clé sera stockée dans le Gestionnaire d'identification Windows ; cela arrivera avec la traduction dans une prochaine version de test"
+    }
     fn api_key_stored(&self) -> &'static str {
         "Enregistrée dans le trousseau"
     }
@@ -1245,7 +1285,7 @@ impl TranslationStrings for TranslationStringsFr {
         "Vider le cache"
     }
     fn privacy_note(&self) -> &'static str {
-        "Le texte des messages de ces canaux est envoyé au service de modèle que vous choisissez. La clé est conservée uniquement dans le trousseau de ce Mac et envoyée uniquement à ce service."
+        "Le texte des messages de ces canaux est envoyé au service de modèle choisi. La clé est stockée uniquement dans le Gestionnaire d'identification Windows de ce PC et n'est envoyée qu'à ce service."
     }
     fn cost_note(&self) -> &'static str {
         "Seuls les messages reçus par le personnage du client actif sont traduits. Les phrases identiques ne sont traduites qu'une fois."
@@ -1282,6 +1322,9 @@ impl TranslationStrings for TranslationStringsDe {
     }
     fn status_label(&self) -> &'static str {
         "Status"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Das Übersetzungsfenster kommt in einem späteren Testbuild; die Einstellungen können Sie schon jetzt ausfüllen"
     }
     fn status_off(&self) -> &'static str {
         "Aus"
@@ -1389,6 +1432,9 @@ impl TranslationStrings for TranslationStringsDe {
     fn api_key(&self) -> &'static str {
         "API-Schlüssel"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "Der Schlüssel wird in der Windows-Anmeldeinformationsverwaltung gespeichert; das kommt mit der Übersetzung in einem späteren Testbuild"
+    }
     fn api_key_stored(&self) -> &'static str {
         "Im Schlüsselbund gespeichert"
     }
@@ -1435,7 +1481,7 @@ impl TranslationStrings for TranslationStringsDe {
         "Cache leeren"
     }
     fn privacy_note(&self) -> &'static str {
-        "Der Nachrichtentext aus diesen Kanälen wird an den gewählten Modelldienst gesendet. Der Schlüssel wird nur im Schlüsselbund dieses Mac gespeichert und nur an diesen Dienst gesendet."
+        "Der Text der Nachrichten aus diesen Kanälen wird an den gewählten Modelldienst gesendet. Der Schlüssel wird nur in der Windows-Anmeldeinformationsverwaltung dieses PCs gespeichert und nur an diesen Dienst gesendet."
     }
     fn cost_note(&self) -> &'static str {
         "Nur Nachrichten, die der Charakter des aktiven Clients empfängt, werden übersetzt. Gleiche Sätze werden nur einmal übersetzt."
@@ -1472,6 +1518,9 @@ impl TranslationStrings for TranslationStringsEs {
     }
     fn status_label(&self) -> &'static str {
         "Estado"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "La ventana de traducción llegará en una próxima versión de prueba; ya puedes rellenar los ajustes"
     }
     fn status_off(&self) -> &'static str {
         "Desactivado"
@@ -1579,6 +1628,9 @@ impl TranslationStrings for TranslationStringsEs {
     fn api_key(&self) -> &'static str {
         "Clave de API"
     }
+    fn api_key_not_available_yet(&self) -> &'static str {
+        "La clave se guardará en el Administrador de credenciales de Windows; llegará con la traducción en una próxima versión de prueba"
+    }
     fn api_key_stored(&self) -> &'static str {
         "Guardada en el llavero"
     }
@@ -1625,7 +1677,7 @@ impl TranslationStrings for TranslationStringsEs {
         "Vaciar caché"
     }
     fn privacy_note(&self) -> &'static str {
-        "El texto de los mensajes de estos canales se envía al servicio de modelo que elijas. La clave se guarda solo en el llavero de este Mac y solo se envía a ese servicio."
+        "El texto de los mensajes de estos canales se envía al servicio de modelos que elijas. La clave solo se guarda en el Administrador de credenciales de Windows de este PC y solo se envía a ese servicio."
     }
     fn cost_note(&self) -> &'static str {
         "Solo se traducen los mensajes que recibe el personaje del cliente activo. Las frases idénticas se traducen una vez."

@@ -225,6 +225,53 @@ config_struct! {
     }
 }
 
+/// 一个模型服务预设（macOS 的 TranslationProviders.presets，地址与模型名 2026-11-21 核对过）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TranslationPreset {
+    /// 下拉里显示的服务名，不翻译；「自定义」一项的名字由界面文字提供。
+    pub display_name: &'static str,
+    /// 默认的接口地址；设置里的地址为空时用它。
+    pub base_url: &'static str,
+    /// 默认的模型名；设置里的模型名为空时用它。
+    pub model: &'static str,
+    /// 是否要 API Key。
+    pub requires_key: bool,
+}
+
+impl TranslationProviderId {
+    /// 这个编号的预设。顺序与「翻译」页的下拉一致，即声明顺序。
+    pub fn preset(self) -> TranslationPreset {
+        let (display_name, base_url, model, requires_key) = match self {
+            // 默认预设：价格低、中文好，与 macOS 相同。
+            Self::DeepSeek => ("DeepSeek", "https://api.deepseek.com", "deepseek-flash", true),
+            Self::Anthropic => (
+                "Claude (Anthropic)",
+                "https://api.anthropic.com",
+                "claude-haiku-5-5",
+                true,
+            ),
+            Self::OpenAi => ("OpenAI", "https://api.openai.com/v1", "gpt-6-luna", true),
+            Self::Qwen => (
+                "Qwen (DashScope)",
+                "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                "qwen-plus",
+                true,
+            ),
+            Self::Moonshot => ("Kimi (Moonshot)", "https://api.moonshot.cn/v1", "kimi-k3", true),
+            // 本机服务：明文 http 只允许本机与局域网（macOS 设计文档 7.11 节），不用 Key。
+            Self::Ollama => ("Ollama", "http://127.0.0.1:11434/v1", "qwen2.5:7b", false),
+            // 地址与模型由用户填写；Key 可有可无。
+            Self::Custom => ("Custom (OpenAI-compatible)", "", "", false),
+        };
+        TranslationPreset {
+            display_name,
+            base_url,
+            model,
+            requires_key,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

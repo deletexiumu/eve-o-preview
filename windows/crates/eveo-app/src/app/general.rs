@@ -79,6 +79,20 @@ impl App {
         }
     }
 
+    /// 把设置窗口的各页整页填一次：打开窗口时，以及换语言后（由 Rust 拼的文字要按新语言重拼）。
+    pub(super) fn show_settings_pages(&self, window: &eveo_ui::SettingsWindow) {
+        if let Some(profile) = self.coordinator.config().active_profile() {
+            eveo_ui::bind::show_previews(window, profile);
+            let clients = self.coordinator.registry().clients();
+            eveo_ui::bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
+            self.show_switching(window, profile);
+        }
+        self.show_profiles(window);
+        self.show_general(window);
+        self.show_alerts(window);
+        self.show_chat(window);
+    }
+
     /// 配置变化后重新求界面语言；变了就把设置窗口的文字换成新语言。
     pub(super) fn update_language(&mut self) {
         let language = resolve_language(&self.coordinator.config().general);

@@ -14,7 +14,7 @@ use slint::platform::{Platform, WindowAdapter, WindowEvent};
 use slint::{ComponentHandle, PhysicalSize, PlatformError};
 
 use eveo_core::geometry::ScreenRect;
-use eveo_core::model::{ClientIdentity, EveClient, Pid, Profile, WindowId};
+use eveo_core::model::{ChannelRef, ClientIdentity, EveClient, Pid, Profile, WindowId};
 
 use crate::SettingsWindow;
 
@@ -116,6 +116,20 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     // 「提醒」页：默认值，日志目录自动查找。
     let automatic = r"C:\Users\Pilot\Documents\EVE\logs";
     crate::alerts::show_alerts(&ui, &config.profiles[0], &config.general, automatic);
+    // 「预警」与「翻译」页：各放几个频道，示意列表；翻译页选了本地频道，内置频道的按钮随之置灰。
+    let mut intel = config.profiles[0].intel.clone();
+    intel.channels = vec![
+        ChannelRef::new("Intel.North", None),
+        ChannelRef::new("Delve.Intel", None),
+    ];
+    intel.reference_system = Some("1DQ1-A".to_owned());
+    crate::chat::show_intel(&ui, &intel);
+    let mut translation = config.profiles[0].translation.clone();
+    translation.channels = vec![
+        ChannelRef::built_ins()[0].clone(),
+        ChannelRef::new("Rookie Help", None),
+    ];
+    crate::chat::show_translation(&ui, &translation, &config.general.translation_endpoint);
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;

@@ -38,10 +38,6 @@ doc = "设置窗口的标题。"
 doc = "Windows 设置窗口导航顶部查找框的占位文字。"
 platforms = ["windows"]
 
-[SettingsStrings.comingSoon]
-doc = "Windows 测试版：还没做完的设置页，页标题下的说明。"
-platforms = ["windows"]
-
 [SettingsStrings.points]
 doc = "长度单位「点」，接在数字后面（如「28 点」）。"
 

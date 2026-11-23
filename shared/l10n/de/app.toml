@@ -5,7 +5,6 @@
 # 用破折号连接应用名，避免德文复合词里夹着带空格的应用名。
 windowTitle = "EVE-O Preview – Einstellungen"
 searchSettings = "Einstellung suchen"
-comingSoon = "Diese Seite ist noch in Arbeit und kommt in einem späteren Testbuild."
 points = "pt"
 reset = "Zurücksetzen"
 defaultColor = "Standard"

@@ -42,6 +42,7 @@ use crate::menus;
 use crate::thumbnails::ThumbnailManager;
 
 mod alerts;
+mod chat;
 mod general;
 mod profiles;
 mod shell;
@@ -87,6 +88,8 @@ enum Input {
     General(general::GeneralInput),
     /// 「提醒」页的操作。
     Alerts(alerts::AlertsInput),
+    /// 「预警」与「翻译」页的输入。
+    Chat(chat::ChatInput),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -303,6 +306,7 @@ impl App {
             Input::Profiles(input) => self.profiles_input(input, runtime),
             Input::General(input) => self.general_input(input, runtime),
             Input::Alerts(input) => self.alerts_input(input, runtime),
+            Input::Chat(input) => self.chat_input(input, runtime),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -340,19 +344,6 @@ impl App {
             self.show_switching(window, profile);
         }
         self.show_profiles(window);
-    }
-
-    /// 把设置窗口的各页整页填一次：打开窗口时，以及换语言后（由 Rust 拼的文字要按新语言重拼）。
-    fn show_settings_pages(&self, window: &eveo_ui::SettingsWindow) {
-        if let Some(profile) = self.coordinator.config().active_profile() {
-            bind::show_previews(window, profile);
-            let clients = self.coordinator.registry().clients();
-            bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
-            self.show_switching(window, profile);
-        }
-        self.show_profiles(window);
-        self.show_general(window);
-        self.show_alerts(window);
     }
 
     /// 填「配置方案」页：方案列表来自整份配置，路径是配置文件的位置。
@@ -415,10 +406,11 @@ impl App {
                 }
                 // 界面语言可能变了（「通用」页的选项）：设置窗口的文字立即换成新语言。
                 self.update_language();
-                // 「通用」与「提醒」页同样只随配置变化。
+                // 「通用」「提醒」「预警」「翻译」页同样只随配置变化。
                 if let Some(window) = &self.settings {
                     self.show_general(window);
                     self.show_alerts(window);
+                    self.show_chat(window);
                 }
             }
             Effect::ScheduleWake(at) => self.wake_at = at,
@@ -682,6 +674,7 @@ impl App {
             profiles::connect(&window, runtime);
             general::connect(&window, runtime);
             alerts::connect(&window, runtime);
+            chat::connect(&window, runtime);
             self.settings = Some(window);
         }
         let Some(window) = &self.settings else {

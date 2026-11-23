@@ -3,7 +3,6 @@
 // 设置窗口（架构文档 2.3 节）：仿 Windows 11 设置的布局，左侧导航、右侧分组卡片。
 // 颜色跟随 Theme.dark 的明暗；Win11 上根窗口背景透明，由 Mica 透出来，纯色是降级用的。
 // 各页的值放在各自的全局模型里（如 PreviewsModel、ClientsModel），由 Rust 的 bind 模块与配置互相转换。
-// 还没做完的页显示「即将推出」，导航先占好位置。
 // 界面上的文字都取自 generated/l10n.slint 的全局（SettingsText 等），Rust 按界面语言填值。
 
 import { LineEdit, Palette, ScrollView } from "std-widgets.slint";
@@ -17,23 +16,13 @@ import { ProfileRow, ProfilesModel, ProfilesPage } from "profiles.slint";
 import { GeneralModel, GeneralPage } from "general.slint";
 import { AboutModel, AboutPage } from "about.slint";
 import { AlertsModel, AlertsPage } from "alerts.slint";
-import { CombatText, DiagnosticsText, HotkeyText, SettingsText, UpdateText } from "generated/l10n.slint";
+import { IntelModel, IntelPage } from "intel.slint";
+import { TranslationModel, TranslationPage } from "translation.slint";
+import { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText } from "generated/l10n.slint";
 
-export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, GeneralModel, HotkeyRow, HotkeySlotData, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel }
+export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, GeneralModel, HotkeyRow, HotkeySlotData, IntelModel, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel, TranslationModel }
 // 界面文字的全局，由 Rust 的 l10n::apply 按界面语言填值。
-export { CombatText, DiagnosticsText, HotkeyText, SettingsText, UpdateText }
-
-// 还没做完的页：页标题加一句说明。导航项先全部列出，测试的人能看到完整的结构，
-// 也不必在每次加页时改导航；页做好后把对应的 ComingSoonPage 换成真正的页面。
-component ComingSoonPage inherits VerticalLayout {
-    // 页名，与导航项相同。
-    in property <string> title;
-    alignment: start;
-    PageHeader {
-        title: root.title;
-        subtitle: SettingsText.coming-soon;
-    }
-}
+export { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText }
 
 // 设置窗口。
 export component SettingsWindow inherits Window {
@@ -122,8 +111,8 @@ export component SettingsWindow inherits Window {
                 if page == 0: ClientsPage { }
                 if page == 2: SwitchingPage { }
                 if page == 3: AlertsPage { }
-                if page == 4: ComingSoonPage { title: SettingsText.page-intel; }
-                if page == 5: ComingSoonPage { title: SettingsText.page-translation; }
+                if page == 4: IntelPage { }
+                if page == 5: TranslationPage { }
                 if page == 6: ProfilesPage { }
                 if page == 7: GeneralPage { }
                 if page == 8: AboutPage { }
