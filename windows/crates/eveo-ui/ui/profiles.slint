@@ -1,0 +1,279 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「配置方案」页，对应 macOS 的 ProfilesPage：方案列表、切换、新建、复制、改名、删除，以及配置文件的位置。
+// 名称规则由 Core 的 profile_editor 判断（去掉首尾空白后 1～64 字，不区分大小写唯一），Rust 校验后把问题写进
+// name-error，页面据此置灰确定按钮并显示原因。最后一个方案不能删除。
+//
+// macOS 用弹出的小窗口输入名称；这里改为就地编辑：点了「改名」或「复制」，那一行变成输入框加确定、取消，
+// 新建用页首的一行。删除不可撤销，点了「删除」先在原行上确认一次。
+// 编辑与待删除的状态只在页面里（editing-*、pending-delete），配置只在确定时改。
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { PageHeader, SectionHeader, SettingRow } from "components.slint";
+
+// 一个配置方案。
+export struct ProfileRow {
+    // 方案 id。
+    id: string,
+    // 名称。
+    name: string,
+    // 是否是当前方案。
+    active: bool,
+}
+
+// 本页的数据。
+export global ProfilesModel {
+    // 全部方案，按配置里的顺序。
+    in property <[ProfileRow]> profiles;
+    // 配置文件的完整路径。
+    in property <string> config-path;
+    // 正在编辑的方案 id；新建时是 "new"，不在编辑时为空串。
+    in-out property <string> editing-id;
+    // 编辑的种类："add"、"rename" 或 "clone"。
+    in-out property <string> editing-mode;
+    // 输入框里的名称。
+    in-out property <string> editing-name;
+    // 名称的问题；空串表示可用。由 Rust 在 name-edited 里设。
+    in property <string> name-error;
+    // 等待确认删除的方案 id；空串表示没有。
+    in-out property <string> pending-delete;
+    // 切换到某个方案。
+    callback switch-to(string);
+    // 名称输入框的文字变了（含开始编辑时）：Rust 校验并设 name-error。
+    callback name-edited();
+    // 确定编辑：Rust 按 editing-mode 执行，成功后清掉编辑状态。
+    callback confirm-edit();
+    // 确定删除。
+    callback confirm-delete(string);
+    // 在资源管理器里显示配置文件。
+    callback reveal-config();
+
+    // 开始编辑：记下种类与初始名称，再让 Rust 校验一次（初始名称可能已被占用，例如「副本」）。
+    public function start-edit(mode: string, id: string, initial: string) {
+        self.pending-delete = "";
+        self.editing-mode = mode;
+        self.editing-id = id;
+        self.editing-name = initial;
+        self.name-edited();
+    }
+    // 取消编辑。
+    public function cancel-edit() {
+        self.editing-id = "";
+        self.editing-mode = "";
+        self.editing-name = "";
+    }
+}
+
+// 名称输入行：输入框、确定、取消，下面是名称的问题。新建与就地编辑共用。
+component NameEditor inherits VerticalLayout {
+    // 确定按钮的文字（新建、改名、复制）。
+    in property <string> confirm-text;
+    // 输入行与下面的提示之间留一点空。
+    spacing: 4px;
+    HorizontalLayout {
+        spacing: 8px;
+        LineEdit {
+            text <=> ProfilesModel.editing-name;
+            // 空输入框里的提示；名称规则见文件开头。
+            placeholder-text: "配置方案名称";
+            horizontal-stretch: 1;
+            edited(text) => {
+                ProfilesModel.name-edited();
+            }
+            // 回车等于点确定；名称不可用时不提交。
+            accepted(text) => {
+                if ProfilesModel.name-error == "" {
+                    ProfilesModel.confirm-edit();
+                }
+            }
+        }
+        Button {
+            text: confirm-text;
+            primary: true;
+            // 名称不可用时置灰，原因显示在输入框下面。
+            enabled: ProfilesModel.name-error == "";
+            clicked => {
+                ProfilesModel.confirm-edit();
+            }
+        }
+        Button {
+            text: "取消";
+            clicked => {
+                ProfilesModel.cancel-edit();
+            }
+        }
+    }
+    // 名称的问题：空输入框时不显示（刚点了新建还没输入，不必先报错）。
+    if ProfilesModel.name-error != "" && ProfilesModel.editing-name != "": Text {
+        text: ProfilesModel.name-error;
+        color: #d97706;
+        font-size: 12px;
+    }
+}
+
+// 一个方案的卡片：当前标记、名称、操作按钮；编辑或待删除时换成相应的内容。
+component ProfileCard inherits Rectangle {
+    // 这个方案。
+    in property <ProfileRow> profile;
+    // 是否只剩这一个方案（不能删除）。
+    in property <bool> last;
+    // 这一行正在改名或复制。
+    property <bool> editing: ProfilesModel.editing-id == profile.id;
+    // 这一行在等待确认删除。
+    property <bool> deleting: ProfilesModel.pending-delete == profile.id;
+    background: Theme.card;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    HorizontalLayout {
+        padding: 10px;
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 12px;
+        // 当前方案：实心的强调色圆点；其余是空心圆。
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                border-width: profile.active ? 5px : 1px;
+                border-color: profile.active ? Theme.accent : Theme.text-secondary;
+            }
+        }
+        // 改名或复制：名称与按钮换成输入行，确定按钮的文字随编辑种类变。
+        if editing: NameEditor {
+            horizontal-stretch: 1;
+            confirm-text: ProfilesModel.editing-mode == "clone" ? "复制" : "改名";
+        }
+        // 平时：名称占满剩余宽度，后面依次是「当前」标记与操作按钮。
+        if !editing: HorizontalLayout {
+            spacing: 8px;
+            horizontal-stretch: 1;
+            Text {
+                text: profile.name;
+                color: Theme.text;
+                vertical-alignment: center;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+            if profile.active: Text {
+                text: "当前";
+                color: Theme.text-secondary;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+            // 待删除：说明后果，删除或取消。
+            if deleting: Text {
+                text: "删除后不能恢复。";
+                color: #d97706;
+                vertical-alignment: center;
+            }
+            if deleting: Button {
+                text: "删除";
+                primary: true;
+                // 先清掉待删除的标记：删除后这一行就不在了。
+                clicked => {
+                    ProfilesModel.pending-delete = "";
+                    ProfilesModel.confirm-delete(profile.id);
+                }
+            }
+            if deleting: Button {
+                text: "取消";
+                clicked => {
+                    ProfilesModel.pending-delete = "";
+                }
+            }
+            // 平时的操作：当前方案不显示「切换」。
+            if !deleting && !profile.active: Button {
+                // 切换立即生效：缩略图布局、外观与热键都换成这个方案的。
+                text: "切换到此方案";
+                clicked => {
+                    ProfilesModel.switch-to(profile.id);
+                }
+            }
+            if !deleting: Button {
+                text: "改名";
+                clicked => {
+                    ProfilesModel.start-edit("rename", profile.id, profile.name);
+                }
+            }
+            if !deleting: Button {
+                text: "复制";
+                clicked => {
+                    ProfilesModel.start-edit("clone", profile.id, profile.name + " 副本");
+                }
+            }
+            if !deleting: Button {
+                text: "删除";
+                // 只剩一个方案时不能删（配置里至少要有一个方案）。
+                enabled: !last;
+                clicked => {
+                    ProfilesModel.cancel-edit();
+                    ProfilesModel.pending-delete = profile.id;
+                }
+            }
+        }
+    }
+}
+
+// 「配置方案」页。
+export component ProfilesPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: "配置方案";
+        subtitle: "每个方案有自己的缩略图布局、外观与热键，可以随时切换";
+    }
+
+    // 新建：平时是一行说明加按钮，点了以后变成名称输入行。
+    if ProfilesModel.editing-id != "new": SettingRow {
+        title: "新建配置方案";
+        description: "所有设置取默认值；想沿用现有的设置，用方案旁的「复制」";
+        Button {
+            text: "新建";
+            clicked => {
+                ProfilesModel.start-edit("add", "new", "");
+            }
+        }
+    }
+    if ProfilesModel.editing-id == "new": Rectangle {
+        background: Theme.card;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        VerticalLayout {
+            padding: 12px;
+            padding-left: 18px;
+            padding-right: 18px;
+            // 新建的名称输入行，与就地编辑共用同一套状态。
+            NameEditor { confirm-text: "新建"; }
+        }
+    }
+
+    SectionHeader { text: "全部方案"; }
+    // 方案按配置里的顺序排列；复制出的副本紧跟在原方案后面。
+    for profile in ProfilesModel.profiles: VerticalLayout {
+        padding-bottom: 4px;
+        ProfileCard {
+            profile: profile;
+            last: ProfilesModel.profiles.length <= 1;
+        }
+    }
+
+    SectionHeader { text: "配置文件"; }
+    // 配置文件的位置：路径可以选中复制；按钮打开资源管理器并选中这个文件。
+    SettingRow {
+        title: "config.json";
+        // 完整路径：%APPDATA% 下的 EVE-O Preview 文件夹。
+        description: ProfilesModel.config-path;
+        Button {
+            text: "在资源管理器中显示";
+            clicked => {
+                ProfilesModel.reveal-config();
+            }
+        }
+    }
+    // 页底留白，滚到底时最后一张卡片不贴着窗口边。
+    Rectangle { height: 24px; }
+}
