@@ -6,6 +6,11 @@
 #
 # 用法：scripts/verify_macos.sh <PR 编号>
 # 需要：已登录的 gh（对仓库有写权限）、Swift 6 工具链、Python 3.11+。
+# 应在仓库目录里运行：gh 和 git 都从当前目录认出仓库。脚本本身可以放在别处，
+# 例如先用 git show origin/main:scripts/verify_macos.sh 取出主干版本，免得 PR 改了脚本自己给自己判分。
+#
+# local/macos 是普通的提交状态，不绑定 GitHub App：凡是对仓库有写权限的人或令牌都能上报它。
+# 单人维护时可以接受；多人协作时应改回由运行器上报的检查。
 #
 # 做的事，与 macos.yml 的 build 任务的检查步骤一致：
 # 1. 把 PR 的头提交检出到临时 worktree，不碰当前工作区，结束时删掉；
@@ -21,6 +26,13 @@ CONTEXT="local/macos"
 # 与 macos.yml 原来的路径过滤相同：这些路径有改动才需要构建 macOS 版。
 PATTERN='^(macos/|shared/|scripts/|docs/release-notes/macos/|\.github/workflows/macos\.yml$)'
 
+# 先确认在仓库里，否则后面的 gh 和 git 会给出难懂的报错。
+if ! REPO_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+    echo "请在仓库目录里运行本脚本" >&2
+    exit 2
+fi
+cd "$REPO_DIR"
+
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 HEAD_SHA="$(gh pr view "$PR" --json headRefOid -q .headRefOid)"
 BASE_REF="$(gh pr view "$PR" --json baseRefName -q .baseRefName)"
@@ -33,9 +45,10 @@ report() {
     echo "已上报 ${CONTEXT} = $1：$2"
 }
 
-REPO_DIR="$(git rev-parse --show-toplevel)"
 git fetch --quiet origin "pull/${PR}/head" "$BASE_REF"
-WORKTREE="$(mktemp -d /tmp/eveo-verify-XXXXXX)"
+# 上次运行若被 kill -9 之类的方式强行结束，清理函数来不及执行，目录已没了但 worktree 记录还在，这里顺手清掉。
+git worktree prune
+WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/eveo-verify-XXXXXX")"
 # 任何一步失败或被中断，都删掉临时 worktree；状态仍是 pending 时改报 failure，免得 PR 一直等。
 STATE="pending"
 cleanup() {
@@ -80,7 +93,7 @@ step "文档链接" python3 scripts/check_links.py
 step "swift build" bash -c 'cd macos && swift build'
 
 # swift test 的输出另存一份，从最后的汇总行里取测试数写进状态说明。
-LOG="$(mktemp /tmp/eveo-verify-test-XXXXXX)"
+LOG="$(mktemp "${TMPDIR:-/tmp}/eveo-verify-test-XXXXXX")"
 step "swift test" bash -c "cd macos && swift test 2>&1 | tee '$LOG'; exit \${PIPESTATUS[0]}"
 COUNT="$(grep -oE 'with [0-9]+ tests? passed' "$LOG" | tail -1 | grep -oE '[0-9]+' || true)"
 rm -f "$LOG"
