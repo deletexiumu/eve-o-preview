@@ -10,6 +10,7 @@
 resolver = "3"
 members = [
     "crates/eveo-core",
+    "crates/eveo-l10n",
     "crates/eveo-app-core",
     "crates/eveo-app",
     "crates/eveo-platform-win",
@@ -19,6 +20,7 @@ members = [
 ]
 default-members = [
     "crates/eveo-core",
+    "crates/eveo-l10n",
     "crates/eveo-app-core",
     "crates/eveo-app",
     "crates/eveo-platform-win",
@@ -44,10 +46,12 @@ raw-window-handle = "0.6"
 # 只开基础特性；各 crate 按需加后端与渲染器（探针用 winit 后端，界面截图用软件渲染器）。
 slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
 eveo-core = { path = "crates/eveo-core" }
+eveo-l10n = { path = "crates/eveo-l10n" }
 eveo-app-core = { path = "crates/eveo-app-core" }
 eveo-platform-win = { path = "crates/eveo-platform-win" }
 windows = { version = "0.62", features = [
     "Win32_Foundation",
+    "Win32_Globalization",
     "Win32_Graphics_Direct2D",
     "Win32_Graphics_Direct2D_Common",
     "Win32_Graphics_DirectWrite",

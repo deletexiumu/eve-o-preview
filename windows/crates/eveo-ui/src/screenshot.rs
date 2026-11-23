@@ -31,6 +31,8 @@ pub struct ShotOptions {
     pub font: String,
     /// 设置窗口的页，编号同 `SettingsWindow.page`。
     pub page: i32,
+    /// 界面语言。
+    pub language: eveo_core::model::AppLanguage,
 }
 
 /// 只给软件渲染器用的平台。
@@ -82,6 +84,7 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let ui = SettingsWindow::new().map_err(|e| e.to_string())?;
     ui.set_dark(options.dark);
     ui.set_ui_font(options.font.as_str().into());
+    crate::l10n::apply(&ui, options.language);
     // 各页显示一个新配置方案的默认值，与第一次打开应用时看到的一样；「客户端」页另加几个示例角色。
     let (profile, clients) = sample();
     crate::bind::show_previews(&ui, &profile);

@@ -8,7 +8,8 @@ sectionHeader = "Диагностика"
 verboseLoggingToggle = "Подробный журнал"
 verboseLoggingHelp = "Записывает в файл журнала больше подробностей. Включите перед тем, как воспроизвести проблему."
 logLocationLabel = "Файлы журнала"
-showLogsButton = "Показать журналы в Finder"
+showLogsButton = { macos = "Показать журналы в Finder", windows = "Показать журналы в Проводнике" }
+fileLogNotAvailableYet = "Запись журнала в файл появится в одной из следующих тестовых сборок."
 reportButton = "Сообщить о проблеме…"
 
 windowTitle = "Сообщить о проблеме"

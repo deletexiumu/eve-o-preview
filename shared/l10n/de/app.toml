@@ -4,6 +4,8 @@
 # 窗口与通用。
 # 用破折号连接应用名，避免德文复合词里夹着带空格的应用名。
 windowTitle = "EVE-O Preview – Einstellungen"
+searchSettings = "Einstellung suchen"
+comingSoon = "Diese Seite ist noch in Arbeit und kommt in einem späteren Testbuild."
 points = "pt"
 reset = "Zurücksetzen"
 defaultColor = "Standard"
@@ -144,11 +146,11 @@ signingHint = "macOS speichert Berechtigungen anhand der Codesignatur. Ad-hoc-Bu
 version = "Version"
 # `swift run` 时没有版本号，显示「开发构建」；Build 保留英文，德文开发者通用。
 devVersion = "Entwicklungs-Build"
-aboutSubtitle = "Live-Miniaturen und schnelles Wechseln für mehrere EVE Online-Clients, nativ für macOS."
+aboutSubtitle = { macos = "Live-Miniaturen und schnelles Wechseln für mehrere EVE Online-Clients, nativ für macOS.", windows = "Live-Miniaturen und schnelles Wechseln für mehrere EVE Online-Clients, nativ für Windows." }
 aboutSummary = "Eine Live-Miniatur pro Client, Wechseln per Klick, Hotkeys für Wechselgruppen und mehrere Profile."
 # 「上游」译作 Ursprungsprojekt（原始项目），比直译的 Upstream 好懂。
 upstreamHeader = "Ursprungsprojekt & Lizenz"
-upstreamText = "Diese App setzt die Funktionen von EveOPlus/eve-o-preview nativ für macOS neu um."
+upstreamText = { macos = "Diese App setzt die Funktionen von EveOPlus/eve-o-preview nativ für macOS neu um.", windows = "Diese App setzt die Funktionen von EveOPlus/eve-o-preview neu um, ohne dessen Quellcode zu übernehmen." }
 licenseText = "Wie das Ursprungsprojekt steht sie unter der GNU General Public License v3.0."
 disclaimerHeader = "Hinweise"
 focusOnlyText = "Dieses Tool wechselt nur den Fensterfokus. Es sendet nie Eingaben an mehrere Clients gleichzeitig und liest oder verändert nie den Spielspeicher."

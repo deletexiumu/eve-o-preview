@@ -6,6 +6,7 @@ notes = "战斗提醒域的文字（反馈文档 5.3 节）：设置窗口「提
 [protocols.CombatStrings]
 doc = "「提醒」页的文字。"
 accessor = "combat"
+slint = true
 
 [CombatStrings.pageSubtitle]
 section = "页头"

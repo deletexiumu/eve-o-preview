@@ -3,10 +3,16 @@
 """界面文案的校验与代码生成（docs/windows/architecture.md 5.2 节）。只用 Python 3.11+ 的标准库。
 
 数据在 shared/l10n/：
-- keys/<域>.toml：域的说明（notes）；每个协议（[protocols.<协议>]）的说明与 L10n 上的访问器名（accessor）；
+- keys/<域>.toml：域的说明（notes）；每个协议（[protocols.<协议>]）的说明、L10n 上的访问器名（accessor），
+  Windows 设置窗口要用时写 slint = true；
   每条文案（[<协议>.<键>]）的说明、参数、所在分节。按数量变化的文案写 plural = "<参数>"，
   按参数取值分支的写 select = "<参数>" 与 cases。
 - <语言>/<域>.toml：每种语言一份，[<协议>] 下每个键一条文字。
+- 只在一端用的协议或文案写 platforms = ["macos"] 或 ["windows"]；两端用词不同时值写成 { macos = …, windows = … }。
+
+生成的 Rust（windows/crates/eveo-l10n/src/generated/）：每个域一个文件，trait、各语言的单元结构体与按语言取实现的函数。
+生成的 Slint（windows/crates/eveo-ui/ui/generated/l10n.slint）与填值函数（windows/crates/eveo-ui/src/l10n.rs）：
+slint = true 的协议各一个全局，无参数的文字是属性，参数都是字符串与数字的文字是纯回调。
 
 生成的 Swift（macos/Sources/EVEOPreview/Localization/Generated/）：
 - <域的 swift_file>.swift：协议与 L10n 上的访问器。
@@ -41,6 +47,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 L10N = ROOT / "shared/l10n"
 SWIFT_OUT = ROOT / "macos/Sources/EVEOPreview/Localization/Generated"
+RUST_OUT = ROOT / "windows/crates/eveo-l10n/src/generated"
+SLINT_OUT = ROOT / "windows/crates/eveo-ui/ui/generated"
+SLINT_RUST_FILE = ROOT / "windows/crates/eveo-ui/src/l10n.rs"
+# 生成目录：里面不在生成清单上的文件会被删掉（--check 时报为多余）。
+GENERATED_DIRS = {SWIFT_OUT: "*.swift", RUST_OUT: "*.rs", SLINT_OUT: "*.slint"}
+
+# 平台：每条文案默认两端都有；keys 里写 platforms 时只给列出的平台生成。
+PLATFORMS = ["macos", "windows"]
 
 # 语言的顺序与 macOS 的 AppLanguage 一致。
 LANGS = ["en", "zh", "ru", "ja", "ko", "fr", "de", "es"]
@@ -102,6 +116,7 @@ class Key:
     plural: str | None = None
     select: str | None = None
     cases: list[str] = field(default_factory=list)
+    platforms: list[str] = field(default_factory=lambda: list(PLATFORMS))
 
     @property
     def is_func(self) -> bool:
@@ -117,6 +132,9 @@ class Protocol:
 
     doc: str
     accessor: str
+    platforms: list[str] = field(default_factory=lambda: list(PLATFORMS))
+    # Windows 的设置窗口（Slint）要用时为真：生成一个 Slint 全局与填值的 Rust 函数。
+    slint: bool = False
 
 
 @dataclass
@@ -144,22 +162,46 @@ def load() -> list[Domain]:
     domains = []
     for path in sorted((L10N / "keys").glob("*.toml")):
         data = tomllib.loads(path.read_text(encoding="utf-8"))
-        protocols = {name: Protocol(info["doc"].strip(), info["accessor"])
+        protocols = {name: Protocol(info["doc"].strip(), info["accessor"],
+                                    info.get("platforms", list(PLATFORMS)), info.get("slint", False))
                      for name, info in data.pop("protocols").items()}
         swift_file = data.pop("swift_file")
         notes = data.pop("notes").strip()
         keys = []
         for proto in protocols:
             for name, info in data.get(proto, {}).items():
+                platforms = [p for p in info.get("platforms", PLATFORMS) if p in protocols[proto].platforms]
                 keys.append(Key(proto, name, info.get("doc", ""), info.get("section"),
                                 [parse_param(p) for p in info.get("params", [])],
-                                info.get("plural"), info.get("select"), info.get("cases", [])))
+                                info.get("plural"), info.get("select"), info.get("cases", []), platforms))
         domain = Domain(path.stem, swift_file, notes, protocols, keys)
         for lang in LANGS:
             lang_path = L10N / lang / path.name
             domain.texts[lang] = tomllib.loads(lang_path.read_text(encoding="utf-8")) if lang_path.exists() else {}
         domains.append(domain)
     return domains
+
+
+def for_platform(value: object, platform: str) -> object:
+    """两端用词不同时值写成 { macos = …, windows = … }，取其中一端；其余原样返回。"""
+    if isinstance(value, dict) and set(value) == set(PLATFORMS):
+        return value[platform]
+    return value
+
+
+def keys_of(domain: Domain, proto: str, platform: str) -> list[Key]:
+    """某个协议在某一端的全部文案。"""
+    return [k for k in domain.keys if k.proto == proto and platform in k.platforms]
+
+
+def protocols_of(domain: Domain, platform: str) -> dict[str, Protocol]:
+    """某一端用到的协议。"""
+    return {name: info for name, info in domain.protocols.items() if platform in info.platforms}
+
+
+def text(domain: Domain, lang: str, key: Key, platform: str) -> object:
+    """一条文案在某种语言、某一端的值。"""
+    return for_platform(domain.texts[lang][key.proto][key.name], platform)
 
 
 def placeholders(template: str) -> list[tuple[str, str | None]] | str:
@@ -220,6 +262,11 @@ def validate(domains: list[Domain]) -> list[str]:
                 typ = key.param(key.select).type
                 if typ not in ("String",) and not typ.endswith("?") and not key.cases:
                     problems.append(f"{where}: 枚举分支要写 cases")
+            if not key.platforms or any(p not in PLATFORMS for p in key.platforms):
+                problems.append(f"{where}: platforms 只能是 {PLATFORMS} 中的项，且至少一项")
+            for param in key.params:
+                if param.type not in RUST_TYPES and not param.type.endswith("?") and not key.cases:
+                    problems.append(f"{where}: 不认识的参数类型 {param.type}")
         for lang in LANGS:
             texts = domain.texts[lang]
             for proto in domain.protocols:
@@ -235,11 +282,14 @@ def validate(domains: list[Domain]) -> list[str]:
                 if value is None:
                     problems.append(f"{where}: 缺少")
                     continue
-                result = variants(key, lang, value)
-                if isinstance(result, str):
-                    problems.append(f"{where}: {result}")
+                if isinstance(value, dict) and set(value) == set(PLATFORMS) and key.platforms != PLATFORMS:
+                    problems.append(f"{where}: 只有一端的文案不用写平台变体")
+                results = [variants(key, lang, for_platform(value, p)) for p in key.platforms]
+                bad = next((r for r in results if isinstance(r, str)), None)
+                if bad:
+                    problems.append(f"{where}: {bad}")
                     continue
-                for case, template in result.items():
+                for case, template in (item for r in results for item in r.items()):
                     found = placeholders(template)
                     if isinstance(found, str):
                         problems.append(f"{where}: {found}")
@@ -350,13 +400,13 @@ def swift_lang_file(domain: Domain, lang: str) -> str:
     """一个域一种语言的 Swift 文件。"""
     lines = [f"// {GENERATED}", "//", f"// {domain.name} 域的文字（{lang}），来自 shared/l10n/{lang}/{domain.name}.toml。", "",
              "import Foundation", "import EVEOPreviewCore", ""]
-    for proto, info in domain.protocols.items():
+    for proto, info in protocols_of(domain, "macos").items():
         lines.append(f"/// {info.doc.splitlines()[0].rstrip('。')}（{lang}）。")
         lines.append(f"struct {proto}{lang.upper()}: {proto} {{")
-        for key in (k for k in domain.keys if k.proto == proto):
+        for key in keys_of(domain, proto, "macos"):
             if key.section:
                 lines.append(f"    // MARK: {key.section}")
-            lines.extend(swift_member(key, lang, domain.texts[lang][proto][key.name], "    "))
+            lines.extend(swift_member(key, lang, text(domain, lang, key, "macos"), "    "))
         lines.append("}")
         lines.append("")
     return "\n".join(lines)
@@ -371,11 +421,11 @@ def swift_protocol_file(domain: Domain) -> str:
               "// 访问器按 L10n.language 每次访问时取，切换语言后下次访问即是新语言；switch 不写 default，",
               "// 加语言时编译器会指出要补的地方。",
               "", "import Foundation", "import EVEOPreviewCore", ""]
-    for proto, info in domain.protocols.items():
+    for proto, info in protocols_of(domain, "macos").items():
         lines += swift_doc(info.doc)
         lines.append(f"protocol {proto}: Sendable {{")
         first = True
-        for key in (k for k in domain.keys if k.proto == proto):
+        for key in keys_of(domain, proto, "macos"):
             if key.section:
                 if not first:
                     lines.append("")
@@ -389,7 +439,7 @@ def swift_protocol_file(domain: Domain) -> str:
         lines.append("}")
         lines.append("")
     lines.append("extension L10n {")
-    for i, (proto, info) in enumerate(domain.protocols.items()):
+    for i, (proto, info) in enumerate(protocols_of(domain, "macos").items()):
         if i:
             lines.append("")
         lines.append(f"    /// {info.doc.splitlines()[0]}")
@@ -434,23 +484,317 @@ enum L10nPlural {{
 """
 
 
+# ---------------------------------------------------------------- Rust
+
+# 参数类型 → Rust 类型。可选值在类型后加 ?；枚举见 RUST_ENUMS，没列出的枚举在生成的文件里按 cases 定义。
+RUST_TYPES = {
+    "String": "&str",
+    "Int": "i64",
+    "Int32": "i32",
+    "Int64": "i64",
+    "Double": "f64",
+    "[String]": "&[String]",
+}
+# eveo-core 里已有的枚举，变体名是 cases 的首字母大写。
+RUST_ENUMS = {"ZoomAnchor": "eveo_core::model::ZoomAnchor"}
+RUST_KEYWORDS = {"as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for", "if",
+                 "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self", "Self",
+                 "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where", "while", "async",
+                 "await", "dyn", "abstract", "become", "box", "do", "final", "macro", "override", "priv", "typeof",
+                 "unsized", "virtual", "yield", "try", "gen"}
+
+
+def snake(name: str) -> str:
+    """驼峰 → 下划线：errorHTTPStatus → error_http_status。"""
+    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
+    return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+
+
+def camel_type(case: str) -> str:
+    """分支取值 → 枚举变体名：nw → Nw，center → Center。"""
+    return case[:1].upper() + case[1:]
+
+
+def rust_type(key: Key, param: Param) -> str:
+    if param.type.endswith("?"):
+        return f"Option<{RUST_TYPES[param.type[:-1]]}>"
+    if param.type in RUST_TYPES:
+        return RUST_TYPES[param.type]
+    return RUST_ENUMS.get(param.type, param.type)
+
+
+def rust_escape(text: str, braces: bool) -> str:
+    out = text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+    return out.replace("{", "{{").replace("}", "}}") if braces else out
+
+
+def rust_arg(name: str, fmt: str | None, lang: str) -> tuple[str, str]:
+    """占位符 → (format! 里的写法, 参数表达式)。"""
+    var = snake(name)
+    if fmt is None:
+        return "{}", var
+    if fmt in (".0f", ".1f"):
+        return "{:" + fmt[:-1] + "}", var
+    if fmt == "secs":
+        return "{}", f"seconds_number({var})"
+    if fmt == "secs_comma":
+        return "{}", f"seconds_number({var}).replace('.', \",\")"
+    if fmt == ".1f_locale":
+        return "{}", f"locale_decimal1({var}, AppLanguage::{camel_type(lang)})"
+    if fmt == "list":
+        return "{}", f'{var}.join(", ")'
+    if fmt == "list_cjk":
+        return "{}", f"cjk_list({var})"
+    raise ValueError(fmt)
+
+
+def rust_string(template: str, lang: str, owned: bool) -> str:
+    """模板 → Rust 表达式。owned 为真时得到 String，否则是 &'static str 字面量。"""
+    found = placeholders(template)
+    if not found:
+        literal = '"' + rust_escape(template.replace("{{", "{").replace("}}", "}"), False) + '"'
+        return f"{literal}.to_owned()" if owned else literal
+    out, args, pos = [], [], 0
+    for m in PLACEHOLDER.finditer(template):
+        out.append(rust_escape(template[pos:m.start()], True))
+        pos = m.end()
+        token = m.group(0)
+        if token in ("{{", "}}"):
+            out.append(token)
+            continue
+        spec, arg = rust_arg(m.group(1), m.group(2), lang)
+        out.append(spec)
+        args.append(arg)
+    out.append(rust_escape(template[pos:], True))
+    return 'format!("' + "".join(out) + '", ' + ", ".join(args) + ")"
+
+
+def used_params(key: Key, vs: dict[str, str]) -> set[str]:
+    """某种语言的实现里用到的参数：占位符里出现的，以及复数、分支依据的参数。"""
+    used = {key.plural, key.select} - {None}
+    for template in vs.values():
+        used |= {name for name, _ in placeholders(template)}
+    return used
+
+
+def rust_signature(key: Key, used: set[str] | None = None) -> str:
+    """trait 方法的签名。used 给出时，没用到的参数名前加下划线（实现里不报未使用）。"""
+    if not key.is_func:
+        return f"fn {snake(key.name)}(&self) -> &'static str"
+    params = []
+    for p in key.params:
+        name = snake(p.name)
+        if used is not None and p.name not in used:
+            name = "_" + name
+        params.append(f"{name}: {rust_type(key, p)}")
+    return f"fn {snake(key.name)}(&self, {', '.join(params)}) -> String"
+
+
+def rust_member(key: Key, lang: str, value: object) -> list[str]:
+    """一条文案在某种语言下的实现。"""
+    vs = variants(key, lang, value)
+    sig = "    " + rust_signature(key, used_params(key, vs))
+    if not key.is_func:
+        return [f"{sig} {{", f"        {rust_string(vs[''], lang, False)}", "    }"]
+    if "" in vs:
+        return [f"{sig} {{", f"        {rust_string(vs[''], lang, True)}", "    }"]
+    body = []
+    if key.plural:
+        cats = list(vs)
+        if len(cats) == 1:
+            return [f"{sig} {{", f"        {rust_string(vs[cats[0]], lang, True)}", "    }"]
+        body.append(f"        match plural::{lang}({snake(key.plural)}) {{")
+        for cat in cats[:-1]:
+            body.append(f"            Plural::{camel_type(cat)} => {rust_string(vs[cat], lang, True)},")
+        body.append(f"            _ => {rust_string(vs[cats[-1]], lang, True)},")
+        body.append("        }")
+    else:
+        param = key.param(key.select)
+        var = snake(param.name)
+        if param.type == "String":
+            body.append(f"        if {var}.is_empty() {{")
+            body.append(f"            {rust_string(vs['empty'], lang, True)}")
+            body.append("        } else {")
+            body.append(f"            {rust_string(vs['other'], lang, True)}")
+            body.append("        }")
+        elif param.type.endswith("?"):
+            body.append(f"        match {var} {{")
+            body.append(f"            Some({var}) => {rust_string(vs['some'], lang, True)},")
+            body.append(f"            None => {rust_string(vs['none'], lang, True)},")
+            body.append("        }")
+        else:
+            typ = RUST_ENUMS.get(param.type, param.type)
+            body.append(f"        match {var} {{")
+            for case in key.cases:
+                body.append(f"            {typ}::{camel_type(case)} => {rust_string(vs[case], lang, True)},")
+            body.append("        }")
+    return [f"{sig} {{", *body, "    }"]
+
+
+def rust_doc(text: str, indent: str = "") -> list[str]:
+    return [f"{indent}/// {line}".rstrip() for line in text.splitlines()]
+
+
+def rust_domain_file(domain: Domain) -> str:
+    """一个域的 Rust 代码：trait、各语言的实现与按语言取实现的函数。"""
+    protos = protocols_of(domain, "windows")
+    lines = [f"// {GENERATED}", "//"]
+    lines += [f"// {line}".rstrip() for line in domain.notes.splitlines()]
+    lines += ["", "use eveo_core::model::AppLanguage;", "", "#[allow(unused_imports)]",
+              "use crate::support::{Plural, cjk_list, locale_decimal1, plural, seconds_number};", ""]
+    # 没有现成 Rust 类型的枚举参数：按 cases 定义一个。
+    local_enums = {}
+    for proto in protos:
+        for key in keys_of(domain, proto, "windows"):
+            for p in key.params:
+                if (key.select == p.name and key.cases and p.type not in RUST_TYPES and p.type not in RUST_ENUMS
+                        and not p.type.endswith("?")):
+                    local_enums[p.type] = key.cases
+    for name, cases in local_enums.items():
+        lines += [f"/// 文案用到的取值（{name}）。", "#[derive(Clone, Copy, Debug, PartialEq, Eq)]", f"pub enum {name} {{"]
+        for case in cases:
+            lines += [f"    /// {case}", f"    {camel_type(case)},"]
+        lines += ["}", ""]
+    for proto, info in protos.items():
+        keys = keys_of(domain, proto, "windows")
+        lines += rust_doc(info.doc)
+        lines.append(f"pub trait {proto}: Sync {{")
+        for key in keys:
+            if key.section:
+                lines.append(f"    // {key.section}")
+            lines += rust_doc(key.doc or key.name, "    ")
+            lines.append(f"    {rust_signature(key)};")
+        lines += ["}", ""]
+        for lang in LANGS:
+            struct = f"{proto}{camel_type(lang)}"
+            lines += [f"/// {info.doc.splitlines()[0].rstrip('。')}（{lang}）。", f"pub struct {struct};", "",
+                      f"impl {proto} for {struct} {{"]
+            for key in keys:
+                lines += rust_member(key, lang, text(domain, lang, key, "windows"))
+            lines += ["}", ""]
+        lines += [f"/// {info.doc.splitlines()[0]}按语言取实现。",
+                  f"pub fn {snake(info.accessor)}(language: AppLanguage) -> &'static dyn {proto} {{",
+                  "    match language {"]
+        for lang in LANGS:
+            lines.append(f"        AppLanguage::{camel_type(lang)} => &{proto}{camel_type(lang)},")
+        lines += ["    }", "}", ""]
+    return "\n".join(lines)
+
+
+def rust_mod_file(domains: list[Domain]) -> str:
+    lines = [f"// {GENERATED}", "", "//! 由 shared/l10n 生成的各域文字。", ""]
+    for domain in domains:
+        if protocols_of(domain, "windows"):
+            lines.append(f"mod {domain.name};")
+    lines.append("")
+    for domain in domains:
+        if protocols_of(domain, "windows"):
+            lines.append(f"pub use {domain.name}::*;")
+    lines.append("")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- Slint
+
+# Slint 回调能用的参数类型；带其他类型参数的文案不进 Slint，由 Rust 拼好后传入。
+SLINT_TYPES = {"String": "string", "Int": "int", "Int32": "int", "Double": "float"}
+# Slint 传给 Rust 回调的参数 → 文案函数要的类型。
+SLINT_TO_RUST = {"String": "&{v}", "Int": "i64::from({v})", "Int32": "{v}", "Double": "f64::from({v})"}
+
+
+def slint_name(name: str) -> str:
+    return snake(name).replace("_", "-")
+
+
+def slint_global(proto: str) -> str:
+    """协议名 → Slint 全局名：SettingsStrings → SettingsText。"""
+    return proto.removesuffix("Strings") + "Text"
+
+
+def slint_keys(domain: Domain, proto: str) -> list[Key]:
+    return [k for k in keys_of(domain, proto, "windows") if all(p.type in SLINT_TYPES for p in k.params)]
+
+
+def slint_escape(text: str) -> str:
+    return text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def slint_protos(domains: list[Domain]) -> list[tuple[Domain, str, Protocol]]:
+    return [(d, name, info) for d in domains for name, info in protocols_of(d, "windows").items() if info.slint]
+
+
+def slint_file(domains: list[Domain]) -> str:
+    """设置窗口用到的协议，每个一个 Slint 全局：无参数的文字是属性，带参数的是纯回调（Rust 填实现）。"""
+    lines = [f"// {GENERATED}", "//",
+             "// 设置窗口的文字。每个协议一个全局，属性的初值是英文；应用按界面语言用 eveo_ui::l10n::apply 填值。",
+             "// 带参数的文字是纯回调，实现由 Rust 填（文案函数在 eveo-l10n）。", ""]
+    for domain, proto, info in slint_protos(domains):
+        lines.append(f"// {info.doc.splitlines()[0]}")
+        lines.append(f"export global {slint_global(proto)} {{")
+        for key in slint_keys(domain, proto):
+            lines.append(f"    // {key.doc.splitlines()[0] if key.doc else key.name}")
+            if key.is_func:
+                args = ", ".join(f"{slint_name(p.name)}: {SLINT_TYPES[p.type]}" for p in key.params)
+                lines.append(f"    pure callback {slint_name(key.name)}({args}) -> string;")
+            else:
+                value = slint_escape(str(text(domain, "en", key, "windows")))
+                lines.append(f'    in property <string> {slint_name(key.name)}: "{value}";')
+        lines += ["}", ""]
+    return "\n".join(lines)
+
+
+def slint_rust_file(domains: list[Domain]) -> str:
+    """把某种语言的文字填进设置窗口的各个 Slint 全局。"""
+    globals_ = [slint_global(p) for _, p, _ in slint_protos(domains)]
+    lines = [f"// {GENERATED}", "",
+             "//! 按界面语言把文字填进设置窗口的 Slint 全局（ui/generated/l10n.slint）。", "",
+             "use eveo_core::model::AppLanguage;", "use slint::ComponentHandle;", "",
+             f"use crate::{{SettingsWindow, {', '.join(globals_)}}};", "",
+             "/// 按语言填设置窗口的全部文字。切换语言后再调一次即可，属性变化会让界面重画。",
+             "pub fn apply(ui: &SettingsWindow, language: AppLanguage) {"]
+    for domain, proto, info in slint_protos(domains):
+        var = snake(info.accessor)
+        lines.append(f"    let {var} = eveo_l10n::{var}(language);")
+        lines.append(f"    let text = ui.global::<{slint_global(proto)}>();")
+        for key in slint_keys(domain, proto):
+            name = snake(key.name)
+            if not key.is_func:
+                lines.append(f"    text.set_{name}({var}.{name}().into());")
+                continue
+            params = [snake(p.name) for p in key.params]
+            args = ", ".join(SLINT_TO_RUST[p.type].format(v=v) for p, v in zip(key.params, params))
+            lines.append(f"    text.on_{name}(move |{', '.join(params)}| {var}.{name}({args}).into());")
+    lines += ["}", ""]
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------- 入口
 
 def outputs(domains: list[Domain]) -> dict[Path, str]:
     """全部生成文件：路径 → 内容。"""
     files = {SWIFT_OUT / "L10nPlural.swift": SWIFT_SUPPORT}
     for domain in domains:
-        files[SWIFT_OUT / f"{domain.swift_file}.swift"] = swift_protocol_file(domain)
-        for lang in LANGS:
-            files[SWIFT_OUT / lang / f"{domain.swift_file}+{lang}.swift"] = swift_lang_file(domain, lang)
+        if protocols_of(domain, "macos"):
+            files[SWIFT_OUT / f"{domain.swift_file}.swift"] = swift_protocol_file(domain)
+            for lang in LANGS:
+                files[SWIFT_OUT / lang / f"{domain.swift_file}+{lang}.swift"] = swift_lang_file(domain, lang)
+        if protocols_of(domain, "windows"):
+            files[RUST_OUT / f"{domain.name}.rs"] = rust_domain_file(domain)
+    files[RUST_OUT / "mod.rs"] = rust_mod_file(domains)
+    files[SLINT_OUT / "l10n.slint"] = slint_file(domains)
+    files[SLINT_RUST_FILE] = slint_rust_file(domains)
     return files
+
+
+def extra_files(files: dict[Path, str]) -> list[Path]:
+    """生成目录里不在生成清单上的文件。"""
+    return sorted(p for d, pattern in GENERATED_DIRS.items() if d.exists() for p in d.rglob(pattern) if p not in files)
 
 
 def stale_files(files: dict[Path, str]) -> list[Path]:
     """内容过期的生成文件，以及生成目录里不该有的多余文件。"""
     stale = [p for p, text in files.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
-    extra = [p for p in SWIFT_OUT.rglob("*.swift") if p not in files]
-    return stale + sorted(extra)
+    return stale + extra_files(files)
 
 
 def main() -> int:
@@ -473,9 +817,8 @@ def main() -> int:
             return 1
         print(f"文案校验通过，生成结果是最新的（{len(files)} 个文件）")
         return 0
-    for path in SWIFT_OUT.rglob("*.swift"):
-        if path not in files:
-            path.unlink()
+    for path in extra_files(files):
+        path.unlink()
     for path, text in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")

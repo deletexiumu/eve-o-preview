@@ -3,6 +3,8 @@
 [SettingsStrings]
 # 窗口与通用。
 windowTitle = "EVE-O Preview 設定"
+searchSettings = "設定の検索"
+comingSoon = "このページは作成中です。今後のテスト版で追加されます。"
 points = "pt"
 reset = "リセット"
 defaultColor = "デフォルト"
@@ -128,10 +130,10 @@ signingHint = "macOSはコード署名ごとに権限を記録します。ad-hoc
 # 关于页。
 version = "バージョン"
 devVersion = "開発版"
-aboutSubtitle = "複数のEVE Onlineクライアントのライブサムネイルと素早い切り替え（macOSネイティブ版）。"
+aboutSubtitle = { macos = "複数のEVE Onlineクライアントのライブサムネイルと素早い切り替え（macOSネイティブ版）。", windows = "複数のEVE Onlineクライアントのライブサムネイルと素早い切り替え（Windowsネイティブ版）。" }
 aboutSummary = "クライアントごとにライブサムネイルを表示し、クリックで切り替えます。サイクルグループのホットキーと複数のプロファイルに対応しています。"
 upstreamHeader = "元のプロジェクトとライセンス"
-upstreamText = "このアプリは EveOPlus/eve-o-preview の機能をmacOS向けに新たに実装したものです。"
+upstreamText = { macos = "このアプリは EveOPlus/eve-o-preview の機能をmacOS向けに新たに実装したものです。", windows = "このアプリは EveOPlus/eve-o-preview の機能を参考に新たに実装したもので、そのソースコードは移植していません。" }
 licenseText = "元のプロジェクトと同じく、GNU General Public License v3.0（GPL-3.0）で公開しています。"
 disclaimerHeader = "注意事項"
 focusOnlyText = "このツールはウインドウのフォーカスを切り替えるだけです。複数のクライアントに同じ入力を送ることはなく、ゲームのメモリを読み取ったり変更したりすることもありません。"

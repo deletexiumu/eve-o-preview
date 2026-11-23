@@ -8,7 +8,8 @@ sectionHeader = "Diagnostics"
 verboseLoggingToggle = "Verbose logging"
 verboseLoggingHelp = "Writes more detail to the log file. Turn it on before you reproduce a problem."
 logLocationLabel = "Log files"
-showLogsButton = "Show Logs in Finder"
+showLogsButton = { macos = "Show Logs in Finder", windows = "Show Logs in File Explorer" }
+fileLogNotAvailableYet = "File logging arrives in a later test build."
 reportButton = "Report a Problem…"
 
 windowTitle = "Report a Problem"

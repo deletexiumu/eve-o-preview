@@ -2,6 +2,8 @@
 //
 // Slint 界面（架构文档 2.3 节）。界面只认视图模型，不碰平台层。
 // bind 模块把配置与各页的全局模型互相转换；screenshot 用软件渲染器出图，不需要显示器。
+// 界面上的文字在 ui/generated/l10n.slint 的全局里（SettingsText 等），l10n 模块按界面语言填值；两者都由
+// shared/tools/gen_l10n.py 生成。
 
 //! EVE-O Preview 的 Slint 界面。
 
@@ -16,6 +18,8 @@ pub use generated::*;
 pub mod alerts;
 pub mod bind;
 pub mod general;
+#[rustfmt::skip]
+pub mod l10n;
 pub mod profiles;
 pub mod screenshot;
 pub mod switching;

@@ -1020,6 +1020,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "eveo-l10n"
+version = "0.1.0"
+dependencies = [
+ "eveo-core",
+]
+
+[[package]]
 name = "eveo-platform-win"
 version = "0.1.0"
 dependencies = [
@@ -1044,6 +1051,7 @@ name = "eveo-ui"
 version = "0.1.0"
 dependencies = [
  "eveo-core",
+ "eveo-l10n",
  "i-slint-core",
  "png",
  "slint",

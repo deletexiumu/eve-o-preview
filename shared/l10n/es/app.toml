@@ -3,6 +3,8 @@
 [SettingsStrings]
 # 窗口与通用。
 windowTitle = "Ajustes de EVE-O Preview"
+searchSettings = "Buscar una configuración"
+comingSoon = "Esta página aún está en desarrollo y llegará en una próxima versión de prueba."
 points = "pt"
 reset = "Restablecer"
 defaultColor = "Por defecto"
@@ -150,10 +152,10 @@ signingHint = "macOS registra los permisos según la firma del código. Las comp
 version = "Versión"
 devVersion = "Compilación de desarrollo"
 # en directo（实时）是西班牙的说法。
-aboutSubtitle = "Miniaturas en directo y cambio rápido entre varios clientes de EVE Online, nativo en macOS."
+aboutSubtitle = { macos = "Miniaturas en directo y cambio rápido entre varios clientes de EVE Online, nativo en macOS.", windows = "Miniaturas en directo y cambio rápido entre varios clientes de EVE Online, nativo en Windows." }
 aboutSummary = "Una miniatura en directo por cliente, cambio con un clic, atajos de grupos de ciclo y varios perfiles."
 upstreamHeader = "Proyecto original y licencia"
-upstreamText = "Esta app reimplementa de forma nativa para macOS las funciones de EveOPlus/eve-o-preview."
+upstreamText = { macos = "Esta app reimplementa de forma nativa para macOS las funciones de EveOPlus/eve-o-preview.", windows = "Esta app reimplementa las funciones de EveOPlus/eve-o-preview sin trasladar su código fuente." }
 licenseText = "Al igual que el proyecto original, se publica bajo la GNU General Public License v3.0."
 disclaimerHeader = "Notas"
 # 以下几条是发布必备的声明，忠实于英文原意，不做删减。

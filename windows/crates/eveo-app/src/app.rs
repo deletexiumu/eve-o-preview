@@ -22,7 +22,7 @@ use eveo_app_core::{Coordinator, Effect, Event, ForegroundOwner, SettingsPage};
 use eveo_core::geometry::ScreenInfo;
 use eveo_core::hotkeys::HotkeyScope;
 use eveo_core::layout::ResizeEdges;
-use eveo_core::model::WindowId;
+use eveo_core::model::{AppLanguage, WindowId};
 use eveo_platform_win::discovery::{ClientFilter, candidate_windows};
 use eveo_platform_win::events::{
     WindowEvent, WindowEventHooks, foreground_window, local_timestamp, window_pid,
@@ -158,6 +158,8 @@ struct App {
     settings_placed: bool,
     /// 设置窗口显示后还没切到前台（见 focus_settings）。
     settings_focus_pending: bool,
+    /// 界面语言：配置的选项求出的实际语言，配置变化时重新求（见 general::resolve_language）。
+    language: AppLanguage,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -189,6 +191,7 @@ pub fn run() -> ExitCode {
         return ExitCode::FAILURE;
     };
     let now = Instant::now();
+    let language = general::resolve_language(&config.general);
     let app = App {
         coordinator: Coordinator::new(config, screens.clone()),
         store,
@@ -212,6 +215,7 @@ pub fn run() -> ExitCode {
         logs_dir: paths.logs_dir(),
         settings_placed: false,
         settings_focus_pending: false,
+        language,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -394,6 +398,8 @@ impl App {
                 if let (Some(window), Some(profile)) = (&self.settings, config.active_profile()) {
                     bind::show_previews(window, profile);
                 }
+                // 界面语言可能变了（「通用」页的选项）：设置窗口的文字立即换成新语言。
+                self.update_language();
                 // 「通用」与「提醒」页同样只随配置变化。
                 if let Some(window) = &self.settings {
                     self.show_general(window);
@@ -621,6 +627,8 @@ impl App {
             };
             // 明暗只在建窗口时读一次；系统在窗口开着时切换明暗，下次打开设置窗口才跟上。
             window.set_dark(appearance::apps_use_dark_theme());
+            // 界面文字按当前语言填；之后语言变了由 update_language 重填。
+            eveo_ui::l10n::apply(&window, self.language);
             // 回调只排队，不在 Slint 的事件处理中途借用应用（见 Runtime::post）。
             let model = window.global::<eveo_ui::PreviewsModel>();
             let weak = Rc::downgrade(runtime);

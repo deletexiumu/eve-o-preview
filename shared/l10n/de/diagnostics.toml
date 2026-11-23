@@ -9,7 +9,8 @@ sectionHeader = "Diagnose"
 verboseLoggingToggle = "Ausführliche Protokollierung"
 verboseLoggingHelp = "Schreibt mehr Details in die Protokolldatei. Vor dem Nachstellen eines Problems einschalten."
 logLocationLabel = "Protokolldateien"
-showLogsButton = "Protokolle im Finder zeigen"
+showLogsButton = { macos = "Protokolle im Finder zeigen", windows = "Protokolle im Explorer zeigen" }
+fileLogNotAvailableYet = "Die Protokollierung in eine Datei kommt in einem späteren Testbuild."
 reportButton = "Problem melden …"
 
 windowTitle = "Problem melden"

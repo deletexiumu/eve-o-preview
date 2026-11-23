@@ -164,6 +164,7 @@ windows/
 ├── crates/
 │   ├── eveo-core/             纯逻辑，对应 EVEOPreviewCore。不依赖 windows crate
 │   ├── eveo-app-core/         协调器状态机（事件 → 状态 → 效果），不依赖 windows crate
+│   ├── eveo-l10n/             界面文字（8 种语言），由 shared/l10n 生成
 │   ├── eveo-ui/               Slint 界面与视图模型，对应 App 的 Settings、Overlays。三个系统都能编译
 │   ├── eveo-platform-win/     Win32 实现，对应 EVEOPreviewPlatform。整个 crate 带 cfg(windows)
 │   ├── eveo-platform-fake/    假平台：虚构的客户端与事件，用于演示模式与界面测试
@@ -177,7 +178,8 @@ windows/
 | --- | --- | --- | --- |
 | `eveo-core` | `EVEOPreviewCore` | 数据模型、配置读写与迁移、标题解析、客户端登记、布局与吸附、循环、热键解析与规划、可见性规则、缩略图规划器、战斗日志与聊天日志解析、预警、翻译规则与请求拼装、更新规则、诊断规则、平台协议（trait，只含值类型） | 只依赖 serde、serde_json 等纯 Rust 库；不做文件与网络读写以外的系统调用；Linux 上测试全过 |
 | `eveo-app-core` | `AppCoordinator` 的状态部分 | 接收事件、更新状态、调用规划器、产出效果清单 | 不调用任何平台接口，可以在测试里用事件序列回放 |
-| `eveo-ui` | `Settings/`、`Chat/`、`Updates/` 的视图 | `.slint` 文件、视图模型、文案访问器 | 不依赖 `eveo-platform-win` |
+| `eveo-l10n` | `Localization/` | 各域的文字 trait 与 8 种语言的实现，按语言取实现的函数 | 生成的代码，改 `shared/l10n/` 的 TOML 后重新生成；只依赖 `eveo-core` |
+| `eveo-ui` | `Settings/`、`Chat/`、`Updates/` 的视图 | `.slint` 文件、视图模型；文字的 Slint 全局与填值函数（生成的） | 不依赖 `eveo-platform-win` |
 | `eveo-platform-win` | `EVEOPreviewPlatform` | 窗口枚举、DWM 缩略图窗口、激活、热键、鼠标钩子、前台跟踪、托盘、日志跟踪、凭据、更新安装、DPI | 实现 `eveo-core` 的 trait；unsafe 只出现在这里 |
 | `eveo-app` | `EVEOPreview` | 进程入口、单实例、消息循环、效果执行 | 非 Windows 平台上链接假平台，得到演示模式 |
 | `eveo-probe` | `EVEOProbe` | 在真实客户端上逐项验证平台层，输出事实报告 | 见 8.3 节 |
@@ -409,7 +411,8 @@ clientCount = "{count} 个客户端"                                       # zh�
 
 1. `shared/tools/gen_l10n.py` 读全部 TOML，先校验：每种语言每个键都有、没有多余的键、占位符都是参数、格式适用于参数的类型、复数类别与分支的取值齐全。任一项不满足就失败，列出全部问题。
 2. 生成 Swift（`macos/Sources/EVEOPreview/Localization/Generated/`）：每个域的协议与 `L10n` 上的访问器，每种语言每个协议一个结构体，以及复数规则 `L10nPlural`。形状与原先手写的一致，调用处不用改。生成的文件开头有 `@generated` 标记，质量门禁不查。
-3. 生成 Rust：每个域一个 trait 与各语言的实现；Slint 侧通过视图模型取字符串，不用 Slint 自带的 gettext 机制（保持两端同一个来源）。
+3. 生成 Rust（`windows/crates/eveo-l10n/src/generated/`）：每个域一个 trait 与各语言的单元结构体，按语言取实现的函数与 macOS 的访问器同名。不用 Slint 自带的 gettext 机制（保持两端同一个来源），而是给设置窗口用到的协议（keys 里写 `slint = true`）各生成一个 Slint 全局（`eveo-ui/ui/generated/l10n.slint`，如 `SettingsText`）：无参数的文字是属性，带参数的是纯回调；`eveo_ui::l10n::apply` 按界面语言填值，语言变了再调一次，界面立即换语言。
+   - 只在一端用的文案在 keys 里写 `platforms = ["macos"]` 或 `["windows"]`；两端用词不同时值写成 `{ macos = "…", windows = "…" }`（如「访达」与「资源管理器」）。
 4. 生成结果提交进仓库。CI 运行 `gen_l10n.py --check`，生成结果过期或生成目录里有多余的文件时失败。这样 `swift build` 与 `cargo build` 都不依赖 Python。
 
 macOS 侧的迁移已在 M5 完成：一次性脚本把手写的结构体转成 TOML（467 条 × 8 种语言）；生成的结构体先用另一个类型名，与旧实现并存，临时测试对每种语言的每个键用一组固定参数调用新旧两个实现，结果逐字相同（Mac 上 11 组全部通过）；之后删掉了旧文件与临时测试，换回原来的类型名。各域共用的补充逻辑（`TranslationStrings+Status.swift`、`UpdateStrings+Format.swift`、`OverlayStrings+BuiltIn.swift`）仍是手写的协议扩展。
