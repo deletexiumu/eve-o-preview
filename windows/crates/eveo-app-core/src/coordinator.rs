@@ -28,7 +28,8 @@ use eveo_core::geometry::ScreenInfo;
 use eveo_core::hotkeys::HotkeyPlan;
 use eveo_core::model::{AppConfig, Profile, RegistryDiff, ThumbnailLayout, WindowId, WindowInfo};
 use eveo_core::planning::{
-    FrontmostContext, PlannerInput, SessionState, ThumbnailPlan, ThumbnailPresentation, ThumbnailStatus, plan,
+    CombatAlertWindow, FrontmostContext, PlannerInput, SessionState, ThumbnailPlan, ThumbnailPresentation,
+    ThumbnailStatus, plan,
 };
 
 use crate::event::{Effect, Event, ForegroundOwner};
@@ -206,7 +207,22 @@ impl Coordinator {
             Event::ContextMenu { id, action } => self.context_menu_action(id, action),
             Event::Tray(action) => self.tray_action(action),
             Event::ConfigEdited(config) => self.update_config(|draft| *draft = config),
+            Event::TestCombatAlert => self.test_combat_alert(),
         }
+    }
+
+    /// 「测试闪烁」：给当前全部客户端（含登录界面的客户端）各设一条提醒，同 macOS 的 testCombatAlert。
+    /// 正在闪的客户端按规则延长，不会缩短。到期由重算开头清掉，唤醒时刻由规划给出。
+    fn test_combat_alert(&mut self) {
+        let duration = self.profile().combat_alert.duration_seconds;
+        let now = self.now;
+        for client in self.registry.clients() {
+            let existing = self.session.combat_alerts.get(&client.id).copied();
+            self.session
+                .combat_alerts
+                .insert(client.id, CombatAlertWindow::extended(existing, now, duration));
+        }
+        self.needs_replan = true;
     }
 
     /// 一轮枚举：选主窗口、更新登记、清掉消失窗口的状态，再按新的客户端列表重新判断前台。

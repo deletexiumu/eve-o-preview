@@ -110,6 +110,9 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let logs = r"C:\Users\Pilot\AppData\Local\EVE-O Preview\logs";
     crate::general::show_general(&ui, &config.general, logs);
     crate::general::show_about(&ui);
+    // 「提醒」页：默认值，日志目录自动查找。
+    let automatic = r"C:\Users\Pilot\Documents\EVE\logs";
+    crate::alerts::show_alerts(&ui, &config.profiles[0], &config.general, automatic);
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;

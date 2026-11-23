@@ -799,3 +799,30 @@ fn dragging_across_screens_keeps_logical_size() {
         Some(ScreenRect::new(100.0, 100.0, 480.0, 270.0))
     );
 }
+
+#[test]
+/// 「测试闪烁」：每个客户端各有一条按当前方案持续时间的提醒，不要求战斗提醒已打开；到期后由重算清掉。
+fn test_combat_alert_flashes_every_client() {
+    let mut coordinator = started(config(), three_characters());
+    let duration = coordinator.profile().combat_alert.duration_seconds;
+    assert!(!coordinator.profile().combat_alert.enabled);
+    let effects = coordinator.handle(Event::TestCombatAlert, 2.0);
+    assert_eq!(coordinator.session.combat_alerts.len(), 3);
+    assert!(
+        coordinator
+            .session
+            .combat_alerts
+            .values()
+            .all(|a| a.started_at == 2.0 && a.until == 2.0 + duration)
+    );
+    // 重算后要在最早到期时唤醒，好让闪烁按时结束。
+    assert!(
+        effects
+            .iter()
+            .any(|e| matches!(e, Effect::ScheduleWake(Some(at)) if *at <= 2.0 + duration))
+    );
+    // 到期以后的事件触发重算，提醒被清掉。
+    coordinator.handle(Event::TestCombatAlert, 2.5);
+    coordinator.handle(Event::DragCancelled(WindowId(1)), 2.0 + duration + 1.0);
+    assert!(coordinator.session.combat_alerts.is_empty());
+}

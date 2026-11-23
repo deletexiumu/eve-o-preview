@@ -132,6 +132,8 @@ pub enum Event {
     Tray(TrayAction),
     /// 设置窗口改了配置，关联值是改后的完整配置。协调器校验后采用。
     ConfigEdited(AppConfig),
+    /// 「提醒」页的「测试闪烁」：让全部客户端的缩略图按当前方案的设置闪一次，不要求战斗提醒已打开。
+    TestCombatAlert,
 }
 
 /// 协调器要求执行的效果，按产生的顺序执行。

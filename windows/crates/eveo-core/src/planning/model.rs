@@ -35,6 +35,41 @@ impl CombatAlertWindow {
     pub fn is_active(&self, now: f64) -> bool {
         now < self.until
     }
+
+    /// 受击一次（或「测试闪烁」）后的提醒时段，同 macOS 的 `CombatAlertRules.extended`。
+    ///
+    /// `existing` 未到期时保留 `started_at`，`until` 取原值与 `now + duration` 中较大的一个，不会缩短；
+    /// 否则从 `now` 重新开始。
+    pub fn extended(existing: Option<Self>, now: f64, duration: f64) -> Self {
+        match existing {
+            Some(existing) if existing.is_active(now) => Self {
+                started_at: existing.started_at,
+                until: existing.until.max(now + duration),
+            },
+            _ => Self {
+                started_at: now,
+                until: now + duration,
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 未到期时延长且不缩短，开始时刻不变；到期后从现在重新开始。
+    #[test]
+    fn combat_alert_extension() {
+        let first = CombatAlertWindow::extended(None, 10.0, 3.0);
+        assert_eq!((first.started_at, first.until), (10.0, 13.0));
+        let longer = CombatAlertWindow::extended(Some(first), 12.0, 3.0);
+        assert_eq!((longer.started_at, longer.until), (10.0, 15.0));
+        let shorter = CombatAlertWindow::extended(Some(longer), 12.5, 1.0);
+        assert_eq!(shorter.until, 15.0);
+        let restarted = CombatAlertWindow::extended(Some(longer), 20.0, 3.0);
+        assert_eq!((restarted.started_at, restarted.until), (20.0, 23.0));
+    }
 }
 
 /// 不持久化的会话状态，由协调器持有。时间都是单调时钟的秒数。

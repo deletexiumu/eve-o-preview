@@ -45,6 +45,8 @@ fn main() {
         ("settings-switching-dark.png", true, 2, (1040, 760)),
         ("settings-profiles-light.png", false, 6, (1040, 760)),
         ("settings-profiles-dark.png", true, 6, (1040, 760)),
+        ("settings-alerts-light-full.png", false, 3, (1040, 1100)),
+        ("settings-alerts-dark.png", true, 3, (1040, 760)),
         ("settings-general-light.png", false, 7, (1040, 760)),
         ("settings-general-dark.png", true, 7, (1040, 760)),
         ("settings-about-light.png", false, 8, (1040, 900)),
