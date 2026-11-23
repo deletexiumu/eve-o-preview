@@ -1,0 +1,199 @@
+{
+  "cases": [
+    {
+      "name": "登录标题 'EVE'",
+      "title": "EVE",
+      "pid": 4101,
+      "expected": {
+        "kind": "login",
+        "displayTitle": "EVE"
+      }
+    },
+    {
+      "name": "登录标题 'eve'",
+      "title": "eve",
+      "pid": 4101,
+      "expected": {
+        "kind": "login",
+        "displayTitle": "EVE"
+      }
+    },
+    {
+      "name": "登录标题 'Eve'",
+      "title": "Eve",
+      "pid": 4101,
+      "expected": {
+        "kind": "login",
+        "displayTitle": "EVE"
+      }
+    },
+    {
+      "name": "登录标题 '  EVE  '",
+      "title": "  EVE  ",
+      "pid": 4101,
+      "expected": {
+        "kind": "login",
+        "displayTitle": "EVE"
+      }
+    },
+    {
+      "name": "登录标题 '\\tEVE\\n'",
+      "title": "\tEVE\n",
+      "pid": 4101,
+      "expected": {
+        "kind": "login",
+        "displayTitle": "EVE"
+      }
+    },
+    {
+      "name": "角色标题",
+      "title": "EVE - Pilot Alpha",
+      "pid": 4101,
+      "expected": {
+        "kind": "character",
+        "name": "Pilot Alpha",
+        "displayTitle": "Pilot Alpha"
+      }
+    },
+    {
+      "name": "首尾空白去掉，名字中间的空格保留",
+      "title": "  EVE - bravo pilot \n",
+      "pid": 4101,
+      "expected": {
+        "kind": "character",
+        "name": "bravo pilot",
+        "displayTitle": "bravo pilot"
+      }
+    },
+    {
+      "name": "角色名含分隔符时只去掉第一个前缀",
+      "title": "EVE - Foo - Bar",
+      "pid": 4101,
+      "expected": {
+        "kind": "character",
+        "name": "Foo - Bar",
+        "displayTitle": "Foo - Bar"
+      }
+    },
+    {
+      "name": "前缀后多个空格",
+      "title": "EVE -   Pilot  ",
+      "pid": 4101,
+      "expected": {
+        "kind": "character",
+        "name": "Pilot",
+        "displayTitle": "Pilot"
+      }
+    },
+    {
+      "name": "非 ASCII 角色名",
+      "title": "EVE - 星际飞行员",
+      "pid": 4101,
+      "expected": {
+        "kind": "character",
+        "name": "星际飞行员",
+        "displayTitle": "星际飞行员"
+      }
+    },
+    {
+      "name": "名字开头的换行不去掉",
+      "title": "EVE - \nPilot",
+      "pid": 4101,
+      "expected": {
+        "kind": "character",
+        "name": "\nPilot",
+        "displayTitle": "\nPilot"
+      }
+    },
+    {
+      "name": "前缀后为空 'EVE - '",
+      "title": "EVE - ",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "前缀后为空 'EVE -'",
+      "title": "EVE -",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "前缀后为空 'EVE -   '",
+      "title": "EVE -   ",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "读不到标题",
+      "title": null,
+      "pid": 4252,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4252)"
+      }
+    },
+    {
+      "name": "空串",
+      "title": "",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "其他标题 'EVE Launcher'",
+      "title": "EVE Launcher",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "其他标题 'Settings'",
+      "title": "Settings",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "其他标题 'eve - Pilot Alpha'",
+      "title": "eve - Pilot Alpha",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "其他标题 'EVE-Pilot Alpha'",
+      "title": "EVE-Pilot Alpha",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    },
+    {
+      "name": "其他标题 'EVEs'",
+      "title": "EVEs",
+      "pid": 4101,
+      "expected": {
+        "kind": "unknown",
+        "displayTitle": "EVE (4101)"
+      }
+    }
+  ]
+}

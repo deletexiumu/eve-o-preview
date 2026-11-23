@@ -1,0 +1,480 @@
+{
+  "group": [
+    {
+      "name": "前进一步",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "B",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "C"
+    },
+    {
+      "name": "后退一步",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": "B",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "A"
+    },
+    {
+      "name": "前进到头绕回",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "D",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "A"
+    },
+    {
+      "name": "后退到头绕回",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": "A",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "D"
+    },
+    {
+      "name": "跳过被跳过的成员（前进）",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "A",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [
+        "B",
+        "C"
+      ],
+      "expected": "D"
+    },
+    {
+      "name": "跳过被跳过的成员（后退）",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": "A",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [
+        "D"
+      ],
+      "expected": "C"
+    },
+    {
+      "name": "离线成员不参与",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "A",
+      "running": [
+        "A",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "D"
+    },
+    {
+      "name": "active 不在组内时前进从头",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "Z",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "A"
+    },
+    {
+      "name": "active 不在组内时后退从尾",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": "Z",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "D"
+    },
+    {
+      "name": "没有 active 时前进取第一个可用",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": null,
+      "running": [
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "C"
+    },
+    {
+      "name": "没有 active 时后退取最后一个可用",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": null,
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [
+        "D"
+      ],
+      "expected": "C"
+    },
+    {
+      "name": "active 被跳过仍以它为起点（前进）",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "B",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [
+        "B"
+      ],
+      "expected": "C"
+    },
+    {
+      "name": "active 被跳过仍以它为起点（后退）",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": "B",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [
+        "B"
+      ],
+      "expected": "A"
+    },
+    {
+      "name": "全部离线",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "A",
+      "running": [],
+      "skipped": [],
+      "expected": null
+    },
+    {
+      "name": "全部被跳过",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "A",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": null
+    },
+    {
+      "name": "空组",
+      "members": [],
+      "direction": "forward",
+      "active": null,
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": null
+    },
+    {
+      "name": "唯一可用的是 active 自己",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "forward",
+      "active": "B",
+      "running": [
+        "B"
+      ],
+      "skipped": [],
+      "expected": "B"
+    },
+    {
+      "name": "唯一可用的是 active 自己（其余被跳过）",
+      "members": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "direction": "backward",
+      "active": "B",
+      "running": [
+        "B",
+        "C"
+      ],
+      "skipped": [
+        "C"
+      ],
+      "expected": "B"
+    },
+    {
+      "name": "去重后的成员：前进",
+      "members": [
+        "A",
+        "B",
+        "C"
+      ],
+      "direction": "forward",
+      "active": "C",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "A"
+    },
+    {
+      "name": "去重后的成员：后退",
+      "members": [
+        "A",
+        "B",
+        "C"
+      ],
+      "direction": "backward",
+      "active": "A",
+      "running": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "skipped": [],
+      "expected": "C"
+    },
+    {
+      "name": "名字区分大小写",
+      "members": [
+        "A",
+        "B"
+      ],
+      "direction": "forward",
+      "active": "a",
+      "running": [
+        "A",
+        "B"
+      ],
+      "skipped": [],
+      "expected": "A"
+    }
+  ],
+  "login": [
+    {
+      "name": "PID 升序后前进",
+      "pids": [
+        300,
+        100,
+        200
+      ],
+      "activePID": 100,
+      "direction": "forward",
+      "expected": 200
+    },
+    {
+      "name": "前进绕回",
+      "pids": [
+        300,
+        100,
+        200
+      ],
+      "activePID": 300,
+      "direction": "forward",
+      "expected": 100
+    },
+    {
+      "name": "后退绕回",
+      "pids": [
+        300,
+        100,
+        200
+      ],
+      "activePID": 100,
+      "direction": "backward",
+      "expected": 300
+    },
+    {
+      "name": "后退一步",
+      "pids": [
+        300,
+        100,
+        200
+      ],
+      "activePID": 300,
+      "direction": "backward",
+      "expected": 200
+    },
+    {
+      "name": "没有 active 时前进取最小",
+      "pids": [
+        300,
+        100,
+        200
+      ],
+      "activePID": null,
+      "direction": "forward",
+      "expected": 100
+    },
+    {
+      "name": "active 不在其中时后退取最大",
+      "pids": [
+        300,
+        100,
+        200
+      ],
+      "activePID": 999,
+      "direction": "backward",
+      "expected": 300
+    },
+    {
+      "name": "空列表",
+      "pids": [],
+      "activePID": 1,
+      "direction": "forward",
+      "expected": null
+    },
+    {
+      "name": "只有一个时返回它自己",
+      "pids": [
+        7
+      ],
+      "activePID": 7,
+      "direction": "forward",
+      "expected": 7
+    }
+  ]
+}
