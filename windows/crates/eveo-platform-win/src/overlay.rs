@@ -131,6 +131,8 @@ pub struct OverlayWindow {
     rendered: bool,
     /// 窗口此刻是否可见。
     visible: bool,
+    /// 整体不透明度（0～255），跟着主人的不透明度走，提交位图时作为常量 alpha。
+    alpha: u8,
 }
 
 impl OverlayWindow {
@@ -162,6 +164,7 @@ impl OverlayWindow {
             content: OverlayContent::default(),
             rendered: false,
             visible: false,
+            alpha: 255,
         })
     }
 
@@ -210,6 +213,15 @@ impl OverlayWindow {
         }
     }
 
+    /// 设整体不透明度。变了要重新提交：常量 alpha 是 UpdateLayeredWindow 的参数，随位图一起给。
+    pub fn set_alpha(&mut self, alpha: u8) {
+        if alpha != self.alpha {
+            self.alpha = alpha;
+            self.rendered = false;
+            self.refresh();
+        }
+    }
+
     /// 窗口句柄，探针与测试用来核对位置。
     pub fn hwnd(&self) -> HWND {
         self.hwnd
@@ -225,7 +237,7 @@ impl OverlayWindow {
         let wanted = self.owner_shown && !self.content.is_empty() && width > 0 && height > 0;
         if wanted && !self.rendered {
             // 画失败（例如显卡驱动重置）时保持隐藏，下次内容或尺寸变化再试。
-            self.rendered = render(self.hwnd, self.frame, &self.content).is_ok();
+            self.rendered = render(self.hwnd, self.frame, &self.content, self.alpha).is_ok();
         }
         let visible = wanted && self.rendered;
         if visible != self.visible {
@@ -288,14 +300,14 @@ thread_local! {
 }
 
 /// 把内容画成位图并提交给分层窗口，位置与尺寸取 `frame`。
-fn render(hwnd: HWND, frame: (i32, i32, i32, i32), content: &OverlayContent) -> Result<()> {
+fn render(hwnd: HWND, frame: (i32, i32, i32, i32), content: &OverlayContent, alpha: u8) -> Result<()> {
     RENDERER.with(|cell| {
         let mut slot = cell.borrow_mut();
         if slot.is_none() {
             *slot = Some(Renderer::new()?);
         }
         let renderer = slot.as_mut().expect("刚建好");
-        let result = renderer.render(hwnd, frame, content);
+        let result = renderer.render(hwnd, frame, content, alpha);
         if result.is_err() {
             // 设备丢失等错误：丢掉渲染目标，下次重建。
             renderer.target = None;
@@ -404,7 +416,13 @@ impl Renderer {
     ///
     /// DIB 每次现建现删：一个 480×270 的缩略图约 0.5 MB，建一次的开销远小于画，
     /// 不缓存也就不必跟踪尺寸变化。UpdateLayeredWindow 会把位图复制给系统，返回后即可释放。
-    fn render(&mut self, hwnd: HWND, frame: (i32, i32, i32, i32), content: &OverlayContent) -> Result<()> {
+    fn render(
+        &mut self,
+        hwnd: HWND,
+        frame: (i32, i32, i32, i32),
+        content: &OverlayContent,
+        alpha: u8,
+    ) -> Result<()> {
         let (x, y, width, height) = frame;
         let target = self.target()?;
         let info = BITMAPINFO {
@@ -443,7 +461,7 @@ impl Renderer {
                         let blend = BLENDFUNCTION {
                             BlendOp: AC_SRC_OVER as u8,
                             BlendFlags: 0,
-                            SourceConstantAlpha: 255,
+                            SourceConstantAlpha: alpha,
                             AlphaFormat: AC_SRC_ALPHA as u8,
                         };
                         UpdateLayeredWindow(

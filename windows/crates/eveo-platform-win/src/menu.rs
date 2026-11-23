@@ -10,9 +10,9 @@
 use eveo_core::geometry::ScreenPoint;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::WindowsAndMessaging::{
-    AppendMenuW, CreatePopupMenu, DestroyMenu, HMENU, MENU_ITEM_FLAGS, MF_CHECKED, MF_GRAYED, MF_POPUP,
-    MF_SEPARATOR, MF_STRING, PostMessageW, SetForegroundWindow, TPM_RETURNCMD, TPM_RIGHTBUTTON,
-    TrackPopupMenu, WM_NULL,
+    AppendMenuW, CreatePopupMenu, DestroyMenu, GetForegroundWindow, HMENU, MENU_ITEM_FLAGS, MF_CHECKED,
+    MF_GRAYED, MF_POPUP, MF_SEPARATOR, MF_STRING, PostMessageW, SetForegroundWindow, TPM_RETURNCMD,
+    TPM_RIGHTBUTTON, TrackPopupMenu, WM_NULL,
 };
 use windows::core::{PCWSTR, Result};
 
@@ -59,6 +59,10 @@ impl MenuEntry {
 /// `owner` 是本线程的一个窗口，菜单期间作为前台窗口。
 pub fn popup(owner: HWND, point: ScreenPoint, entries: &[MenuEntry]) -> Result<Option<u32>> {
     let menu = build(entries)?;
+    // 弹菜单要让所有者成为前台（否则点菜单外不会关闭）；记下原来的前台，菜单关闭后还给它。
+    // 不还的话，按 Esc 或点空白关掉菜单后，前台会停在本应用看不见的窗口上，游戏收不到键盘。
+    // SAFETY: 只读前台窗口句柄。
+    let previous = unsafe { GetForegroundWindow() };
     // SAFETY: owner 属于本线程；菜单由 build 建立，返回后销毁（连同子菜单）。
     let chosen = unsafe {
         let _ = SetForegroundWindow(owner);
@@ -74,6 +78,11 @@ pub fn popup(owner: HWND, point: ScreenPoint, entries: &[MenuEntry]) -> Result<O
         // 文档要求：菜单关闭后给所有者发一条消息，否则下次弹出时可能立即消失。
         let _ = PostMessageW(Some(owner), WM_NULL, Default::default(), Default::default());
         let _ = DestroyMenu(menu);
+        // 前台还在所有者上（菜单没有把它交给别的窗口）时才还：本进程此刻是前台，系统允许它设前台。
+        // 选中的动作若要切换客户端（例如最小化后激活），由协调器随后再做，不受这里影响。
+        if GetForegroundWindow() == owner && !previous.is_invalid() && previous != owner {
+            let _ = SetForegroundWindow(previous);
+        }
         chosen.0
     };
     Ok(u32::try_from(chosen).ok().filter(|&id| id != 0))
