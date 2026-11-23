@@ -5,11 +5,12 @@ Windows 原生版，方案见 [架构文档](../docs/windows/architecture.md)。
 | crate | 对应 macOS | 状态 |
 | --- | --- | --- |
 | `crates/eveo-core` | `EVEOPreviewCore` | 几何、客户端模型、标题解析、主窗口挑选、客户端登记、循环（M2a）；配置模型、迁移、校验、配置方案增删改（M2b）；布局与吸附、热键解析与规划、鼠标热键匹配、一次性默认值（M2c）；缩略图规划与可见性（M2d） |
-| `crates/eveo-app-core` | App 的 `AppCoordinator`、`ConfigController`、`JSONFileConfigStore` | 协调器：事件进、效果出的状态机（轮询、前台、热键、点击、悬停、拖动、右键菜单、托盘）；`config.json` 的读、隔离、备份与原子写入；`%APPDATA%` 与 `%LOCALAPPDATA%` 下的数据位置（M4） |
-| `crates/eveo-platform-win` | `EVEOPreviewPlatform` | 窗口发现、显示器与 DPI、窗口事件与前台、激活（升级步骤）、键盘热键、鼠标中键与侧键热键（低级鼠标钩子线程）、DWM 缩略图窗口、截图（M3） |
+| `crates/eveo-app-core` | App 的 `AppCoordinator`、`ConfigController`、`JSONFileConfigStore` | 协调器：事件进、效果出的状态机（轮询、前台、热键、点击、悬停、拖动、右键菜单、托盘）；缩略图的手势状态机；`config.json` 的读、隔离、备份与原子写入；`%APPDATA%` 与 `%LOCALAPPDATA%` 下的数据位置（M4） |
+| `crates/eveo-platform-win` | `EVEOPreviewPlatform` | 窗口发现、显示器与 DPI、窗口事件与前台、激活（升级步骤）、键盘热键、鼠标中键与侧键热键（低级鼠标钩子线程）、DWM 缩略图窗口与它的鼠标输入、截图（M3）；托盘图标、弹出菜单、单实例（M4） |
+| `crates/eveo-app` | App 的 `AppDelegate`、`ThumbnailWindowManager` | 可执行文件 `eve-o-preview.exe`：单实例、托盘菜单、热键注册、按规划管理缩略图窗口、点击切换与拖动保存（M4，尚无标题浮层与设置页内容） |
 | `crates/eveo-fake-client` | — | 集成测试用的假客户端窗口，CI 复制成 `exefile.exe` 再启动（M3） |
 | `crates/eveo-ui` | App 的 Settings、Overlays | Slint 界面（fluent 样式）：设置窗口的视觉原型；`eveo-ui-shot` 用软件渲染器把界面画成 PNG，不需要显示器（M4） |
-| `crates/eveo-probe` | `EVEOProbe` | `ci`：CI 上的集成探针（含 Slint 事件循环与原生窗口、热键、钩子的共存检查）；`report`：在真实客户端上收集待实测的事实；`list`：列出顶层窗口（M3） |
+| `crates/eveo-probe` | `EVEOProbe` | `ci`：CI 上的集成探针（含 Slint 事件循环与原生窗口、热键、钩子的共存检查；加 `--app` 时启动真正的应用做冒烟检查）；`report`：在真实客户端上收集待实测的事实；`list`：列出顶层窗口（M3） |
 
 ## 本地检查
 

@@ -11,6 +11,7 @@
 pub mod config_store;
 pub mod coordinator;
 pub mod event;
+pub mod gesture;
 pub mod paths;
 
 pub use coordinator::Coordinator;

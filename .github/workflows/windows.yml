@@ -168,7 +168,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force fake, probe-out | Out-Null
           Copy-Item target/debug/eveo-fake-client.exe fake/exefile.exe
-          ./target/debug/eveo-probe.exe ci --fake-client fake/exefile.exe --out probe-out
+          ./target/debug/eveo-probe.exe ci --fake-client fake/exefile.exe --out probe-out --app target/debug/eve-o-preview.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: 上传探针结果

@@ -39,6 +39,7 @@ use windows::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE, XBUTTON1};
 
 use crate::option;
 
+mod app;
 mod event_loop;
 
 /// 一个假客户端的设定：标题、颜色（RRGGBB）、位置。
@@ -115,7 +116,9 @@ impl Report {
 /// 运行 CI 探针，返回退出码。
 pub fn run(args: &[String]) -> i32 {
     let (Some(fake), Some(out)) = (option(args, "--fake-client"), option(args, "--out")) else {
-        eprintln!("用法：eveo-probe ci --fake-client <exefile.exe 的路径> --out <目录>");
+        eprintln!(
+            "用法：eveo-probe ci --fake-client <exefile.exe 的路径> --out <目录> [--app <eve-o-preview.exe 的路径>]"
+        );
         return 2;
     };
     let out = PathBuf::from(out);
@@ -144,6 +147,12 @@ pub fn run(args: &[String]) -> i32 {
         check_minimized(&clients, &thumbnails, &out, &mut report);
     }
     drop(thumbnails);
+    // 应用本身的冒烟检查放在最后：探针自己的缩略图已经销毁，不会与应用的缩略图混在一起。
+    if let Some(app_path) = option(args, "--app")
+        && clients.len() == FAKES.len()
+    {
+        app::check(Path::new(app_path), &clients, &out, &mut report);
+    }
     close_fakes(&clients, &mut children, &hooks, &mut report);
 
     let summary = json!({
