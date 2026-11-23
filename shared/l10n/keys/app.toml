@@ -60,6 +60,18 @@ doc = "对话框的确定按钮。"
 [SettingsStrings.delete]
 doc = "删除按钮。"
 
+[SettingsStrings.remove]
+doc = "Windows：从列表里移除一项的按钮（热键、循环组成员）。"
+platforms = ["windows"]
+
+[SettingsStrings.create]
+doc = "Windows：新建按钮（循环组、配置方案），宜短。"
+platforms = ["windows"]
+
+[SettingsStrings.listSeparator]
+doc = "Windows：把几项连成一行时的分隔符（如几条热键）。"
+platforms = ["windows"]
+
 [SettingsStrings.online]
 doc = "角色在线的标记。"
 
@@ -146,8 +158,20 @@ doc = "页标题下的说明。"
 [SettingsStrings.hideAllThumbnails]
 doc = "「全部隐藏」开关。"
 
+[SettingsStrings.hideAllHelp]
+doc = "Windows「客户端」页：隐藏全部缩略图一行的说明（不写进配置）。"
+platforms = ["windows"]
+
 [SettingsStrings.hideAllHotkeyLabel]
 doc = "「全部隐藏」的快捷键一行的标题。"
+
+[SettingsStrings.hideAllHotkeyHelp]
+doc = "Windows「客户端」页：快捷键一行的说明，指向「切换与热键」页。"
+platforms = ["windows"]
+
+[SettingsStrings.hotkeyNotSet]
+doc = "Windows「客户端」页：没有设置快捷键时显示的文字。"
+platforms = ["windows"]
 
 [SettingsStrings.hideAllScopeLabel]
 doc = "「全部隐藏」快捷键的生效范围（全局或仅游戏内）一行的标题。"
@@ -173,12 +197,25 @@ doc = "按角色的「显示缩略图」开关。"
 [SettingsStrings.highlightColorHelp]
 doc = "角色颜色按钮的悬停说明。"
 
+[SettingsStrings.followColor]
+doc = "Windows「客户端」页：颜色输入框为空时的占位文字，参数是跟随的全局高亮颜色（#RRGGBB）。"
+params = ["_ color: String"]
+platforms = ["windows"]
+
 [SettingsStrings.previewsSubtitle]
 section = "预览与布局页"
 doc = "页标题下的说明。"
 
+[SettingsStrings.sizeHeader]
+doc = "Windows「预览与布局」页：尺寸一组的标题。"
+platforms = ["windows"]
+
 [SettingsStrings.defaultSize]
 doc = "缩略图的默认尺寸（宽 × 高）。"
+
+[SettingsStrings.defaultSizeHelp]
+doc = "Windows「预览与布局」页：默认尺寸一行的说明。"
+platforms = ["windows"]
 
 [SettingsStrings.minimumSize]
 doc = "缩略图的最小尺寸。"
@@ -189,14 +226,30 @@ doc = "缩略图的最大尺寸。"
 [SettingsStrings.unifySizes]
 doc = "清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。"
 
+[SettingsStrings.unifySizesHelp]
+doc = "Windows「预览与布局」页：统一尺寸一行的说明。"
+platforms = ["windows"]
+
+[SettingsStrings.unifySizesButton]
+doc = "Windows「预览与布局」页：统一尺寸一行的按钮，宜短。"
+platforms = ["windows"]
+
 [SettingsStrings.appearanceHeader]
 doc = "「外观」组的标题。"
 
 [SettingsStrings.opacity]
 doc = "未悬停时缩略图的不透明度。"
 
+[SettingsStrings.opacityHelp]
+doc = "Windows「预览与布局」页：透明度一行的说明。"
+platforms = ["windows"]
+
 [SettingsStrings.showTitle]
 doc = "是否在缩略图左上角显示角色名。"
+
+[SettingsStrings.showTitleHelp]
+doc = "Windows「预览与布局」页：显示角色名一行的说明。"
+platforms = ["windows"]
 
 [SettingsStrings.titleFontSize]
 doc = "角色名的字号。"
@@ -207,6 +260,10 @@ doc = "角色名的颜色。"
 [SettingsStrings.borderEnabled]
 doc = "每个缩略图都有的中性色边框的开关（第一轮反馈 F1）。"
 
+[SettingsStrings.borderHelp]
+doc = "Windows「预览与布局」页：边框一行的说明。"
+platforms = ["windows"]
+
 [SettingsStrings.borderColor]
 doc = "边框的颜色。"
 
@@ -215,6 +272,10 @@ doc = "边框的粗细，单位是点。"
 
 [SettingsStrings.highlightEnabled]
 doc = "活动客户端高亮边框的开关。"
+
+[SettingsStrings.highlightHelp]
+doc = "Windows「预览与布局」页：高亮一行的说明，行内有颜色与粗细两个控件。"
+platforms = ["windows"]
 
 [SettingsStrings.highlightColor]
 doc = "高亮边框的颜色（全局，客户端页可以按角色覆盖）。"
@@ -234,17 +295,33 @@ doc = "放大倍数。"
 [SettingsStrings.zoomAnchor]
 doc = "放大时保持不动的那个点（锚点）。"
 
+[SettingsStrings.zoomAnchorHelp]
+doc = "Windows「预览与布局」页：放大倍数与锚点一行的说明。"
+platforms = ["windows"]
+
 [SettingsStrings.behaviorHeader]
 doc = "「行为」组的标题。"
 
 [SettingsStrings.alwaysOnTop]
 doc = "缩略图置于其他窗口之上。"
 
+[SettingsStrings.alwaysOnTopHelp]
+doc = "Windows「预览与布局」页：缩略图置顶一行的说明。"
+platforms = ["windows"]
+
 [SettingsStrings.hideActiveClient]
 doc = "隐藏当前活动客户端自己的缩略图。"
 
+[SettingsStrings.hideActiveClientHelp]
+doc = "Windows「预览与布局」页：隐藏活动客户端一行的说明。"
+platforms = ["windows"]
+
 [SettingsStrings.hideWhenNotEVE]
 doc = "前台应用不是 EVE 时隐藏全部缩略图。"
+
+[SettingsStrings.hideWhenNotEVEHelp]
+doc = "Windows「预览与布局」页：离开 EVE 时隐藏一行的说明，行内是隐藏延迟的滑块。"
+platforms = ["windows"]
 
 [SettingsStrings.hideDelay]
 doc = "上一条的隐藏延迟。"
@@ -255,11 +332,19 @@ doc = "「布局」组的标题。"
 [SettingsStrings.snapEnabled]
 doc = "拖动时吸附到屏幕边缘与其他缩略图。"
 
+[SettingsStrings.snapHelp]
+doc = "Windows「预览与布局」页：拖动时吸附一行的说明。"
+platforms = ["windows"]
+
 [SettingsStrings.lockAspectRatio]
 doc = "缩放时保持宽高比。"
 
 [SettingsStrings.lockLayout]
 doc = "锁定布局：禁止移动与缩放。"
+
+[SettingsStrings.lockLayoutHelp]
+doc = "Windows「预览与布局」页：锁定布局一行的说明。"
+platforms = ["windows"]
 
 [SettingsStrings.gestureHint]
 doc = "鼠标手势的说明（小字）。"
@@ -306,6 +391,14 @@ doc = "克隆按钮。"
 
 [SettingsStrings.newProfile]
 doc = "新建配置方案的按钮。"
+
+[SettingsStrings.newProfileHelp]
+doc = "Windows「配置方案」页：新建一行的说明，指向方案旁的复制按钮。"
+platforms = ["windows"]
+
+[SettingsStrings.allProfilesHeader]
+doc = "Windows「配置方案」页：方案列表的标题。"
+platforms = ["windows"]
 
 [SettingsStrings.configFile]
 doc = "配置文件路径一行的标签。"
@@ -556,3 +649,8 @@ doc = "捕获出错停止，提示用户用右键菜单恢复。"
 
 [ThumbnailStrings.minimized]
 doc = "客户端窗口已最小化。"
+
+[ThumbnailStrings.previewUnavailable]
+doc = "Windows：缩略图上的占位文字，系统给不出这个窗口的画面（DWM 缩略图注册失败）。"
+platforms = ["windows"]
+

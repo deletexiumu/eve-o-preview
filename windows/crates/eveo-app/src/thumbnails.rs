@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use eveo_app_core::flash;
 use eveo_app_core::gesture::Gesture;
 use eveo_core::geometry::{ScreenInfo, ScreenRect, screen_containing};
-use eveo_core::model::{COMBAT_ALERT_DEFAULT_COLOR, CombatAlertStyle, WindowId};
+use eveo_core::model::{AppLanguage, COMBAT_ALERT_DEFAULT_COLOR, CombatAlertStyle, WindowId};
 use eveo_core::planning::{ThumbnailPlaceholder, ThumbnailPresentation, ThumbnailStatus};
 use eveo_core::support::hex_color;
 use eveo_platform_win::overlay::{self, OverlayAlert, OverlayContent, OverlayTitle};
@@ -41,6 +41,8 @@ pub struct ThumbnailManager {
     entries: HashMap<WindowId, Entry>,
     /// 提醒当前的强度；新出现的提醒从这个值开始，与正在闪的步调一致。
     intensity: f32,
+    /// 占位文字的语言。
+    language: AppLanguage,
 }
 
 impl Default for ThumbnailManager {
@@ -48,6 +50,7 @@ impl Default for ThumbnailManager {
         Self {
             entries: HashMap::new(),
             intensity: 1.0,
+            language: AppLanguage::En,
         }
     }
 }
@@ -95,12 +98,17 @@ impl ThumbnailManager {
                 registered.contains(&id),
                 interacting,
                 screens,
-                self.intensity,
+                (self.intensity, self.language),
             ) {
                 changes.push((id, status));
             }
         }
         changes
+    }
+
+    /// 换占位文字的语言；下一次呈现时生效（换语言来自配置变化，随后总会重新呈现）。
+    pub fn set_language(&mut self, language: AppLanguage) {
+        self.language = language;
     }
 
     /// 某个窗口的手势状态机。
@@ -157,7 +165,7 @@ fn update(
     should_register: bool,
     interacting: &HashSet<WindowId>,
     screens: &[ScreenInfo],
-    intensity: f32,
+    (intensity, language): (f32, AppLanguage),
 ) -> Option<ThumbnailStatus> {
     let id = presentation.id;
     let window = &mut entry.window;
@@ -198,7 +206,7 @@ fn update(
     let _ = window.set_appearance(inset, presentation.is_visible, opacity);
     // 叠加层每次呈现都重算内容，但平台层比较内容后才重画：多数重算（例如前台切换）只改边框，不碰叠加层。
     // 缩放取所在显示器的：缩略图拖到另一块缩放不同的显示器上时，标题字号与边距随之变化。
-    entry.overlay = overlay_content(presentation, scale as f32, intensity);
+    entry.overlay = overlay_content(presentation, scale as f32, intensity, language);
     window.set_overlay(entry.overlay.clone());
     (status != entry.status).then(|| {
         entry.status = status;
@@ -206,8 +214,14 @@ fn update(
     })
 }
 
-/// 由呈现得出叠加层的内容。占位文字目前只有简体中文，界面多语言在设置窗口完成时一起做。
-fn overlay_content(presentation: &ThumbnailPresentation, scale: f32, intensity: f32) -> OverlayContent {
+/// 由呈现得出叠加层的内容。占位文字按界面语言。
+fn overlay_content(
+    presentation: &ThumbnailPresentation,
+    scale: f32,
+    intensity: f32,
+    language: AppLanguage,
+) -> OverlayContent {
+    let strings = eveo_l10n::thumbnail(language);
     let title = presentation.shows_title.then(|| OverlayTitle {
         text: presentation.title.clone(),
         size: presentation.title_font_size as f32,
@@ -216,8 +230,8 @@ fn overlay_content(presentation: &ThumbnailPresentation, scale: f32, intensity: 
     // DWM 画面在最小化时仍是最后一帧，占位铺一层深色半透明底并写明原因；注册失败时底下是边框色。
     let placeholder = match presentation.placeholder {
         ThumbnailPlaceholder::None => None,
-        ThumbnailPlaceholder::Unavailable => Some("画面不可用".to_owned()),
-        ThumbnailPlaceholder::Minimized => Some("已最小化".to_owned()),
+        ThumbnailPlaceholder::Unavailable => Some(strings.preview_unavailable().to_owned()),
+        ThumbnailPlaceholder::Minimized => Some(strings.minimized().to_owned()),
     };
     let alert = presentation.alert.as_ref().map(|alert| OverlayAlert {
         // 颜色已由配置校验保证合法，这里只作防御：解析失败时用默认的红色。

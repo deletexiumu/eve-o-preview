@@ -23,6 +23,12 @@ export global SettingsText {
     in property <string> confirm: "OK";
     // 删除按钮。
     in property <string> delete: "Delete";
+    // Windows：从列表里移除一项的按钮（热键、循环组成员）。
+    in property <string> remove: "Remove";
+    // Windows：新建按钮（循环组、配置方案），宜短。
+    in property <string> create: "New";
+    // Windows：把几项连成一行时的分隔符（如几条热键）。
+    in property <string> list-separator: ", ";
     // 角色在线的标记。
     in property <string> online: "Online";
     // 角色离线的标记。
@@ -71,8 +77,14 @@ export global SettingsText {
     in property <string> clients-subtitle: "Running clients and characters known to this profile.";
     // 「全部隐藏」开关。
     in property <string> hide-all-thumbnails: "Hide all thumbnails";
+    // Windows「客户端」页：隐藏全部缩略图一行的说明（不写进配置）。
+    in property <string> hide-all-help: "Lasts until the app restarts";
     // 「全部隐藏」的快捷键一行的标题。
     in property <string> hide-all-hotkey-label: "Hotkey";
+    // Windows「客户端」页：快捷键一行的说明，指向「切换与热键」页。
+    in property <string> hide-all-hotkey-help: "Change it on Switching & Hotkeys";
+    // Windows「客户端」页：没有设置快捷键时显示的文字。
+    in property <string> hotkey-not-set: "Not set";
     // 「全部隐藏」快捷键的生效范围（全局或仅游戏内）一行的标题。
     in property <string> hide-all-scope-label: "Scope";
     // 「全部隐藏」一组下方的说明：快捷键可以是键盘组合或修饰键加鼠标按键，范围作用于这一组全部快捷键。
@@ -80,7 +92,7 @@ export global SettingsText {
     // 角色列表的组标题。
     in property <string> characters-header: "Characters";
     // 角色列表下方的说明：每行的颜色是该角色活动时的高亮颜色。
-    in property <string> characters-footer: "The color is used for the highlight border when this character is active.";
+    in property <string> characters-footer: "Characters with Show thumbnail turned off stay hidden in later sessions too. A blank color uses the highlight color from Previews & Layout.";
     // 还没有任何角色时的说明。
     in property <string> no-characters: "No characters yet. Start EVE and log in a character.";
     // 停在登录界面、还没有角色名的客户端的组标题。
@@ -89,34 +101,52 @@ export global SettingsText {
     in property <string> show-thumbnail: "Show thumbnail";
     // 角色颜色按钮的悬停说明。
     in property <string> highlight-color-help: "Highlight color when active";
+    // Windows「客户端」页：颜色输入框为空时的占位文字，参数是跟随的全局高亮颜色（#RRGGBB）。
+    pure callback follow-color(color: string) -> string;
     // 页标题下的说明。
     in property <string> previews-subtitle: "Thumbnail size, appearance and behavior. Changes apply immediately.";
+    // Windows「预览与布局」页：尺寸一组的标题。
+    in property <string> size-header: "Size";
     // 缩略图的默认尺寸（宽 × 高）。
     in property <string> default-size: "Default size";
+    // Windows「预览与布局」页：默认尺寸一行的说明。
+    in property <string> default-size-help: "Used by thumbnails you have not resized individually, in pixels";
     // 缩略图的最小尺寸。
     in property <string> minimum-size: "Minimum size";
     // 缩略图的最大尺寸。
     in property <string> maximum-size: "Maximum size";
     // 清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。
     in property <string> unify-sizes: "Reset all thumbnails to default size";
+    // Windows「预览与布局」页：统一尺寸一行的说明。
+    in property <string> unify-sizes-help: "Thumbnails you resized go back to the default size; positions stay the same";
+    // Windows「预览与布局」页：统一尺寸一行的按钮，宜短。
+    in property <string> unify-sizes-button: "Reset sizes";
     // 「外观」组的标题。
     in property <string> appearance-header: "Appearance";
     // 未悬停时缩略图的不透明度。
     in property <string> opacity: "Opacity";
+    // Windows「预览与布局」页：透明度一行的说明。
+    in property <string> opacity-help: "Opacity while the pointer is elsewhere; thumbnails are fully opaque on hover";
     // 是否在缩略图左上角显示角色名。
     in property <string> show-title: "Show character name";
+    // Windows「预览与布局」页：显示角色名一行的说明。
+    in property <string> show-title-help: "Shows the character name in the top-left corner of the thumbnail";
     // 角色名的字号。
     in property <string> title-font-size: "Title font size";
     // 角色名的颜色。
     in property <string> title-color: "Title color";
     // 每个缩略图都有的中性色边框的开关（第一轮反馈 F1）。
     in property <string> border-enabled: "Show border";
+    // Windows「预览与布局」页：边框一行的说明。
+    in property <string> border-help: "Draws a neutral border around every thumbnail; the active client uses the highlight instead";
     // 边框的颜色。
     in property <string> border-color: "Border color";
     // 边框的粗细，单位是点。
     in property <string> border-thickness: "Border thickness";
     // 活动客户端高亮边框的开关。
     in property <string> highlight-enabled: "Highlight active client";
+    // Windows「预览与布局」页：高亮一行的说明，行内有颜色与粗细两个控件。
+    in property <string> highlight-help: "Draws a highlight around the thumbnail of the client in front (color and thickness)";
     // 高亮边框的颜色（全局，客户端页可以按角色覆盖）。
     in property <string> highlight-color: "Highlight color";
     // 高亮边框的粗细。
@@ -129,24 +159,36 @@ export global SettingsText {
     in property <string> zoom-factor: "Zoom factor";
     // 放大时保持不动的那个点（锚点）。
     in property <string> zoom-anchor: "Anchor";
+    // Windows「预览与布局」页：放大倍数与锚点一行的说明。
+    in property <string> zoom-anchor-help: "The anchor is the point that stays put while the thumbnail grows";
     // 「行为」组的标题。
     in property <string> behavior-header: "Behavior";
     // 缩略图置于其他窗口之上。
     in property <string> always-on-top: "Keep thumbnails on top";
+    // Windows「预览与布局」页：缩略图置顶一行的说明。
+    in property <string> always-on-top-help: "Thumbnails stay above other windows";
     // 隐藏当前活动客户端自己的缩略图。
     in property <string> hide-active-client: "Hide the active client's thumbnail";
+    // Windows「预览与布局」页：隐藏活动客户端一行的说明。
+    in property <string> hide-active-client-help: "You do not need a preview of the client you are using";
     // 前台应用不是 EVE 时隐藏全部缩略图。
     in property <string> hide-when-not-eve: "Hide thumbnails when EVE is not in front";
+    // Windows「预览与布局」页：离开 EVE 时隐藏一行的说明，行内是隐藏延迟的滑块。
+    in property <string> hide-when-not-eve-help: "After you switch to another program, waits the set number of seconds before hiding";
     // 上一条的隐藏延迟。
     in property <string> hide-delay: "Hide delay";
     // 「布局」组的标题。
     in property <string> layout-header: "Layout";
     // 拖动时吸附到屏幕边缘与其他缩略图。
     in property <string> snap-enabled: "Snap while dragging";
+    // Windows「预览与布局」页：拖动时吸附一行的说明。
+    in property <string> snap-help: "Aligns to nearby thumbnails and screen edges; hold Shift while dragging to bypass";
     // 缩放时保持宽高比。
     in property <string> lock-aspect-ratio: "Keep aspect ratio when resizing";
     // 锁定布局：禁止移动与缩放。
     in property <string> lock-layout: "Lock layout";
+    // Windows「预览与布局」页：锁定布局一行的说明。
+    in property <string> lock-layout-help: "Ignores move and resize gestures so thumbnails are not dragged by accident";
     // 鼠标手势的说明（小字）。
     in property <string> gesture-hint: "Right-drag or Option-drag to move; move the pointer to an edge and left-drag to resize; hold Shift to bypass snapping.";
     // 「捕获与位置」组的标题。
@@ -161,6 +203,16 @@ export global SettingsText {
     in property <string> login-position-x: "Login thumbnail X";
     // 同上，Y 坐标。
     in property <string> login-position-y: "Login thumbnail Y";
+    // 悬停放大锚点的名称（九宫格的 9 个位置）。
+    in property <string> anchor-name-nw: "Top left";
+    in property <string> anchor-name-n: "Top";
+    in property <string> anchor-name-ne: "Top right";
+    in property <string> anchor-name-w: "Left";
+    in property <string> anchor-name-center: "Center";
+    in property <string> anchor-name-e: "Right";
+    in property <string> anchor-name-sw: "Bottom left";
+    in property <string> anchor-name-s: "Bottom";
+    in property <string> anchor-name-se: "Bottom right";
     // 页标题下的说明。
     in property <string> profiles-subtitle: "Each profile is a full set of settings, layouts and cycle groups.";
     // 当前配置方案旁的标记。
@@ -173,10 +225,14 @@ export global SettingsText {
     in property <string> clone: "Duplicate";
     // 新建配置方案的按钮。
     in property <string> new-profile: "New Profile";
+    // Windows「配置方案」页：新建一行的说明，指向方案旁的复制按钮。
+    in property <string> new-profile-help: "Starts with default settings; to keep your current settings, use Duplicate next to a profile";
+    // Windows「配置方案」页：方案列表的标题。
+    in property <string> all-profiles-header: "All profiles";
     // 配置文件路径一行的标签。
     in property <string> config-file: "Config file";
     // 在访达中显示配置文件的按钮（「访达」即 Finder，用该语言下 macOS 的叫法）。
-    in property <string> reveal-config: "Show in Finder";
+    in property <string> reveal-config: "Show in File Explorer";
     // 名称输入框的占位文字。
     in property <string> profile-name: "Profile name";
     // 名称规则的说明。
@@ -269,10 +325,14 @@ export global CombatText {
     in property <string> page-subtitle: "Flash a character's thumbnail when it comes under attack.";
     // 总开关。
     in property <string> enable-toggle: "Flash thumbnail when a character is attacked";
+    // Windows「提醒」页：总开关的说明。
+    in property <string> enable-help: "Applies to the current profile";
     // 状态行的标签。
     in property <string> status-label: "Status";
     // 状态：未启用。
     in property <string> status-stopped: "Off";
+    // Windows 测试版：读游戏日志还没做，状态行的说明。
+    in property <string> not-available-yet: "Reading game logs arrives in a later test build; use Test Flash to preview the effect";
     // 状态：监视中，附目录与跟踪的文件数。
     pure callback status-watching(directory: string, files: int) -> string;
     // 状态：找不到日志目录，附查找的路径。
@@ -287,8 +347,12 @@ export global CombatText {
     in property <string> log-directory-header: "Game logs";
     // 日志目录一行的标签。
     in property <string> log-directory-label: "Folder";
+    // Windows「提醒」页：日志目录一行的说明。
+    in property <string> log-directory-help: "Leave blank to find it automatically; EVE's logs or logs\\Gamelogs folder both work";
     // 没有指定目录时，路径后面的「自动」标注。
     in property <string> automatic-suffix: "(automatic)";
+    // Windows「提醒」页：目录输入框为空时的占位文字，参数是自动找到的位置。
+    pure callback automatic-path(path: string) -> string;
     // 「选择…」按钮。
     in property <string> choose-directory: "Choose…";
     // 「使用自动位置」按钮。
@@ -301,10 +365,14 @@ export global CombatText {
     in property <string> flash-color: "Flash color";
     // 持续时间。
     in property <string> duration: "Duration";
+    // Windows「提醒」页：持续时间一行的说明。
+    in property <string> duration-help: "How long to flash after each hit; keeps going while hits continue";
     // 秒数的显示，如「3.5 秒」。
     pure callback seconds(value: float) -> string;
     // 样式。
     in property <string> style: "Style";
+    // Windows「提醒」页：样式一行的说明。
+    in property <string> style-help: "Border flashes the outline; Tint colors the whole thumbnail";
     // 样式：边框。
     in property <string> style-border: "Border";
     // 样式：底色。
@@ -315,16 +383,20 @@ export global CombatText {
     in property <string> triggers-header: "Triggers";
     // 「未命中的攻击也提醒」开关。
     in property <string> include-misses: "Also alert on attacks that miss";
+    // Windows「提醒」页：未命中也提醒一行的说明。
+    in property <string> include-misses-help: "Also flash when an attack misses";
     // 最小伤害。
     in property <string> minimum-damage: "Minimum damage";
     // 最小伤害的说明。
     in property <string> minimum-damage-help: "Hits below this amount are ignored. Misses follow the switch above.";
+    // Windows「提醒」页：测试一组的标题。
+    in property <string> test-header: "Test";
     // 「测试闪烁」按钮。
     in property <string> test-flash: "Test Flash";
     // 「测试闪烁」的说明。
     in property <string> test-flash-help: "Flashes every thumbnail once, even when the alert is off.";
     // 页尾的说明：游戏日志的设置与只读的承诺。
-    in property <string> footnote: "The EVE client must be set to write game messages to log files. This feature only reads the game logs and never sends any input to the game.";
+    in property <string> footnote: "Alerts apply to every client, including the one in front. This feature only reads the game logs and never sends any input to the game.";
 }
 
 // 诊断域的文字。
@@ -405,6 +477,8 @@ export global HotkeyText {
     in property <string> cycle-groups-header: "Cycle groups";
     // 「新建循环组」按钮。
     in property <string> add-group: "New Cycle Group";
+    // Windows：「新建循环组」一行的说明。
+    in property <string> add-group-help: "Cycles through a set of characters in order, with forward and backward hotkeys";
     // 没有循环组时的说明。
     in property <string> no-groups: "No cycle groups yet.";
     // 循环组名称一行的标签与占位文字。
@@ -416,9 +490,15 @@ export global HotkeyText {
     // 后退热键一行的标签。
     in property <string> backward-hotkeys: "Backward hotkeys";
     // 循环组没有成员时的说明。
-    in property <string> no-members: "No members yet.";
+    in property <string> no-members: "No members yet. Add characters from the list at the top right.";
     // 「添加成员」菜单。
     in property <string> add-member: "Add Member";
+    // Windows：循环组卡片里成员列表的标题。
+    in property <string> members-header: "Members (in cycle order)";
+    // Windows：成员上移一位的按钮。
+    in property <string> move-up: "Move up";
+    // Windows：成员下移一位的按钮。
+    in property <string> move-down: "Move down";
     // 新循环组的默认名称，参数是序号。
     pure callback new-group-name(index: int) -> string;
     // 角色直达热键一节的标题。
@@ -432,7 +512,7 @@ export global HotkeyText {
     // 「登录客户端之间循环」一行的标签。
     in property <string> hotkey-cycle-login: "Cycle login-screen clients";
     // 热键规则的说明：键盘热键的修饰键要求，鼠标按键可以单独使用、触发时点击不传给游戏。
-    in property <string> hotkey-rules-hint: "Keyboard hotkeys need Control, Option or Command, except F1–F20 and keypad digits. Middle and side mouse buttons can be used alone; the click is not passed to the game.";
+    in property <string> hotkey-rules-hint: "Keyboard hotkeys need Ctrl, Alt or Win, except F1–F20 and keypad digits; system shortcuts such as Alt+Tab and Win+L cannot be used. Only the middle and two side mouse buttons are supported; recorded mouse hotkeys default to Only in EVE so other programs keep their side buttons.";
     // 鼠标热键的说明：需要辅助功能权限，全局范围的鼠标热键在所有应用里吞掉按键，先取消别处的绑定。
     in property <string> mouse-hotkey-hint: "Mouse hotkeys need Accessibility permission. A mouse button set to Global is swallowed in every app. Remove other bindings of the button in the game or in your mouse software first.";
     // 页首「热键的默认作用范围」一行的标签。
@@ -446,7 +526,7 @@ export global HotkeyText {
     // 单选按钮里 game 一项的文字：名称加一句说明，讲清只在 EVE 窗口位于前台时生效。
     in property <string> scope-game-option: "Only in EVE: works only while an EVE window is in front";
     // 「切换与热键」页首默认范围下方的说明：每个热键只有一种范围，热键旁的标记显示并可单独修改它。
-    in property <string> default-scope-footer: "Each hotkey uses one scope, never both. The tag next to each hotkey shows the scope it actually uses. Click the tag to set that hotkey to Global, Only in EVE, or the default chosen here.";
+    in property <string> default-scope-footer: "Each hotkey uses one scope, never both. Hotkeys without their own scope follow this default; change one next to the hotkey.";
     // 每行作用范围菜单的第 1 项「跟随默认」，参数是当前默认范围的名称。
     pure callback scope-follow-default(current: string) -> string;
     // 作用范围菜单的提示文字，参数是这一行已解析的作用范围名称。
@@ -454,9 +534,11 @@ export global HotkeyText {
     // 菜单栏菜单的一项：勾选时当前配置方案的默认作用范围是 game。
     in property <string> menu-hotkeys-only-in-eve: "Hotkeys Only in EVE";
     // 「添加」按钮。
-    in property <string> add-hotkey: "+ Add";
+    in property <string> add-hotkey: "Add hotkey";
     // 录制中按钮上的提示。
-    in property <string> recording-prompt: "Press keys or a mouse side button (pointer in this window)…";
+    in property <string> recording-prompt: "Press keys…";
+    // Windows：「添加热键」按钮录制中的文字，提示 Esc 取消。
+    in property <string> recording-prompt-esc: "Press keys… (Esc to cancel)";
     // 录制按钮的提示文字。
     in property <string> recorder-help: "Click, then press a key combination or a middle or side mouse button. Esc cancels, Delete clears.";
     // 删除按钮的提示文字。
@@ -467,6 +549,8 @@ export global HotkeyText {
     in property <string> hotkey-missing-modifier: "Needs a modifier";
     // 系统保留的组合。
     in property <string> hotkey-reserved: "Reserved by macOS";
+    // Windows：热键问题，鼠标按键不支持（只支持中键与两个侧键）。要短。
+    in property <string> hotkey-unsupported-mouse-button: "Middle and side buttons only";
     // 鼠标热键：没有辅助功能权限。
     in property <string> hotkey-accessibility-required: "Needs Accessibility";
     // 鼠标热键：有权限，但系统没有建出事件监听。
@@ -475,6 +559,10 @@ export global HotkeyText {
     pure callback hotkey-duplicate(other: string) -> string;
     // Carbon 注册失败，参数是错误码。
     pure callback hotkey-registration-failed(status: int) -> string;
+    // Windows：热键问题，注册失败（多半被别的程序占用）。要短。
+    in property <string> hotkey-in-use: "In use by another program";
+    // Windows「客户端」页：一条热键与它的作用范围，如「F13（仅游戏内）」。
+    pure callback hotkey-with-scope(hotkey: string, scope: string) -> string;
 }
 
 // 更新域的全部文字。

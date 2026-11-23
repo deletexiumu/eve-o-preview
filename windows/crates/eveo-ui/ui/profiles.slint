@@ -11,6 +11,7 @@
 import { Button, LineEdit } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { PageHeader, SectionHeader, SettingRow } from "components.slint";
+import { SettingsText } from "generated/l10n.slint";
 
 // 一个配置方案。
 export struct ProfileRow {
@@ -76,7 +77,7 @@ component NameEditor inherits VerticalLayout {
         LineEdit {
             text <=> ProfilesModel.editing-name;
             // 空输入框里的提示；名称规则见文件开头。
-            placeholder-text: "配置方案名称";
+            placeholder-text: SettingsText.profile-name;
             horizontal-stretch: 1;
             edited(text) => {
                 ProfilesModel.name-edited();
@@ -98,7 +99,7 @@ component NameEditor inherits VerticalLayout {
             }
         }
         Button {
-            text: "取消";
+            text: SettingsText.cancel;
             clicked => {
                 ProfilesModel.cancel-edit();
             }
@@ -145,7 +146,7 @@ component ProfileCard inherits Rectangle {
         // 改名或复制：名称与按钮换成输入行，确定按钮的文字随编辑种类变。
         if editing: NameEditor {
             horizontal-stretch: 1;
-            confirm-text: ProfilesModel.editing-mode == "clone" ? "复制" : "改名";
+            confirm-text: ProfilesModel.editing-mode == "clone" ? SettingsText.clone : SettingsText.rename;
         }
         // 平时：名称占满剩余宽度，后面依次是「当前」标记与操作按钮。
         if !editing: HorizontalLayout {
@@ -159,19 +160,19 @@ component ProfileCard inherits Rectangle {
                 horizontal-stretch: 1;
             }
             if profile.active: Text {
-                text: "当前";
+                text: SettingsText.active-badge;
                 color: Theme.text-secondary;
                 font-size: 12px;
                 vertical-alignment: center;
             }
             // 待删除：说明后果，删除或取消。
             if deleting: Text {
-                text: "删除后不能恢复。";
+                text: SettingsText.delete-profile-confirm(profile.name);
                 color: #d97706;
                 vertical-alignment: center;
             }
             if deleting: Button {
-                text: "删除";
+                text: SettingsText.delete;
                 primary: true;
                 // 先清掉待删除的标记：删除后这一行就不在了。
                 clicked => {
@@ -180,7 +181,7 @@ component ProfileCard inherits Rectangle {
                 }
             }
             if deleting: Button {
-                text: "取消";
+                text: SettingsText.cancel;
                 clicked => {
                     ProfilesModel.pending-delete = "";
                 }
@@ -188,25 +189,25 @@ component ProfileCard inherits Rectangle {
             // 平时的操作：当前方案不显示「切换」。
             if !deleting && !profile.active: Button {
                 // 切换立即生效：缩略图布局、外观与热键都换成这个方案的。
-                text: "切换到此方案";
+                text: SettingsText.switch-to;
                 clicked => {
                     ProfilesModel.switch-to(profile.id);
                 }
             }
             if !deleting: Button {
-                text: "改名";
+                text: SettingsText.rename;
                 clicked => {
                     ProfilesModel.start-edit("rename", profile.id, profile.name);
                 }
             }
             if !deleting: Button {
-                text: "复制";
+                text: SettingsText.clone;
                 clicked => {
-                    ProfilesModel.start-edit("clone", profile.id, profile.name + " 副本");
+                    ProfilesModel.start-edit("clone", profile.id, SettingsText.copy-name(profile.name));
                 }
             }
             if !deleting: Button {
-                text: "删除";
+                text: SettingsText.delete;
                 // 只剩一个方案时不能删（配置里至少要有一个方案）。
                 enabled: !last;
                 clicked => {
@@ -222,16 +223,16 @@ component ProfileCard inherits Rectangle {
 export component ProfilesPage inherits VerticalLayout {
     alignment: start;
     PageHeader {
-        title: "配置方案";
-        subtitle: "每个方案有自己的缩略图布局、外观与热键，可以随时切换";
+        title: SettingsText.page-profiles;
+        subtitle: SettingsText.profiles-subtitle;
     }
 
     // 新建：平时是一行说明加按钮，点了以后变成名称输入行。
     if ProfilesModel.editing-id != "new": SettingRow {
-        title: "新建配置方案";
-        description: "所有设置取默认值；想沿用现有的设置，用方案旁的「复制」";
+        title: SettingsText.new-profile;
+        description: SettingsText.new-profile-help;
         Button {
-            text: "新建";
+            text: SettingsText.create;
             clicked => {
                 ProfilesModel.start-edit("add", "new", "");
             }
@@ -247,11 +248,11 @@ export component ProfilesPage inherits VerticalLayout {
             padding-left: 18px;
             padding-right: 18px;
             // 新建的名称输入行，与就地编辑共用同一套状态。
-            NameEditor { confirm-text: "新建"; }
+            NameEditor { confirm-text: SettingsText.create; }
         }
     }
 
-    SectionHeader { text: "全部方案"; }
+    SectionHeader { text: SettingsText.all-profiles-header; }
     // 方案按配置里的顺序排列；复制出的副本紧跟在原方案后面。
     for profile in ProfilesModel.profiles: VerticalLayout {
         padding-bottom: 4px;
@@ -261,14 +262,14 @@ export component ProfilesPage inherits VerticalLayout {
         }
     }
 
-    SectionHeader { text: "配置文件"; }
+    SectionHeader { text: SettingsText.config-file; }
     // 配置文件的位置：路径可以选中复制；按钮打开资源管理器并选中这个文件。
     SettingRow {
         title: "config.json";
         // 完整路径：%APPDATA% 下的 EVE-O Preview 文件夹。
         description: ProfilesModel.config-path;
         Button {
-            text: "在资源管理器中显示";
+            text: SettingsText.reveal-config;
             clicked => {
                 ProfilesModel.reveal-config();
             }

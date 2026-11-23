@@ -11,6 +11,7 @@
 import { Button, LineEdit, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { SettingsText } from "generated/l10n.slint";
 
 // 一个角色的行。
 export struct CharacterRow {
@@ -114,7 +115,7 @@ component CharacterCard inherits Rectangle {
                 alignment: center;
                 LineEdit {
                     text <=> root.hex;
-                    placeholder-text: "跟随 " + ClientsModel.default-highlight;
+                    placeholder-text: SettingsText.follow-color(ClientsModel.default-highlight);
                     width: 130px;
                     edited(text) => {
                         ClientsModel.color-edited(root.name, text);
@@ -125,7 +126,7 @@ component CharacterCard inherits Rectangle {
             VerticalLayout {
                 alignment: center;
                 Button {
-                    text: "默认";
+                    text: SettingsText.default-color;
                     enabled: root.hex != "";
                     clicked => {
                         ClientsModel.color-reset(root.name);
@@ -135,7 +136,7 @@ component CharacterCard inherits Rectangle {
         }
         // 「显示缩略图」文字与开关分开放，各行的文字位置一致。
         Text {
-            text: "显示缩略图";
+            text: SettingsText.show-thumbnail;
             color: Theme.text-secondary;
             font-size: 12px;
             vertical-alignment: center;
@@ -177,14 +178,14 @@ component NoteCard inherits Rectangle {
 export component ClientsPage inherits VerticalLayout {
     alignment: start;
     PageHeader {
-        title: "客户端";
-        subtitle: "在线的客户端与出现过的角色：按角色设置高亮颜色、显示或隐藏缩略图";
+        title: SettingsText.page-clients;
+        subtitle: SettingsText.clients-subtitle;
     }
 
     // 「全部隐藏」开关与快捷键。
     SettingRow {
-        title: "隐藏全部缩略图";
-        description: "只在本次运行中有效，重新启动后恢复显示";
+        title: SettingsText.hide-all-thumbnails;
+        description: SettingsText.hide-all-help;
         Switch {
             checked <=> ClientsModel.hide-all;
             toggled => {
@@ -194,18 +195,18 @@ export component ClientsPage inherits VerticalLayout {
     }
     RowGap { }
     SettingRow {
-        title: "快捷键";
-        description: "在「切换与热键」页修改";
+        title: SettingsText.hide-all-hotkey-label;
+        description: SettingsText.hide-all-hotkey-help;
         Text {
-            text: ClientsModel.hide-all-hotkeys == "" ? "未设置" : ClientsModel.hide-all-hotkeys;
+            text: ClientsModel.hide-all-hotkeys == "" ? SettingsText.hotkey-not-set : ClientsModel.hide-all-hotkeys;
             color: Theme.text-secondary;
             vertical-alignment: center;
         }
     }
 
-    SectionHeader { text: "角色"; }
+    SectionHeader { text: SettingsText.characters-header; }
     if ClientsModel.characters.length == 0: NoteCard {
-        text: "还没有角色。登录游戏后，角色会出现在这里。";
+        text: SettingsText.no-characters;
     }
     for row in ClientsModel.characters: VerticalLayout {
         // 卡片之间 4px 的缝，与设置行相同。
@@ -219,10 +220,10 @@ export component ClientsPage inherits VerticalLayout {
         }
     }
     Footnote {
-        text: "关掉「显示缩略图」的角色记在配置里，以后上线也不显示；颜色留空时用「预览与布局」页的高亮颜色。";
+        text: SettingsText.characters-footer;
     }
 
-    if ClientsModel.login-clients.length > 0: SectionHeader { text: "登录界面的客户端"; }
+    if ClientsModel.login-clients.length > 0: SectionHeader { text: SettingsText.login-clients-header; }
     for title in ClientsModel.login-clients: VerticalLayout {
         padding-bottom: 4px;
         NoteCard { text: title; }

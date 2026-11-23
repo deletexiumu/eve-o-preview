@@ -21,6 +21,10 @@ doc = "循环组一节的标签。"
 [HotkeyStrings.addGroup]
 doc = "「新建循环组」按钮。"
 
+[HotkeyStrings.addGroupHelp]
+doc = "Windows：「新建循环组」一行的说明。"
+platforms = ["windows"]
+
 [HotkeyStrings.noGroups]
 doc = "没有循环组时的说明。"
 
@@ -41,6 +45,18 @@ doc = "循环组没有成员时的说明。"
 
 [HotkeyStrings.addMember]
 doc = "「添加成员」菜单。"
+
+[HotkeyStrings.membersHeader]
+doc = "Windows：循环组卡片里成员列表的标题。"
+platforms = ["windows"]
+
+[HotkeyStrings.moveUp]
+doc = "Windows：成员上移一位的按钮。"
+platforms = ["windows"]
+
+[HotkeyStrings.moveDown]
+doc = "Windows：成员下移一位的按钮。"
+platforms = ["windows"]
 
 [HotkeyStrings.newGroupName]
 doc = "新循环组的默认名称，参数是序号。"
@@ -105,6 +121,10 @@ doc = "「添加」按钮。"
 [HotkeyStrings.recordingPrompt]
 doc = "录制中按钮上的提示。"
 
+[HotkeyStrings.recordingPromptEsc]
+doc = "Windows：「添加热键」按钮录制中的文字，提示 Esc 取消。"
+platforms = ["windows"]
+
 [HotkeyStrings.recorderHelp]
 doc = "录制按钮的提示文字。"
 
@@ -121,6 +141,10 @@ doc = "键盘热键缺修饰键。"
 [HotkeyStrings.hotkeyReserved]
 doc = "系统保留的组合。"
 
+[HotkeyStrings.hotkeyUnsupportedMouseButton]
+doc = "Windows：热键问题，鼠标按键不支持（只支持中键与两个侧键）。要短。"
+platforms = ["windows"]
+
 [HotkeyStrings.hotkeyAccessibilityRequired]
 doc = "鼠标热键：没有辅助功能权限。"
 
@@ -134,3 +158,13 @@ params = ["_ other: String"]
 [HotkeyStrings.hotkeyRegistrationFailed]
 doc = "Carbon 注册失败，参数是错误码。"
 params = ["_ status: Int32"]
+
+[HotkeyStrings.hotkeyInUse]
+doc = "Windows：热键问题，注册失败（多半被别的程序占用）。要短。"
+platforms = ["windows"]
+
+[HotkeyStrings.hotkeyWithScope]
+doc = "Windows「客户端」页：一条热键与它的作用范围，如「F13（仅游戏内）」。"
+params = ["hotkey: String", "scope: String"]
+platforms = ["windows"]
+

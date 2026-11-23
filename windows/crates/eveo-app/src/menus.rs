@@ -2,9 +2,10 @@
 //
 // 缩略图右键菜单与托盘菜单的内容，对应 macOS 的 ThumbnailContextMenu 与菜单栏菜单。
 // 菜单项编号与动作一一对应；托盘菜单里的配置方案从 PROFILE_BASE 起按配置里的顺序编号。
-// 文字目前只有简体中文，界面多语言在设置窗口各页完成时一起做。
+// 文字按界面语言取自 eveo-l10n，与 macOS 的菜单栏菜单、缩略图右键菜单同一份文案。
 
 use eveo_app_core::{ContextMenuAction, ContextMenuModel, TrayAction, TrayModel};
+use eveo_core::model::AppLanguage;
 use eveo_platform_win::menu::MenuEntry;
 
 /// 右键菜单「最小化」。
@@ -32,33 +33,34 @@ const TRAY_QUIT: u32 = 104;
 const PROFILE_BASE: u32 = 1000;
 
 /// 缩略图的右键菜单。按角色的项对登录客户端置灰。
-pub fn context_menu(model: &ContextMenuModel) -> Vec<MenuEntry> {
+pub fn context_menu(model: &ContextMenuModel, language: AppLanguage) -> Vec<MenuEntry> {
+    let text = eveo_l10n::thumbnail(language);
     // 登录界面的客户端没有角色名：跳过、隐藏与尺寸都按角色名保存，对它没有意义。
     let is_character = model.character_name.is_some();
     vec![
-        MenuEntry::item(MINIMIZE, "最小化"),
-        MenuEntry::item(MINIMIZE_ALL, "最小化全部客户端"),
+        MenuEntry::item(MINIMIZE, text.minimize()),
+        MenuEntry::item(MINIMIZE_ALL, text.minimize_all()),
         MenuEntry::Separator,
         MenuEntry::Item {
             id: TOGGLE_SKIP,
-            text: "循环时跳过".to_owned(),
+            text: text.skip_cycle().to_owned(),
             enabled: is_character,
             checked: model.is_skipped,
         },
         MenuEntry::Item {
             id: HIDE,
-            text: "隐藏这个角色".to_owned(),
+            text: text.hide().to_owned(),
             enabled: is_character,
             checked: false,
         },
         MenuEntry::Item {
             id: RESET_SIZE,
-            text: "恢复默认尺寸".to_owned(),
+            text: text.reset_size().to_owned(),
             enabled: is_character && model.has_custom_size,
             checked: false,
         },
         MenuEntry::Separator,
-        MenuEntry::item(OPEN_SETTINGS, "设置…"),
+        MenuEntry::item(OPEN_SETTINGS, text.settings()),
     ]
 }
 
@@ -76,7 +78,8 @@ pub fn context_action(id: u32) -> Option<ContextMenuAction> {
 }
 
 /// 托盘菜单：全部隐藏、最小化全部、配置方案（单选）、设置、退出。
-pub fn tray_menu(model: &TrayModel) -> Vec<MenuEntry> {
+pub fn tray_menu(model: &TrayModel, language: AppLanguage) -> Vec<MenuEntry> {
+    let text = eveo_l10n::menu(language);
     // 配置方案的编号按列表下标给，选中后再按同一份列表换回 id；弹菜单期间配置不会变（菜单是模态的）。
     let profiles = model
         .profiles
@@ -92,19 +95,19 @@ pub fn tray_menu(model: &TrayModel) -> Vec<MenuEntry> {
     vec![
         MenuEntry::Item {
             id: TRAY_HIDE_ALL,
-            text: "隐藏全部缩略图".to_owned(),
+            text: text.hide_all().to_owned(),
             enabled: true,
             checked: model.hide_all,
         },
-        MenuEntry::item(TRAY_MINIMIZE_ALL, "最小化全部客户端"),
+        MenuEntry::item(TRAY_MINIMIZE_ALL, text.minimize_all()),
         MenuEntry::Separator,
         MenuEntry::Submenu {
-            text: "配置方案".to_owned(),
+            text: text.profiles().to_owned(),
             entries: profiles,
         },
-        MenuEntry::item(TRAY_SETTINGS, "设置…"),
+        MenuEntry::item(TRAY_SETTINGS, text.settings()),
         MenuEntry::Separator,
-        MenuEntry::item(TRAY_QUIT, "退出 EVE-O Preview"),
+        MenuEntry::item(TRAY_QUIT, text.quit()),
     ]
 }
 
@@ -123,6 +126,7 @@ pub fn tray_action(id: u32, model: &TrayModel) -> Option<TrayAction> {
 }
 
 /// 托盘图标的提示文字。
-pub fn tray_tooltip(model: &TrayModel) -> String {
-    format!("EVE-O Preview · {} 个客户端", model.client_count)
+pub fn tray_tooltip(model: &TrayModel, language: AppLanguage) -> String {
+    let count = eveo_l10n::menu(language).client_count(model.client_count as i64);
+    format!("EVE-O Preview · {count}")
 }

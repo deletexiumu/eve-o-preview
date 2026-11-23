@@ -11,9 +11,8 @@ use std::rc::Rc;
 
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 
-use eveo_core::config::{MAX_PROFILE_NAME_LENGTH, profile_editor};
+use eveo_core::config::profile_editor;
 use eveo_core::model::{AppConfig, Profile};
-use eveo_core::support::text;
 
 use crate::{ProfileRow, ProfilesModel, SettingsWindow};
 
@@ -107,15 +106,10 @@ pub fn name_problem(config: &AppConfig, edit: &NameEdit) -> String {
     if profile_editor::is_valid_name(&edit.name, config, excluding) {
         return String::new();
     }
-    // 不可用的原因按顺序判断：空、太长、重名。
-    let trimmed = text::trim_whitespace_and_newlines(&edit.name);
-    if trimmed.is_empty() {
-        "名称不能为空".to_owned()
-    } else if text::char_count(trimmed) > MAX_PROFILE_NAME_LENGTH {
-        format!("名称最多 {MAX_PROFILE_NAME_LENGTH} 个字")
-    } else {
-        "已经有同名的配置方案".to_owned()
-    }
+    // 空、太长、重名都显示同一句规则（与 macOS 相同），用户一看就知道怎么改。
+    eveo_l10n::settings(crate::language())
+        .profile_name_rule()
+        .to_owned()
 }
 
 /// 把操作作用到配置上，返回新配置；操作不合法（名称不可用、方案不存在、删最后一个）时返回 `None`，原配置不变。
@@ -203,17 +197,15 @@ pub(crate) mod tests {
         }
     }
 
-    /// 名称的问题：空、超长、重名各有说法；改名时自己的旧名（含只改大小写）可用。
+    /// 名称的问题：空、超长、重名都显示规则；改名时自己的旧名（含只改大小写）可用。
     #[test]
     fn name_problems() {
         let config = sample();
-        assert_eq!(name_problem(&config, &edit("add", "new", "  ")), "名称不能为空");
+        let rule = eveo_l10n::settings(crate::language()).profile_name_rule();
+        assert_eq!(name_problem(&config, &edit("add", "new", "  ")), rule);
         assert!(name_problem(&config, &edit("add", "new", &"字".repeat(65))).contains("64"));
         assert_eq!(name_problem(&config, &edit("add", "new", &"字".repeat(64))), "");
-        assert_eq!(
-            name_problem(&config, &edit("clone", "a", "bravo")),
-            "已经有同名的配置方案"
-        );
+        assert_eq!(name_problem(&config, &edit("clone", "a", "bravo")), rule);
         assert_eq!(name_problem(&config, &edit("rename", "a", "ALPHA")), "");
         assert_ne!(name_problem(&config, &edit("rename", "a", "Bravo")), "");
     }

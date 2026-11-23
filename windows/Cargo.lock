@@ -988,6 +988,7 @@ dependencies = [
  "embed-resource",
  "eveo-app-core",
  "eveo-core",
+ "eveo-l10n",
  "eveo-platform-win",
  "eveo-ui",
  "raw-window-handle",

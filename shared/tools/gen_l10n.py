@@ -711,8 +711,16 @@ def slint_global(proto: str) -> str:
     return proto.removesuffix("Strings") + "Text"
 
 
+def enum_key(key: Key) -> bool:
+    """只有一个参数、按枚举取值分支的文案：Slint 里每个取值一个属性（如 anchor-name-nw）。"""
+    return (len(key.params) == 1 and key.select == key.params[0].name and bool(key.cases)
+            and key.params[0].type not in RUST_TYPES and not key.params[0].type.endswith("?"))
+
+
 def slint_keys(domain: Domain, proto: str) -> list[Key]:
-    return [k for k in keys_of(domain, proto, "windows") if all(p.type in SLINT_TYPES for p in k.params)]
+    """进 Slint 的文案：参数都是字符串与数字，或只有一个枚举参数。"""
+    return [k for k in keys_of(domain, proto, "windows")
+            if enum_key(k) or all(p.type in SLINT_TYPES for p in k.params)]
 
 
 def slint_escape(text: str) -> str:
@@ -733,7 +741,12 @@ def slint_file(domains: list[Domain]) -> str:
         lines.append(f"export global {slint_global(proto)} {{")
         for key in slint_keys(domain, proto):
             lines.append(f"    // {key.doc.splitlines()[0] if key.doc else key.name}")
-            if key.is_func:
+            if enum_key(key):
+                values = text(domain, "en", key, "windows")
+                for case in key.cases:
+                    value = slint_escape(values[case])
+                    lines.append(f'    in property <string> {slint_name(key.name)}-{slint_name(case)}: "{value}";')
+            elif key.is_func:
                 args = ", ".join(f"{slint_name(p.name)}: {SLINT_TYPES[p.type]}" for p in key.params)
                 lines.append(f"    pure callback {slint_name(key.name)}({args}) -> string;")
             else:
@@ -758,6 +771,12 @@ def slint_rust_file(domains: list[Domain]) -> str:
         lines.append(f"    let text = ui.global::<{slint_global(proto)}>();")
         for key in slint_keys(domain, proto):
             name = snake(key.name)
+            if enum_key(key):
+                typ = key.params[0].type
+                path = RUST_ENUMS.get(typ, f"eveo_l10n::{typ}")
+                for case in key.cases:
+                    lines.append(f"    text.set_{name}_{snake(case)}({var}.{name}({path}::{camel_type(case)}).into());")
+                continue
             if not key.is_func:
                 lines.append(f"    text.set_{name}({var}.{name}().into());")
                 continue

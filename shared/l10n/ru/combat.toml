@@ -4,8 +4,10 @@
 pageSubtitle = "Миниатюра персонажа мигает, когда его атакуют."
 
 enableToggle = "Мигать миниатюрой при атаке на персонажа"
+enableHelp = "Действует для текущего профиля"
 statusLabel = "Состояние"
 statusStopped = "Выключено"
+notAvailableYet = "Чтение игровых журналов появится в следующих тестовых сборках; эффект можно посмотреть кнопкой «Проверить мигание»"
 statusWatching = { one = "Отслеживается {files} файл журнала в {directory}", few = "Отслеживается {files} файла журнала в {directory}", many = "Отслеживается {files} файлов журнала в {directory}" }
 statusDirectoryNotFound = "Папка игровых журналов не найдена: {path}"
 statusAccessDenied = "Нет доступа к {path}"
@@ -14,7 +16,9 @@ openSystemSettings = "Открыть Системные настройки…"
 
 logDirectoryHeader = "Игровые журналы"
 logDirectoryLabel = "Папка"
+logDirectoryHelp = "Оставьте пустым для автопоиска; подойдёт папка logs или logs\\Gamelogs из EVE"
 automaticSuffix = "(автоматически)"
+automaticPath = "Автоматически: {path}"
 chooseDirectory = "Выбрать…"
 useAutomaticLocation = "Определять автоматически"
 chooseDirectoryMessage = "Выберите папку EVE «logs» или «Gamelogs»."
@@ -22,17 +26,21 @@ chooseDirectoryMessage = "Выберите папку EVE «logs» или «Game
 appearanceHeader = "Мигание"
 flashColor = "Цвет мигания"
 duration = "Длительность"
+durationHelp = "Сколько длится вспышка после каждого попадания; при новых попаданиях продлевается"
 seconds = "{value:secs} с"
 style = "Стиль"
+styleHelp = "Рамка мигает по контуру; заливка окрашивает всю миниатюру"
 styleBorder = "Рамка"
 styleWash = "Заливка"
 styleBoth = "Оба"
 
 triggersHeader = "Условия"
 includeMisses = "Оповещать и о промахах противника"
+includeMissesHelp = "Мигать и при промахах противника"
 minimumDamage = "Минимальный урон"
 minimumDamageHelp = "Урон меньше этого значения не вызывает оповещения. Промахи — по переключателю выше."
+testHeader = "Проверка"
 
 testFlash = "Проверить мигание"
 testFlashHelp = "Все миниатюры мигнут один раз, даже если оповещение выключено."
-footnote = "В клиенте EVE должна быть включена запись игровых сообщений в файлы журналов. Эта функция только читает игровые журналы и ничего не отправляет в игру."
+footnote = { macos = "В клиенте EVE должна быть включена запись игровых сообщений в файлы журналов. Эта функция только читает игровые журналы и ничего не отправляет в игру.", windows = "Оповещения работают для всех клиентов, включая клиент на переднем плане. Эта функция только читает игровые журналы и ничего не отправляет в игру." }

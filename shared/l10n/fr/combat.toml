@@ -5,8 +5,10 @@ pageSubtitle = "Fait clignoter la vignette d'un personnage quand il est attaqué
 
 # 状态行显示目录全路径，文字保持短。
 enableToggle = "Faire clignoter la vignette quand un personnage est attaqué"
+enableHelp = "S'applique au profil actuel"
 statusLabel = "État"
 statusStopped = "Désactivé"
+notAvailableYet = "La lecture des journaux de jeu arrivera dans une prochaine version de test ; « Tester le clignotement » montre déjà l'effet"
 statusWatching = { one = "Surveillance de {files} fichier journal dans {directory}", other = "Surveillance de {files} fichiers journaux dans {directory}" }
 statusDirectoryNotFound = "Dossier des journaux de jeu introuvable : {path}"
 statusAccessDenied = "Lecture non autorisée : {path}"
@@ -16,7 +18,9 @@ openSystemSettings = "Ouvrir Réglages Système…"
 # 文件夹名 logs、Gamelogs 是磁盘上的真实名称，不翻译。
 logDirectoryHeader = "Journaux de jeu"
 logDirectoryLabel = "Dossier"
+logDirectoryHelp = "Laissez vide pour la recherche automatique ; le dossier logs ou logs\\Gamelogs d'EVE convient"
 automaticSuffix = "(automatique)"
+automaticPath = "Automatique : {path}"
 chooseDirectory = "Choisir…"
 useAutomaticLocation = "Utiliser l'emplacement automatique"
 chooseDirectoryMessage = "Choisissez le dossier « logs » ou « Gamelogs » d'EVE."
@@ -24,17 +28,21 @@ chooseDirectoryMessage = "Choisissez le dossier « logs » ou « Gamelogs » d'E
 appearanceHeader = "Clignotement"
 flashColor = "Couleur du clignotement"
 duration = "Durée"
+durationHelp = "Durée du clignotement après chaque coup ; prolongée tant que les coups continuent"
 seconds = "{value:secs_comma} s"
 style = "Style"
+styleHelp = "Bordure : le contour clignote ; Teinte : toute la vignette se colore"
 styleBorder = "Bordure"
 styleWash = "Teinte"
 styleBoth = "Les deux"
 
 triggersHeader = "Déclencheurs"
 includeMisses = "Alerter aussi pour les attaques manquées"
+includeMissesHelp = "Clignoter aussi quand une attaque rate"
 minimumDamage = "Dégâts minimum"
 minimumDamageHelp = "Les coups en dessous de cette valeur sont ignorés. Les attaques manquées suivent l'option ci-dessus."
+testHeader = "Test"
 
 testFlash = "Tester le clignotement"
 testFlashHelp = "Fait clignoter chaque vignette une fois, même si l'alerte est désactivée."
-footnote = "Le client EVE doit être réglé pour enregistrer les messages du jeu dans des fichiers journaux. Cette fonction lit uniquement les journaux de jeu et n'envoie jamais aucune entrée au jeu."
+footnote = { macos = "Le client EVE doit être réglé pour enregistrer les messages du jeu dans des fichiers journaux. Cette fonction lit uniquement les journaux de jeu et n'envoie jamais aucune entrée au jeu.", windows = "Les alertes s'appliquent à tous les clients, y compris celui au premier plan. Cette fonction lit uniquement les journaux de jeu et n'envoie jamais aucune entrée au jeu." }

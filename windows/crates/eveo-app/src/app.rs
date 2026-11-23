@@ -192,6 +192,8 @@ pub fn run() -> ExitCode {
     };
     let now = Instant::now();
     let language = general::resolve_language(&config.general);
+    let mut thumbnails = ThumbnailManager::default();
+    thumbnails.set_language(language);
     let app = App {
         coordinator: Coordinator::new(config, screens.clone()),
         store,
@@ -208,7 +210,7 @@ pub fn run() -> ExitCode {
         filter: ClientFilter::default(),
         hooks: WindowEventHooks::install(),
         hotkeys: HotkeyService::new(hotkey_window),
-        thumbnails: ThumbnailManager::default(),
+        thumbnails,
         tray,
         settings: None,
         recording: None,
@@ -340,6 +342,19 @@ impl App {
         self.show_profiles(window);
     }
 
+    /// 把设置窗口的各页整页填一次：打开窗口时，以及换语言后（由 Rust 拼的文字要按新语言重拼）。
+    fn show_settings_pages(&self, window: &eveo_ui::SettingsWindow) {
+        if let Some(profile) = self.coordinator.config().active_profile() {
+            bind::show_previews(window, profile);
+            let clients = self.coordinator.registry().clients();
+            bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
+            self.show_switching(window, profile);
+        }
+        self.show_profiles(window);
+        self.show_general(window);
+        self.show_alerts(window);
+    }
+
     /// 填「配置方案」页：方案列表来自整份配置，路径是配置文件的位置。
     fn show_profiles(&self, window: &eveo_ui::SettingsWindow) {
         let path = self.store.path().display().to_string();
@@ -384,7 +399,7 @@ impl App {
                 }
                 drop(queue);
                 self.tray
-                    .set_tooltip(&menus::tray_tooltip(&self.coordinator.tray()));
+                    .set_tooltip(&menus::tray_tooltip(&self.coordinator.tray(), self.language));
             }
             // 热键服务自己处理代数与作用范围，这里只转交。
             Effect::RegisterHotkeys(bindings) => self.hotkeys.replace(bindings),
@@ -598,7 +613,11 @@ impl App {
         let Some(model) = self.coordinator.context_menu(id) else {
             return;
         };
-        let chosen = menu::popup(self.tray.hwnd(), cursor_point(), &menus::context_menu(&model));
+        let chosen = menu::popup(
+            self.tray.hwnd(),
+            cursor_point(),
+            &menus::context_menu(&model, self.language),
+        );
         if let Some(action) = chosen.ok().flatten().and_then(menus::context_action) {
             self.send(Event::ContextMenu { id, action }, runtime);
         }
@@ -607,7 +626,11 @@ impl App {
     /// 在光标处弹出托盘菜单。
     fn tray_menu(&mut self, runtime: &Rc<Runtime>) {
         let model = self.coordinator.tray();
-        let chosen = menu::popup(self.tray.hwnd(), cursor_point(), &menus::tray_menu(&model));
+        let chosen = menu::popup(
+            self.tray.hwnd(),
+            cursor_point(),
+            &menus::tray_menu(&model, self.language),
+        );
         if let Some(action) = chosen
             .ok()
             .flatten()
@@ -628,7 +651,7 @@ impl App {
             // 明暗只在建窗口时读一次；系统在窗口开着时切换明暗，下次打开设置窗口才跟上。
             window.set_dark(appearance::apps_use_dark_theme());
             // 界面文字按当前语言填；之后语言变了由 update_language 重填。
-            eveo_ui::l10n::apply(&window, self.language);
+            eveo_ui::set_language(&window, self.language);
             // 回调只排队，不在 Slint 的事件处理中途借用应用（见 Runtime::post）。
             let model = window.global::<eveo_ui::PreviewsModel>();
             let weak = Rc::downgrade(runtime);
@@ -664,15 +687,7 @@ impl App {
         let Some(window) = &self.settings else {
             return;
         };
-        if let Some(profile) = self.coordinator.config().active_profile() {
-            bind::show_previews(window, profile);
-            let clients = self.coordinator.registry().clients();
-            bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
-            self.show_switching(window, profile);
-        }
-        self.show_profiles(window);
-        self.show_general(window);
-        self.show_alerts(window);
+        self.show_settings_pages(window);
         // 托盘的「设置」、左键与首次启动（都是 General）打开「预览与布局」：最常改的设置在那一页，
         // 「通用」页的几项很少动，从导航进入。
         window.set_page(match page {
