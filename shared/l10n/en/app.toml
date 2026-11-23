@@ -3,6 +3,8 @@
 [SettingsStrings]
 # 窗口与通用。
 windowTitle = "EVE-O Preview Settings"
+searchSettings = "Find a setting"
+comingSoon = "This page is still in progress and will arrive in a later test build."
 points = "pt"
 reset = "Reset"
 defaultColor = "Default"
@@ -128,10 +130,10 @@ signingHint = "macOS records permissions by code signature. Ad-hoc builds need r
 # 关于页。
 version = "Version"
 devVersion = "Development build"
-aboutSubtitle = "Live thumbnails and fast switching for multiple EVE Online clients, native on macOS."
+aboutSubtitle = { macos = "Live thumbnails and fast switching for multiple EVE Online clients, native on macOS.", windows = "Live thumbnails and fast switching for multiple EVE Online clients, native on Windows." }
 aboutSummary = "One live thumbnail per client, click to switch, cycle-group hotkeys and multiple profiles."
 upstreamHeader = "Upstream & License"
-upstreamText = "This app re-implements the features of EveOPlus/eve-o-preview natively for macOS."
+upstreamText = { macos = "This app re-implements the features of EveOPlus/eve-o-preview natively for macOS.", windows = "This app re-implements the features of EveOPlus/eve-o-preview from scratch; none of its source code was ported." }
 licenseText = "Like upstream, it is released under the GNU General Public License v3.0."
 disclaimerHeader = "Notes"
 focusOnlyText = "This tool only switches window focus. It never broadcasts input to multiple clients and never reads or modifies game memory."

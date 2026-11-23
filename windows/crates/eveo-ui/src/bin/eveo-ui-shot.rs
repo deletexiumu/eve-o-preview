@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 界面截图工具：把设置窗口按明暗两套、首屏与整页两种高度画成 PNG。
-// 用法：eveo-ui-shot --out <目录> [--scale 1.5] [--font Inter]
+// 用法：eveo-ui-shot --out <目录> [--scale 1.5] [--font Inter] [--lang zh]
+// --lang 是界面语言的代码（en、zh、ru、ja、ko、fr、de、es），默认 zh；文件名加上语言代码。
 
 //! `eveo-ui-shot`。
 
 use std::path::PathBuf;
 
+use eveo_core::model::AppLanguage;
+use eveo_core::support::StringEnum;
 use eveo_ui::screenshot::{ShotOptions, settings_png};
 
 /// 取命令行里某个选项的值。
@@ -20,7 +23,7 @@ fn option(args: &[String], name: &str) -> Option<String> {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let Some(out) = option(&args, "--out").map(PathBuf::from) else {
-        eprintln!("用法：eveo-ui-shot --out <目录> [--scale 1.5] [--font Inter]");
+        eprintln!("用法：eveo-ui-shot --out <目录> [--scale 1.5] [--font Inter] [--lang zh]");
         std::process::exit(2);
     };
     // 默认 1.5 倍，对应常见的 150% 缩放，图片看得清楚。
@@ -29,6 +32,11 @@ fn main() {
         .unwrap_or(1.5);
     // Linux 上没有 Segoe UI，截图时传 --font Inter；中日韩文字由系统字体回退补上。
     let font = option(&args, "--font").unwrap_or_else(|| "Segoe UI Variable Text".into());
+    let code = option(&args, "--lang").unwrap_or_else(|| "zh".into());
+    let Some(language) = AppLanguage::from_raw(&code) else {
+        eprintln!("不认识的语言代码 {code}");
+        std::process::exit(2);
+    };
     if let Err(error) = std::fs::create_dir_all(&out) {
         eprintln!("建不了 {}：{error}", out.display());
         std::process::exit(2);
@@ -60,11 +68,14 @@ fn main() {
             scale,
             font: font.clone(),
             page,
+            language,
         };
+        // 文件名加上语言代码：settings-general-light.png → settings-general-light.zh.png。
+        let name = name.replace(".png", &format!(".{code}.png"));
         match settings_png(&options)
-            .and_then(|png| std::fs::write(out.join(name), png).map_err(|e| e.to_string()))
+            .and_then(|png| std::fs::write(out.join(&name), png).map_err(|e| e.to_string()))
         {
-            Ok(()) => println!("{}", out.join(name).display()),
+            Ok(()) => println!("{}", out.join(&name).display()),
             Err(error) => {
                 eprintln!("{name}：{error}");
                 std::process::exit(1);

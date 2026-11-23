@@ -8,7 +8,8 @@ sectionHeader = "진단"
 verboseLoggingToggle = "상세 로그"
 verboseLoggingHelp = "로그 파일에 더 자세한 내용을 기록합니다. 문제를 재현하기 전에 켜십시오."
 logLocationLabel = "로그 파일"
-showLogsButton = "Finder에서 로그 보기"
+showLogsButton = { macos = "Finder에서 로그 보기", windows = "파일 탐색기에서 로그 보기" }
+fileLogNotAvailableYet = "파일 로그는 이후 테스트 빌드에서 추가됩니다."
 reportButton = "문제 신고…"
 
 windowTitle = "문제 신고"

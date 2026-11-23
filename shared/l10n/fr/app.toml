@@ -3,6 +3,8 @@
 [SettingsStrings]
 # 窗口与通用。
 windowTitle = "Réglages d'EVE-O Preview"
+searchSettings = "Rechercher un paramètre"
+comingSoon = "Cette page est en cours de réalisation et arrivera dans une prochaine version de test."
 points = "pt"
 reset = "Réinitialiser"
 defaultColor = "Par défaut"
@@ -144,10 +146,10 @@ signingHint = "macOS associe les autorisations à la signature du code. Les buil
 # 关于页。「上游项目」写 projet d'origine。
 version = "Version"
 devVersion = "Version de développement"
-aboutSubtitle = "Vignettes en direct et bascule rapide entre plusieurs clients EVE Online, en natif sur macOS."
+aboutSubtitle = { macos = "Vignettes en direct et bascule rapide entre plusieurs clients EVE Online, en natif sur macOS.", windows = "Vignettes en direct et bascule rapide entre plusieurs clients EVE Online, en natif sur Windows." }
 aboutSummary = "Une vignette en direct par client, bascule d'un clic, raccourcis de groupes de cycle et plusieurs profils."
 upstreamHeader = "Projet d'origine et licence"
-upstreamText = "Cette app réimplémente en natif pour macOS les fonctionnalités d'EveOPlus/eve-o-preview."
+upstreamText = { macos = "Cette app réimplémente en natif pour macOS les fonctionnalités d'EveOPlus/eve-o-preview.", windows = "Cette app réimplémente les fonctionnalités d'EveOPlus/eve-o-preview sans en reprendre le code source." }
 # 许可证名称 GNU General Public License v3.0 是正式名称，不翻译。
 licenseText = "Comme le projet d'origine, elle est publiée sous la GNU General Public License v3.0."
 disclaimerHeader = "Remarques"

@@ -8,7 +8,8 @@ sectionHeader = "Diagnóstico"
 verboseLoggingToggle = "Registro detallado"
 verboseLoggingHelp = "Escribe más detalles en el archivo de registro. Actívalo antes de reproducir un problema."
 logLocationLabel = "Archivos de registro"
-showLogsButton = "Mostrar registros en Finder"
+showLogsButton = { macos = "Mostrar registros en Finder", windows = "Mostrar registros en el Explorador de archivos" }
+fileLogNotAvailableYet = "El registro en archivo llegará en una próxima versión de prueba."
 reportButton = "Informar de un problema…"
 
 windowTitle = "Informar de un problema"

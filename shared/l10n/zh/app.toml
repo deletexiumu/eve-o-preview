@@ -3,6 +3,8 @@
 [SettingsStrings]
 # 窗口与通用。
 windowTitle = "EVE-O Preview 设置"
+searchSettings = "查找设置"
+comingSoon = "这一页还在做，稍后的测试版会加上。"
 points = "点"
 reset = "恢复"
 defaultColor = "默认"
@@ -128,10 +130,10 @@ signingHint = "系统按代码签名记录授权。使用 ad-hoc 签名时，每
 # 关于页。
 version = "版本"
 devVersion = "开发版"
-aboutSubtitle = "EVE Online 多开客户端的实时缩略图与快速切换（macOS 原生版）。"
+aboutSubtitle = { macos = "EVE Online 多开客户端的实时缩略图与快速切换（macOS 原生版）。", windows = "EVE Online 多开客户端的实时缩略图与快速切换（Windows 原生版）。" }
 aboutSummary = "每个客户端一个实时缩略图，点击切换，支持循环组热键与多套配置方案。"
 upstreamHeader = "上游项目与许可证"
-upstreamText = "本应用按 EveOPlus/eve-o-preview 的功能在 macOS 上重新实现，没有移植其源码。"
+upstreamText = { macos = "本应用按 EveOPlus/eve-o-preview 的功能在 macOS 上重新实现，没有移植其源码。", windows = "本应用参照 EveOPlus/eve-o-preview 的功能重新实现，没有移植其源码。" }
 licenseText = "本应用与上游一样以 GNU 通用公共许可证第 3 版（GPL-3.0）发布。"
 disclaimerHeader = "说明"
 focusOnlyText = "本工具只切换窗口焦点，不向多个客户端广播输入，不读取或修改游戏内存。"

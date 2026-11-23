@@ -4,6 +4,7 @@
 // 颜色跟随 Theme.dark 的明暗；Win11 上根窗口背景透明，由 Mica 透出来，纯色是降级用的。
 // 各页的值放在各自的全局模型里（如 PreviewsModel、ClientsModel），由 Rust 的 bind 模块与配置互相转换。
 // 还没做完的页显示「即将推出」，导航先占好位置。
+// 界面上的文字都取自 generated/l10n.slint 的全局（SettingsText 等），Rust 按界面语言填值。
 
 import { LineEdit, Palette, ScrollView } from "std-widgets.slint";
 import { Icons } from "icons.slint";
@@ -16,8 +17,11 @@ import { ProfileRow, ProfilesModel, ProfilesPage } from "profiles.slint";
 import { GeneralModel, GeneralPage } from "general.slint";
 import { AboutModel, AboutPage } from "about.slint";
 import { AlertsModel, AlertsPage } from "alerts.slint";
+import { CombatText, DiagnosticsText, HotkeyText, SettingsText, UpdateText } from "generated/l10n.slint";
 
 export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, GeneralModel, HotkeyRow, HotkeySlotData, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel }
+// 界面文字的全局，由 Rust 的 l10n::apply 按界面语言填值。
+export { CombatText, DiagnosticsText, HotkeyText, SettingsText, UpdateText }
 
 // 还没做完的页：页标题加一句说明。导航项先全部列出，测试的人能看到完整的结构，
 // 也不必在每次加页时改导航；页做好后把对应的 ComingSoonPage 换成真正的页面。
@@ -27,7 +31,7 @@ component ComingSoonPage inherits VerticalLayout {
     alignment: start;
     PageHeader {
         title: root.title;
-        subtitle: "这一页还在做，稍后的测试版会加上。";
+        subtitle: SettingsText.coming-soon;
     }
 }
 
@@ -42,7 +46,7 @@ export component SettingsWindow inherits Window {
     // 界面字体。Windows 上是 Segoe UI Variable，中日韩文字由系统字体回退补上（微软雅黑等）。
     in property <string> ui-font: "Segoe UI Variable Text";
     // 首次打开的大小；可以缩小到最小尺寸，内容区滚动。
-    title: "EVE-O Preview 设置";
+    title: SettingsText.window-title;
     // 标题栏与任务栏的图标：应用图标的头像版（shared/branding/make-icons.py 生成），小尺寸下认得出。
     icon: @image-url("images/app-icon.png");
     preferred-width: 1040px;
@@ -90,20 +94,20 @@ export component SettingsWindow inherits Window {
             }
             // 查找框：按设置项的名字过滤（M5 实现），原型里只占位。
             LineEdit {
-                placeholder-text: "查找设置";
+                placeholder-text: SettingsText.search-settings;
             }
             Rectangle { height: 12px; }
-            NavItem { icon: Icons.clients; text: "客户端"; selected: page == 0; clicked => { page = 0; } }
-            NavItem { icon: Icons.previews; text: "预览与布局"; selected: page == 1; clicked => { page = 1; } }
-            NavItem { icon: Icons.switching; text: "切换与热键"; selected: page == 2; clicked => { page = 2; } }
-            NavItem { icon: Icons.alerts; text: "提醒"; selected: page == 3; clicked => { page = 3; } }
-            NavItem { icon: Icons.intel; text: "预警"; selected: page == 4; clicked => { page = 4; } }
-            NavItem { icon: Icons.translation; text: "翻译"; selected: page == 5; clicked => { page = 5; } }
-            NavItem { icon: Icons.profiles; text: "配置方案"; selected: page == 6; clicked => { page = 6; } }
-            NavItem { icon: Icons.general; text: "通用"; selected: page == 7; clicked => { page = 7; } }
+            NavItem { icon: Icons.clients; text: SettingsText.page-clients; selected: page == 0; clicked => { page = 0; } }
+            NavItem { icon: Icons.previews; text: SettingsText.page-previews; selected: page == 1; clicked => { page = 1; } }
+            NavItem { icon: Icons.switching; text: SettingsText.page-switching; selected: page == 2; clicked => { page = 2; } }
+            NavItem { icon: Icons.alerts; text: SettingsText.page-alerts; selected: page == 3; clicked => { page = 3; } }
+            NavItem { icon: Icons.intel; text: SettingsText.page-intel; selected: page == 4; clicked => { page = 4; } }
+            NavItem { icon: Icons.translation; text: SettingsText.page-translation; selected: page == 5; clicked => { page = 5; } }
+            NavItem { icon: Icons.profiles; text: SettingsText.page-profiles; selected: page == 6; clicked => { page = 6; } }
+            NavItem { icon: Icons.general; text: SettingsText.page-general; selected: page == 7; clicked => { page = 7; } }
             // 弹性空白，把「关于」推到底部。
             Rectangle { }
-            NavItem { icon: Icons.about; text: "关于"; selected: page == 8; clicked => { page = 8; } }
+            NavItem { icon: Icons.about; text: SettingsText.page-about; selected: page == 8; clicked => { page = 8; } }
         }
         // 右侧内容：可滚动；右边距比左边大一些，给滚动条留位置。
         ScrollView {
@@ -118,8 +122,8 @@ export component SettingsWindow inherits Window {
                 if page == 0: ClientsPage { }
                 if page == 2: SwitchingPage { }
                 if page == 3: AlertsPage { }
-                if page == 4: ComingSoonPage { title: "预警"; }
-                if page == 5: ComingSoonPage { title: "翻译"; }
+                if page == 4: ComingSoonPage { title: SettingsText.page-intel; }
+                if page == 5: ComingSoonPage { title: SettingsText.page-translation; }
                 if page == 6: ProfilesPage { }
                 if page == 7: GeneralPage { }
                 if page == 8: AboutPage { }

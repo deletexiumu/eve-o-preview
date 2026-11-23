@@ -8,6 +8,7 @@ Issue 的标题与正文、压缩包里的文件一律用英文，不在这里�
 [protocols.DiagnosticsStrings]
 doc = "诊断域的文字。"
 accessor = "diagnostics"
+slint = true
 
 [DiagnosticsStrings.menuReportProblem]
 section = "菜单栏菜单"
@@ -31,6 +32,10 @@ doc = "日志文件位置一行的标签。"
 
 [DiagnosticsStrings.showLogsButton]
 doc = "「在访达中显示日志」按钮。"
+
+[DiagnosticsStrings.fileLogNotAvailableYet]
+doc = "Windows 测试版：文件日志还没做，诊断一组下的说明。"
+platforms = ["windows"]
 
 [DiagnosticsStrings.reportButton]
 doc = "「报告问题…」按钮。"

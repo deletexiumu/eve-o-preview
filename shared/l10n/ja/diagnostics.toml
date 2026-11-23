@@ -8,7 +8,8 @@ sectionHeader = "診断"
 verboseLoggingToggle = "詳細ログ"
 verboseLoggingHelp = "ログファイルにより詳しい情報を書き込みます。問題を再現する前にオンにしてください。"
 logLocationLabel = "ログファイル"
-showLogsButton = "Finder でログを表示"
+showLogsButton = { macos = "Finder でログを表示", windows = "エクスプローラーでログを表示" }
+fileLogNotAvailableYet = "ファイルへのログ出力は今後のテスト版で追加されます。"
 reportButton = "問題を報告…"
 
 windowTitle = "問題を報告"

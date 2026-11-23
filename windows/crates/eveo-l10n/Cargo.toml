@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# 界面文字（架构文档 5.2 节）。代码由 shared/tools/gen_l10n.py 从 shared/l10n 的 TOML 生成，与 macOS 同一个来源。
+# 不依赖 Slint 与 Windows：托盘菜单、通知与设置窗口都从这里取文字。
+
+[package]
+name = "eveo-l10n"
+description = "EVE-O Preview 的界面文字（8 种语言），由 shared/l10n 生成"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+eveo-core.workspace = true
+
+[lints]
+workspace = true

@@ -9,6 +9,7 @@ notes = """
 [protocols.HotkeyStrings]
 doc = "热键域的全部文字。"
 accessor = "hotkeys"
+slint = true
 
 [HotkeyStrings.switchingSubtitle]
 section = "切换与热键页：页首与循环组"

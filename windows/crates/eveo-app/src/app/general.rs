@@ -3,12 +3,15 @@
 // 设置窗口「通用」与「关于」两页与应用之间的连接。「通用」页的值在配置的 general 里，
 // 与「预览与布局」页一样：用户改了任何一项就读回整页，从协调器手里的配置出发组成新配置，有变化才交给协调器。
 // 「关于」页只有链接，核对是页上列出的地址后用默认浏览器打开。
+// 界面语言：配置的选项求出实际语言（跟随系统时看 Windows 的语言偏好），变了就重填设置窗口的文字，不用重启。
 
 //! 「通用」页与「关于」页。
 
 use std::rc::Rc;
 
 use eveo_app_core::Event;
+use eveo_core::model::{AppLanguage, GeneralSettings};
+use eveo_platform_win::appearance;
 use eveo_ui::general;
 use slint::ComponentHandle;
 
@@ -23,6 +26,14 @@ pub(super) enum GeneralInput {
     RevealLogs,
     /// 「关于」页的链接。
     OpenUrl(String),
+}
+
+/// 求出界面实际使用的语言。环境变量 `EVEO_LANG`（只用于调试）优先，规则在 Core 的
+/// `LanguagePreference::resolved`，与 macOS 相同。
+pub(super) fn resolve_language(general: &GeneralSettings) -> AppLanguage {
+    let preferred = appearance::preferred_ui_languages();
+    let override_code = std::env::var("EVEO_LANG").ok();
+    general.language.resolved(&preferred, override_code.as_deref())
 }
 
 /// 接上两页的回调：都转成输入排队，不在 Slint 的事件处理中途借用应用。
@@ -64,6 +75,18 @@ impl App {
         general::read_general(window, &mut config.general);
         if &config != self.coordinator.config() {
             self.send(Event::ConfigEdited(config), runtime);
+        }
+    }
+
+    /// 配置变化后重新求界面语言；变了就把设置窗口的文字换成新语言。
+    pub(super) fn update_language(&mut self) {
+        let language = resolve_language(&self.coordinator.config().general);
+        if language == self.language {
+            return;
+        }
+        self.language = language;
+        if let Some(window) = &self.settings {
+            eveo_ui::l10n::apply(window, language);
         }
     }
 

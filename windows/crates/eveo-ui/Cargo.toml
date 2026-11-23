@@ -15,6 +15,7 @@ publish.workspace = true
 
 [dependencies]
 eveo-core.workspace = true
+eveo-l10n.workspace = true
 slint = { workspace = true, features = ["renderer-software", "software-renderer-path"] }
 png = "0.18"
 # std-widgets 的 fluent 样式用 SVG 图标。各后端会打开 Slint 内核的 svg 与图片解码特性；截图工具不带后端，只能在这里直接打开。

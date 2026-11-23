@@ -11,6 +11,7 @@ autoCheckToggle = "Buscar actualizaciones automáticamente"
 autoCheckHelp = "Se conecta a GitHub una vez al día. No se envían datos personales."
 autoInstallToggle = "Instalar actualizaciones automáticamente"
 autoInstallHelp = "Descarga en segundo plano. Instala y reinicia cuando no se ha ejecutado ningún cliente de EVE durante un minuto, o instala al salir de EVE-O Preview."
+notAvailableYet = "Las actualizaciones llegarán en una próxima versión de prueba. Mientras tanto, descarga las nuevas versiones desde la página de versiones de GitHub."
 # 「通用」页表单行的标签，宜短。
 currentVersionLabel = "Versión actual"
 lastCheckedLabel = "Última comprobación"

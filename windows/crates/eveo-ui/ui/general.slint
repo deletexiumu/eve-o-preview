@@ -6,11 +6,12 @@
 //
 // 与「预览与布局」页的约定相同：控件的 toggled、selected 只在用户操作时触发，触发后 Rust 读回整页组成新配置；
 // Rust 用 set_* 写值不会触发它们，不会形成循环。
-// 界面语言、更新与文件日志的功能分别在后续里程碑接上（架构文档第 9 节），现在先把选择记进配置，页上写明这一点。
+// 界面语言立即生效；更新与文件日志的功能在后续里程碑接上（架构文档第 9 节），现在先把选择记进配置，页上写明这一点。
 
 import { Button, ComboBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { DiagnosticsText, SettingsText, UpdateText } from "generated/l10n.slint";
 
 // 本页的数据。字段对应配置的 general。
 export global GeneralModel {
@@ -34,15 +35,15 @@ export global GeneralModel {
 export component GeneralPage inherits VerticalLayout {
     alignment: start;
     PageHeader {
-        title: "通用";
-        subtitle: "对全部配置方案生效的设置。";
+        title: SettingsText.page-general;
+        subtitle: SettingsText.general-subtitle;
     }
 
     // 语言：前 8 项用各语言的自称，不随界面语言变化，选错了也认得出自己的语言；最后一项随界面语言。
     SettingRow {
-        title: "界面语言";
+        title: SettingsText.interface-language;
         ComboBox {
-            model: ["English", "中文", "Русский", "日本語", "한국어", "Français", "Deutsch", "Español", "跟随系统"];
+            model: ["English", "中文", "Русский", "日本語", "한국어", "Français", "Deutsch", "Español", SettingsText.follow-system];
             current-index <=> GeneralModel.language;
             // 宽度放得下最长的自称（Français、Español）与「跟随系统」。
             width: 160px;
@@ -52,13 +53,13 @@ export component GeneralPage inherits VerticalLayout {
         }
     }
     Footnote {
-        text: "部分译文由机器生成，欢迎指正。Windows 版目前只有中文界面，其他语言在后续测试版加上，这里的选择会先记下。";
+        text: SettingsText.machine-translation-note;
     }
 
-    SectionHeader { text: "更新"; }
+    SectionHeader { text: UpdateText.section-header; }
     SettingRow {
-        title: "自动检查更新";
-        description: "每天访问一次 GitHub，不发送个人数据。";
+        title: UpdateText.auto-check-toggle;
+        description: UpdateText.auto-check-help;
         Switch {
             checked <=> GeneralModel.check-updates;
             toggled => {
@@ -69,8 +70,8 @@ export component GeneralPage inherits VerticalLayout {
     RowGap { }
     // 自动安装依附于自动检查：检查关着时置灰，值照样保留。
     SettingRow {
-        title: "自动安装更新";
-        description: "在后台下载，没有 EVE 客户端运行时安装；也会在退出 EVE-O Preview 时安装。";
+        title: UpdateText.auto-install-toggle;
+        description: UpdateText.auto-install-help;
         enabled: GeneralModel.check-updates;
         Switch {
             checked <=> GeneralModel.auto-install;
@@ -81,13 +82,13 @@ export component GeneralPage inherits VerticalLayout {
         }
     }
     Footnote {
-        text: "更新功能在后续测试版加上，在那之前请到 GitHub 的发布页下载新版本。";
+        text: UpdateText.not-available-yet;
     }
 
-    SectionHeader { text: "诊断"; }
+    SectionHeader { text: DiagnosticsText.section-header; }
     SettingRow {
-        title: "详细日志";
-        description: "在日志文件里写入更多细节。重现问题之前打开它。";
+        title: DiagnosticsText.verbose-logging-toggle;
+        description: DiagnosticsText.verbose-logging-help;
         Switch {
             checked <=> GeneralModel.verbose-log;
             toggled => {
@@ -98,17 +99,17 @@ export component GeneralPage inherits VerticalLayout {
     RowGap { }
     // 日志的位置：%LOCALAPPDATA% 下的 EVE-O Preview\logs。
     SettingRow {
-        title: "日志文件";
+        title: DiagnosticsText.log-location-label;
         description: GeneralModel.log-path;
         Button {
-            text: "在资源管理器中显示";
+            text: DiagnosticsText.show-logs-button;
             clicked => {
                 GeneralModel.reveal-logs();
             }
         }
     }
     Footnote {
-        text: "文件日志在后续测试版加上。";
+        text: DiagnosticsText.file-log-not-available-yet;
     }
     // 页底留白，滚到底时最后一行不贴着窗口边。
     Rectangle { height: 24px; }

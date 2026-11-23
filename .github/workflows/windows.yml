@@ -92,6 +92,10 @@ jobs:
       - name: 文档链接
         run: python3 scripts/check_links.py
 
+      # 文案的 TOML 校验不过，或改了 TOML 没重新生成 Rust 与 Slint 时，在这里拦下（架构文档 5.2 节）。
+      - name: 文案生成结果
+        run: python3 shared/tools/gen_l10n.py --check
+
       # tag 必须与 windows/VERSION 一致（Windows 的版本号与 macOS 独立）。
       - name: tag 与版本号
         if: startsWith(github.ref, 'refs/tags/win-v')

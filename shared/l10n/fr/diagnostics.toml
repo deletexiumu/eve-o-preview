@@ -8,7 +8,8 @@ sectionHeader = "Diagnostic"
 verboseLoggingToggle = "Journalisation détaillée"
 verboseLoggingHelp = "Écrit plus de détails dans le fichier journal. Activez-la avant de reproduire un problème."
 logLocationLabel = "Fichiers journaux"
-showLogsButton = "Afficher les journaux dans le Finder"
+showLogsButton = { macos = "Afficher les journaux dans le Finder", windows = "Afficher les journaux dans l'Explorateur de fichiers" }
+fileLogNotAvailableYet = "La journalisation dans un fichier arrivera dans une prochaine version de test."
 reportButton = "Signaler un problème…"
 
 windowTitle = "Signaler un problème"

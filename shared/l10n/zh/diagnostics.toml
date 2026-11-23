@@ -8,7 +8,8 @@ sectionHeader = "诊断"
 verboseLoggingToggle = "详细日志"
 verboseLoggingHelp = "在日志文件里写入更多细节。重现问题之前打开它。"
 logLocationLabel = "日志文件"
-showLogsButton = "在访达中显示日志"
+showLogsButton = { macos = "在访达中显示日志", windows = "在资源管理器中显示日志" }
+fileLogNotAvailableYet = "文件日志在后续测试版加上。"
 reportButton = "报告问题…"
 
 windowTitle = "报告问题"
