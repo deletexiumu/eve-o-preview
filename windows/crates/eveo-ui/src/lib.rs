@@ -14,5 +14,6 @@ mod generated {
 pub use generated::*;
 
 pub mod bind;
+pub mod profiles;
 pub mod screenshot;
 pub mod switching;

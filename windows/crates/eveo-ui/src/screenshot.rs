@@ -95,6 +95,16 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
         recording: None,
     };
     crate::switching::show_switching(&ui, &profile, &state);
+    // 「配置方案」页：示例方案之外再放两个，示意列表与「切换」按钮；路径用常见的用户目录。
+    let mut config = eveo_core::model::AppConfig {
+        active_profile_id: profile.id.clone(),
+        profiles: vec![profile],
+        ..Default::default()
+    };
+    config.profiles.push(Profile::make_new("shot-2", "PVP 小队"));
+    config.profiles.push(Profile::make_new("shot-3", "挖矿"));
+    let path = r"C:\Users\Pilot\AppData\Roaming\EVE-O Preview\config.json";
+    crate::profiles::show_profiles(&ui, &config, path);
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;

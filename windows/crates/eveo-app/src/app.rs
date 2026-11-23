@@ -41,6 +41,8 @@ use crate::hotkeys::HotkeyService;
 use crate::menus;
 use crate::thumbnails::ThumbnailManager;
 
+mod profiles;
+
 /// 定时器的周期：取窗口事件、检查轮询、唤醒与写盘。
 const TICK: Duration = Duration::from_millis(50);
 /// 兜底轮询的间隔（架构文档 4.1 节的 pollIntervalMs 默认值）。
@@ -74,6 +76,8 @@ enum Input {
     SwitchingEdit(switching::SwitchingEdit),
     /// 「切换与热键」页的录制按钮（位置标识、原文；新增时原文为空串）。
     Record(String, String),
+    /// 「配置方案」页的操作。
+    Profiles(profiles::ProfilesInput),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -272,6 +276,7 @@ impl App {
             Input::SwitchingEdit(edit) => self.switching_edited(&edit, runtime),
             // 录制的结果不经回调，由定时器从录制器取（见 check_recording）。
             Input::Record(slot, text) => self.toggle_recording(&slot, text),
+            Input::Profiles(input) => self.profiles_input(input, runtime),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -308,6 +313,13 @@ impl App {
             bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
             self.show_switching(window, profile);
         }
+        self.show_profiles(window);
+    }
+
+    /// 填「配置方案」页：方案列表来自整份配置，路径是配置文件的位置。
+    fn show_profiles(&self, window: &eveo_ui::SettingsWindow) {
+        let path = self.store.path().display().to_string();
+        eveo_ui::profiles::show_profiles(window, self.coordinator.config(), &path);
     }
 
     /// 填「切换与热键」页：热键规划的问题、注册失败项与录制状态一起交给绑定层。
@@ -609,6 +621,7 @@ impl App {
                 post(&weak, Input::ClientEdit(bind::ClientEdit::ResetColor { name }));
             });
             connect_switching(&window, runtime);
+            profiles::connect(&window, runtime);
             self.settings = Some(window);
         }
         let Some(window) = &self.settings else {
@@ -620,6 +633,7 @@ impl App {
             bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
             self.show_switching(window, profile);
         }
+        self.show_profiles(window);
         // 「通用」页还没做：托盘与首次启动先打开「预览与布局」，那一页已经能用。
         window.set_page(match page {
             SettingsPage::Clients => 0,

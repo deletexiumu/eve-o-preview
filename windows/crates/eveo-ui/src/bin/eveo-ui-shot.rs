@@ -43,6 +43,8 @@ fn main() {
         ("settings-clients-dark.png", true, 0, (1040, 760)),
         ("settings-switching-light-full.png", false, 2, (1040, 1500)),
         ("settings-switching-dark.png", true, 2, (1040, 760)),
+        ("settings-profiles-light.png", false, 6, (1040, 760)),
+        ("settings-profiles-dark.png", true, 6, (1040, 760)),
     ];
     // 逐张渲染；任何一张失败就以非零码退出，CI 能发现。
     for (name, dark, page, size) in shots {
