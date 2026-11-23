@@ -16,6 +16,7 @@ pub mod appearance;
 pub mod discovery;
 pub mod events;
 pub mod hotkey;
+pub mod known_folders;
 pub mod menu;
 pub mod message_loop;
 pub mod mouse_hook;

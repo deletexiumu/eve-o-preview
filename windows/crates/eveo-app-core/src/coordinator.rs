@@ -9,12 +9,13 @@
 // - 配置由协调器自己持有（macOS 是 ConfigController），改动后发 ConfigChanged，由执行者延迟写盘。
 // - 激活与最小化是效果，结果以前台事件与下一轮轮询回来；协调器不追踪激活的序号。
 //
-// 分成三个文件：这里是状态、事件分发与重算；actions.rs 是缩略图、右键菜单与托盘的动作；
-// hotkeys.rs 是热键的规划与执行。
+// 分成四个文件：这里是状态、事件分发与重算；actions.rs 是缩略图、右键菜单与托盘的动作；
+// hotkeys.rs 是热键的规划与执行；combat.rs 是战斗提醒（游戏日志的启停与受击事件）。
 
 //! 事件驱动的协调器。
 
 mod actions;
+mod combat;
 mod hotkeys;
 #[cfg(test)]
 mod tests;
@@ -28,8 +29,7 @@ use eveo_core::geometry::ScreenInfo;
 use eveo_core::hotkeys::HotkeyPlan;
 use eveo_core::model::{AppConfig, Profile, RegistryDiff, ThumbnailLayout, WindowId, WindowInfo};
 use eveo_core::planning::{
-    CombatAlertWindow, FrontmostContext, PlannerInput, SessionState, ThumbnailPlan, ThumbnailPresentation,
-    ThumbnailStatus, plan,
+    FrontmostContext, PlannerInput, SessionState, ThumbnailPlan, ThumbnailPresentation, ThumbnailStatus, plan,
 };
 
 use crate::event::{Effect, Event, ForegroundOwner};
@@ -72,6 +72,8 @@ pub struct Coordinator {
     now: f64,
     /// 本次 `handle` 累积的效果。
     effects: Vec<Effect>,
+    /// 最近一次要求的游戏日志跟踪：`None` 是没在跟踪，`Some(目录)` 是按这个目录设置跟踪。
+    game_log: Option<Option<String>>,
 }
 
 impl Coordinator {
@@ -94,6 +96,7 @@ impl Coordinator {
             stopped: false,
             now: 0.0,
             effects: Vec::new(),
+            game_log: None,
         }
     }
 
@@ -165,6 +168,7 @@ impl Coordinator {
                 self.rebuild_hotkeys(true);
                 self.push_game_foreground();
                 self.effects.push(Effect::PollNow);
+                self.apply_game_log_settings();
                 self.needs_replan = true;
             }
             Event::WindowsPolled(candidates) => self.windows_polled(&candidates),
@@ -208,21 +212,8 @@ impl Coordinator {
             Event::Tray(action) => self.tray_action(action),
             Event::ConfigEdited(config) => self.update_config(|draft| *draft = config),
             Event::TestCombatAlert => self.test_combat_alert(),
+            Event::CombatEvents(events) => self.combat_events(&events),
         }
-    }
-
-    /// 「测试闪烁」：给当前全部客户端（含登录界面的客户端）各设一条提醒，同 macOS 的 testCombatAlert。
-    /// 正在闪的客户端按规则延长，不会缩短。到期由重算开头清掉，唤醒时刻由规划给出。
-    fn test_combat_alert(&mut self) {
-        let duration = self.profile().combat_alert.duration_seconds;
-        let now = self.now;
-        for client in self.registry.clients() {
-            let existing = self.session.combat_alerts.get(&client.id).copied();
-            self.session
-                .combat_alerts
-                .insert(client.id, CombatAlertWindow::extended(existing, now, duration));
-        }
-        self.needs_replan = true;
     }
 
     /// 一轮枚举：选主窗口、更新登记、清掉消失窗口的状态，再按新的客户端列表重新判断前台。
@@ -285,6 +276,7 @@ impl Coordinator {
         }
         self.rebuild_hotkeys(false);
         self.effects.push(Effect::ConfigChanged(self.config.clone()));
+        self.apply_game_log_settings();
         self.needs_replan = true;
     }
 

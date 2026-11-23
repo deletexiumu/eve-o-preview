@@ -16,9 +16,11 @@ use std::rc::{Rc, Weak};
 use std::time::{Duration, Instant};
 
 use eveo_app_core::config_store::{ConfigWarning, JsonFileConfigStore, default_config};
+use eveo_app_core::game_log::GameLogTailer;
 use eveo_app_core::gesture::{Button, GestureOutput, Modifiers};
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::{Coordinator, Effect, Event, ForegroundOwner, SettingsPage};
+use eveo_core::combat_log::CombatLogStatus;
 use eveo_core::geometry::ScreenInfo;
 use eveo_core::layout::ResizeEdges;
 use eveo_core::model::{AppLanguage, Pid, WindowId};
@@ -171,6 +173,10 @@ struct App {
     self_elevated: bool,
     /// 上次轮询时以管理员运行的客户端进程（「环境检查」页）。
     elevated_pids: Vec<Pid>,
+    /// 游戏日志的跟踪服务；战斗提醒关着时为 `None`。
+    game_log: Option<GameLogTailer>,
+    /// 跟踪服务最近报告的状态（「提醒」页的状态行）。
+    combat_status: CombatLogStatus,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -231,6 +237,8 @@ pub fn run() -> ExitCode {
         language,
         self_elevated: current_process_elevated().unwrap_or(false),
         elevated_pids: Vec::new(),
+        game_log: None,
+        combat_status: CombatLogStatus::Stopped,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -439,6 +447,8 @@ impl App {
             }
             Effect::PollNow => self.poll_at = Instant::now(),
             Effect::OpenSettings(page) => self.open_settings(page, runtime),
+            Effect::WatchGameLogs(directory) => self.watch_game_logs(directory.as_deref()),
+            Effect::StopGameLogs => self.stop_game_logs(),
             // 退出：先写盘，再让主循环返回到 run() 的收尾。
             Effect::Quit => {
                 self.flush();
@@ -465,6 +475,8 @@ impl App {
         self.focus_settings();
         // 热键录制的结果：钩子回调只记下结果，这里取走并写进配置。
         self.check_recording(runtime);
+        // 游戏日志的受击事件与状态：后台线程只放进通道，这里取走。
+        self.drain_game_log(runtime);
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());
         let now = Instant::now();
