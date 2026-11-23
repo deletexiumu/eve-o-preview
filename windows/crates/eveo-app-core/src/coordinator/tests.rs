@@ -9,6 +9,9 @@ use eveo_core::planning::{FrontmostContext, ThumbnailStatus};
 use eveo_core::switching::CycleDirection;
 
 use super::Coordinator;
+
+// 战斗提醒（游戏日志的启停与受击事件）的用例放在子模块里，共用这里的夹具。
+mod combat;
 use crate::event::{ContextMenuAction, Effect, Event, ForegroundOwner, SettingsPage, TrayAction};
 
 // MARK: 夹具

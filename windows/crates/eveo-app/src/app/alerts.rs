@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 设置窗口「提醒」页与应用之间的连接。设置读回后与其他页一样以 ConfigEdited 交给协调器；
-// 「测试闪烁」是协调器的 TestCombatAlert 事件，不改配置。读游戏日志在 M6 接上。
+// 「测试闪烁」是协调器的 TestCombatAlert 事件，不改配置。
+// 游戏日志的跟踪服务也在这里启停：协调器按开关与目录发 WatchGameLogs / StopGameLogs，
+// 后台线程的消息由定时器取走，受击事件交回协调器，状态显示在本页的状态行。
 
 //! 「提醒」页。
 
@@ -9,6 +11,9 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use eveo_app_core::Event;
+use eveo_app_core::game_log::{GameLogMessage, GameLogTailer};
+use eveo_core::combat_log::{CombatLogStatus, directory};
+use eveo_platform_win::known_folders;
 use eveo_ui::alerts;
 use slint::ComponentHandle;
 
@@ -32,12 +37,12 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
     model.on_test_flash(move || post(&weak, Input::Alerts(AlertsInput::TestFlash)));
 }
 
-/// 自动查找时的日志目录，只用作输入框的提示：EVE 默认写在「文档\EVE\logs」。
-/// 真正的查找（文档文件夹被移到别处、OneDrive 等）随读日志的功能在 M6 做。
+/// 自动查找时的日志目录：EVE 写在「文档\EVE\logs」。「文档」按系统的已知文件夹取（可能被移走或由 OneDrive 接管），
+/// 取不到时退回 %USERPROFILE%\Documents。
 pub(super) fn automatic_directory() -> String {
-    std::env::var_os("USERPROFILE")
-        .map(PathBuf::from)
-        .map(|home| home.join("Documents").join("EVE").join("logs"))
+    known_folders::documents()
+        .or_else(|| std::env::var_os("USERPROFILE").map(|home| PathBuf::from(home).join("Documents")))
+        .map(|docs| docs.join("EVE").join("logs"))
         .map(|path| path.display().to_string())
         .unwrap_or_else(|| r"Documents\EVE\logs".to_owned())
 }
@@ -69,11 +74,48 @@ impl App {
         }
     }
 
-    /// 填「提醒」页。只随配置变化，在打开窗口与配置变化时调用。
+    /// 填「提醒」页。在打开窗口与配置变化时调用；状态行另外随跟踪服务的消息刷新。
     pub(super) fn show_alerts(&self, window: &eveo_ui::SettingsWindow) {
         let config = self.coordinator.config();
         if let Some(profile) = config.active_profile() {
             alerts::show_alerts(window, profile, &config.general, &automatic_directory());
+        }
+        alerts::show_status(window, &self.combat_status);
+    }
+
+    /// 按这个目录设置开始跟踪游戏日志（`None` 是自动查找）。旧的服务先停掉，它没取走的消息随之丢弃。
+    pub(super) fn watch_game_logs(&mut self, configured: Option<&str>) {
+        self.game_log = None;
+        let candidates = directory::candidates(configured, &automatic_directory());
+        // 线程建不出来（系统资源耗尽）时按未启用显示，下次配置变化再试。
+        self.game_log = GameLogTailer::start(candidates).ok();
+        self.set_combat_status(CombatLogStatus::Stopped);
+    }
+
+    /// 停止跟踪游戏日志。
+    pub(super) fn stop_game_logs(&mut self) {
+        self.game_log = None;
+        self.set_combat_status(CombatLogStatus::Stopped);
+    }
+
+    /// 定时器里调用：取走跟踪服务的消息，受击事件交给协调器，状态显示到「提醒」页。
+    pub(super) fn drain_game_log(&mut self, runtime: &Rc<Runtime>) {
+        let Some(tailer) = &self.game_log else {
+            return;
+        };
+        for message in tailer.drain() {
+            match message {
+                GameLogMessage::Events(events) => self.send(Event::CombatEvents(events), runtime),
+                GameLogMessage::Status(status) => self.set_combat_status(status),
+            }
+        }
+    }
+
+    /// 记下跟踪服务的状态；设置窗口开着时刷新状态行。
+    fn set_combat_status(&mut self, status: CombatLogStatus) {
+        self.combat_status = status;
+        if let Some(window) = &self.settings {
+            alerts::show_status(window, &self.combat_status);
         }
     }
 }

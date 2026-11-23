@@ -9,6 +9,7 @@
 
 use std::collections::HashSet;
 
+use eveo_core::combat_log::CombatLogEvent;
 use eveo_core::geometry::{ScreenInfo, ScreenRect, ScreenSize};
 use eveo_core::hotkeys::planner::HotkeyBinding;
 use eveo_core::layout::SnapTargets;
@@ -134,6 +135,8 @@ pub enum Event {
     ConfigEdited(AppConfig),
     /// 「提醒」页的「测试闪烁」：让全部客户端的缩略图按当前方案的设置闪一次，不要求战斗提醒已打开。
     TestCombatAlert,
+    /// 游戏日志跟踪服务读到的一批受击事件，还没按提醒设置过滤。
+    CombatEvents(Vec<CombatLogEvent>),
 }
 
 /// 协调器要求执行的效果，按产生的顺序执行。
@@ -164,6 +167,10 @@ pub enum Effect {
     PollNow,
     /// 打开设置窗口并切到这一页。
     OpenSettings(SettingsPage),
+    /// 开始（或换一个目录）跟踪游戏日志；关联值是 `general.eveLogDirectory`，`None` 表示自动查找。
+    WatchGameLogs(Option<String>),
+    /// 停止跟踪游戏日志。
+    StopGameLogs,
     /// 退出应用：先把配置立即写盘，再拆掉各服务。
     Quit,
 }

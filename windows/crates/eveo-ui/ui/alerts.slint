@@ -4,7 +4,7 @@
 // 总开关与状态、游戏日志目录、闪烁的外观（颜色、持续时间、样式）、触发条件（未命中也提醒、最小伤害）、「测试闪烁」。
 // 战斗提醒的设置在当前配置方案的 combatAlert 里；日志目录在 general.eveLogDirectory，对全部方案生效。
 //
-// 读游戏日志在 M6 接上，现在状态行写明这一点；「测试闪烁」已经可用，用来看闪烁的样子。
+// 状态行显示游戏日志跟踪服务的状态（未启用、监视中、找不到目录、没有权限），文字由 Rust 按当前语言拼好。
 // macOS 用系统的文件夹选择框；这里先用输入框填路径（回车或离开输入框时提交），空着就是自动查找。
 // 与「预览与布局」页的约定相同：控件只在用户操作时触发 edited，Rust 读回整页。
 
@@ -21,6 +21,8 @@ export global AlertsModel {
     in-out property <string> log-directory;
     // 自动查找时的位置，作为输入框的提示。
     in property <string> automatic-directory;
+    // 游戏日志跟踪服务的状态文字。
+    in property <string> status-text;
     // combatAlert.color 的输入框文字与样本。
     in-out property <string> color: "#FF3B30";
     in property <color> swatch: #ff3b30;
@@ -62,7 +64,7 @@ export component AlertsPage inherits VerticalLayout {
     SettingRow {
         title: CombatText.status-label;
         Text {
-            text: CombatText.not-available-yet;
+            text: AlertsModel.status-text;
             color: Theme.text-secondary;
             vertical-alignment: center;
             wrap: word-wrap;

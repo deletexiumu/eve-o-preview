@@ -2,11 +2,13 @@
 //
 // 「提醒」页的绑定：当前方案的 combatAlert 与全局的 general.eveLogDirectory。与「预览与布局」页一样整页显示、整页读回；
 // 颜色只在输入完整的 #RRGGBB 时写回，数值按配置的取值范围与步长取整（越界的值最终还会被配置校验夹回）。
+// 状态行显示游戏日志跟踪服务的状态，与配置分开刷新（show_status）。
 
 //! 「提醒」页。
 
 use slint::{Color, ComponentHandle};
 
+use eveo_core::combat_log::CombatLogStatus;
 use eveo_core::model::{CombatAlertStyle, GeneralSettings, Profile};
 use eveo_core::support::StringEnum;
 
@@ -45,6 +47,29 @@ pub fn show_alerts(ui: &SettingsWindow, profile: &Profile, general: &GeneralSett
     model.set_include_misses(alert.include_misses);
     // 最小伤害在配置里是 i64，范围 1～100,000，放得进 i32。
     model.set_minimum_damage(alert.minimum_damage.clamp(1, 100_000) as i32);
+}
+
+/// 显示游戏日志跟踪服务的状态，同 macOS 的 combatStatusText。
+pub fn show_status(ui: &SettingsWindow, status: &CombatLogStatus) {
+    let text = status_text(status);
+    let model = ui.global::<AlertsModel>();
+    if model.get_status_text() != text.as_str() {
+        model.set_status_text(text.into());
+    }
+}
+
+/// 状态的文字：未启用、监视中（目录与文件数）、找不到目录、没有读取权限。
+pub fn status_text(status: &CombatLogStatus) -> String {
+    let strings = eveo_l10n::combat(crate::language());
+    match status {
+        CombatLogStatus::Stopped => strings.status_stopped().to_owned(),
+        CombatLogStatus::Watching {
+            directory,
+            followed_files,
+        } => strings.status_watching(directory, i64::try_from(*followed_files).unwrap_or(i64::MAX)),
+        CombatLogStatus::DirectoryNotFound(path) => strings.status_directory_not_found(path),
+        CombatLogStatus::AccessDenied(path) => strings.status_access_denied(path),
+    }
 }
 
 /// 从页上读回战斗提醒设置与日志目录。页上没有的字段保持不变。
@@ -112,5 +137,21 @@ pub(crate) mod tests {
         let mut partial = profile.clone();
         read_alerts(ui, &mut partial, &mut general.clone());
         assert_eq!(partial.combat_alert.color, profile.combat_alert.color);
+
+        // 状态行：监视中的文字带目录；各种状态的文字互不相同。
+        let watching = CombatLogStatus::Watching {
+            directory: "D:\\EVE\\logs\\Gamelogs".into(),
+            followed_files: 2,
+        };
+        show_status(ui, &watching);
+        assert!(model.get_status_text().contains("D:\\EVE\\logs\\Gamelogs"));
+        let texts = [
+            status_text(&CombatLogStatus::Stopped),
+            status_text(&watching),
+            status_text(&CombatLogStatus::DirectoryNotFound("X".into())),
+            status_text(&CombatLogStatus::AccessDenied("X".into())),
+        ];
+        let unique: std::collections::HashSet<_> = texts.iter().collect();
+        assert_eq!(unique.len(), texts.len());
     }
 }
