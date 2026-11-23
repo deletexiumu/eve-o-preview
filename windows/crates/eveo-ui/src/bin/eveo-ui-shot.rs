@@ -37,8 +37,8 @@ fn main() {
     let shots = [
         ("settings-previews-light.png", false, (1040, 760)),
         ("settings-previews-dark.png", true, (1040, 760)),
-        ("settings-previews-light-full.png", false, (1040, 1380)),
-        ("settings-previews-dark-full.png", true, (1040, 1380)),
+        ("settings-previews-light-full.png", false, (1040, 1560)),
+        ("settings-previews-dark-full.png", true, (1040, 1560)),
     ];
     // 逐张渲染；任何一张失败就以非零码退出，CI 能发现。
     for (name, dark, size) in shots {

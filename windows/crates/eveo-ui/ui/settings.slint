@@ -1,336 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口的视觉原型（架构文档 2.3 节、M4、Q2）：仿 Windows 11 设置的布局，左侧导航、右侧分组卡片。
-// 颜色跟随 Palette.color-scheme 的明暗；Win11 上根窗口背景透明，由 Mica 透出来，这里的底色是降级用的纯色。
-// 这一版只有「预览与布局」一页有内容，用来确认观感；数据是示例值，还没接视图模型。
+// 设置窗口（架构文档 2.3 节）：仿 Windows 11 设置的布局，左侧导航、右侧分组卡片。
+// 颜色跟随 Theme.dark 的明暗；Win11 上根窗口背景透明，由 Mica 透出来，纯色是降级用的。
+// 各页的值放在各自的全局模型里（如 PreviewsModel），由 Rust 的 bind 模块与配置互相转换。
+// 还没做完的页显示「即将推出」，导航先占好位置。
 
-import { Button, ComboBox, LineEdit, Palette, ScrollView, Slider, SpinBox, Switch } from "std-widgets.slint";
+import { LineEdit, Palette, ScrollView } from "std-widgets.slint";
 import { Icons } from "icons.slint";
+import { Theme } from "theme.slint";
+import { NavItem, PageHeader } from "components.slint";
+import { PreviewsModel, PreviewsPage } from "previews.slint";
 
-// 明暗两套颜色。数值取自 Windows 11 设置应用的观感。
-export global Theme {
-    // 暗色外观。应用里跟随系统设置（注册表 AppsUseLightTheme），截图时由调用方指定。
-    in-out property <bool> dark: false;
-    // 窗口已设 Mica 背景：根窗口要透明，系统材质才透得出来。Win10 没有 Mica，保持纯色。
-    in-out property <bool> mica: false;
-    // 窗口底色：Win11 设置应用的浅灰与深灰。
-    out property <brush> window-background: mica ? transparent : (dark ? #202020 : #f3f3f3);
-    // 设置卡片的底色，比窗口底色略亮（浅色）或略亮一档（暗色）。
-    out property <brush> card: dark ? #2b2b2b : #fbfbfb;
-    // 卡片的细边框，让卡片在 Mica 上也有轮廓。
-    out property <brush> card-border: dark ? #1d1d1d : #e5e5e5;
-    // 导航项选中与悬停时的半透明底色。
-    out property <brush> nav-selected: dark ? #ffffff0f : #0000000a;
-    out property <brush> nav-hover: dark ? #ffffff0a : #00000006;
-    // 强调色：Win11 默认的蓝色。应用里改从系统读（UISettings 的 Accent），这里是默认值。
-    out property <brush> accent: dark ? #60cdff : #005fb8;
-    // 主文字与次要文字（说明、数值）。
-    out property <brush> text: dark ? #ffffff : #1b1b1b;
-    out property <brush> text-secondary: dark ? #cfcfcf : #5f5f5f;
-    // 分隔线与色块的描边。
-    out property <brush> divider: dark ? #ffffff14 : #0000000f;
-    // 预览区的底色，衬托缩略图。
-    out property <brush> thumbnail-backdrop: dark ? #1a1a1a : #e9e9e9;
-}
+export { PreviewsModel }
 
-// 左侧导航的一项。
-component NavItem inherits Rectangle {
-    // 图标的路径命令，见 icons.slint。
-    in property <string> icon;
-    // 导航项的名字。
-    in property <string> text;
-    // 是否是当前页。
-    in property <bool> selected;
-    // 点击时切换页面。
-    callback clicked;
-    // 高 36px、圆角 4px，悬停与选中时显出底色。
-    height: 36px;
-    border-radius: 4px;
-    background: selected ? Theme.nav-selected : touch.has-hover ? Theme.nav-hover : transparent;
-    // 整行都可点。
-    touch := TouchArea {
-        clicked => {
-            root.clicked();
-        }
-    }
-    // 选中项左侧的强调色竖条，与 Win11 导航相同；未选中时高度为零。
-    Rectangle {
-        x: 0;
-        width: 3px;
-        height: selected ? 16px : 0px;
-        border-radius: 1.5px;
-        background: Theme.accent;
-    }
-    // 图标与文字：左边空出竖条的位置。
-    HorizontalLayout {
-        padding-left: 14px;
-        spacing: 14px;
-        Rectangle {
-            width: 18px;
-            // 线条图标按 24×24 的视图框缩到 18px，线宽随缩放。
-            Path {
-                width: 18px;
-                height: 18px;
-                viewbox-width: 24;
-                viewbox-height: 24;
-                commands: icon;
-                fill: transparent;
-                stroke: Theme.text;
-                stroke-width: 1.4px;
-                stroke-line-cap: round;
-            }
-        }
-        Text {
-            text: root.text;
-            color: Theme.text;
-            font-size: 14px;
-            vertical-alignment: center;
-        }
-    }
-}
-
-// 分组标题：半粗体，比正文同号，与 Win11 设置的分组标题一致。
-component SectionHeader inherits Text {
-    color: Theme.text;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-// 一行设置：左边标题与说明，右边控件（竖直居中）。每行一张圆角卡片，行间留小缝，同 Win11 设置。
-component SettingRow inherits Rectangle {
-    // 设置项的名字。
+// 还没做完的页：页标题加一句说明。导航项先全部列出，测试的人能看到完整的结构，
+// 也不必在每次加页时改导航；页做好后把对应的 ComingSoonPage 换成真正的页面。
+component ComingSoonPage inherits VerticalLayout {
+    // 页名，与导航项相同。
     in property <string> title;
-    // 一句说明，可以为空；为空时行高矮一些。
-    in property <string> description;
-    min-height: description == "" ? 60px : 70px;
-    background: Theme.card;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: Theme.card-border;
-    // 左右各留 18px；左侧文字占满剩余宽度，右侧控件靠右。
-    HorizontalLayout {
-        padding-left: 18px;
-        padding-right: 18px;
-        spacing: 16px;
-        VerticalLayout {
-            alignment: center;
-            spacing: 2px;
-            Text {
-                text: title;
-                color: Theme.text;
-                font-size: 14px;
-            }
-            // 说明文字可以换行，长语言（德语、俄语）也放得下。
-            if description != "": Text {
-                text: description;
-                color: Theme.text-secondary;
-                font-size: 12px;
-                wrap: word-wrap;
-            }
-        }
-        // 控件区：竖直居中，控件之间空 8px。
-        VerticalLayout {
-            alignment: center;
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                @children
-            }
-        }
-    }
-}
-
-// 颜色样本加十六进制值。正式版点样本弹出取色器，输入框只接受 #RRGGBB。
-component ColorField inherits HorizontalLayout {
-    // 当前颜色。
-    in property <color> value;
-    // 颜色的十六进制写法，与配置文件里的写法相同。
-    in property <string> hex;
-    spacing: 8px;
-    alignment: end;
-    VerticalLayout {
-        alignment: center;
-        Rectangle {
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            border-width: 1px;
-            border-color: Theme.divider;
-            background: value;
-        }
-    }
-    LineEdit {
-        text: hex;
-        width: 110px;
-    }
-}
-
-// 预览区里的一个缩略图示意：游戏画面用渐变代替，带角色名与边框或高亮。
-component ThumbnailMock inherits Rectangle {
-    // 角色名，显示在标题条上。
-    in property <string> name;
-    // 是不是活动客户端（加高亮）。
-    in property <bool> active;
-    // 画面主色，三个缩略图各不相同。
-    in property <color> tint;
-    // 16:9，与默认缩略图的比例相同，按一半大小画。
-    width: 192px;
-    height: 108px;
-    border-radius: 4px;
-    clip: true;
-    background: @linear-gradient(135deg, tint.darker(40%) 0%, tint.darker(75%) 60%, #05070a 100%);
-    // 画面全是几何图形，不用游戏截图，避免版权问题。
-    // 远处的星点与舰船轮廓，只为看起来像游戏画面。
-    Rectangle { x: 30px; y: 22px; width: 3px; height: 3px; border-radius: 1.5px; background: #ffffffaa; }
-    Rectangle { x: 140px; y: 64px; width: 2px; height: 2px; border-radius: 1px; background: #ffffff88; }
-    Rectangle { x: 96px; y: 40px; width: 46px; height: 10px; border-radius: 5px; background: #ffffff30; }
-    Rectangle { x: 108px; y: 36px; width: 18px; height: 18px; border-radius: 9px; background: tint.with-alpha(0.55); }
-    // 标题条：底部渐黑，白字在任何画面上都看得清。
-    Rectangle {
-        y: parent.height - 24px;
-        height: 24px;
-        background: @linear-gradient(0deg, #000000a0 0%, #00000000 100%);
-        Text {
-            x: 8px;
-            text: name;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 600;
-            vertical-alignment: center;
-        }
-    }
-    // 活动客户端的高亮，其余是细边框。颜色与高亮设置里的颜色一致。
-    Rectangle {
-        border-radius: 4px;
-        border-width: active ? 2px : 1px;
-        border-color: active ? #f2a23c : #ffffff40;
-        background: transparent;
-    }
-}
-
-// 「预览与布局」页，内容对应 macOS 的 PreviewsPage。
-// 分组之间空 20px，组内各行之间空 4px，标题与第一行之间空 4px。
-component PreviewsPage inherits VerticalLayout {
-    spacing: 4px;
     alignment: start;
-
-    // 页标题与副标题，字号同 Win11 设置的页标题。
-    Text {
-        text: "预览与布局";
-        color: Theme.text;
-        font-size: 28px;
-        font-weight: 600;
+    PageHeader {
+        title: root.title;
+        subtitle: "这一页还在做，稍后的测试版会加上。";
     }
-    Text {
-        text: "缩略图的尺寸、外观与行为。改动立即生效。";
-        color: Theme.text-secondary;
-        font-size: 14px;
-    }
-    Rectangle { height: 16px; }
-
-    // 示意预览：三个缩略图，第一个是活动客户端。
-    // 预览区放在页首：改外观时一眼看到效果。应用里画的是示意图，不是真实客户端的画面。
-    Rectangle {
-        height: 156px;
-        border-radius: 8px;
-        background: Theme.thumbnail-backdrop;
-        // 三个缩略图居中排开，模拟屏幕上的一排预览。
-        HorizontalLayout {
-            alignment: center;
-            spacing: 16px;
-            padding: 24px;
-            ThumbnailMock { name: "Aria Voss"; active: true; tint: #3a7bd5; }
-            ThumbnailMock { name: "Kade Mercer"; active: false; tint: #8e44ad; }
-            ThumbnailMock { name: "Lin Shao"; active: false; tint: #16a085; }
-        }
-    }
-    Rectangle { height: 20px; }
-
-    // 尺寸：对应配置的 thumbnail.defaultSize；最小与最大尺寸放到「更多」里，首屏不铺开。
-    SectionHeader { text: "尺寸"; }
-    Rectangle { height: 4px; }
-    // thumbnail.defaultSize，宽与高分开调。
-    SettingRow {
-        title: "默认尺寸";
-        description: "新客户端的缩略图大小，单位是像素";
-        SpinBox { value: 384; minimum: 64; maximum: 1920; width: 120px; }
-        Text { text: "×"; color: Theme.text-secondary; vertical-alignment: center; }
-        SpinBox { value: 216; minimum: 36; maximum: 1080; width: 120px; }
-    }
-    // 把 layouts 里各缩略图的尺寸改回 defaultSize，对应 macOS 的 unifyThumbnailSizes。
-    SettingRow {
-        title: "统一全部缩略图尺寸";
-        description: "把已经调整过大小的缩略图都改回默认尺寸";
-        Button { text: "统一尺寸"; }
-    }
-    Rectangle { height: 20px; }
-
-    // 外观：对应 thumbnail.opacity 与 overlay 下的标题、边框、高亮。
-    SectionHeader { text: "外观"; }
-    Rectangle { height: 4px; }
-    // thumbnail.opacity，配置里是 0.2～1.0，界面显示百分比。
-    SettingRow {
-        title: "不透明度";
-        Slider { value: 85; minimum: 20; maximum: 100; width: 200px; }
-        Text { text: "85%"; color: Theme.text-secondary; vertical-alignment: center; width: 40px; }
-    }
-    // overlay.showTitle。
-    SettingRow {
-        title: "显示角色名";
-        Switch { checked: true; }
-    }
-    // overlay.titleColor。
-    SettingRow {
-        title: "标题颜色";
-        ColorField { value: #ffffff; hex: "#FFFFFF"; }
-    }
-    // overlay.highlightEnabled 与 highlightColor。
-    SettingRow {
-        title: "高亮活动客户端";
-        description: "当前在前台的客户端，缩略图加一圈高亮";
-        ColorField { value: #f2a23c; hex: "#F2A23C"; }
-        Switch { checked: true; }
-    }
-    Rectangle { height: 20px; }
-
-    // 悬停放大：对应 thumbnail.zoomEnabled、zoomFactor、zoomAnchor。
-    SectionHeader { text: "悬停放大"; }
-    Rectangle { height: 4px; }
-    // thumbnail.zoomEnabled。
-    SettingRow {
-        title: "鼠标悬停时放大";
-        Switch { checked: true; }
-    }
-    // thumbnail.zoomFactor（2～10）与 zoomAnchor。
-    SettingRow {
-        title: "放大倍数与锚点";
-        SpinBox { value: 2; minimum: 2; maximum: 10; width: 100px; }
-        ComboBox { model: ["左上角", "居中", "右下角"]; current-index: 0; width: 140px; }
-    }
-    Rectangle { height: 20px; }
-
-    // 行为：对应 behavior 下的置顶、隐藏活动客户端、离开 EVE 时隐藏与延迟。
-    SectionHeader { text: "行为"; }
-    Rectangle { height: 4px; }
-    // behavior.alwaysOnTop。
-    SettingRow {
-        title: "缩略图置顶";
-        Switch { checked: true; }
-    }
-    // behavior.hideActiveClientThumbnail。
-    SettingRow {
-        title: "隐藏活动客户端的缩略图";
-        Switch { checked: false; }
-    }
-    // behavior.hideWhenEVENotFrontmost 与 hideDelaySeconds（0～10 秒，步长 0.5）。
-    SettingRow {
-        title: "离开 EVE 时隐藏缩略图";
-        description: "切到别的程序后，等待设定的秒数再隐藏";
-        Slider { value: 1.5; minimum: 0; maximum: 10; width: 160px; }
-        Text { text: "1.5 秒"; color: Theme.text-secondary; vertical-alignment: center; width: 44px; }
-        Switch { checked: true; }
-    }
-    Rectangle { height: 24px; }
 }
 
 // 设置窗口。
@@ -418,7 +110,17 @@ export component SettingsWindow inherits Window {
                 padding: 36px;
                 padding-top: 28px;
                 padding-right: 48px;
-                PreviewsPage { }
+                // 按导航切换页面；条件元素只建当前页，其余页不占布局。
+                // 页的数据在全局模型里，切走再切回来时控件重建，但值不丢，也不用重新从配置读。
+                if page == 1: PreviewsPage { }
+                if page == 0: ComingSoonPage { title: "客户端"; }
+                if page == 2: ComingSoonPage { title: "切换与热键"; }
+                if page == 3: ComingSoonPage { title: "提醒"; }
+                if page == 4: ComingSoonPage { title: "预警"; }
+                if page == 5: ComingSoonPage { title: "翻译"; }
+                if page == 6: ComingSoonPage { title: "配置方案"; }
+                if page == 7: ComingSoonPage { title: "通用"; }
+                if page == 8: ComingSoonPage { title: "关于"; }
             }
         }
     }

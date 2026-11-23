@@ -12,6 +12,7 @@
 #![cfg(windows)]
 
 pub mod activation;
+pub mod appearance;
 pub mod discovery;
 pub mod events;
 pub mod hotkey;

@@ -60,6 +60,12 @@ fn window() -> Result<Rc<MinimalSoftwareWindow>, String> {
     })
 }
 
+/// 设好软件渲染平台（每个进程一次），单元测试建窗口前调用。
+#[cfg(test)]
+pub(crate) fn ensure_platform() -> Result<(), String> {
+    window().map(|_| ())
+}
+
 /// 把设置窗口画成 PNG，返回文件内容。
 pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let window = window()?;
@@ -71,6 +77,8 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let ui = SettingsWindow::new().map_err(|e| e.to_string())?;
     ui.set_dark(options.dark);
     ui.set_ui_font(options.font.as_str().into());
+    // 各页显示一个新配置方案的默认值，与第一次打开应用时看到的一样。
+    crate::bind::show_previews(&ui, &eveo_core::model::Profile::make_new("shot", "Default"));
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;
     window.set_size(PhysicalSize::new(width, height));

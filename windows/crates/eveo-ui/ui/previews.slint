@@ -1,0 +1,375 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「预览与布局」页，对应 macOS 的 PreviewsPage：缩略图的尺寸、外观、悬停放大、行为与布局。
+// 页上的值都放在全局 PreviewsModel 里，Rust 按当前配置方案填入（bind.rs）；用户改了任何一项就调 edited()，
+// Rust 读回整页、组成新配置交给协调器。控件用双向绑定，回调里不改值，避免与 Rust 的写回打架。
+// Windows 用 DWM 缩略图，没有 macOS 的帧率与标题栏裁切，那一组不出现。
+//
+// 回调的约定：SpinBox 的 edited、Switch 的 toggled、Slider 的 changed、ComboBox 的 selected 都只在用户操作时触发，
+// Rust 用 set_* 写值不会触发它们，所以「显示配置 → 触发 edited → 读回 → 再显示」不会形成循环。
+// 依附于开关的控件（颜色、粗细、延迟）在开关关着时设为不可用，但值照样保留，打开后恢复原来的设置。
+
+import { Button, ComboBox, Slider, SpinBox, Switch } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { ColorField, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+
+// 本页的数据。字段名对应配置里当前方案的 thumbnail、overlay 与 behavior。
+export global PreviewsModel {
+    // thumbnail.defaultSize，像素。
+    in-out property <int> default-width: 384;
+    in-out property <int> default-height: 216;
+    // thumbnail.opacity，0.2～1.0。
+    in-out property <float> opacity: 0.5;
+    // overlay.showTitle、titleFontSize、titleColor。swatch 是已采用的颜色，由 Rust 设。
+    in-out property <bool> show-title: true;
+    in-out property <int> title-font-size: 12;
+    in-out property <string> title-color: "#FFFFFF";
+    in-out property <color> title-swatch: #ffffff;
+    // overlay.highlightEnabled、highlightColor、highlightThickness（1～6）。
+    in-out property <bool> highlight-enabled: true;
+    in-out property <string> highlight-color: "#ADFF2F";
+    in-out property <color> highlight-swatch: #adff2f;
+    in-out property <int> highlight-thickness: 3;
+    // overlay.borderEnabled、borderColor、borderThickness（1～6）。
+    in-out property <bool> border-enabled: true;
+    in-out property <string> border-color: "#C0C0C0";
+    in-out property <color> border-swatch: #c0c0c0;
+    in-out property <int> border-thickness: 2;
+    // thumbnail.zoomEnabled、zoomFactor（2～10）、zoomAnchor（下标，顺序见 bind.rs 的 ANCHORS）。
+    in-out property <bool> zoom-enabled: false;
+    in-out property <int> zoom-factor: 2;
+    in-out property <int> zoom-anchor: 0;
+    // behavior 下的四项；hide-delay 是秒，0～10，步长 0.5。
+    in-out property <bool> always-on-top: true;
+    in-out property <bool> hide-active: false;
+    in-out property <bool> hide-when-not-eve: false;
+    in-out property <float> hide-delay: 1.0;
+    // thumbnail.snapEnabled、lockAspectRatio 与 behavior.lockLayout。
+    in-out property <bool> snap-enabled: true;
+    in-out property <bool> lock-aspect: false;
+    in-out property <bool> lock-layout: false;
+    // 用户改了本页的任何一项。不带参数：Rust 读回整页，比逐项回调简单，
+    // 一次读回的开销也可以忽略（几十个属性）。
+    callback edited();
+    // 「统一尺寸」按钮：清掉各角色单独调过的尺寸。
+    callback unify-sizes();
+}
+
+// 预览区里的一个缩略图示意，按本页的设置实时变化：不透明度、标题、高亮与边框。
+// 尺寸固定为默认尺寸的一半（192×108），不随「默认尺寸」变化：预览区只示意外观，不示意大小。
+// 游戏画面用渐变与几何图形代替，不用游戏截图，避免版权问题。
+component ThumbnailMock inherits Rectangle {
+    // 角色名，显示在标题上。
+    in property <string> name;
+    // 是不是活动客户端（加高亮）。
+    in property <bool> active;
+    // 是否画成鼠标悬停的样子（不透明）。
+    in property <bool> hovered;
+    // 画面主色，三个缩略图各不相同。
+    in property <color> tint;
+    // 16:9，与默认缩略图的比例相同，按一半大小画。
+    width: 192px;
+    height: 108px;
+    opacity: hovered ? 1 : PreviewsModel.opacity;
+    // 边框：高亮优先，其次中性边框，与应用里的取值顺序相同（粗细按一半大小画，至少 1px）。
+    property <bool> shows-highlight: active && PreviewsModel.highlight-enabled;
+    property <length> frame-width: shows-highlight ? PreviewsModel.highlight-thickness * 1px
+        : PreviewsModel.border-enabled ? PreviewsModel.border-thickness * 1px : 0px;
+    background: shows-highlight ? PreviewsModel.highlight-swatch : PreviewsModel.border-swatch;
+    // 画面：向内缩进边框粗细，露出的底色就是边框，与 Windows 上的缩略图窗口一样。
+    Rectangle {
+        x: frame-width;
+        y: frame-width;
+        width: parent.width - 2 * frame-width;
+        height: parent.height - 2 * frame-width;
+        clip: true;
+        background: @linear-gradient(135deg, tint.darker(40%) 0%, tint.darker(75%) 60%, #05070a 100%);
+        // 远处的星点与舰船轮廓，只为看起来像游戏画面。
+        Rectangle { x: 30px; y: 22px; width: 3px; height: 3px; border-radius: 1.5px; background: #ffffffaa; }
+        Rectangle { x: 140px; y: 64px; width: 2px; height: 2px; border-radius: 1px; background: #ffffff88; }
+        Rectangle { x: 96px; y: 40px; width: 46px; height: 10px; border-radius: 5px; background: #ffffff30; }
+        Rectangle { x: 108px; y: 36px; width: 18px; height: 18px; border-radius: 9px; background: tint.with-alpha(0.55); }
+    }
+    // 标题：左上角的半透明圆角底，与应用的叠加层相同；字号按一半大小画。
+    // 底的宽度随文字收缩，超出缩略图宽度时以省略号截断，与叠加层的规则一致。
+    if PreviewsModel.show-title: Rectangle {
+        x: 4px;
+        y: 4px;
+        width: min(label.preferred-width + 10px, parent.width - 8px);
+        height: label.preferred-height + 4px;
+        border-radius: 3px;
+        background: #00000080;
+        label := Text {
+            x: 5px;
+            width: parent.width - 10px;
+            text: name;
+            color: PreviewsModel.title-swatch;
+            font-size: max(6px, PreviewsModel.title-font-size * 0.5px);
+            font-weight: 600;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// 预览区：衬底上排开三个缩略图，第一个是活动客户端，第二个画成悬停的样子。
+// 三种状态并排，调高亮、边框与不透明度时能同时看到活动、悬停与普通缩略图的差别。
+component PreviewStrip inherits Rectangle {
+    height: 156px;
+    border-radius: 8px;
+    background: Theme.thumbnail-backdrop;
+    HorizontalLayout {
+        alignment: center;
+        spacing: 16px;
+        padding: 24px;
+        ThumbnailMock { name: "Aria Voss"; active: true; tint: #3a7bd5; }
+        ThumbnailMock { name: "Kade Mercer"; hovered: true; tint: #8e44ad; }
+        ThumbnailMock { name: "Lin Shao"; tint: #16a085; }
+    }
+}
+
+// 页面本身。分组之间空 16px（SectionHeader 自带），组内各行之间空 4px。
+export component PreviewsPage inherits VerticalLayout {
+    alignment: start;
+
+    PageHeader {
+        title: "预览与布局";
+        subtitle: "缩略图的尺寸、外观与行为。改动立即生效，保存在当前配置方案里。";
+    }
+    // 预览区放在页首：改外观时一眼看到效果。
+    PreviewStrip { }
+
+    SectionHeader { text: "尺寸"; }
+    // thumbnail.defaultSize，宽与高分开调。
+    SettingRow {
+        title: "默认尺寸";
+        description: "没有单独调过大小的缩略图用这个尺寸，单位是像素";
+        SpinBox {
+            value <=> PreviewsModel.default-width;
+            minimum: 64;
+            maximum: 1920;
+            width: 120px;
+            edited(v) => { PreviewsModel.edited(); }
+        }
+        Text { text: "×"; color: Theme.text-secondary; vertical-alignment: center; }
+        SpinBox {
+            value <=> PreviewsModel.default-height;
+            minimum: 36;
+            maximum: 1080;
+            width: 120px;
+            edited(v) => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // 清掉 layouts 里各角色的宽高，回到默认尺寸，对应 macOS 的 unifyThumbnailSizes。
+    // 按钮不改本页的值，由 Rust 直接改配置；不需要确认框：位置不变，改回去只要再拖一下边缘。
+    SettingRow {
+        title: "统一全部缩略图尺寸";
+        description: "把单独调过大小的缩略图都改回默认尺寸，位置不变";
+        Button {
+            text: "统一尺寸";
+            clicked => { PreviewsModel.unify-sizes(); }
+        }
+    }
+
+    SectionHeader { text: "外观"; }
+    // thumbnail.opacity：配置里是 0.2～1.0，界面显示百分比。悬停时总是不透明。
+    // 拖动滑块时每一步都触发 edited，缩略图跟着实时变淡；写盘由应用合并成一次。
+    SettingRow {
+        title: "不透明度";
+        description: "鼠标不在缩略图上时的不透明度；悬停时总是完全不透明";
+        Slider {
+            value <=> PreviewsModel.opacity;
+            minimum: 0.2;
+            maximum: 1.0;
+            width: 200px;
+            changed(v) => { PreviewsModel.edited(); }
+        }
+        ValueLabel { text: Math.round(PreviewsModel.opacity * 100) + "%"; }
+    }
+    RowGap { }
+    // overlay.showTitle 与 titleFontSize。字号放在开关旁边，关掉标题时一并变灰。
+    SettingRow {
+        title: "显示角色名";
+        description: "在缩略图左上角显示角色名";
+        SpinBox {
+            value <=> PreviewsModel.title-font-size;
+            minimum: 8;
+            maximum: 36;
+            width: 100px;
+            enabled: PreviewsModel.show-title;
+            edited(v) => { PreviewsModel.edited(); }
+        }
+        Switch {
+            checked <=> PreviewsModel.show-title;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // overlay.titleColor。只接受完整的 #RRGGBB，输入到一半时样本保持原来的颜色。
+    SettingRow {
+        title: "角色名颜色";
+        enabled: PreviewsModel.show-title;
+        ColorField {
+            swatch: PreviewsModel.title-swatch;
+            hex <=> PreviewsModel.title-color;
+            enabled: PreviewsModel.show-title;
+            edited => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // overlay.highlightEnabled、highlightColor 与 highlightThickness。
+    // 粗细按显示器缩放放大（1 是 100% 缩放下的 1 像素），与 macOS 的点数一致。
+    SettingRow {
+        title: "高亮活动客户端";
+        description: "前台的客户端，缩略图加一圈高亮（颜色与粗细）";
+        ColorField {
+            swatch: PreviewsModel.highlight-swatch;
+            hex <=> PreviewsModel.highlight-color;
+            enabled: PreviewsModel.highlight-enabled;
+            edited => { PreviewsModel.edited(); }
+        }
+        SpinBox {
+            value <=> PreviewsModel.highlight-thickness;
+            minimum: 1;
+            maximum: 6;
+            width: 90px;
+            enabled: PreviewsModel.highlight-enabled;
+            edited(v) => { PreviewsModel.edited(); }
+        }
+        Switch {
+            checked <=> PreviewsModel.highlight-enabled;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // overlay.borderEnabled、borderColor 与 borderThickness。
+    // 边框与高亮共用缩略图的一圈底色：活动客户端只画高亮，其余画边框，两者不会叠在一起。
+    SettingRow {
+        title: "边框";
+        description: "每个缩略图都画一圈中性边框；活动客户端改用高亮";
+        ColorField {
+            swatch: PreviewsModel.border-swatch;
+            hex <=> PreviewsModel.border-color;
+            enabled: PreviewsModel.border-enabled;
+            edited => { PreviewsModel.edited(); }
+        }
+        SpinBox {
+            value <=> PreviewsModel.border-thickness;
+            minimum: 1;
+            maximum: 6;
+            width: 90px;
+            enabled: PreviewsModel.border-enabled;
+            edited(v) => { PreviewsModel.edited(); }
+        }
+        Switch {
+            checked <=> PreviewsModel.border-enabled;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+
+    SectionHeader { text: "悬停放大"; }
+    // thumbnail.zoomEnabled。放大只在悬停时生效，拖动中不放大，避免与手势移动窗口打架。
+    SettingRow {
+        title: "鼠标悬停时放大";
+        Switch {
+            checked <=> PreviewsModel.zoom-enabled;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // thumbnail.zoomFactor（2～10）与 zoomAnchor。锚点是放大时保持不动的那个点。
+    SettingRow {
+        title: "放大倍数与锚点";
+        description: "锚点是放大时保持不动的位置";
+        enabled: PreviewsModel.zoom-enabled;
+        SpinBox {
+            value <=> PreviewsModel.zoom-factor;
+            minimum: 2;
+            maximum: 10;
+            width: 100px;
+            enabled: PreviewsModel.zoom-enabled;
+            edited(v) => { PreviewsModel.edited(); }
+        }
+        ComboBox {
+            model: ["左上角", "上边中点", "右上角", "左边中点", "中心", "右边中点", "左下角", "下边中点", "右下角"];
+            current-index <=> PreviewsModel.zoom-anchor;
+            enabled: PreviewsModel.zoom-enabled;
+            width: 140px;
+            selected(v) => { PreviewsModel.edited(); }
+        }
+    }
+
+    SectionHeader { text: "行为"; }
+    // behavior.alwaysOnTop。关掉后缩略图是普通窗口，会被游戏窗口盖住，适合多屏时放在副屏。
+    SettingRow {
+        title: "缩略图置顶";
+        description: "缩略图显示在其他窗口之上";
+        Switch {
+            checked <=> PreviewsModel.always-on-top;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // behavior.hideActiveClientThumbnail。前台客户端的缩略图隐藏，切走后立即重新出现。
+    SettingRow {
+        title: "隐藏活动客户端的缩略图";
+        description: "正在操作的客户端不需要看预览";
+        Switch {
+            checked <=> PreviewsModel.hide-active;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // behavior.hideWhenEVENotFrontmost 与 hideDelaySeconds（0～10 秒，步长 0.5）。
+    // 本应用自己（设置窗口、菜单）在前台时不算离开 EVE，调设置时缩略图不会消失。
+    SettingRow {
+        title: "离开 EVE 时隐藏缩略图";
+        description: "切到别的程序后，等待设定的秒数再隐藏";
+        Slider {
+            value <=> PreviewsModel.hide-delay;
+            minimum: 0;
+            maximum: 10;
+            step: 0.5;
+            width: 160px;
+            enabled: PreviewsModel.hide-when-not-eve;
+            changed(v) => { PreviewsModel.edited(); }
+        }
+        ValueLabel { text: (Math.round(PreviewsModel.hide-delay * 2) / 2) + " 秒"; }
+        Switch {
+            checked <=> PreviewsModel.hide-when-not-eve;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+
+    SectionHeader { text: "布局"; }
+    // thumbnail.snapEnabled。吸附的距离按显示器缩放放大，高分屏上手感与 100% 时相同。
+    SettingRow {
+        title: "拖动时吸附";
+        description: "靠近其他缩略图或屏幕边缘时自动对齐；拖动时按住 Shift 暂时不吸附";
+        Switch {
+            checked <=> PreviewsModel.snap-enabled;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // thumbnail.lockAspectRatio。拖动边缘缩放时按住 Shift 也能临时保持宽高比。
+    SettingRow {
+        title: "缩放时保持宽高比";
+        Switch {
+            checked <=> PreviewsModel.lock-aspect;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    RowGap { }
+    // behavior.lockLayout。锁定后点击切换、右键菜单照常可用，只是不能移动和缩放。
+    SettingRow {
+        title: "锁定布局";
+        description: "忽略移动与缩放手势，防止误拖";
+        Switch {
+            checked <=> PreviewsModel.lock-layout;
+            toggled => { PreviewsModel.edited(); }
+        }
+    }
+    Rectangle { height: 24px; }
+}

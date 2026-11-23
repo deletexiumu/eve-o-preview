@@ -1,0 +1,199 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 设置窗口各页共用的控件：导航项、页标题、分组标题、设置行、颜色输入。
+// 外观仿 Windows 11 设置应用：每行一张圆角卡片，左边是名字与说明，右边是控件。
+
+import { LineEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+
+// 左侧导航的一项。
+export component NavItem inherits Rectangle {
+    // 图标的路径命令，见 icons.slint。
+    in property <string> icon;
+    // 导航项的名字。
+    in property <string> text;
+    // 是否是当前页。
+    in property <bool> selected;
+    // 点击时切换页面。
+    callback clicked;
+    // 高 36px、圆角 4px，悬停与选中时显出底色。
+    height: 36px;
+    border-radius: 4px;
+    background: selected ? Theme.nav-selected : touch.has-hover ? Theme.nav-hover : transparent;
+    // 整行都可点。
+    touch := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+    // 选中项左侧的强调色竖条，与 Win11 导航相同；未选中时高度为零。
+    Rectangle {
+        x: 0;
+        width: 3px;
+        height: selected ? 16px : 0px;
+        border-radius: 1.5px;
+        background: Theme.accent;
+    }
+    // 图标与文字：左边空出竖条的位置。
+    HorizontalLayout {
+        padding-left: 14px;
+        spacing: 14px;
+        Rectangle {
+            width: 18px;
+            // 线条图标按 24×24 的视图框缩到 18px，线宽随缩放。
+            Path {
+                width: 18px;
+                height: 18px;
+                viewbox-width: 24;
+                viewbox-height: 24;
+                commands: icon;
+                fill: transparent;
+                stroke: Theme.text;
+                stroke-width: 1.4px;
+                stroke-line-cap: round;
+            }
+        }
+        Text {
+            text: root.text;
+            color: Theme.text;
+            font-size: 14px;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// 页标题与一句副标题，字号同 Win11 设置的页标题；下面留出与第一组之间的空白。
+// 副标题可以换行：窗口缩到最小宽度时也不被截断。
+export component PageHeader inherits VerticalLayout {
+    // 页名。
+    in property <string> title;
+    // 一句话说明这一页管什么。
+    in property <string> subtitle;
+    spacing: 4px;
+    padding-bottom: 16px;
+    Text {
+        text: title;
+        color: Theme.text;
+        font-size: 28px;
+        font-weight: 600;
+    }
+    Text {
+        text: subtitle;
+        color: Theme.text-secondary;
+        font-size: 14px;
+        wrap: word-wrap;
+    }
+}
+
+// 分组标题：半粗体，比正文同号，与 Win11 设置的分组标题一致。上方留出与上一组的间距。
+// 间距放在标题自己身上，各页只需依次排列标题与行，不必再插空白元素。
+export component SectionHeader inherits VerticalLayout {
+    // 分组名。
+    in property <string> text;
+    padding-top: 16px;
+    padding-bottom: 4px;
+    Text {
+        text: root.text;
+        color: Theme.text;
+        font-size: 14px;
+        font-weight: 600;
+    }
+}
+
+// 一行设置：左边标题与说明，右边控件（竖直居中）。每行一张圆角卡片，行间留小缝，同 Win11 设置。
+// 不可用时（例如上级开关关着）整行变淡，控件由调用方自己设 enabled。
+export component SettingRow inherits Rectangle {
+    // 设置项的名字。
+    in property <string> title;
+    // 一句说明，可以为空；为空时行高矮一些。
+    in property <string> description;
+    // 是否可用；不可用时文字变淡。
+    in property <bool> enabled: true;
+    min-height: description == "" ? 60px : 70px;
+    background: Theme.card;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    // 左右各留 18px；左侧文字占满剩余宽度，右侧控件靠右。
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 16px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text {
+                text: title;
+                color: enabled ? Theme.text : Theme.text-secondary;
+                font-size: 14px;
+            }
+            // 说明文字可以换行，长语言（德语、俄语）也放得下。
+            if description != "": Text {
+                text: description;
+                color: Theme.text-secondary;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+        }
+        // 控件区：竖直居中，控件之间空 8px。
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                alignment: end;
+                spacing: 8px;
+                @children
+            }
+        }
+    }
+}
+
+// 行与行之间的 4px 缝。单独做成控件而不是用布局的 spacing：分组标题与行之间的距离不同，
+// 用显式的缝更容易对齐 Win11 设置应用的节奏。
+export component RowGap inherits Rectangle {
+    height: 4px;
+}
+
+// 颜色样本加十六进制输入框。没有做弹出的取色器：游戏玩家多半直接粘贴颜色值，
+// 取色器等「通用」页做完后再看是否需要。输入框与 hex 双向绑定；只有完整的 #RRGGBB 才会被采用，
+// 样本颜色由 Rust 按采用后的值设回，所以输入到一半时样本保持原来的颜色。
+export component ColorField inherits HorizontalLayout {
+    // 样本显示的颜色（已采用的值）。
+    in property <color> swatch;
+    // 输入框里的文字，与配置文件里的写法相同。
+    in-out property <string> hex;
+    // 是否可用。
+    in property <bool> enabled: true;
+    // 用户改了文字。
+    callback edited();
+    spacing: 8px;
+    alignment: end;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: Theme.divider;
+            background: swatch;
+            opacity: enabled ? 1 : 0.4;
+        }
+    }
+    LineEdit {
+        text <=> root.hex;
+        enabled: root.enabled;
+        width: 110px;
+        edited(text) => {
+            root.edited();
+        }
+    }
+}
+
+// 数值的说明文字（百分比、秒），放在滑块右边，宽度固定，数值变化时滑块不跳动。
+// 右对齐，让不同行的数值末尾对齐，读起来像一列。
+export component ValueLabel inherits Text {
+    color: Theme.text-secondary;
+    vertical-alignment: center;
+    horizontal-alignment: right;
+    width: 52px;
+}
