@@ -187,6 +187,7 @@ chatlogsFolder = "Журналы чата (Chatlogs)"
 gamelogsFolder = "Игровые журналы (Gamelogs)"
 logsHelp = "Разведка и перевод читают Chatlogs, оповещения о бое — Gamelogs. Если папок нет, убедитесь, что EVE записывает чат в файл, или укажите папку журналов на странице «Оповещения»."
 recheck = "Проверить снова"
+lastChecked = "Последняя проверка: {time}"
 
 [MenuStrings]
 showAll = "Показать все миниатюры"

@@ -138,7 +138,7 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
         chatlogs_found: true,
         gamelogs_found: false,
     };
-    crate::environment::show_logs(&ui, &folders);
+    crate::environment::show_logs(&ui, &folders, "22:51:03");
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;

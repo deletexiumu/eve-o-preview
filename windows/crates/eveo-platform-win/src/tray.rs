@@ -8,8 +8,11 @@
 // 它必须是顶层窗口（不能是 HWND_MESSAGE 的子窗口），否则收不到 TaskbarCreated 这样的广播。
 //
 // 回调用 NOTIFYICON_VERSION_4 的格式（NIN_SELECT、WM_CONTEXTMENU），不用旧版的原始鼠标消息。这是微软
-// 推荐的格式，键盘操作托盘图标时也有反应。另一个原因：旧版回调下，图标在任务栏的溢出菜单里时，打开设置窗口后
-// 溢出菜单一直留在屏幕上（真机测试发现）；新格式下系统知道图标被「选中」了，按它的习惯处理溢出菜单。
+// 推荐的格式，键盘操作托盘图标时也有反应。新格式下系统默认不显示悬停提示，要带 NIF_SHOWTIP。
+//
+// 图标在任务栏的溢出菜单（「显示隐藏的图标」）里时，选中图标后 Windows 11 不会自己收起溢出菜单，
+// 打开设置窗口后它一直留在屏幕上（真机测试发现，原版 EVE-O Preview 也是这样）。选中时如果前台是溢出菜单，
+// 先给它发一次 Esc，等于用户自己按 Esc 关掉它，资源管理器记录的展开状态也随之正确。
 
 //! 托盘图标与主消息窗口。
 
@@ -19,14 +22,15 @@ use std::collections::HashMap;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::HBRUSH;
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
 use windows::Win32::UI::Shell::{
-    NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY, NIM_SETVERSION, NIN_SELECT,
+    NIF_ICON, NIF_MESSAGE, NIF_SHOWTIP, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY, NIM_SETVERSION, NIN_SELECT,
     NOTIFYICON_VERSION_4, NOTIFYICONDATAW, Shell_NotifyIconW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics, HICON, IDI_APPLICATION, IMAGE_ICON,
-    LR_DEFAULTCOLOR, LoadIconW, LoadImageW, RegisterWindowMessageW, SM_CXSMICON, SM_CYSMICON,
-    WINDOW_EX_STYLE, WM_APP, WM_CONTEXTMENU, WS_OVERLAPPED,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetClassNameW, GetForegroundWindow, GetSystemMetrics,
+    HICON, IDI_APPLICATION, IMAGE_ICON, LR_DEFAULTCOLOR, LoadIconW, LoadImageW, RegisterWindowMessageW,
+    SM_CXSMICON, SM_CYSMICON, WINDOW_EX_STYLE, WM_APP, WM_CONTEXTMENU, WS_OVERLAPPED,
 };
 use windows::core::{PCWSTR, Result};
 
@@ -41,6 +45,8 @@ pub const ACTIVATE_MESSAGE_NAME: &str = "EVEOPreview.ActivateExisting";
 const APP_ICON_ID: u16 = 1;
 /// 托盘图标的回调消息。
 const WM_TRAY: u32 = WM_APP + 0x40;
+/// 通知区域溢出菜单的窗口类：Windows 11（XAML 版）与 Windows 10。
+const OVERFLOW_CLASSES: [&str; 2] = ["TopLevelWindowForOverflowXamlIsland", "NotifyIconOverflowWindow"];
 /// 键盘选中图标（空格或回车）：NIN_SELECT 加上 NINF_KEY 标志。windows 包里没有单独的常量。
 const NIN_KEYSELECT: u32 = NIN_SELECT | 0x1;
 
@@ -95,7 +101,7 @@ impl TrayIcon {
             cbSize: size_of::<NOTIFYICONDATAW>() as u32,
             hWnd: hwnd,
             uID: 1,
-            uFlags: NIF_ICON | NIF_MESSAGE | NIF_TIP,
+            uFlags: NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP,
             uCallbackMessage: WM_TRAY,
             hIcon: default_icon(),
             ..Default::default()
@@ -180,6 +186,23 @@ fn add_icon(data: &NOTIFYICONDATAW) {
     let _ = unsafe { Shell_NotifyIconW(NIM_SETVERSION, &versioned) };
 }
 
+/// 前台是通知区域的溢出菜单时发一次 Esc 关掉它。只认这两个窗口类，别的前台窗口（例如图标直接显示在任务栏上时
+/// 的任务栏本身）不碰，Esc 不会落到不相干的窗口上。按键在打开设置窗口之前发出，溢出菜单仍在前台时收到。
+fn close_overflow_flyout() {
+    // SAFETY: 只读。
+    let foreground = unsafe { GetForegroundWindow() };
+    if foreground.is_invalid() {
+        return;
+    }
+    let mut class = [0u16; 64];
+    // SAFETY: 缓冲区在调用期间有效，长度由切片给出。
+    let len = unsafe { GetClassNameW(foreground, &mut class) };
+    let class = String::from_utf16_lossy(&class[..len.max(0) as usize]);
+    if OVERFLOW_CLASSES.contains(&class.as_str()) {
+        crate::activation::send_key_tap(VK_ESCAPE);
+    }
+}
+
 /// 把提示文字复制进定长缓冲区，超长时截断，末尾补 0。
 fn copy_tip(data: &mut NOTIFYICONDATAW, tooltip: &str) {
     let units: Vec<u16> = tooltip.encode_utf16().take(data.szTip.len() - 1).collect();
@@ -200,7 +223,10 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         // NOTIFYICON_VERSION_4：lparam 的低 16 位是事件，高 16 位是图标编号；wparam 是锚点坐标（不用，
         // 托盘菜单按光标位置弹出）。鼠标移动、按下等其他事件不处理。
         match (lparam.0 as u32) & 0xFFFF {
-            NIN_SELECT | NIN_KEYSELECT => Some(TrayEvent::LeftClick),
+            NIN_SELECT | NIN_KEYSELECT => {
+                close_overflow_flyout();
+                Some(TrayEvent::LeftClick)
+            }
             WM_CONTEXTMENU => Some(TrayEvent::RightClick),
             _ => None,
         }

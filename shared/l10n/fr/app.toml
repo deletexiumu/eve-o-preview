@@ -205,6 +205,7 @@ chatlogsFolder = "Journaux de chat (Chatlogs)"
 gamelogsFolder = "Journaux de jeu (Gamelogs)"
 logsHelp = "Le renseignement et la traduction lisent Chatlogs ; les alertes de combat lisent Gamelogs. S'ils sont introuvables, vérifiez qu'EVE enregistre le chat dans un fichier, ou indiquez le dossier des journaux dans la page Alertes."
 recheck = "Vérifier à nouveau"
+lastChecked = "Dernière vérification : {time}"
 
 [MenuStrings]
 # 菜单项以动词不定式开头（Afficher、Masquer、Réduire），符合 macOS 法文菜单的写法。

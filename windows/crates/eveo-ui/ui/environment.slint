@@ -26,6 +26,9 @@ export global EnvironmentModel {
     // 两个子文件夹在不在。
     in property <bool> chatlogs-found;
     in property <bool> gamelogs-found;
+    // 上次检查日志目录的本地时间（时:分:秒）；空串表示还没检查过，不显示。
+    // 检查结果多半与上次相同，有了时间，点「重新检查」后能看出确实查过了（真机测试的建议）。
+    in property <string> checked-time;
     // 「重新检查」。
     callback recheck();
     // 在资源管理器里打开日志目录（不在时打开最近的上一级）。
@@ -115,9 +118,16 @@ export component EnvironmentPage inherits VerticalLayout {
     HorizontalLayout {
         alignment: start;
         padding-top: 16px;
+        spacing: 12px;
         Button {
             text: SettingsText.recheck;
             clicked => { EnvironmentModel.recheck(); }
+        }
+        // 按钮右边的上次检查时间，文字随界面语言。
+        if EnvironmentModel.checked-time != "": Text {
+            text: SettingsText.last-checked(EnvironmentModel.checked-time);
+            color: Theme.text-secondary;
+            vertical-alignment: center;
         }
     }
     // 页底留白。

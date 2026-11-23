@@ -378,6 +378,8 @@ pub trait SettingsStrings: Sync {
     fn logs_help(&self) -> &'static str;
     /// Windows「环境检查」页：重新检查的按钮。
     fn recheck(&self) -> &'static str;
+    /// Windows「环境检查」页：「重新检查」按钮旁的上次检查时间，参数是本地时间（时:分:秒）。
+    fn last_checked(&self, time: &str) -> String;
 }
 
 /// 设置窗口的文字（en）。
@@ -912,6 +914,9 @@ impl SettingsStrings for SettingsStringsEn {
     fn recheck(&self) -> &'static str {
         "Check again"
     }
+    fn last_checked(&self, time: &str) -> String {
+        format!("Last checked: {}", time)
+    }
 }
 
 /// 设置窗口的文字（zh）。
@@ -1442,6 +1447,9 @@ impl SettingsStrings for SettingsStringsZh {
     }
     fn recheck(&self) -> &'static str {
         "重新检查"
+    }
+    fn last_checked(&self, time: &str) -> String {
+        format!("上次检查：{}", time)
     }
 }
 
@@ -1978,6 +1986,9 @@ impl SettingsStrings for SettingsStringsRu {
     fn recheck(&self) -> &'static str {
         "Проверить снова"
     }
+    fn last_checked(&self, time: &str) -> String {
+        format!("Последняя проверка: {}", time)
+    }
 }
 
 /// 设置窗口的文字（ja）。
@@ -2509,6 +2520,9 @@ impl SettingsStrings for SettingsStringsJa {
     fn recheck(&self) -> &'static str {
         "再チェック"
     }
+    fn last_checked(&self, time: &str) -> String {
+        format!("最終チェック：{}", time)
+    }
 }
 
 /// 设置窗口的文字（ko）。
@@ -3039,6 +3053,9 @@ impl SettingsStrings for SettingsStringsKo {
     }
     fn recheck(&self) -> &'static str {
         "다시 점검"
+    }
+    fn last_checked(&self, time: &str) -> String {
+        format!("마지막 점검: {}", time)
     }
 }
 
@@ -3574,6 +3591,9 @@ impl SettingsStrings for SettingsStringsFr {
     fn recheck(&self) -> &'static str {
         "Vérifier à nouveau"
     }
+    fn last_checked(&self, time: &str) -> String {
+        format!("Dernière vérification : {}", time)
+    }
 }
 
 /// 设置窗口的文字（de）。
@@ -4108,6 +4128,9 @@ impl SettingsStrings for SettingsStringsDe {
     fn recheck(&self) -> &'static str {
         "Erneut prüfen"
     }
+    fn last_checked(&self, time: &str) -> String {
+        format!("Zuletzt geprüft: {}", time)
+    }
 }
 
 /// 设置窗口的文字（es）。
@@ -4641,6 +4664,9 @@ impl SettingsStrings for SettingsStringsEs {
     }
     fn recheck(&self) -> &'static str {
         "Volver a comprobar"
+    }
+    fn last_checked(&self, time: &str) -> String {
+        format!("Última comprobación: {}", time)
     }
 }
 

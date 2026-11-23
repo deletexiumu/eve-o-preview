@@ -187,6 +187,7 @@ chatlogsFolder = "聊天日志（Chatlogs）"
 gamelogsFolder = "游戏日志（Gamelogs）"
 logsHelp = "预警与翻译读 Chatlogs，受击提醒读 Gamelogs。找不到时，确认 EVE 已开启把聊天记录写入文件，或在「提醒」页填写日志目录。"
 recheck = "重新检查"
+lastChecked = "上次检查：{time}"
 
 [MenuStrings]
 showAll = "显示全部缩略图"

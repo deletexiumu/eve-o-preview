@@ -187,6 +187,7 @@ chatlogsFolder = "Chat logs (Chatlogs)"
 gamelogsFolder = "Game logs (Gamelogs)"
 logsHelp = "Intel and translation read Chatlogs; combat alerts read Gamelogs. If they are missing, make sure EVE logs chat to file, or set the log folder on the Alerts page."
 recheck = "Check again"
+lastChecked = "Last checked: {time}"
 
 [MenuStrings]
 showAll = "Show All Thumbnails"

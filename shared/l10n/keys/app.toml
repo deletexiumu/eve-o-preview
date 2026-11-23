@@ -612,6 +612,11 @@ platforms = ["windows"]
 doc = "Windows「环境检查」页：重新检查的按钮。"
 platforms = ["windows"]
 
+[SettingsStrings.lastChecked]
+doc = "Windows「环境检查」页：「重新检查」按钮旁的上次检查时间，参数是本地时间（时:分:秒）。"
+params = ["_ time: String"]
+platforms = ["windows"]
+
 [MenuStrings.showAll]
 doc = "「全部隐藏」打开时显示的菜单项：显示全部缩略图。"
 

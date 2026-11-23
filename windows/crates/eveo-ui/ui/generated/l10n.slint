@@ -351,6 +351,8 @@ export global SettingsText {
     in property <string> logs-help: "Intel and translation read Chatlogs; combat alerts read Gamelogs. If they are missing, make sure EVE logs chat to file, or set the log folder on the Alerts page.";
     // Windows「环境检查」页：重新检查的按钮。
     in property <string> recheck: "Check again";
+    // Windows「环境检查」页：「重新检查」按钮旁的上次检查时间，参数是本地时间（时:分:秒）。
+    pure callback last-checked(time: string) -> string;
 }
 
 // 「提醒」页的文字。

@@ -188,6 +188,7 @@ pub fn apply(ui: &SettingsWindow, language: AppLanguage) {
     text.set_gamelogs_folder(settings.gamelogs_folder().into());
     text.set_logs_help(settings.logs_help().into());
     text.set_recheck(settings.recheck().into());
+    text.on_last_checked(move |time| settings.last_checked(&time).into());
     let combat = eveo_l10n::combat(language);
     let text = ui.global::<CombatText>();
     text.set_page_subtitle(combat.page_subtitle().into());
