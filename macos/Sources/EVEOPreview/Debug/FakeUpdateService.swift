@@ -124,7 +124,7 @@ extension FakeUpdateService {
     1. Quit EVE-O Preview.
     2. Open the new version.
 
-    See the [release page](https://github.com/deletexiumu/eve-o-preview-macos/releases) for details. `code` stays monospaced.
+    See the [release page](https://github.com/deletexiumu/eve-o-preview/releases) for details. `code` stays monospaced.
     <!-- /lang:en -->
     <!-- lang:zh -->
     <details><summary>简体中文</summary>
@@ -134,7 +134,7 @@ extension FakeUpdateService {
     - 切换配置方案后，缩略图保留**边框颜色**。
     - 「立即检查」按钮显示上次检查的时刻。
 
-    详见[发布页](https://github.com/deletexiumu/eve-o-preview-macos/releases)。
+    详见[发布页](https://github.com/deletexiumu/eve-o-preview/releases)。
 
     </details>
     <!-- /lang:zh -->

@@ -1376,7 +1376,7 @@ public struct PilotLookupQueue: Sendable {
 
 - 地址是 `https://esi.evetech.net/universe/ids`，方法 `POST`，不带查询串。
 - 请求头：`Content-Type: application/json`、`Accept: application/json`、`Accept-Language: en`、`X-Compatibility-Date: 2020-01-01`、`X-Tenant: tranquility`、`User-Agent`。
-- `User-Agent` 是 `EVE-O-Preview-macOS/<版本> (+https://github.com/deletexiumu/eve-o-preview-macos)`。里面不写邮箱、角色名或任何能认出用户的内容。
+- `User-Agent` 是 `EVE-O-Preview-macOS/<版本> (+https://github.com/deletexiumu/eve-o-preview)`。里面不写邮箱、角色名或任何能认出用户的内容。
 - 请求体是名字的 JSON 数组。
 - `batches` 保证每组不为空、各项的比较键互不相同、每项是 1～100 个字符。这三条任一条不满足，ESI 返回 400 并扣错误额度（E5）。
 - 超时 10 秒。答复正文超过 1 MiB 时是 `network("response too large")`。

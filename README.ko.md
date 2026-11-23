@@ -43,7 +43,7 @@ EVE-O Preview for macOS는 실행 중인 모든 EVE Online 클라이언트의 �
 
 ### 릴리스 다운로드
 
-1. [Releases](https://github.com/deletexiumu/eve-o-preview-macos/releases) 페이지에서 `EVE-O-Preview-<version>.dmg`를 다운로드합니다.
+1. [Releases](https://github.com/deletexiumu/eve-o-preview/releases) 페이지에서 `EVE-O-Preview-<version>.dmg`를 다운로드합니다.
 2. dmg를 열고 `EVE-O Preview.app`을 응용 프로그램 폴더로 드래그합니다.
 3. 앱을 엽니다. 메뉴 막대에 아이콘이 나타나며, 처음 실행하면 설정 윈도우가 권한 페이지로 열립니다.
 
@@ -213,8 +213,8 @@ macOS 사용자 이름, 전체 이름, 홈 폴더 경로, 컴퓨터 이름은 `[
 
 앱은 업데이트를 위해 GitHub에 연결하며, 이 목록 뒤에 설명하는 선택 기능을 켜지 않는 한 다른 연결은 하지 않습니다.
 
-- 업데이트를 확인할 때 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest`를 요청합니다. "자동으로 업데이트 확인"이 켜져 있으면 실행할 때와 하루에 한 번 요청하며, "업데이트 확인…"을 선택할 때마다 요청합니다.
-- 새 버전을 안내할 때는 건너뛴 버전의 변경 내용을 보여 주기 위해 같은 헤더로 릴리스 목록 `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`를 한 번 요청합니다.
+- 업데이트를 확인할 때 `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest`를 요청합니다. "자동으로 업데이트 확인"이 켜져 있으면 실행할 때와 하루에 한 번 요청하며, "업데이트 확인…"을 선택할 때마다 요청합니다.
+- 새 버전을 안내할 때는 건너뛴 버전의 변경 내용을 보여 주기 위해 같은 헤더로 릴리스 목록 `api.github.com/repos/deletexiumu/eve-o-preview/releases`를 한 번 요청합니다.
 - 업데이트를 설치할 때 릴리스에서 `SHA256SUMS.txt`와 dmg를 다운로드합니다.
 
 요청에는 `User-Agent` 헤더에 담긴 앱 버전, 고정된 `Accept-Language: en`, 캐시 태그만 들어 있습니다. 캐릭터 이름, 설정, 로그, 하드웨어 정보, 시스템 버전, 식별자는 전송하지 않으며 쿠키도 사용하지 않습니다. GitHub는 사용자의 IP 주소와 요청 시각을 알 수 있습니다. 원격 측정이나 충돌 정보 자동 업로드는 없습니다. "문제 신고…"는 Mac에 zip을 만들고 웹 페이지를 열 뿐이며, 제출할지는 사용자가 결정합니다.

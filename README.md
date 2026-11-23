@@ -41,7 +41,7 @@ This repository started as a GitHub fork of EveOPlus/eve-o-preview and was moved
 
 ### Download a release
 
-1. Download `EVE-O-Preview-<version>.dmg` from the [Releases](https://github.com/deletexiumu/eve-o-preview-macos/releases) page.
+1. Download `EVE-O-Preview-<version>.dmg` from the [Releases](https://github.com/deletexiumu/eve-o-preview/releases) page.
 2. Open the dmg and drag `EVE-O Preview.app` into the Applications folder.
 3. Open the app. Its icon appears in the menu bar, and on first launch the settings window opens on the Permissions page.
 
@@ -211,8 +211,8 @@ The app keeps up to 5 log files of 1 MiB each in `~/Library/Logs/EVE-O Preview/`
 
 The app connects to GitHub for updates, and makes no other connections unless you turn on one of the optional features described after this list:
 
-- Checking for updates requests `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…".
-- When a newer version is offered, the app also requests the release list `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases` once, with the same headers, to show the notes of any versions you skipped.
+- Checking for updates requests `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…".
+- When a newer version is offered, the app also requests the release list `api.github.com/repos/deletexiumu/eve-o-preview/releases` once, with the same headers, to show the notes of any versions you skipped.
 - Installing an update downloads `SHA256SUMS.txt` and the dmg from the release.
 
 The requests carry only the app version in the `User-Agent` header, a fixed `Accept-Language: en` and a cache tag; no character names, settings, logs, hardware details, system version or identifiers are sent, and no cookies are used. GitHub sees your IP address and the time of the request. There is no telemetry and no automatic crash upload: "Report a Problem…" only creates a zip on your Mac and opens a web page that you choose whether to submit.

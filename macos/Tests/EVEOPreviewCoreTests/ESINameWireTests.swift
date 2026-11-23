@@ -35,7 +35,7 @@ import Foundation
             "Accept-Language": "en",
             "X-Compatibility-Date": "2020-01-01",
             "X-Tenant": "tranquility",
-            "User-Agent": "EVE-O-Preview-macOS/1.2.0 (+https://github.com/deletexiumu/eve-o-preview-macos)",
+            "User-Agent": "EVE-O-Preview-macOS/1.2.0 (+https://github.com/deletexiumu/eve-o-preview)",
         ])
         let body = try JSONSerialization.jsonObject(with: request.body) as? [String]
         #expect(body == ["Kael Doran", "Mira Voss"])

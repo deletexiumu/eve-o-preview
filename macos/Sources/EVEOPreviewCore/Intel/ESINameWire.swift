@@ -57,7 +57,7 @@ public enum ESINameWire {
 
     /// User-Agent：应用名、版本与项目地址。
     public static func userAgent(appVersion: String) -> String {
-        "EVE-O-Preview-macOS/\(appVersion) (+https://github.com/deletexiumu/eve-o-preview-macos)"
+        "EVE-O-Preview-macOS/\(appVersion) (+https://github.com/deletexiumu/eve-o-preview)"
     }
 
     /// 把名字整理成可以发送的几组：连续的空白并成一个空格，去掉空的与超过 100 个字符的，按比较键去重，

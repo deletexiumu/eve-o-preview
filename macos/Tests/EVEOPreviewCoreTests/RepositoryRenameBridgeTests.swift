@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 过渡版 1.3.0 的用例：仓库计划改名为 eve-o-preview，并在同一仓库发布 Windows 版（tag `win-v*`）。
+// 仓库改名的用例：1.3.0 起接受新旧两个名字，2026-11-23 仓库改名为 eve-o-preview，1.3.2 起正式地址用新名字。
+// 同一仓库还会发布 Windows 版（tag `win-v*`）。
 // - 附件与发布页同时接受新旧两个仓库名，别的名字（包括只差一个后缀的）仍然拒绝。
 // - `releases/latest` 是 Windows 版时，`needsListFallback` 为真，`parseLatestFromList` 从列表里挑出 macOS 的最新正式版。
 // - Release 列表每页 100 条。
@@ -101,6 +102,14 @@ struct RepositoryRenameBridgeTests {
     @Test func historyPageHoldsOneHundred() {
         #expect(ReleaseHistory.pageSize == 100)
         #expect(UpdateFeed.productionHistoryURL.absoluteString.hasSuffix("/releases?per_page=100"))
+    }
+
+    /// 1.3.2 起（仓库已改名）正式地址与默认发布页用新名字，改名前的附件与发布页地址仍然接受。
+    @Test func productionUsesNewNameAndKeepsLegacy() {
+        #expect(UpdateFeed.productionAssetPrefix == "https://github.com/deletexiumu/eve-o-preview/releases/")
+        #expect(UpdateFeed.legacyAssetPrefix == "https://github.com/deletexiumu/eve-o-preview-macos/releases/")
+        #expect(production.accepts(UpdateFeed.productionAssetPrefix + "download/v1.3.2/EVE-O-Preview-1.3.2.dmg"))
+        #expect(production.accepts(UpdateFeed.legacyAssetPrefix + "download/v1.3.1/EVE-O-Preview-1.3.1.dmg"))
     }
 
     // MARK: - 样例

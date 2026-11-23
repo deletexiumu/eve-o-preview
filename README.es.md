@@ -43,7 +43,7 @@ Este repositorio empezó como un fork en GitHub de EveOPlus/eve-o-preview y se t
 
 ### Descargar una versión
 
-1. Descarga `EVE-O-Preview-<version>.dmg` desde la página [Releases](https://github.com/deletexiumu/eve-o-preview-macos/releases).
+1. Descarga `EVE-O-Preview-<version>.dmg` desde la página [Releases](https://github.com/deletexiumu/eve-o-preview/releases).
 2. Abre el dmg y arrastra `EVE-O Preview.app` a la carpeta Aplicaciones.
 3. Abre la app. Su icono aparece en la barra de menús y, en el primer arranque, la ventana de ajustes se abre en la página Permisos.
 
@@ -213,8 +213,8 @@ La app conserva hasta 5 archivos de registro de 1 MiB cada uno en `~/Library/Log
 
 La app se conecta a GitHub para las actualizaciones y no hace ninguna otra conexión salvo que actives alguna de las funciones opcionales descritas después de esta lista:
 
-- La búsqueda de actualizaciones solicita `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` al arrancar y una vez al día mientras “Buscar actualizaciones automáticamente” está activado, y cada vez que eliges “Buscar actualizaciones…”.
-- Cuando se ofrece una versión nueva, la app también solicita una vez la lista de versiones `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`, con las mismas cabeceras, para mostrar las notas de las versiones que te saltaste.
+- La búsqueda de actualizaciones solicita `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` al arrancar y una vez al día mientras “Buscar actualizaciones automáticamente” está activado, y cada vez que eliges “Buscar actualizaciones…”.
+- Cuando se ofrece una versión nueva, la app también solicita una vez la lista de versiones `api.github.com/repos/deletexiumu/eve-o-preview/releases`, con las mismas cabeceras, para mostrar las notas de las versiones que te saltaste.
 - La instalación de una actualización descarga `SHA256SUMS.txt` y el dmg de la versión.
 
 Las solicitudes solo llevan la versión de la app en la cabecera `User-Agent`, un `Accept-Language: en` fijo y una etiqueta de caché; no se envían nombres de personajes, ajustes, registros, datos del hardware, versión del sistema ni identificadores, y no se usan cookies. GitHub ve tu dirección IP y la hora de la solicitud. No hay telemetría ni envío automático de fallos: “Informar de un problema…” solo crea un zip en tu Mac y abre una página web que tú decides si enviar.

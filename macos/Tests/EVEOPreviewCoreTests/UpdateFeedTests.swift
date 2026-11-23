@@ -16,7 +16,7 @@ struct UpdateFeedTests {
         #expect(production == UpdateFeed(feedURL: UpdateFeed.productionURL, isTestFeed: false))
         #expect(UpdateFeed.resolve(override: "") == production)
         #expect(UpdateFeed.productionURL.absoluteString
-            == "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest")
+            == "https://api.github.com/repos/deletexiumu/eve-o-preview/releases/latest")
     }
 
     /// https 地址与回环主机的 http 地址被接受，成为测试地址。
