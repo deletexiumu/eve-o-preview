@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 菜单栏图标：八边形框里一个分子，与应用图标（macos/packaging/AppIcon.png，取自上游 EVE-O Preview 的分子图标）轮廓一致。
+// 菜单栏图标：八边形框里一个分子（沿用上游 EVE-O Preview 的分子图案）。应用图标另由 shared/branding/make-icons.py 生成。
 //
 // 用代码画矢量，不放图片资源：SwiftPM 的资源包放进手工组装的 .app 后查找路径有问题（架构文档 7.4 节），
 // 矢量图在任何缩放比例下都清晰。图像标记为模板图（isTemplate），由系统按菜单栏的深浅色自动着色，
@@ -17,7 +17,7 @@ enum StatusBarIcon {
     static let side: CGFloat = 18
 
     /// 分子各原子的位置与半径，都按图标边长归一化（0～1，原点在左上角，y 轴向下）。
-    /// 位置照应用图标里的分子摆放：中心原子偏左上，右下是一个大原子，另有 4 个小原子。
+    /// 位置照上游分子图标的摆放：中心原子偏左上，右下是一个大原子，另有 4 个小原子。
     private static let center = (x: 0.45, y: 0.45, r: 0.12)
     private static let atoms: [(x: Double, y: Double, r: Double)] = [
         (0.36, 0.22, 0.085),   // 左上
@@ -66,7 +66,7 @@ enum StatusBarIcon {
         NSColor.black.setStroke()
         NSColor.black.setFill()
 
-        // 八边形框：正八边形，边与坐标轴平行（与应用图标一致），线宽 1.4 点。
+        // 八边形框：正八边形，边与坐标轴平行，线宽 1.4 点。
         let lineWidth = 1.4
         let radius = s / 2 - lineWidth / 2 - 0.3
         let octagon = NSBezierPath()

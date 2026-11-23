@@ -559,7 +559,7 @@ eve-o-preview/
 ├── macos/
 │   ├── Package.swift、Sources/、Tests/、VERSION
 │   ├── packaging/               Info.plist、图标、证书指纹（eve-static.json 移到 shared）
-│   └── scripts/                 build-app.sh、package-release.sh、make-app-icon.py、make-update-test-feed.sh
+│   └── scripts/                 build-app.sh、package-release.sh、make-update-test-feed.sh
 ├── windows/                     见 3.1 节
 ├── shared/                      见 5.1 节
 ├── docs/

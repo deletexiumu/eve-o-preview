@@ -43,6 +43,8 @@ export component SettingsWindow inherits Window {
     in property <string> ui-font: "Segoe UI Variable Text";
     // 首次打开的大小；可以缩小到最小尺寸，内容区滚动。
     title: "EVE-O Preview 设置";
+    // 标题栏与任务栏的图标：应用图标的头像版（shared/branding/make-icons.py 生成），小尺寸下认得出。
+    icon: @image-url("images/app-icon.png");
     preferred-width: 1040px;
     preferred-height: 760px;
     min-width: 760px;
@@ -72,18 +74,12 @@ export component SettingsWindow inherits Window {
                 padding-left: 6px;
                 padding-bottom: 16px;
                 spacing: 12px;
-                // 应用图标的占位：橙红渐变方块，正式图标在 M8 设计。
-                Rectangle {
+                // 应用图标：与标题栏同一张头像（64 像素，在高缩放比例下也清晰）。
+                Image {
+                    source: @image-url("images/app-icon.png");
                     width: 28px;
                     height: 28px;
-                    border-radius: 6px;
-                    background: @linear-gradient(135deg, #f2a23c 0%, #c0392b 100%);
-                    Text {
-                        text: "EO";
-                        color: #ffffff;
-                        font-size: 12px;
-                        font-weight: 700;
-                    }
+                    image-fit: contain;
                 }
                 Text {
                     text: "EVE-O Preview";

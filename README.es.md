@@ -187,7 +187,7 @@ El menú contextual ofrece Desplazar a lo más reciente, Copiar esta línea, Abr
 
 ### Barra de menús
 
-El icono de la barra de menús coincide con el icono de la app: una molécula dentro de un octógono. El menú ofrece: Mostrar u ocultar todas las miniaturas, cambiar de perfil, Minimizar todos los clientes, Atajos solo en EVE, Mostrar superposición de inteligencia, Mostrar superposición de traducción, Buscar actualizaciones…, Informar de un problema…, Ajustes y Salir. Cuando hay una actualización disponible o la ejecución anterior se cerró inesperadamente, aparece un punto en el icono y el menú muestra un ítem al respecto en la parte superior. Cuando falta un permiso, el menú tiene un ítem adicional sobre ello. Si detienes la captura de un cliente desde el indicador de grabación del sistema, el menú añade un ítem “Reanudar captura”.
+El icono de la barra de menús es una molécula dentro de un octógono. El menú ofrece: Mostrar u ocultar todas las miniaturas, cambiar de perfil, Minimizar todos los clientes, Atajos solo en EVE, Mostrar superposición de inteligencia, Mostrar superposición de traducción, Buscar actualizaciones…, Informar de un problema…, Ajustes y Salir. Cuando hay una actualización disponible o la ejecución anterior se cerró inesperadamente, aparece un punto en el icono y el menú muestra un ítem al respecto en la parte superior. Cuando falta un permiso, el menú tiene un ítem adicional sobre ello. Si detienes la captura de un cliente desde el indicador de grabación del sistema, el menú añade un ítem “Reanudar captura”.
 
 EVE-O Preview también muestra su icono en el Dock; al hacer clic en él se abre la ventana de ajustes. Para dejar solo el icono de la barra de menús, desactiva “Mostrar icono en el Dock” en Ajustes > General.
 
@@ -269,4 +269,4 @@ La app se conecta a GitHub para buscar y descargar actualizaciones. Solo se cone
 
 EVE Online y los logotipos relacionados son marcas comerciales de CCP ehf. Este proyecto no está afiliado a CCP ni cuenta con su respaldo.
 
-El icono de la app reutiliza el icono de la molécula del proyecto original EveOPlus/eve-o-preview (GPL-3.0). El fondo lo dibuja `macos/scripts/make-app-icon.py` y no contiene marcas comerciales de CCP ni arte del juego.
+El icono de la app es una parca de estilo caricaturesco aportada por el mantenedor del proyecto. `shared/branding/make-icons.py` genera los iconos de macOS y Windows a partir de `shared/branding/logo-source.jpg`. El icono no contiene marcas comerciales de CCP ni arte del juego.

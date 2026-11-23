@@ -29,7 +29,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
         if let button = statusItem.button {
-            // 与应用图标一致的分子模板图（见 StatusBarIcon），由系统按菜单栏深浅色着色。
+            // 分子模板图（见 StatusBarIcon），由系统按菜单栏深浅色着色。
             button.image = StatusBarIcon.make(attention: !coordinator.attention.isEmpty)
             button.toolTip = L10n.appName
         }
