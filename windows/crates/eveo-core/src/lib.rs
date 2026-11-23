@@ -13,6 +13,7 @@
 //! - [`layout`]：缩略图的基准位置、吸附、边缘缩放、悬停放大与画面裁剪。
 //! - [`hotkeys`]：热键字符串的解析、规划与鼠标热键的匹配。
 //! - [`planning`]：缩略图的可见性与呈现规划。
+//! - [`combat_log`]：战斗日志的分行、文件头、伤害行解析、目录与文件挑选、提醒规则与防重放。
 //! - [`config`]：配置的迁移、校验与配置方案的增删改。
 //! - [`support`]：字符串枚举与宽松解码、十六进制颜色、与 Foundation 对齐的文本处理。
 
@@ -21,6 +22,7 @@
 pub mod support;
 
 pub mod clients;
+pub mod combat_log;
 pub mod config;
 pub mod geometry;
 pub mod hotkeys;
