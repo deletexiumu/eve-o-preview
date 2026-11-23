@@ -7,7 +7,7 @@
 # - 推送 win-v* tag：同样检查。建 Release 的任务在 M9 加入，届时 Release 一律不标为 latest，
 #   并核对 /releases/latest 仍是 macOS 的 v* tag（已安装的 macOS 客户端靠它检查更新）。
 # Rust 工作区在 windows/Cargo.toml（M2 加入）；没有它时 Rust 的步骤自动跳过。
-# 在 Windows 运行器上构建、跑集成探针的 build 任务在 M3 加入。
+# build 任务（M3 加入）在 Windows 运行器上构建整个工作区，启动假客户端跑集成探针，截图与报告作为制品上传。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
 
 name: Windows
@@ -126,7 +126,48 @@ jobs:
         working-directory: windows
         run: cargo test --locked
 
-      - name: Windows 目标的类型检查
+      # 平台层、假客户端与探针只在 Windows 上有内容，这里对 Windows 目标做类型检查与 clippy。
+      - name: Windows 目标的类型检查与 Clippy
         if: hashFiles('windows/Cargo.toml') != ''
         working-directory: windows
-        run: cargo check --locked --workspace --all-targets --target x86_64-pc-windows-msvc
+        run: cargo clippy --locked --workspace --all-targets --target x86_64-pc-windows-msvc -- -D warnings
+
+  # 在真正的 Windows 上构建，并用假客户端跑集成探针（架构文档 8.2 节）：发现、DWM 缩略图（截图取色）、
+  # 激活、热键与窗口事件。探针的必需项失败时任务失败；截图与 report.json 无论成败都上传。
+  build:
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Rust 工具链
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustc --version
+
+      - name: 构建
+        working-directory: windows
+        run: cargo build --locked --workspace
+
+      # 假客户端复制成 exefile.exe，进程名就与真客户端相同。
+      - name: 集成探针
+        working-directory: windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force fake, probe-out | Out-Null
+          Copy-Item target/debug/eveo-fake-client.exe fake/exefile.exe
+          ./target/debug/eveo-probe.exe ci --fake-client fake/exefile.exe --out probe-out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: 上传探针结果
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-probe
+          path: windows/probe-out/
+          if-no-files-found: warn

@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# 命令行探针，对应 macOS 的 EVEOProbe（架构文档 8.2 节、8.3 节）：在 CI 上对假客户端跑集成检查，
+# 在真实机器上收集待实测的事实。不进发布包。
+
+[package]
+name = "eveo-probe"
+description = "EVE-O Preview Windows 版的平台探针"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+eveo-core.workspace = true
+eveo-platform-win.workspace = true
+windows.workspace = true
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "warn"

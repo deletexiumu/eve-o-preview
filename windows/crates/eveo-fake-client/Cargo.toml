@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# 假的 EVE 客户端窗口，只用于 CI 的集成探针（架构文档 8.2 节）：类名、标题、颜色、位置可配，客户区涂成纯色。
+# CI 把它复制成 exefile.exe 再启动，进程名就与真客户端相同。
+
+[package]
+name = "eveo-fake-client"
+description = "集成测试用的假 EVE 客户端窗口"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows.workspace = true
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "warn"
