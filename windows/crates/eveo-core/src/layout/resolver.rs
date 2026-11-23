@@ -3,10 +3,12 @@
 // 缩略图基准 frame 的计算，对应 macOS 的 Layout/LayoutResolver.swift（架构文档 5.4 节）：
 // 有记录用记录，没有记录自动排位，登录客户端从 loginPosition 层叠；最后都拉回屏幕内，
 // 显示器拔掉后缩略图不会留在屏幕外。
+// 配置里的尺寸是逻辑单位，按缩略图所在屏幕的 size_scale 换成屏幕坐标（Windows 上是物理像素）；
+// 位置本来就是全局坐标，不换算。macOS 的 size_scale 为 1，结果与 macOS 相同。
 
 //! 缩略图布局计算。
 
-use crate::geometry::{ScreenInfo, ScreenPoint, ScreenRect, ScreenSize, main_screen};
+use crate::geometry::{ScreenInfo, ScreenPoint, ScreenRect, ScreenSize, main_screen, size_scale_at};
 use crate::layout::clamp_loose;
 use crate::model::{ClientIdentity, EveClient, Profile, ThumbnailSettings};
 
@@ -34,7 +36,8 @@ pub struct ResolvedLayout {
 /// 2. 角色没有记录：在主屏可用范围内从左上角起向下排，边距 16，间距 8，排满换下一列，
 ///    跳过与 `occupied` 相交的格子；全部格子都被占用时取第一个格子。
 /// 3. 登录或未知的客户端：`loginPosition` 加 `(24 × login_index, 24 × login_index)`，尺寸用默认尺寸。
-/// 4. 结果都经过 [`clamp_to_screens`]（至少露出 32）。
+/// 4. 尺寸按所在屏幕的 `size_scale` 换算：有记录的按记录位置处的屏幕，自动排位按主屏，登录客户端按层叠位置处的屏幕。
+/// 5. 结果都经过 [`clamp_to_screens`]（至少露出 32）。
 ///
 /// `login_index` 是该客户端在登录与未知客户端里按 PID 升序的序号，从 0 起；角色客户端忽略它。
 pub fn frame(
@@ -54,6 +57,9 @@ pub fn frame(
                     layout.height.unwrap_or(default_size.height),
                 );
                 let size = clamp_size(wanted, settings, None);
+                // 用逻辑尺寸的中心找屏幕：左上角正好压在屏幕边界上时，大部分画面所在的屏幕说了算。
+                let center = ScreenRect::new(layout.x, layout.y, size.width, size.height).center();
+                let size = scaled(size, size_scale_at(screens, center));
                 ResolvedLayout {
                     frame: ScreenRect::new(layout.x, layout.y, size.width, size.height),
                     is_auto_placed: false,
@@ -70,8 +76,9 @@ pub fn frame(
                 profile.login_position.x + offset,
                 profile.login_position.y + offset,
             );
+            let size = scaled(default_size, size_scale_at(screens, origin));
             ResolvedLayout {
-                frame: ScreenRect::from_origin_size(origin, default_size),
+                frame: ScreenRect::from_origin_size(origin, size),
                 is_auto_placed: false,
             }
         }
@@ -145,11 +152,18 @@ pub fn clamp_to_screens(rect: ScreenRect, screens: &[ScreenInfo], minimum_visibl
     ScreenRect::new(x, y, rect.width, rect.height)
 }
 
+/// 尺寸乘上换算倍数。
+fn scaled(size: ScreenSize, factor: f64) -> ScreenSize {
+    ScreenSize::new(size.width * factor, size.height * factor)
+}
+
 /// 自动排位：在主屏可用范围里按列从上到下找第一个不与 `occupied` 相交的格子。
+/// `size` 是逻辑尺寸，按主屏的 `size_scale` 换算；边距与间距不换算，与 macOS 相同。
 fn auto_place(size: ScreenSize, screens: &[ScreenInfo], occupied: &[ScreenRect]) -> ScreenRect {
     let Some(main) = main_screen(screens) else {
         return ScreenRect::new(AUTO_PLACE_MARGIN, AUTO_PLACE_MARGIN, size.width, size.height);
     };
+    let size = scaled(size, main.size_scale);
     let area = if main.visible_frame.is_empty() {
         main.frame
     } else {
