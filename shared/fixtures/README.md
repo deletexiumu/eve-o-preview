@@ -11,6 +11,7 @@ macOS 与 Windows 两份 Core 用同一批用例对齐行为（[架构文档 5.4
 | [layout](layout/README.md) | 吸附、边缘判断、尺寸夹取、拉回屏幕、基准位置、放大与裁剪 | `SharedLayoutFixtureTests.swift` | `eveo-core/tests/shared_layout.rs` |
 | [config](config/README.md) | 配置文件 → 迁移、校验后的配置与改正的字段 | `SharedConfigFixtureTests.swift` | `eveo-core/tests/shared_config.rs` |
 | [hotkey](hotkey/README.md) | 热键字符串的解析、规划（去重与拒绝）、鼠标热键的匹配、一次性默认值 | `SharedHotkeyFixtureTests.swift` | `eveo-core/tests/shared_hotkey.rs` |
+| [planner](planner/README.md) | 缩略图规划：两遍定位、可见性、外观、提醒与定时重算 | `SharedPlannerFixtureTests.swift` | `eveo-core/tests/shared_planner.rs` |
 
 规则：
 
