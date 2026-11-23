@@ -1167,15 +1167,18 @@ Info.plist 的键：
 
 工作流是 `.github/workflows/macos.yml`，跑在 GitHub 托管的 `macos-15` 运行器上。仓库是公开仓库，不用自托管运行器；打包要用 macOS 的 `hdiutil` 与 `codesign`。第三方 action 钉到提交 SHA，行尾注释写版本号。
 
+PR 不在 GitHub 上构建 macOS 版。托管的 macOS 运行器常要排队，2026-11-23 有 PR 排了 15 分钟没分到机器就被取消。现在由维护者在自己的 Mac 上运行 `scripts/verify_macos.sh <PR 编号>`：它把 PR 头提交检出到临时 worktree，跑文案生成检查、质量门禁、发布说明标记、文档链接、`swift build` 与 `swift test`，把结果作为提交状态 `local/macos` 上报。PR 没有改动 `macos/`、`shared/`、`scripts/`、`docs/release-notes/macos/` 或工作流时直接报成功。分支保护把 `local/macos` 设为必需检查。打包与签名仍只在 GitHub 上做。
+
 | 触发 | 做的事 | 产物 |
 | --- | --- | --- |
-| 向 `main` 发起或更新 PR、推送到 `main`、手动运行 | 质量门禁、发布说明标记检查（`scripts/check_release_notes.py`）、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 核对架构、签名、指定要求、「应用程序」替身与发布契约 | 工作流制品，保留 30 天；标签为 `<VERSION>-pr.<编号>.<提交>` 或 `<VERSION>-dev.<提交>` |
+| PR（维护者的 Mac） | `scripts/verify_macos.sh`：上面列的检查与 `swift test` | 提交状态 `local/macos` |
+| 手动运行 | 质量门禁、发布说明标记检查（`scripts/check_release_notes.py`）、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 核对架构、签名、指定要求、「应用程序」替身与发布契约 | 工作流制品，保留 30 天；标签为 `<VERSION>-dev.<提交>` |
 | 推送 `v*` tag | 同上，另外核对 tag 与 `VERSION` 文件一致，再建 GitHub Release | Release 附件：dmg、两个源码包、`SHA256SUMS.txt` |
 | 手动运行并勾选「演练发布」（`rehearse_release`） | 同第一行，再建一个草稿 Release，名为 `v<VERSION>-rehearsal.<运行编号>` | 草稿 Release，不打 tag、不公开，检查完在 Releases 页面删掉 |
 
 发布契约是 CI 与应用自动更新之间的约定（v1.1 设计 8.1 节）：`dist/release/` 只有 4 个附件且名字固定，`SHA256SUMS.txt` 有 dmg 那一行，dmg 顶层的 `EVE-O Preview.app` 是真实目录，`Info.plist` 的 `CFBundleIdentifier`、`CFBundleExecutable`、`CFBundleShortVersionString`、`EVEOBuildLabel`、`EVEOBuildCommit` 取值正确。改动其中任何一项，已安装的版本就只能提示更新、不能自动安装。
 
-PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以制品名里的提交号与内容一致。只有建 Release 的任务有 `contents: write` 权限。tag 名带 `-`（如 `v1.1.0-beta.1`）时，Release 标为预发布。Release 已存在时任务失败，不覆盖附件：已经发出去的文件与校验和不应被悄悄替换，要重发按本节末尾的步骤重打 tag。签名见 9.6 节，发布说明的格式见 9.7 节。
+只有建 Release 的任务有 `contents: write` 权限。tag 名带 `-`（如 `v1.1.0-beta.1`）时，Release 标为预发布。Release 已存在时任务失败，不覆盖附件：已经发出去的文件与校验和不应被悄悄替换，要重发按本节末尾的步骤重打 tag。签名见 9.6 节，发布说明的格式见 9.7 节。
 
 发布新版本的步骤：
 
