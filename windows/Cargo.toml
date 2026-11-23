@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Windows 版的 Rust 工作区。crate 划分见 docs/windows/architecture.md 3.1 节：
-# eveo-core 是纯逻辑；eveo-platform-win 是 Win32 实现；eveo-fake-client 与 eveo-probe 用于集成探针（M3）。
+# eveo-core 是纯逻辑；eveo-app-core 是协调器；eveo-platform-win 是 Win32 实现；eveo-fake-client 与 eveo-probe 用于集成探针（M3）。
 # 界面与可执行文件在后续里程碑加入。
 # 默认成员只放与 Windows 无关的 crate，这样在 Linux 上 `cargo test` 也能全过；
 # 平台相关的 crate 在非 Windows 系统上编译成空壳，由 `cargo check --target x86_64-pc-windows-msvc` 检查。
@@ -10,6 +10,7 @@
 resolver = "3"
 members = [
     "crates/eveo-core",
+    "crates/eveo-app-core",
     "crates/eveo-platform-win",
     "crates/eveo-fake-client",
     "crates/eveo-probe",
@@ -17,6 +18,7 @@ members = [
 ]
 default-members = [
     "crates/eveo-core",
+    "crates/eveo-app-core",
     "crates/eveo-platform-win",
     "crates/eveo-fake-client",
     "crates/eveo-probe",
@@ -40,6 +42,7 @@ raw-window-handle = "0.6"
 # 只开基础特性；各 crate 按需加后端与渲染器（探针用 winit 后端，界面截图用软件渲染器）。
 slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
 eveo-core = { path = "crates/eveo-core" }
+eveo-app-core = { path = "crates/eveo-app-core" }
 eveo-platform-win = { path = "crates/eveo-platform-win" }
 windows = { version = "0.62", features = [
     "Win32_Foundation",
