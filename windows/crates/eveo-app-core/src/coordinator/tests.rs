@@ -32,6 +32,7 @@ fn screens() -> Vec<ScreenInfo> {
         frame: ScreenRect::new(0.0, 0.0, 1920.0, 1080.0),
         visible_frame: ScreenRect::new(0.0, 0.0, 1920.0, 1040.0),
         scale: 1.0,
+        size_scale: 1.0,
         is_main: true,
     }]
 }
@@ -673,9 +674,128 @@ fn screens_change_replans_layout() {
         frame: ScreenRect::new(0.0, 0.0, 800.0, 600.0),
         visible_frame: ScreenRect::new(0.0, 0.0, 800.0, 560.0),
         scale: 1.0,
+        size_scale: 1.0,
         is_main: true,
     }];
     let effects = coordinator.handle(Event::ScreensChanged(small), 2.0);
     // 换了屏幕后位置可能被拉回屏幕内；至少要重新发呈现或什么都没变，但不能改写已保存的布局。
     assert!(changed_config(&effects).is_none());
+}
+
+// MARK: 混合缩放
+
+/// 左边 1920×1080 的主屏（100%），右边 2560×1600 的副屏（150%）。全局坐标是物理像素。
+fn mixed_dpi_screens() -> Vec<ScreenInfo> {
+    vec![
+        ScreenInfo {
+            frame: ScreenRect::new(0.0, 0.0, 1920.0, 1080.0),
+            visible_frame: ScreenRect::new(0.0, 0.0, 1920.0, 1040.0),
+            scale: 1.0,
+            size_scale: 1.0,
+            is_main: true,
+        },
+        ScreenInfo {
+            frame: ScreenRect::new(1920.0, 0.0, 2560.0, 1600.0),
+            visible_frame: ScreenRect::new(1920.0, 0.0, 2560.0, 1540.0),
+            scale: 1.5,
+            size_scale: 1.5,
+            is_main: false,
+        },
+    ]
+}
+
+/// 效果里某个窗口最后一次呈现的 frame。
+fn presented_frame(effects: &[Effect], id: u64) -> Option<ScreenRect> {
+    effects.iter().rev().find_map(|e| match e {
+        Effect::ApplyPresentations { presentations, .. } => presentations
+            .iter()
+            .find(|p| p.id == WindowId(id))
+            .map(|p| p.frame),
+        _ => None,
+    })
+}
+
+/// 配置里的尺寸是逻辑单位：放在 150% 屏上的缩略图画成 1.5 倍的像素，看起来与主屏上一样大。
+#[test]
+fn thumbnail_size_follows_screen_scaling() {
+    let mut config = config();
+    config.profiles[0].layouts.insert(
+        "Alpha".to_owned(),
+        eveo_core::model::ThumbnailLayout {
+            x: 2000.0,
+            y: 100.0,
+            width: None,
+            height: None,
+        },
+    );
+    let mut coordinator = Coordinator::new(config, mixed_dpi_screens());
+    coordinator.handle(Event::Started, 1.0);
+    let effects = coordinator.handle(Event::WindowsPolled(three_characters()), 1.1);
+    // Alpha 在副屏：默认 384×216 画成 576×324；其余自动排在主屏，保持 384×216。
+    assert_eq!(
+        presented_frame(&effects, 1),
+        Some(ScreenRect::new(2000.0, 100.0, 576.0, 324.0))
+    );
+    let bravo = presented_frame(&effects, 2).unwrap();
+    assert_eq!((bravo.width, bravo.height), (384.0, 216.0));
+    // 手势的尺寸上下限也换成副屏的像素。
+    let context = coordinator.drag_context(WindowId(1)).unwrap();
+    let minimum = config_minimum();
+    assert_eq!(context.minimum_size.width, minimum.0 * 1.5);
+    assert_eq!(context.minimum_size.height, minimum.1 * 1.5);
+}
+
+/// 默认配置的最小尺寸（逻辑单位）。
+fn config_minimum() -> (f64, f64) {
+    let size = config().profiles[0].thumbnail.minimum_size;
+    (size.width, size.height)
+}
+
+/// 从主屏拖到副屏只是移动：不改记录的尺寸，落下后按副屏换算；在副屏上缩放时换回逻辑尺寸保存。
+#[test]
+fn dragging_across_screens_keeps_logical_size() {
+    let mut coordinator = Coordinator::new(config(), mixed_dpi_screens());
+    coordinator.handle(Event::Started, 1.0);
+    coordinator.handle(Event::WindowsPolled(three_characters()), 1.1);
+    // 拖动中尺寸仍是主屏的 384×216 像素，落点在副屏。
+    coordinator.handle(Event::DragBegan(WindowId(1)), 2.0);
+    let effects = coordinator.handle(
+        Event::DragEnded {
+            id: WindowId(1),
+            frame: ScreenRect::new(2400.0, 200.0, 384.0, 216.0),
+        },
+        2.5,
+    );
+    let layout = &changed_config(&effects).unwrap().profiles[0].layouts["Alpha"];
+    assert_eq!((layout.width, layout.height), (None, None));
+    assert_eq!(
+        presented_frame(&effects, 1),
+        Some(ScreenRect::new(2400.0, 200.0, 576.0, 324.0))
+    );
+    // 在副屏上拉大到 720×405 像素：存成逻辑尺寸 480×270。
+    coordinator.handle(Event::DragBegan(WindowId(1)), 3.0);
+    let effects = coordinator.handle(
+        Event::DragEnded {
+            id: WindowId(1),
+            frame: ScreenRect::new(2400.0, 200.0, 720.0, 405.0),
+        },
+        3.5,
+    );
+    let layout = &changed_config(&effects).unwrap().profiles[0].layouts["Alpha"];
+    assert_eq!((layout.width, layout.height), (Some(480.0), Some(270.0)));
+    // 再拖回主屏：尺寸记录不变，画成 480×270 像素。
+    coordinator.handle(Event::DragBegan(WindowId(1)), 4.0);
+    let effects = coordinator.handle(
+        Event::DragEnded {
+            id: WindowId(1),
+            frame: ScreenRect::new(100.0, 100.0, 720.0, 405.0),
+        },
+        4.5,
+    );
+    let layout = &changed_config(&effects).unwrap().profiles[0].layouts["Alpha"];
+    assert_eq!((layout.width, layout.height), (Some(480.0), Some(270.0)));
+    assert_eq!(
+        presented_frame(&effects, 1),
+        Some(ScreenRect::new(100.0, 100.0, 480.0, 270.0))
+    );
 }

@@ -3,7 +3,7 @@
 // 协调器的动作入口，对应 macOS 的 AppCoordinator+Actions.swift（架构文档 7.2 节）：
 // 缩略图的点击、最小化、悬停、拖动与右键菜单，托盘菜单的全局动作，以及给手势与菜单用的查询。
 
-use eveo_core::geometry::{ScreenPoint, ScreenRect};
+use eveo_core::geometry::{ScreenPoint, ScreenRect, ScreenSize, size_scale_at};
 use eveo_core::layout::SnapTargets;
 use eveo_core::layout::resolver::LOGIN_CASCADE_OFFSET;
 use eveo_core::model::{EveClient, ThumbnailLayout, WindowId};
@@ -63,7 +63,13 @@ impl Coordinator {
     ///
     /// 角色写 `layouts[角色名]`，尺寸与默认尺寸相同时宽高写 `None`；
     /// 登录与未知客户端写 `loginPosition`，扣掉层叠偏移。
+    ///
+    /// `frame` 是屏幕坐标。只移动没改尺寸时保留原来记录的宽高：缩略图从 100% 的屏幕拖到 150% 的屏幕，
+    /// 拖动中的像素尺寸没变，但不能因此把它存成更小的逻辑尺寸；落下后按新屏幕换算，看起来一样大。
+    /// 改了尺寸时按落点所在屏幕的 `size_scale` 换回逻辑尺寸再保存。
     pub(super) fn drag_ended(&mut self, id: WindowId, frame: ScreenRect) {
+        // 先取拖动前的基准 frame：要靠它判断这次是移动还是缩放。
+        let start = self.base_frame(id);
         self.session.interacting_windows.remove(&id);
         self.needs_replan = true;
         let Some(client) = self.registry.client_with_id(id) else {
@@ -72,15 +78,32 @@ impl Coordinator {
         // 先复制角色名，后面的 update_profile 要可变借用 self。
         match client.character_name().map(str::to_owned) {
             Some(name) => {
-                // 只比较尺寸不比较位置：位置总要保存，尺寸是默认值时存 None。
-                let default = self.profile().thumbnail.default_size;
-                let is_default = (frame.width - default.width).abs() < DEFAULT_SIZE_TOLERANCE
-                    && (frame.height - default.height).abs() < DEFAULT_SIZE_TOLERANCE;
+                let resized = start.is_none_or(|s| {
+                    (s.width - frame.width).abs() >= DEFAULT_SIZE_TOLERANCE
+                        || (s.height - frame.height).abs() >= DEFAULT_SIZE_TOLERANCE
+                });
+                let (width, height) = if resized {
+                    // 换回逻辑尺寸，存两位小数：150% 屏上的 577 像素是 384.666…，配置文件里写 384.67。
+                    let factor = size_scale_at(&self.screens, frame.center());
+                    let logical = |v: f64| (v / factor * 100.0).round() / 100.0;
+                    let (width, height) = (logical(frame.width), logical(frame.height));
+                    // 尺寸是默认值时存 None，以后改默认尺寸时这个缩略图跟着变。
+                    let default = self.profile().thumbnail.default_size;
+                    let is_default = (width - default.width).abs() < DEFAULT_SIZE_TOLERANCE
+                        && (height - default.height).abs() < DEFAULT_SIZE_TOLERANCE;
+                    (!is_default).then_some((width, height)).unzip()
+                } else {
+                    // 只移动：沿用原来记录的宽高（没有记录就是默认尺寸）。
+                    self.profile()
+                        .layouts
+                        .get(&name)
+                        .map_or((None, None), |l| (l.width, l.height))
+                };
                 let layout = ThumbnailLayout {
                     x: frame.x,
                     y: frame.y,
-                    width: (!is_default).then_some(frame.width),
-                    height: (!is_default).then_some(frame.height),
+                    width,
+                    height,
                 };
                 self.update_profile(|profile| {
                     profile.layouts.insert(name, layout);
@@ -119,14 +142,10 @@ impl Coordinator {
         let profile = self.profile();
         let settings = &profile.thumbnail;
         let displayed = presentation.frame;
-        let start = if presentation.is_zoomed && settings.zoom_factor > 1 {
-            displayed.scaled(
-                1.0 / settings.zoom_factor as f64,
-                settings.zoom_anchor.unit_position(),
-            )
-        } else {
-            displayed
-        };
+        let start = self.base_frame(id)?;
+        // 最小与最大尺寸是逻辑单位，换成所在屏幕的坐标，手势直接用像素比较。
+        let factor = size_scale_at(&self.screens, start.center());
+        let scaled = |s: ScreenSize| ScreenSize::new(s.width * factor, s.height * factor);
         // 吸附目标取上一次规划里其他可见缩略图的 frame；悬停放大的邻居按放大后的 frame 吸附，与用户看到的一致。
         let neighbors = self
             .last_plan
@@ -142,9 +161,25 @@ impl Coordinator {
             snap_enabled: settings.snap_enabled,
             lock_aspect_ratio: settings.lock_aspect_ratio,
             allows_resize: client.character_name().is_some(),
-            minimum_size: settings.minimum_size,
-            maximum_size: settings.maximum_size,
+            minimum_size: scaled(settings.minimum_size),
+            maximum_size: scaled(settings.maximum_size),
             targets: SnapTargets::from_screens(neighbors, &self.screens),
+        })
+    }
+
+    /// 上一次规划里该缩略图的基准 frame（去掉悬停放大）。没有规划过时返回 `None`。
+    fn base_frame(&self, id: WindowId) -> Option<ScreenRect> {
+        let presentation = self.last_plan.presentations.iter().find(|p| p.id == id)?;
+        let settings = &self.profile().thumbnail;
+        let displayed = presentation.frame;
+        // 放大是按锚点缩放的，反向缩放回去就是基准 frame。
+        Some(if presentation.is_zoomed && settings.zoom_factor > 1 {
+            displayed.scaled(
+                1.0 / settings.zoom_factor as f64,
+                settings.zoom_anchor.unit_position(),
+            )
+        } else {
+            displayed
         })
     }
 

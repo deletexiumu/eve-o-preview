@@ -46,10 +46,13 @@ fn describe(monitor: HMONITOR) -> Option<ScreenInfo> {
     let (mut dpi_x, mut dpi_y) = (96u32, 96u32);
     // SAFETY: 两个输出位置有效；失败时保持 96。
     let _ = unsafe { GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y) };
+    let scale = f64::from(dpi_x) / 96.0;
     Some(ScreenInfo {
         frame: to_rect(info.rcMonitor),
         visible_frame: to_rect(info.rcWork),
-        scale: f64::from(dpi_x) / 96.0,
+        scale,
+        // 全局坐标是物理像素，配置里的尺寸按这块屏幕的缩放换算（与 macOS 的点一致）。
+        size_scale: scale,
         is_main: info.dwFlags & MONITORINFOF_PRIMARY != 0,
     })
 }

@@ -263,6 +263,12 @@ pub struct ScreenInfo {
     pub visible_frame: ScreenRect,
     /// 缩放系数：macOS 是每点的像素数，Windows 是 DPI ÷ 96。
     pub scale: f64,
+    /// 配置里的尺寸（缩略图宽高、最小与最大尺寸）换成屏幕坐标的倍数。
+    ///
+    /// macOS 的全局坐标本来就是点，尺寸不必换算，为 1。Windows 的全局坐标是物理像素（PerMonitorV2），
+    /// 为 DPI ÷ 96：同一个 384×216 在 150% 的屏幕上画成 576×324 像素，看起来与 100% 屏幕上一样大。
+    /// 位置不换算：它们本来就是全局坐标，跨显示器时只有物理像素是连续的。
+    pub size_scale: f64,
     /// 是否为主屏（原点所在的屏幕）。
     pub is_main: bool,
 }
@@ -275,6 +281,29 @@ pub fn main_screen(screens: &[ScreenInfo]) -> Option<&ScreenInfo> {
 /// 包含该点的屏幕；点不在任何屏幕内时返回 `None`。
 pub fn screen_containing(screens: &[ScreenInfo], point: ScreenPoint) -> Option<&ScreenInfo> {
     screens.iter().find(|s| s.frame.contains(point))
+}
+
+/// 该点处配置尺寸的换算倍数：取包含该点的屏幕，点在所有屏幕之外时取最近的一块，没有屏幕时为 1。
+///
+/// 取最近的屏幕而不是直接用 1：保存的位置可能落在已拔掉的显示器上，缩略图随后会被拉回最近的屏幕，
+/// 尺寸应按那块屏幕换算，拉回后不会再变大小。
+pub fn size_scale_at(screens: &[ScreenInfo], point: ScreenPoint) -> f64 {
+    let squared = |s: &ScreenInfo| {
+        let dx = (s.frame.min_x() - point.x)
+            .max(0.0)
+            .max(point.x - s.frame.max_x());
+        let dy = (s.frame.min_y() - point.y)
+            .max(0.0)
+            .max(point.y - s.frame.max_y());
+        dx * dx + dy * dy
+    };
+    screen_containing(screens, point)
+        .or_else(|| {
+            screens
+                .iter()
+                .reduce(|best, s| if squared(s) < squared(best) { s } else { best })
+        })
+        .map_or(1.0, |s| s.size_scale)
 }
 
 #[cfg(test)]
@@ -376,12 +405,14 @@ mod tests {
             frame: ScreenRect::new(-1920.0, 0.0, 1920.0, 1080.0),
             visible_frame: ScreenRect::new(-1920.0, 0.0, 1920.0, 1040.0),
             scale: 1.0,
+            size_scale: 1.0,
             is_main: false,
         };
         let main = ScreenInfo {
             frame: ScreenRect::new(0.0, 0.0, 2560.0, 1440.0),
             visible_frame: ScreenRect::new(0.0, 0.0, 2560.0, 1392.0),
             scale: 1.5,
+            size_scale: 1.5,
             is_main: true,
         };
         let screens = [left, main];
@@ -393,5 +424,11 @@ mod tests {
             Some(&left)
         );
         assert_eq!(screen_containing(&screens, ScreenPoint::new(5000.0, 10.0)), None);
+        // 换算倍数：屏幕内取该屏，屏幕外取最近的一块，没有屏幕时为 1。
+        assert_eq!(size_scale_at(&screens, ScreenPoint::new(-5.0, 10.0)), 1.0);
+        assert_eq!(size_scale_at(&screens, ScreenPoint::new(100.0, 10.0)), 1.5);
+        assert_eq!(size_scale_at(&screens, ScreenPoint::new(5000.0, 10.0)), 1.5);
+        assert_eq!(size_scale_at(&screens, ScreenPoint::new(-5000.0, 10.0)), 1.0);
+        assert_eq!(size_scale_at(&[], ScreenPoint::new(0.0, 0.0)), 1.0);
     }
 }
