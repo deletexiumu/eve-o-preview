@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译的提示词（docs/design-intel-translate.md 7.9 节）：系统提示写明翻译的规则与输出格式，用户消息列出要钉住的
+// 翻译的提示词（docs/macos/design-intel-translate.md 7.9 节）：系统提示写明翻译的规则与输出格式，用户消息列出要钉住的
 // 术语与这一批消息（JSON 数组）。消息在一批里从 1 起编号，`ids` 记下编号与消息 id 的对应。
 // 第 5 条规则防止聊天内容里夹带的指令影响模型；应用把答复只当作文字显示（R33）。
 // 只发正文，不发说话人与频道名（R32）。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// API Key 的钥匙串存储（docs/design-intel-translate.md 7.7 节）：通用密码，服务名
+// API Key 的钥匙串存储（docs/macos/design-intel-translate.md 7.7 节）：通用密码，服务名
 // `io.github.deletexiumu.eveopreview-macos.translation`，账户名是 `apikey.<预设编号>`，存在登录钥匙串里。
 // 读取不弹窗（allowsInteraction 为假，V33）用了两层办法，任一层生效都不会弹出系统窗口：
 // 1. 查询带 kSecUseAuthenticationContext，LAContext 的 interactionNotAllowed 为真（kSecUseAuthenticationUIFail 的

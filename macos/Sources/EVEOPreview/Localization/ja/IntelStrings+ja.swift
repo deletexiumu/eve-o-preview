@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的日文文字（docs/design-intel-translate.md 第 11 节）。
+// 预警域的日文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与 WP-0 的日文文字一致：偵察（预警）、オーバーレイ（浮窗）、チャンネル（频道）、チャットログ（聊天日志）；
 // 跳是ジャンプ，敌对是敵対，星图数据是マップデータ，ESI 不翻译。

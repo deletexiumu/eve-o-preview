@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// ESI 人名核对的请求与答复的测试（docs/design-intel-translate.md 6.10 节、14.1 节）。
+// ESI 人名核对的请求与答复的测试（docs/macos/design-intel-translate.md 6.10 节、14.1 节）。
 // 人名是虚构的；答复的结构按 E2～E5 手写，不联网。
 
 import Testing

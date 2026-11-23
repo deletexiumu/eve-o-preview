@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名缓存文件（docs/design-intel-translate.md 6.10 节）：`~/Library/Application Support/EVE-O Preview/pilot-names.json`，
+// 人名缓存文件（docs/macos/design-intel-translate.md 6.10 节）：`~/Library/Application Support/EVE-O Preview/pilot-names.json`，
 // 内容是 `{"format": 1, "entries": [...]}`，每项有 key、characterID、name、time，只存查到的角色。
 // 权限 0600，原子写入：先在同一目录用 0600 建临时文件写好，再改名替换。读不了或格式不对时从空缓存开始。
 // 文件里有其他玩家的角色名与角色 ID（游戏的公开数据），只留在本机，不进问题报告。日志只写条数。

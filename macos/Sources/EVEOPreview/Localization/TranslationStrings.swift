@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译域的界面文字（docs/design-intel-translate.md 第 11 节）：「翻译」页、翻译浮窗的标题与状态行、失败的原因。
+// 翻译域的界面文字（docs/macos/design-intel-translate.md 第 11 节）：「翻译」页、翻译浮窗的标题与状态行、失败的原因。
 // 每种语言一个不含存储属性的结构体实现本协议（Localization/<语言>/TranslationStrings+<语言>.swift），
 // 漏了一条时编译不过。带参数的文字写成函数。访问方式是 L10n.translation，按 L10n.language 每次访问时取。
 // 第 11 节的 55 条之外另有 2 条：keyOptional（自定义接口的 Key 可不填）与 keychainError（钥匙串写入或删除失败）。

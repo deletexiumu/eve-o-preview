@@ -1,6 +1,6 @@
 // swift-tools-version: 6.0
 // SPDX-License-Identifier: GPL-3.0-or-later
-// EVE-O Preview macOS 原生版的包定义。目标划分见 docs/architecture.md 第 3 节。
+// EVE-O Preview macOS 原生版的包定义。目标划分见 docs/macos/architecture.md 第 3 节。
 import PackageDescription
 
 let package = Package(

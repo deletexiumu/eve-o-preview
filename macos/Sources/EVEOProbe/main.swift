@@ -16,7 +16,7 @@
 //   gamelog [目录] [--follow 秒数]          游戏日志目录的解析统计，可跟踪新增内容（反馈文档 7.12 节，GameLogProbe.swift）
 //   update feed [地址] | verify <新应用> <基准应用> | prepare <地址>
 //                                          更新的检查、签名核对与下载（v1.1 设计 9.6 节，UpdateProbe.swift）
-//   staticdata                             星图数据的来源、版本、数量与耗时（docs/design-intel-translate.md 9.5 节）
+//   staticdata                             星图数据的来源、版本、数量与耗时（docs/macos/design-intel-translate.md 9.5 节）
 //   chatlog [目录] [--follow 秒数]          聊天日志目录的解析统计（WP-A，ChatLogProbe.swift）
 //   intel [目录]                           预警解析的统计（WP-B，IntelProbe.swift）
 //   translate [--provider …] [--model …] [--base-url …] [--target …]

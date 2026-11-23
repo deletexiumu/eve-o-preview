@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警消息的分段、人数与人名（docs/design-intel-translate.md 6.4 节）。
+// 预警消息的分段、人数与人名（docs/macos/design-intel-translate.md 6.4 节）。
 // - parse 的规则归 WP-B（本文件 parse 与 IntelParser+Counting.swift）。
 // - remainder(of:) 由 WP-0 写完整，WP-B 不改它：翻译用它判断「只有术语」的消息（7.6 节）。
 //

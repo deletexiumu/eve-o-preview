@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 星图数据文件 eve-static.json 的结构（docs/design-intel-translate.md 4.2 节）。文件由 scripts/build-sde-data.py
+// 星图数据文件 eve-static.json 的结构（docs/macos/design-intel-translate.md 4.2 节）。文件由 shared/static/build-sde-data.py
 // 从 CCP 的 SDE 生成，键名用短键以减小文件：i 是 ID，n 是英文名，l 是与英文不同的其他语言名称，
 // s 是安全等级，r 是星域 ID，g 是舰船分组 ID。键名与 JSON 相同，用合成的 Codable。
 // 读到不认识的 format 时按「数据无效」处理，见 EVEStaticData.decode。

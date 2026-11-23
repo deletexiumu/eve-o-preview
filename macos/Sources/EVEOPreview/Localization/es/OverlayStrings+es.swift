@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗域的西班牙文文字（docs/design-intel-translate.md 第 11 节）。
+// 浮窗域的西班牙文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与菜单栏一致：superposición、canal、«Bloquear disposición»。西班牙文只区分单数与复数。
 

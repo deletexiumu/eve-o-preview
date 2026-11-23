@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对的值类型的用例（docs/design-intel-translate.md 6.10 节、14.1 节）。名字都是虚构的。
+// 人名核对的值类型的用例（docs/macos/design-intel-translate.md 6.10 节、14.1 节）。名字都是虚构的。
 
 import Foundation
 import Testing

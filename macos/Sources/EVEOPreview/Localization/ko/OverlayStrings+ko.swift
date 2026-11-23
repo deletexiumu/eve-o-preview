@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗域的韩文文字（docs/design-intel-translate.md 第 11 节）。
+// 浮窗域的韩文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与菜单栏一致：오버레이、채널、「레이아웃 잠금」。
 

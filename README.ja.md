@@ -1,4 +1,4 @@
-<p align="center"><img src="packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS のアイコン"></p>
+<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS のアイコン"></p>
 
 # EVE-O Preview for macOS
 
@@ -66,7 +66,7 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 ### ソースからビルド
 
-アプリを自分でビルドする方法は [docs/development.md](docs/development.md)（英語）を参照してください。デバッグ用ツール、CI、リリース手順もそこで説明しています。
+アプリを自分でビルドする方法は [docs/macos/development.md](docs/macos/development.md)（英語）を参照してください。デバッグ用ツール、CI、リリース手順もそこで説明しています。
 
 ## 権限
 
@@ -269,4 +269,4 @@ macOS のユーザー名、フルネーム、ホームフォルダのパス、�
 
 EVE Online および関連するロゴは CCP ehf. の商標です。このプロジェクトは CCP とは関係がなく、CCP の承認も受けていません。
 
-アプリのアイコンは、上流の EveOPlus/eve-o-preview（GPL-3.0）の分子アイコンを再利用しています。背景は `scripts/make-app-icon.py` で描画しており、CCP の商標やゲームのアートワークは含まれていません。
+アプリのアイコンは、上流の EveOPlus/eve-o-preview（GPL-3.0）の分子アイコンを再利用しています。背景は `macos/scripts/make-app-icon.py` で描画しており、CCP の商標やゲームのアートワークは含まれていません。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警消息的汇总（docs/design-intel-translate.md 6.4 节「舰船的数量与敌对数量」）：由分好的段算出星系、
+// 预警消息的汇总（docs/macos/design-intel-translate.md 6.4 节「舰船的数量与敌对数量」）：由分好的段算出星系、
 // 舰船与数量、人名、敌对数量与两个用语标志。
 //
 // 数量的归属：

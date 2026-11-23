@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的界面文字（docs/design-intel-translate.md 第 11 节）：设置窗口「预警」页、预警浮窗的标题与状态行、
+// 预警域的界面文字（docs/macos/design-intel-translate.md 第 11 节）：设置窗口「预警」页、预警浮窗的标题与状态行、
 // 浮窗每一行里的时间、跳数、数量与用语。
 // 每种语言一个不含存储属性的结构体实现本协议（Localization/<语言>/IntelStrings+<语言>.swift），
 // 漏了一条时结构体不满足协议，编译不过。带参数的文字写成函数，各语言自己拼接（俄语与法语的复数由各自的实现处理）。

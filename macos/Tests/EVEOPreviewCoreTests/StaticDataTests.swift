@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// EVEStaticData 的用例（docs/design-intel-translate.md 4.3 节、14.1 节），用 StaticDataFixtures 的小份数据。
+// EVEStaticData 的用例（docs/macos/design-intel-translate.md 4.3 节、14.1 节），用 StaticDataFixtures 的小份数据。
 
 import Foundation
 import Testing

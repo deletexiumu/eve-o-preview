@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 模型服务的请求与答复（docs/design-intel-translate.md 7.4 节、7.5 节）。
+// 模型服务的请求与答复（docs/macos/design-intel-translate.md 7.4 节、7.5 节）。
 // - request：拼出 HTTP 请求。请求体只带各模型都接受的字段，不带 temperature、top_p、思考与强度的设置（A1）。
 //   OpenAI 兼容接口不带 max_tokens；Anthropic 接口的 max_tokens 取 16,000（默认模型先思考，思考也计入上限；
 //   一批 20 条、6,000 个字符的译文加上思考，8,192 会被截断，审查 m8）。

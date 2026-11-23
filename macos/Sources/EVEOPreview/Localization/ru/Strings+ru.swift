@@ -287,7 +287,7 @@ struct SettingsStringsRU: SettingsStrings {
     }
 }
 
-// MARK: - 预警与翻译（docs/design-intel-translate.md 第 11 节）
+// MARK: - 预警与翻译（docs/macos/design-intel-translate.md 第 11 节）
 // 机器生成、待母语者审校的译文，用词按 11 节的词表：浮窗、预警、频道、聊天日志、模型服务。
 
 /// 菜单栏的两个浮窗开关，俄文。

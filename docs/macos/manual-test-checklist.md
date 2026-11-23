@@ -1,6 +1,6 @@
 # EVE-O Preview for macOS 手工测试清单
 
-本清单对应 `docs/architecture.md` 10.3 节里需要人工操作的项目：手势、热键（含 V7 的 `opt+F13`）、悬停放大、右键菜单、菜单栏菜单、设置窗口各页、退出时写盘。
+本清单对应 `docs/macos/architecture.md` 10.3 节里需要人工操作的项目：手势、热键（含 V7 的 `opt+F13`）、悬停放大、右键菜单、菜单栏菜单、设置窗口各页、退出时写盘。
 测试方于 2026 年 11 月 20 日整理。测试方只做了被动观察，没有向 EVE 客户端发送任何鼠标或键盘事件，所以以下项目都要你亲手做。
 
 每一步做完后对照「预期」，在步骤前的方框里记录通过（`[x]`）或失败（`[!]`），失败的写下实际现象。
@@ -13,15 +13,15 @@
 - 演示模式下登录客户端改名、缺少屏幕录制权限的占位、「用户已停止」的占位。
 - 配置文件损坏时被隔离并改用默认配置；配置文件版本更新时应用照常运行，且不改写文件。
 - 同时启动两个 `.app` 实例时，后启动的立即退出。
-- `scripts/build-app.sh` 的产物通过 `codesign --verify --strict` 与 `plutil -lint`。
+- `macos/scripts/build-app.sh` 的产物通过 `codesign --verify --strict` 与 `plutil -lint`。
 - 设置窗口（演示模式，2026-11-20 修复后）：侧栏显示 6 个页名，「客户端」「切换与热键」「关于」页从第一段开始显示，「预览与布局」页可以滚动。
 - 「重新启动」的交接（演示模式，临时组装的 `.app`，2026-11-20）：带 `--relaunched-from <旧 PID>` 启动的新实例等旧实例退出后继续运行；不带这个参数的第二个实例照常退出；用 Apple Event 退出约 0.2 秒完成。
 
 ## 准备
 
-**注意：** 用 ad-hoc 签名构建后，每次重新构建都要重新授权。宜先按 `docs/architecture.md` 9.2 节用自签名证书 `EVEO Preview Dev` 构建。
+**注意：** 用 ad-hoc 签名构建后，每次重新构建都要重新授权。宜先按 `docs/macos/architecture.md` 9.2 节用自签名证书 `EVEO Preview Dev` 构建。
 
-1. [ ] 运行 `SIGN_IDENTITY="EVEO Preview Dev" scripts/build-app.sh`。
+1. [ ] 运行 `SIGN_IDENTITY="EVEO Preview Dev" macos/scripts/build-app.sh`。
    预期：最后两行打印产物路径与「签名：EVEO Preview Dev」。
 2. [ ] 启动 3 个 EVE 客户端，全部用窗口模式，选好角色。
    预期：3 个客户端都停在游戏内，不在登录界面。
@@ -107,7 +107,7 @@
    预期：全部缩略图隐藏。
 3. [ ] 再按一次 `opt+F13`。
    预期：全部缩略图重新出现。
-4. [ ] 把结果（能否触发）报给开发方，填进 `docs/architecture.md` 11.1 节 V7 一行。
+4. [ ] 把结果（能否触发）报给开发方，填进 `docs/macos/architecture.md` 11.1 节 V7 一行。
    预期：不能触发时，开发方在 `HotkeyPlanner` 里拒绝只带 Option 的热键。
 
 ## 高亮（10.3 第 8 项）
@@ -224,7 +224,7 @@
 
 ## 第一轮反馈：边框、语言、鼠标热键、作用范围、战斗提醒
 
-以下各项来自 `docs/design-feedback-round1.md` 10.2 节，2026-11-20 集成时追加。第 3、5 组要用户亲手操作鼠标或让角色受击。
+以下各项来自 `docs/macos/design-feedback-round1.md` 10.2 节，2026-11-20 集成时追加。第 3、5 组要用户亲手操作鼠标或让角色受击。
 
 第 1 组，边框：
 
@@ -379,7 +379,7 @@
   6. 用 `EVEO_FAKE=1 EVEO_UPDATE_UI_STATE=available` 启动（各语言）。预期：发布说明分两段，「版本 1.1.1」在前、「版本 1.1.0」在后，段间有分隔线，最后一行是「更早版本的更新内容请到发布页查看。」；1.1.0 一段在中英文以外的语言下显示英文。
   7. 用本地测试地址（`make-update-test-feed.sh` 生成 feed.json 与 releases.json）从比 feed 旧两个版本以上的版本打开应用。预期：窗口列出 feed 版本与中间各版本的说明，新版在前；删掉 releases.json 后重新打开（或断网），只显示 feed 版本的说明，更新照常可装。
 - 第 5 组补充：
-  1. 安装前用探针预检：`.build/debug/EVEOProbe update verify "<B 的应用>" "<A 的应用>"` 应打印 0；`update prepare http://127.0.0.1:8123/feed.json` 应打印 dmg 的位置与 SHA-256。`feed.json` 可用 `scripts/make-update-test-feed.sh` 生成。
+  1. 安装前用探针预检：`.build/debug/EVEOProbe update verify "<B 的应用>" "<A 的应用>"` 应打印 0；`update prepare http://127.0.0.1:8123/feed.json` 应打印 dmg 的位置与 SHA-256。`feed.json` 可用 `macos/scripts/make-update-test-feed.sh` 生成。
   2. 让新实例在 15 秒内起不来（例如安装后立即把新应用改名）。预期：更新窗口显示「更新已安装。请退出并重新打开 EVE-O Preview。」，按钮是「关闭」与「退出 EVE-O Preview」；「通用」页的状态行是同一句。关掉窗口后它应重新弹出。
   3. 从菜单点「重新启动以更新到 X」。预期：先打开更新窗口并显示安装进度。
   4. 让一次「重新启动以更新」失败后关掉窗口。预期：恢复为普通的「有可用更新」提示与圆点，不是「重新启动以更新」。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志的跟踪逻辑（docs/design-intel-translate.md 5.4～5.6 节）。与 CombatLogTailer 并列，不改后者。
+// 聊天日志的跟踪逻辑（docs/macos/design-intel-translate.md 5.4～5.6 节）。与 CombatLogTailer 并列，不改后者。
 // 全部状态只在自己的串行队列（utility）上访问，结果用 DispatchQueue.main.async 交回主线程。
 // - 两个目录：Chatlogs（聊天日志）与 Gamelogs（游戏日志，只在 followsLocation 为真时读，取位置线索）。
 //   各取候选里第一个能列出的目录，用 O_EVTONLY 挂目录事件源。状态只反映聊天日志目录：

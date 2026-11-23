@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// ChatLogTailer 跟踪的一个文件（docs/design-intel-translate.md 5.4 节）：描述符、已读偏移量、分行器与文件事件源。
+// ChatLogTailer 跟踪的一个文件（docs/macos/design-intel-translate.md 5.4 节）：描述符、已读偏移量、分行器与文件事件源。
 // 聊天日志与游戏日志共用这个类型，用 Role 区分。做法同 CombatLog/TailedLogFile.swift，不改后者：
 // - O_RDONLY 打开，同一个描述符既读内容又挂事件源，监听 write、extend、delete、rename；不加文件锁。
 // - 描述符只在事件源的取消回调里关闭，关闭与读取不会交错。

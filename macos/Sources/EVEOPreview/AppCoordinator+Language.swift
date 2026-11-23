@@ -20,7 +20,7 @@ extension AppCoordinator {
         guard L10n.setLanguage(language) else { return }
         log.info("界面语言切换为 \(language.rawValue, privacy: .public)")
         onLanguageChanged?()
-        // 两个浮窗的标题、状态行与星系、舰船名都随界面语言变（docs/design-intel-translate.md 9.3 节）。
+        // 两个浮窗的标题、状态行与星系、舰船名都随界面语言变（docs/macos/design-intel-translate.md 9.3 节）。
         chat.languageDidChange()
         setNeedsReplan()
     }

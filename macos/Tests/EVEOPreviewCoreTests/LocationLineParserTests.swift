@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// LocationLineParser 的用例（docs/design-intel-translate.md 5.6 节、14.1 节）：Local 的切换消息、
+// LocationLineParser 的用例（docs/macos/design-intel-translate.md 5.6 节、14.1 节）：Local 的切换消息、
 // 游戏日志的 4 种句式与 (None) 行。星系与空间站名是游戏的公开数据。
 
 import Testing

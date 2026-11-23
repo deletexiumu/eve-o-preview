@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志目录的查找与文件的取舍（docs/design-intel-translate.md 5.2 节、5.4 节）。只做纯计算，
+// 聊天日志目录的查找与文件的取舍（docs/macos/design-intel-translate.md 5.2 节、5.4 节）。只做纯计算，
 // 读目录与文件由平台层的 ChatLogTailer 做。
 // - candidates：general.eveLogDirectory 可能指向 logs、Gamelogs 或 Chatlogs，都换算成 Chatlogs 的候选。
 // - gameLogCandidates：位置线索要读的游戏日志目录，交给 CombatLogDirectory.candidates 之前把 Chatlogs 换成 Gamelogs。

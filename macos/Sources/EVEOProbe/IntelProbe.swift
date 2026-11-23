@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 探针的 intel 命令（docs/design-intel-translate.md 9.5 节）：`intel [目录] [--resolve-sample] [--resolve]`。
+// 探针的 intel 命令（docs/macos/design-intel-translate.md 9.5 节）：`intel [目录] [--resolve-sample] [--resolve]`。
 // 用真实的星图数据解析最近 48 小时的玩家频道日志，打印消息数、认作情报的条数、有星系、舰船、数量、人名的条数、
 // 各情报用语的条数与跳数的分布；6.9 节增补：人名段的个数、只有一个词的个数、两个词以上的个数与候选名字的个数。
 // - 跳数的出发点：读同一时段的游戏日志（跳跃与离站记录）与 Local 聊天日志的系统消息，经 LocationTracker 得到每个

@@ -85,7 +85,7 @@ CCP 的静态数据（SDE）：
 | --- | --- | --- |
 | A1 | Anthropic 的 Messages API：请求头 `x-api-key` 与 `anthropic-version`，当前版本是 `2026-10-21`。这个版本下带 `temperature`、`top_p` 或 `top_k` 的请求返回 400。模型 `claude-haiku-5-5` 存在，默认开启思考，思考的输出计入 `max_tokens`。依据是随 Claude Code 分发的接口参考（缓存日期 2026-11-03），没有发真实请求（V36） | 请求体只带各模型都接受的字段（7.4 节） |
 | A2 | 同一份参考：401 是 Key 无效，403 是没有权限，404 是地址或模型不存在，429 带 `retry-after`，529 是过载。被安全分类器拒绝时状态码是 200，`stop_reason` 是 `refusal` | 错误分类见 7.5 节 |
-| A3 | 仓库没有资源文件，没有第三方依赖。`scripts/build-app.sh` 建了 `Contents/Resources`，里面只有图标。架构文档 7.4 节不用 SwiftPM 资源包，原因是 `Bundle.module` 的查找路径与签名问题 | 数据文件由脚本直接复制进 `Contents/Resources`，用 `Bundle.main` 读取，不经过 SwiftPM 资源包 |
+| A3 | 仓库没有资源文件，没有第三方依赖。`macos/scripts/build-app.sh` 建了 `Contents/Resources`，里面只有图标。架构文档 7.4 节不用 SwiftPM 资源包，原因是 `Bundle.module` 的查找路径与签名问题 | 数据文件由脚本直接复制进 `Contents/Resources`，用 `Bundle.main` 读取，不经过 SwiftPM 资源包 |
 | A4 | `ConfigSummary` 把 `combatAlert` 等设置结构原样写进问题报告 | 新设置含频道名与星系名，报告里只写数量与开关（3.4 节） |
 
 ESI 与人名（6.9 增补）。下表于 2026-11-21 用 `curl` 核实：发了 8 个查询请求，另下载了一次接口描述。最后一个请求用的是 6.10 节的 6 个请求头，返回 200。请求里只有公开的知名角色名、游戏里的物品名与编造的名字，没有用户日志里的内容。
@@ -270,7 +270,7 @@ public struct TranslationSummary: Sendable, Equatable, Codable {
 
 ### 4.1 生成
 
-`scripts/build-sde-data.py`（Python 3，只用标准库）生成 `packaging/eve-static.json`。生成的文件提交进仓库，构建应用时不联网。
+`shared/static/build-sde-data.py`（Python 3，只用标准库）生成 `shared/static/eve-static.json`。生成的文件提交进仓库，构建应用时不联网。
 
 脚本的步骤：
 
@@ -287,7 +287,7 @@ public struct TranslationSummary: Sendable, Equatable, Codable {
 
 | 参数 | 作用 |
 | --- | --- |
-| 不带参数 | 生成 `packaging/eve-static.json`，打印各类记录的数量与文件大小 |
+| 不带参数 | 生成 `shared/static/eve-static.json`，打印各类记录的数量与文件大小 |
 | `--check` | 只比较文件里的 `sdeBuild` 与最新的 `buildNumber`。相同时退出码为 0，文件落后时为 2，连不上时为 3 |
 | `--output <路径>` | 写到别的位置 |
 | `--build <版本号>` | 用指定的 SDE 版本，不读 `latest.jsonl` |
@@ -412,16 +412,16 @@ public protocol StaticDataProvider: Sendable {
 1. 环境变量 `EVEO_STATIC_DATA` 指定的路径（只用于调试）。
 2. `~/Library/Application Support/EVE-O Preview/eve-static.json`（手动覆盖）。
 3. `Bundle.main.resourceURL` 下的 `eve-static.json`。
-4. 从可执行文件所在目录向上找，至多 6 级，第一个含 `packaging/eve-static.json` 的目录。这一条让 `swift run` 与探针能找到仓库里的文件。
+4. 从可执行文件所在目录向上找，至多 6 级，第一个含 `shared/static/eve-static.json` 的目录。这一条让 `swift run` 与探针能找到仓库里的文件。
 
 第 2 条与第 3 条都存在时，两个都解码，取 `sdeBuild` 较大的；第 2 条无效时用第 3 条并记一条日志。文件读取与解码在后台任务里做，结果交回主线程。数据在本次运行内不变。
 没有任何文件时结果是 `missing`。预警浮窗的状态行显示「缺少星图数据」，消息仍然显示，但不认星系与舰船；翻译照常，只是不钉术语。
 
-构建的改动（`scripts/build-app.sh`，WP-0）：在复制可执行文件之后加一步。`packaging/eve-static.json` 存在时复制到 `Contents/Resources/eve-static.json`；不存在时打印一行警告，继续构建。文件在签名之前放入，签名时被一并封存。
+构建的改动（`macos/scripts/build-app.sh`，WP-0）：在复制可执行文件之后加一步。`shared/static/eve-static.json` 存在时复制到 `Contents/Resources/eve-static.json`；不存在时打印一行警告，继续构建。文件在签名之前放入，签名时被一并封存。
 
 CCP 改动星图后的更新办法：
 
-1. 发版前运行 `python3 scripts/build-sde-data.py --check`。退出码是 2 时不带参数再运行一次，提交新文件，再发版。这一步写进发布流程的检查清单（`docs/architecture.md` 9.5 节的清单，由主会话更新）。
+1. 发版前运行 `python3 shared/static/build-sde-data.py --check`。退出码是 2 时不带参数再运行一次，提交新文件，再发版。这一步写进发布流程的检查清单（`docs/macos/architecture.md` 9.5 节的清单，由主会话更新）。
 2. 用户等不及新版本时，可把新生成的文件放到上面第 2 条的位置，重启应用后生效。README 写明这一点。
 3. 设置窗口的「预警」页显示当前数据的 SDE 版本号，便于核对。
 
@@ -1132,7 +1132,7 @@ WP-0 的增补：
 11. 文字：`settings.aboutChatLogsNote` 改成第 11 节的新写法，8 种语言。条数不变。
 12. 测试：`ConfigCodableTests`、`DiagnosticsSummaryTests` 各补一组用例，新建 `PilotLookupModelsTests`（14.1 节）。
 
-`Intel/IntelModels.swift`、`Intel/IntelParser.swift`、`Config/ConfigValidator.swift` 与 `packaging/Info.plist` 不用为本节改动。ESI 只用 HTTPS。
+`Intel/IntelModels.swift`、`Intel/IntelParser.swift`、`Config/ConfigValidator.swift` 与 `macos/packaging/Info.plist` 不用为本节改动。ESI 只用 HTTPS。
 
 WP-A 的增补：右键菜单加「在浏览器中打开」（8.7 节），`OverlayStrings` 加 1 条（第 11 节）。
 
@@ -1906,7 +1906,7 @@ v1.2.2 增补：EVE 有时不为某个频道写日志文件（用户本机观察
 
 ### 7.11 明文 HTTP
 
-`packaging/Info.plist` 新增：
+`macos/packaging/Info.plist` 新增：
 
 ```text
 <key>NSAppTransportSecurity</key>
@@ -2680,11 +2680,11 @@ struct OverlaySettingsSection: View {
 
 | 文件 | 改动 | 归属 |
 | --- | --- | --- |
-| `scripts/build-sde-data.py`（约 330 行）、`packaging/eve-static.json` | 新建。4.1、4.2 节 | WP-0 |
-| `scripts/build-app.sh` | 复制数据文件的一步（4.4 节） | WP-0 |
-| `packaging/Info.plist` | 改 `NSDocumentsFolderUsageDescription`（5.7 节），加 `NSAppTransportSecurity`（7.11 节） | WP-0 |
-| `docs/architecture.md`、本文 | 设计 | 主会话 |
-| `README.md` 与各语言的 README、`docs/manual-test-checklist.md` | 功能说明、隐私说明、14.2 节的条目。6.9 增补：隐私说明写明人名核对发给 ESI 的内容与人名缓存文件的位置（6.10 节） | 主会话，在集成时按各工作包回报的文字写 |
+| `shared/static/build-sde-data.py`（约 330 行）、`shared/static/eve-static.json` | 新建。4.1、4.2 节 | WP-0 |
+| `macos/scripts/build-app.sh` | 复制数据文件的一步（4.4 节） | WP-0 |
+| `macos/packaging/Info.plist` | 改 `NSDocumentsFolderUsageDescription`（5.7 节），加 `NSAppTransportSecurity`（7.11 节） | WP-0 |
+| `docs/macos/architecture.md`、本文 | 设计 | 主会话 |
+| `README.md` 与各语言的 README、`docs/macos/manual-test-checklist.md` | 功能说明、隐私说明、14.2 节的条目。6.9 增补：隐私说明写明人名核对发给 ESI 的内容与人名缓存文件的位置（6.10 节） | 主会话，在集成时按各工作包回报的文字写 |
 
 工作包发现要改表外的文件，或要改不属于自己的文件时，停下并报主会话。
 
@@ -2696,7 +2696,7 @@ struct OverlaySettingsSection: View {
 
 1. Core：完成第 12 节归属写 WP-0 的全部文件及其测试。`ChatLogParser`、`ChatLogDirectory`、`LocationLineParser`、`EVEStaticData`、`ChannelRef.matches` 与 `IntelParser.remainder(of:)` 是完整实现，并行的工作包依赖它们的真实行为。
 2. 骨架：`TermMatcher.matches(in:)` 返回空数组；`IntelParser.parse` 返回 `IntelReport.empty`；`OverlayPlanner.plan` 返回空的 `presentations` 与算好的 `activeCharacter`；`InfoOverlayManager` 的方法不做事；`IntelFeedController` 与 `TranslationController` 实现 `ChatFeedConsumer`，返回只有标题的空内容；`TranslationController` 另有只读属性 `status: TranslationStatus`（骨架返回 `.off`），`ProblemReportBuilder` 用它填 `translationStatus`；`FileChatLogMonitor` 不读文件，状态保持 `stopped`；翻译的 3 个平台实现返回「未实现」对应的失败。
-3. 数据：写 `scripts/build-sde-data.py`，生成并提交 `packaging/eve-static.json`，记录各类记录的数量与文件大小（V41）。改 `build-app.sh` 与 `Info.plist`。
+3. 数据：写 `shared/static/build-sde-data.py`，生成并提交 `shared/static/eve-static.json`，记录各类记录的数量与文件大小（V41）。改 `build-app.sh` 与 `Info.plist`。
 4. 平台与应用：`PlatformServices` 与 `FakeServices` 接入 7 个新服务；写完 `ChatFeatureController`、`AppCoordinator+ChatOverlays.swift` 与 9.3 节的接入点；设置窗口加两页（只有页标题）；菜单栏加两项；`ProblemReportBuilder` 填 4 个新字段。
 5. 探针：`staticdata` 是完整实现，在本机数据文件上跑通；其余 3 个命令打印「未实现」。
 6. 文字：第 11 节的 10 条，8 种语言。
@@ -2706,7 +2706,7 @@ WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 30
 
 ### 13.2 并行的三个工作包
 
-三个工作包各在自己的 git worktree 里做，基线是 WP-0 的提交。开工前核对基线：`docs/design-intel-translate.md` 与 `Sources/EVEOPreviewCore/Overlay/OverlayModels.swift` 应存在，不存在说明 worktree 建在了旧的提交上。
+三个工作包各在自己的 git worktree 里做，基线是 WP-0 的提交。开工前核对基线：`docs/macos/design-intel-translate.md` 与 `Sources/EVEOPreviewCore/Overlay/OverlayModels.swift` 应存在，不存在说明 worktree 建在了旧的提交上。
 任何两个工作包都不改同一个文件（第 12 节）。
 
 | 工作包 | 内容 | 完成标准 |
@@ -2730,7 +2730,7 @@ WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 30
 - 契约或本文要改时停下，报主会话；主会话改文档，再让文件的归属方改代码。
 - 不启动应用、不截图、不向 EVE 窗口发送输入：用户可能在玩游戏。要看界面时用 `EVEO_FAKE=1`，并先问主会话。
 - 读 `~/Documents/EVE/logs` 只读；角色名、频道名与聊天内容不写进代码、测试、回报与日志。测试样例里的人名与频道名用虚构的。
-- 要写进 README 与 `docs/manual-test-checklist.md` 的文字，放在回报里，不直接改这两个文件。
+- 要写进 README 与 `docs/macos/manual-test-checklist.md` 的文字，放在回报里，不直接改这两个文件。
 - 回报里附 `swift build`、`swift test` 与 `python3 scripts/check_quality.py` 的输出摘要。
 - 6 种机器翻译的语言文件按反馈文档 5.2 节标注。
 
@@ -2739,7 +2739,7 @@ WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 30
 1. 主会话完成 WP-0，运行 `swift build`、`swift test`、`python3 scripts/check_quality.py` 与 `EVEOProbe staticdata`，提交。
 2. 三个工作包并行。
 3. 按 WP-A、WP-B、WP-C 的顺序合入，每合入一个运行一次 `swift build` 与 `swift test`。WP-B 在 WP-C 之前合入，术语钉住才有真实的匹配结果。
-4. 主会话用 `EVEO_FAKE=1` 看两个浮窗与两页设置（先与用户确认此刻可以启动应用），再更新 README 与手工验证清单，运行 `scripts/build-app.sh`。
+4. 主会话用 `EVEO_FAKE=1` 看两个浮窗与两页设置（先与用户确认此刻可以启动应用），再更新 README 与手工验证清单，运行 `macos/scripts/build-app.sh`。
 5. 交 `opus-architect` 独立审查。审查时核对：第 12 节的归属有没有被越界改动；Key、聊天内容与角色名有没有进日志或问题报告；UTF-16 的偏移量是否都取偶数；Core 的测试是否覆盖 14.1 节。6.9 增补：候选名字有没有进日志；只有一个词的人名段有没有被发给 ESI；开关关着时有没有请求；400 有没有被重试。
 6. 测试方按 14.2 节做手工验证。第 2、3、5 组要用户配合。
 
@@ -2796,7 +2796,7 @@ WP-0 的改动量约 3,800 行（含测试与脚本），其中 6.9 增补约 30
 
 界面文字的完整性由编译保证，不写测试。Platform 与 App 的代码没有单元测试，靠探针与手工验证。
 
-### 14.2 手工验证（集成后追加到 `docs/manual-test-checklist.md`）
+### 14.2 手工验证（集成后追加到 `docs/macos/manual-test-checklist.md`）
 
 第 1 组，升级与默认状态：
 

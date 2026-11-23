@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对的缓存（docs/design-intel-translate.md 6.10 节）。键是比较键（PilotLookupAnswer.key）。
+// 人名核对的缓存（docs/macos/design-intel-translate.md 6.10 节）。键是比较键（PilotLookupAnswer.key）。
 // - matched 的结果保留 30 天，存进 pilot-names.json（由 Platform 的 FilePilotNameCacheStore 读写）。
 // - ambiguous 与 notFound 保留 6 小时，只留在内存里：这些词多半不是人名，是消息正文的片段。
 // - needsLookup：没有结果或结果已过期时为真。过期的结果在新结果到达之前仍在 directory 里，显示不倒退。

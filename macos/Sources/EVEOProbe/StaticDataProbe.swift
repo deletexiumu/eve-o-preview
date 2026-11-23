@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 探针的 staticdata 命令（docs/design-intel-translate.md 9.5 节）：打印数据文件的查找过程与来源、SDE 版本、
+// 探针的 staticdata 命令（docs/macos/design-intel-translate.md 9.5 节）：打印数据文件的查找过程与来源、SDE 版本、
 // 各类记录的数量、解码耗时，以及一次 15 跳跳数表的耗时。
 // 跳数表在这里用 EVEStaticData.neighbors 做一次广度优先：正式的跳数规则（JumpGraph）归 WP-B，探针不依赖它。
 // 只打印游戏的公开数据（数量与耗时），不读聊天日志。

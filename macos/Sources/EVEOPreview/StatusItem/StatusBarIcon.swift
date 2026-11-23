@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 菜单栏图标：八边形框里一个分子，与应用图标（packaging/AppIcon.png，取自上游 EVE-O Preview 的分子图标）轮廓一致。
+// 菜单栏图标：八边形框里一个分子，与应用图标（macos/packaging/AppIcon.png，取自上游 EVE-O Preview 的分子图标）轮廓一致。
 //
 // 用代码画矢量，不放图片资源：SwiftPM 的资源包放进手工组装的 .app 后查找路径有问题（架构文档 7.4 节），
 // 矢量图在任何缩放比例下都清晰。图像标记为模板图（isTemplate），由系统按菜单栏的深浅色自动着色，

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口视图模型的「翻译」页部分（docs/design-intel-translate.md 第 10 节）：翻译设置与接口设置的绑定、
+// 设置窗口视图模型的「翻译」页部分（docs/macos/design-intel-translate.md 第 10 节）：翻译设置与接口设置的绑定、
 // 状态行的文字、Key 的保存与删除、测试、立即重试、译文缓存的条数与清空。
 // 翻译的状态、Key 是否已保存与缓存条数是 TranslationController 的只读属性，不是视图模型的存储属性，
 // SwiftUI 观察不到：页面在 body 里读 `chatRevision`，控制器每次通知变化时它加 1，页面随之重绘。

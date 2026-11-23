@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 探针的 chatlog 命令（docs/design-intel-translate.md 9.5 节）：打印选中的聊天日志目录、各候选文件的频道种类、
+// 探针的 chatlog 命令（docs/macos/design-intel-translate.md 9.5 节）：打印选中的聊天日志目录、各候选文件的频道种类、
 // 编码与文件头是否完整，消息行、系统消息与位置线索的数量；另统计游戏日志里的 (None) 行与认得出目的星系的行。
 // 带 --follow 时用 ChatLogTailer 跟踪（请求是日志里出现过的全部频道，并读位置线索），逐条打印事件的种类、
 // 是否补读，以及日志时间与收到时刻的差。

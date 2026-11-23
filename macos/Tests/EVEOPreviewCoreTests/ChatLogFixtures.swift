@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志的测试样例（docs/design-intel-translate.md 14.1 节）：按 C3 的格式拼出的文件头（玩家频道、Local、
+// 聊天日志的测试样例（docs/macos/design-intel-translate.md 14.1 节）：按 C3 的格式拼出的文件头（玩家频道、Local、
 // 军团频道各一份）与各种消息行，以及把文本编码成带 BOM 的 UTF-16 小端字节的辅助函数。
 // 说话人、收听者与频道名都是虚构的；星系名是游戏的公开数据。三个并行的工作包只读不改。
 //

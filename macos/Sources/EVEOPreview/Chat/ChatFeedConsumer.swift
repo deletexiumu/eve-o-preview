@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警与翻译两个功能控制器的共同接口（docs/design-intel-translate.md 9.2 节）。ChatFeatureController 只通过
+// 预警与翻译两个功能控制器的共同接口（docs/macos/design-intel-translate.md 9.2 节）。ChatFeatureController 只通过
 // 这个协议调用它们：把配置与运行时状态交给它们，把属于它们的日志事件交给它们，再向它们要浮窗的内容。
 // 两个功能（IntelFeedController、TranslationController）彼此不引用，也不引用浮窗面板与跟踪服务。
 // 时钟：日志里的时间与「多久以前」用墙上时钟（1970 年以来的秒数）。

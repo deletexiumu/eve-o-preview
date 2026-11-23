@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 情报用语、舰船缩写与虚词表（docs/design-intel-translate.md 6.3 节）。这些表由人维护，随代码审查，
+// 情报用语、舰船缩写与虚词表（docs/macos/design-intel-translate.md 6.3 节）。这些表由人维护，随代码审查，
 // 不放进星图数据文件。
 //
 // 来源：
@@ -11,7 +11,7 @@
 // - stopWords：参考实现 backend/app/glossary/match.py 的 STOPWORDS 原表。
 // - nonPilotWords：stopWords 加参考实现 desktop/eve_local/intel.py 的 _INTEL_WORDS_TEXT 原表，
 //   再加 6.3 节列出的 11 个词（原表已有的不重复）。
-// - ambiguousShortNames：对照 packaging/eve-static.json（SDE 3720952）列出，见该表的注释。
+// - ambiguousShortNames：对照 shared/static/eve-static.json（SDE 3720952）列出，见该表的注释。
 //
 // 另有几个分类字符的工具函数，供术语匹配、分段与人名核对共用（模块内部）。
 

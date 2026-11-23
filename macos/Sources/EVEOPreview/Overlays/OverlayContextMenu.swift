@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗的右键菜单（docs/design-intel-translate.md 8.7 节的表）：
+// 浮窗的右键菜单（docs/macos/design-intel-translate.md 8.7 节的表）：
 // 滚动到最新、复制这一条、在浏览器中打开（子菜单，6.9 节增补）、清空列表、锁定布局、恢复默认位置与尺寸、
 // 隐藏此浮窗、打开设置…。
 // - 「复制这一条」与「在浏览器中打开」由菜单自己处理：前者把 copyText 放进剪贴板，后者只打开能解析且协议是 https 的地址，

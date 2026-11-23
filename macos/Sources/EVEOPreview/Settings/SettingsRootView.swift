@@ -18,7 +18,7 @@ struct SettingsRootView: View {
         // 结果两栏的上半部分都在窗口外：侧栏看起来是空的，页面顶部被裁掉。
         // 普通 HStack 按窗口给的尺寸布局，页内容（grouped 样式的 Form）在自己的滚动视图里滚动。
         HStack(spacing: 0) {
-            // 侧栏：10 个页，顺序见 SettingsPage 的说明（docs/design-intel-translate.md 第 10 节）。
+            // 侧栏：10 个页，顺序见 SettingsPage 的说明（docs/macos/design-intel-translate.md 第 10 节）。
             List(SettingsPage.allCases, selection: selection) { page in
                 Label(page.title, systemImage: page.systemImage).tag(page)
             }

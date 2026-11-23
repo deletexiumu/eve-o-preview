@@ -26,7 +26,7 @@ extension AppCoordinator {
     private var needsBackgroundActivity: Bool {
         guard !isStopped else { return false }
         if profile.combatAlert.enabled { return true }
-        // 预警与翻译：聊天日志的读取与翻译的定时都不应被 App Nap 拖慢（docs/design-intel-translate.md 9.3 节）。
+        // 预警与翻译：聊天日志的读取与翻译的定时都不应被 App Nap 拖慢（docs/macos/design-intel-translate.md 9.3 节）。
         if profile.intel.enabled || profile.translation.enabled { return true }
         let hasMouseBindings = hotkeyPlan.bindings.contains { $0.hotkey.isMouse }
         let mouseFailed = hotkeyFailures.contains { $0.binding.hotkey.isMouse }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志与游戏日志的一次性读取（docs/design-intel-translate.md 5.4 节、5.6 节）：读文件的一段字节、
+// 聊天日志与游戏日志的一次性读取（docs/macos/design-intel-translate.md 5.4 节、5.6 节）：读文件的一段字节、
 // 探测聊天日志的文件头、回头找位置线索。跟踪服务、频道发现与探针共用，都是同步调用，在调用方的线程上执行。
 // - 聊天日志是带 BOM 的 UTF-16 小端（C2）。任何起点都先经 ChatLogDirectory.alignedOffset 取偶数；
 //   起点在文件中间时用指定了编码的 LogLineFramer，丢掉第一行（它可能是半行）。

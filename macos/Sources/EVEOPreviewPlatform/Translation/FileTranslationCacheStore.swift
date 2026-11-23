@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 译文缓存文件（docs/design-intel-translate.md 7.8 节）：`~/Library/Application Support/EVE-O Preview/translation-cache.json`，
+// 译文缓存文件（docs/macos/design-intel-translate.md 7.8 节）：`~/Library/Application Support/EVE-O Preview/translation-cache.json`，
 // 内容是 `{"format": 1, "entries": [...]}`。
 // - 读：文件读不了、不是 JSON 或 format 不是 1 时返回空数组，从空缓存开始。
 // - 写：目录权限 0700；先写同目录下的临时文件，建文件时权限就是 0600，再用 rename 原子替换，

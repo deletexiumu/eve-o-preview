@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对的值类型（docs/design-intel-translate.md 6.9 节、6.10 节）。
+// 人名核对的值类型（docs/macos/design-intel-translate.md 6.9 节、6.10 节）。
 // - PilotLookupOutcome：一个名字在 ESI 的结果：查到角色、与游戏对象重名、没查到。
 // - PilotLookupAnswer：一次请求的结果，按比较键 key(for:) 存各名字的结果，另带 ESI 的错误额度。
 // - PilotLookupFailure：一次请求失败的原因，决定排队时等多久、要不要重发。

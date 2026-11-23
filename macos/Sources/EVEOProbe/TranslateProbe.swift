@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 探针的 translate 命令（docs/design-intel-translate.md 9.5 节）：向模型服务发一次固定的测试样例
+// 探针的 translate 命令（docs/macos/design-intel-translate.md 9.5 节）：向模型服务发一次固定的测试样例
 // （`o7, gate is clear, fly safe`），打印状态码、耗时与解析出的译文。
 // 用法：EVEOProbe translate [--provider 编号] [--model 模型] [--base-url 地址] [--target 语言] [--dry-run]
 // - Key 只取自环境变量 EVEO_TRANSLATION_API_KEY，不读钥匙串（7.7 节）；预设要 Key 而环境变量为空时不发请求，退出码 1。

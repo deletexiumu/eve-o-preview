@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 一个浮窗面板的控制器（docs/design-intel-translate.md 8.3～8.7 节）：持有面板、内容视图与手势状态机，
+// 一个浮窗面板的控制器（docs/macos/design-intel-translate.md 8.3～8.7 节）：持有面板、内容视图与手势状态机，
 // 按呈现更新面板的位置、层级、外观与可见性，把内容交给内容视图，弹出右键菜单。
 // - 层级的取法与缩略图相同：不置顶是 normal，置顶是 floating，盖在原生全屏客户端上时用 ThumbnailPanel.fullScreenLevel。
 // - 不透明度只给内容视图的背景图层，面板的 alphaValue 保持 1，文字始终不透明（Q21）。

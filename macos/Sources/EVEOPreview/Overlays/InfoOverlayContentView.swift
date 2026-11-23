@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗的内容视图（docs/design-intel-translate.md 8.4 节、8.5 节）。从上到下：标题行、状态行（至多 2 行）、
+// 浮窗的内容视图（docs/macos/design-intel-translate.md 8.4 节、8.5 节）。从上到下：标题行、状态行（至多 2 行）、
 // NSScrollView 里的 NSTableView（占满其余高度）；列表为空时中间显示说明，用户离开底部且有新消息时底部居中显示新消息条。
 // - 背景：黑色，不透明度取 presentation.opacity，圆角 6 点，1 点的白色边线（0.18）。只有背景随不透明度变。
 // - 视图是翻转的（y 轴向下），各子视图的 frame 在 layoutContent 里手工摆放。

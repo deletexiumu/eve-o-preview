@@ -160,7 +160,7 @@ public struct HotkeyRegistrationFailure: Sendable, Equatable {
     func stop()
 }
 
-/// 聊天日志的跟踪服务（docs/design-intel-translate.md 5.2 节～5.6 节）。全部方法在主线程调用。
+/// 聊天日志的跟踪服务（docs/macos/design-intel-translate.md 5.2 节～5.6 节）。全部方法在主线程调用。
 /// 只读日志文件，不写、不改、不删 EVE 目录下的任何内容。
 @MainActor public protocol ChatLogMonitor: AnyObject {
     /// 一批事件，按日志里的先后顺序。在主线程调用。

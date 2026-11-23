@@ -2,7 +2,7 @@
 //
 // 发布说明的选取与切块（v1.1 设计 8.2、8.7 节；格式见架构文档 9.7 节）。
 //
-// Release 正文是 `docs/release-notes/<tag>.md` 的原文：英文在最前，包在 `<!-- lang:en -->` 与 `<!-- /lang:en -->`
+// Release 正文是 `docs/release-notes/macos/<tag>.md` 的原文：英文在最前，包在 `<!-- lang:en -->` 与 `<!-- /lang:en -->`
 // 之间；之后 zh、ja、ko、ru、fr、de、es 各一个可折叠的块，块里是 `<details><summary>…</summary>`、Markdown 正文与 `</details>`。
 // `section(for:in:)` 按界面语言取出一段，`blocks(from:)` 把它切成标题、列表、段落与代码块，由界面逐块显示
 // （SwiftUI 的 `Text` 只渲染行内 Markdown，不渲染标题与列表）。

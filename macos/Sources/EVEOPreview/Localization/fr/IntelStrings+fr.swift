@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的法文文字（docs/design-intel-translate.md 第 11 节）。
+// 预警域的法文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与 WP-0 的法文文字一致：renseignement（预警）、overlay（浮窗）、canal（频道）、journal de discussion
 // （聊天日志）；跳是 saut，敌对是 hostile，星图数据是 données de carte，ESI 不翻译。

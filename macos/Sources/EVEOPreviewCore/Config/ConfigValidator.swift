@@ -29,7 +29,7 @@ public enum ConfigValidator {
     ///   `eveLogDirectory` 去掉首尾空白后是空串时改成 nil（反馈文档 3.2 节）。
     /// - `general.logLevel` 不是 info 或 debug 时改成 info（v1.1 设计 3.1 节）。
     /// - 预警与翻译：数值夹到范围内，频道去重与截断，空的参考星系改成 nil，不可用的浮窗 frame 改成 nil，
-    ///   接口地址与模型名去掉首尾空白（docs/design-intel-translate.md 3.2 节）。
+    ///   接口地址与模型名去掉首尾空白（docs/macos/design-intel-translate.md 3.2 节）。
     /// - 配置方案的 id 为空或重复时换新 UUID；名称去掉首尾空白，为空时用 `Profile`，
     ///   超长时截断，不区分大小写重名时追加 ` 2`、` 3` 等序号。循环组 id 同理。
     /// - 没有配置方案时补一个 `Default`；activeProfileID 无效时取第一个配置方案。
@@ -222,7 +222,7 @@ public enum ConfigValidator {
         fixer.requireHexColor(&a.color, default: d.color, path: "\(path).color")
     }
 
-    // MARK: - 预警与翻译（docs/design-intel-translate.md 3.2 节）
+    // MARK: - 预警与翻译（docs/macos/design-intel-translate.md 3.2 节）
 
     /// 改正预警设置：3 个整数夹到范围内（先夹 maxJumps，再让 alertJumps 不超过它），频道、参考星系与浮窗。
     private static func normalizeIntel(_ intel: inout IntelSettings, path: String, fixer: inout FieldFixer) {

@@ -293,7 +293,7 @@ protocol SettingsStrings: Sendable {
     var aboutChatLogsNote: String { get }
 
     // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）
-    // 放在设置域而不是某一个功能的域里，因为两个并行的工作包都用到（docs/design-intel-translate.md 第 11 节）。
+    // 放在设置域而不是某一个功能的域里，因为两个并行的工作包都用到（docs/macos/design-intel-translate.md 第 11 节）。
 
     /// 两个功能都没开、没有在读聊天日志。
     var chatLogStatusStopped: String { get }

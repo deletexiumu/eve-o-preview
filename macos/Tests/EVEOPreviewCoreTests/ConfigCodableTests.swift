@@ -77,7 +77,7 @@ struct ConfigCodableTests {
         #expect(Set(object.keys) == ["schemaVersion", "activeProfileID", "profiles", "general"])
         let general = try #require(object["general"] as? [String: Any])
         // eveLogDirectory 为 nil 时不写进 JSON。v1.1 加了 4 个键（v1.1 设计 3.1 节、第 19 节），
-        // 预警与翻译加了 translationEndpoint（docs/design-intel-translate.md 3.1 节）。
+        // 预警与翻译加了 translationEndpoint（docs/macos/design-intel-translate.md 3.1 节）。
         let v11Keys: Set<String> = ["checkForUpdates", "autoInstallUpdates", "logLevel", "showDockIcon",
                                     "translationEndpoint"]
         #expect(Set(general.keys) == Set(["pollIntervalMs", "onboardingCompleted", "language"]).union(v11Keys))
@@ -306,7 +306,7 @@ extension ConfigCodableTests {
     }
 }
 
-/// 预警与翻译设置的编解码（docs/design-intel-translate.md 3.1 节、3.2 节、14.1 节）。频道名是虚构的。
+/// 预警与翻译设置的编解码（docs/macos/design-intel-translate.md 3.1 节、3.2 节、14.1 节）。频道名是虚构的。
 struct ChatConfigCodableTests {
     /// 编码为 JSON 对象，便于检查键名。
     private func jsonObject<T: Encodable>(_ value: T) throws -> [String: Any] {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗的样式与颜色（docs/design-intel-translate.md 8.4 节的表）：把 Core 的 OverlaySpanStyle 换成颜色、字重与字体，
+// 浮窗的样式与颜色（docs/macos/design-intel-translate.md 8.4 节的表）：把 Core 的 OverlaySpanStyle 换成颜色、字重与字体，
 // 把一条 OverlayLine 拼成一段富文本。第一行用 presentation.fontSize，第二行小 1 点（不小于 9 点），两行之间用换行连接。
 // 背景只随不透明度变，文字始终不透明（Q21）。
 

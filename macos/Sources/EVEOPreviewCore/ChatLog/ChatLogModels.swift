@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志的模型（docs/design-intel-translate.md 5.2 节）：文件头、消息行、上报的事件、跟踪服务的状态与请求。
+// 聊天日志的模型（docs/macos/design-intel-translate.md 5.2 节）：文件头、消息行、上报的事件、跟踪服务的状态与请求。
 // 另含位置记录的两个类型 CharacterLocation、LocationSource：它们被 state.json 的 ChatState 引用，所以由 WP-0
 // 建在这里；位置的规则（LocationTracker）归 WP-B（6.2 节）。
 // 时间都是 UTC，1970 年以来的秒数；聊天日志里的时间就是 UTC（EVE 时间）。

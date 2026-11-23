@@ -2,7 +2,7 @@
 //
 // 平台服务的组装点（架构文档 6.1 节）。App 只通过这里拿到各协议的实现。
 // WP-C 的 FakeServices 用公开的成员初始化方法自行组装。
-// 预警与翻译加了聊天日志、星图数据、模型传输、钥匙串与译文缓存 5 个服务（docs/design-intel-translate.md 7.2 节）。
+// 预警与翻译加了聊天日志、星图数据、模型传输、钥匙串与译文缓存 5 个服务（docs/macos/design-intel-translate.md 7.2 节）。
 // v1.1 加了问题报告与更新两个服务（v1.1 设计 4.3 节）；日志入口 `PlatformLog` 搬到了 Logging/LogChannel.swift。
 
 import Foundation
@@ -28,7 +28,7 @@ import EVEOPreviewCore
     public let diagnostics: any DiagnosticsService
     /// 更新的检查、下载与安装（v1.1 设计 8.4 节）。
     public let updates: any UpdateService
-    /// 聊天日志的跟踪服务（docs/design-intel-translate.md 5.2 节）。
+    /// 聊天日志的跟踪服务（docs/macos/design-intel-translate.md 5.2 节）。
     public let chatLog: any ChatLogMonitor
     /// 星图数据的提供者（4.4 节）。
     public let staticData: any StaticDataProvider

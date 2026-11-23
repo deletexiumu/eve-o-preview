@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 译文缓存（docs/design-intel-translate.md 7.8 节）：键是（目标语言代码，cacheKey(原文)），至多 10,000 条，
+// 译文缓存（docs/macos/design-intel-translate.md 7.8 节）：键是（目标语言代码，cacheKey(原文)），至多 10,000 条，
 // 最近用过的留下。存盘由 App 安排（有改动时满 30 秒存一次，退出时存一次），文件的读写在 Platform。
 // 做法：字典存条目与「最近使用的序号」，另有一条按使用先后排列的序号队列；淘汰时从队头取，
 // 序号已过时（那一条之后又被用过）的跳过。队列过长时整理一次，摊下来每次操作是常数时间。

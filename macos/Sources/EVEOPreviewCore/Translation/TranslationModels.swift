@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天翻译的模型（docs/design-intel-translate.md 7.2 节）：服务预设与解析后的接口、失败的分类、消息的阶段、
+// 聊天翻译的模型（docs/macos/design-intel-translate.md 7.2 节）：服务预设与解析后的接口、失败的分类、消息的阶段、
 // HTTP 请求与答复、缓存条目、队列的状态。这些类型由 WP-0 冻结；翻译的规则（预设表、判断、提示词、请求与答复、
 // 缓存、队列、显示）在 WP-C 的各个文件里。
 // TranslationHTTPRequest、TranslationHTTPResponse、TranslationTransportError、TranslationCacheEntry、

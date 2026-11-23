@@ -42,9 +42,9 @@ public struct Profile: Sendable, Equatable, Codable, Identifiable {
     public var hotkeyDefaultScope: HotkeyScope
     /// 战斗提醒的设置。第一轮反馈新增，默认关闭（反馈文档 3.1 节）。
     public var combatAlert: CombatAlertSettings
-    /// 预警的设置。默认关闭（docs/design-intel-translate.md 3.1 节）。
+    /// 预警的设置。默认关闭（docs/macos/design-intel-translate.md 3.1 节）。
     public var intel: IntelSettings
-    /// 聊天翻译的设置。默认关闭（docs/design-intel-translate.md 3.1 节）。
+    /// 聊天翻译的设置。默认关闭（docs/macos/design-intel-translate.md 3.1 节）。
     public var translation: TranslationSettings
 
     /// 用各字段建一个配置方案；除名称外都有默认值，id 默认生成新的 UUID。

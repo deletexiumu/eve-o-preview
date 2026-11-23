@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 演示模式的聊天日志服务（docs/design-intel-translate.md 9.5 节）：EVEO_FAKE=1 时使用，不读任何文件。
+// 演示模式的聊天日志服务（docs/macos/design-intel-translate.md 9.5 节）：EVEO_FAKE=1 时使用，不读任何文件。
 // - 开始跟踪后，请求要读位置线索时给每个假角色发一条 Local 的切换消息（LocationLineParser 认得的形式），
 //   之后每 4 秒给一个假角色发一条消息，按角色轮流，消息按表轮流。
 // - 消息表 12 条：中英文的情报，英、俄、日文的闲聊。说话人与频道名都是虚构的；星系与舰船名是游戏的公开数据。

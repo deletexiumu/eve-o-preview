@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警控制器的人名核对（docs/design-intel-translate.md 6.10 节）：排队、发送与缓存。
+// 预警控制器的人名核对（docs/macos/design-intel-translate.md 6.10 节）：排队、发送与缓存。
 //
 // 何时排：intel.enabled 与 intel.resolvePilotNames 都为真，且人名缓存文件已读完时才排。
 // - 新消息：收听者是活动角色、不是补读的、认作情报的，取 PilotSegmenter.candidates 里要查的名字。

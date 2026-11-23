@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警缓冲的测试（docs/design-intel-translate.md 6.5 节、14.1 节）。收听者与说话人都是虚构的。
+// 预警缓冲的测试（docs/macos/design-intel-translate.md 6.5 节、14.1 节）。收听者与说话人都是虚构的。
 
 import Testing
 import Foundation

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译浮窗的一行（docs/design-intel-translate.md 7.10 节）：
+// 翻译浮窗的一行（docs/macos/design-intel-translate.md 7.10 节）：
 // | 阶段                              | 第一行                                   | 第二行                     |
 // | done                              | 时间、频道、说话人、译文（translated）    | showOriginal 时是原文（dim）|
 // | skipped，rendered 有值            | 时间、频道、说话人、rendered（plain）     | showOriginal 时是原文（dim）|

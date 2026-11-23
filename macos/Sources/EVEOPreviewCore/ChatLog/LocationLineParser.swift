@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 位置线索的句式（docs/design-intel-translate.md 5.6 节）：从一行日志里取出星系名的原文，不查星图数据。
+// 位置线索的句式（docs/macos/design-intel-translate.md 5.6 节）：从一行日志里取出星系名的原文，不查星图数据。
 // - Local 聊天日志的系统消息：取最后一个半角或全角冒号后面的部分。英文形式是 `Channel changed to Local : <星系>`（C7），
 //   中文形式参考实现记为 `频道更换为本地：<星系>*`（V39）。规则只看冒号，不依赖措辞。
 // - 游戏日志的 (None) 行：按下表的句式取目的星系。中文两种句式有本机样例（C15），英文两种没有（V32）。

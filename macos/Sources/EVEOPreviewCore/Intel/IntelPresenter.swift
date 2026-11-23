@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警浮窗每一行的内容（docs/design-intel-translate.md 6.7 节，6.9 节改了数量与人名两部分）。
+// 预警浮窗每一行的内容（docs/macos/design-intel-translate.md 6.7 节，6.9 节改了数量与人名两部分）。
 // 界面文字由 App 用 L10n.intel 实现 IntelLineFormatting 交进来，Core 不碰界面文字。
 //
 // 一条情报（isIntelLike）的第一行，各部分之间隔一个空格：

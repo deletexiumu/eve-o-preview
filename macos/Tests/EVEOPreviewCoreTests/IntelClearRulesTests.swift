@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 「安全」用语的测试（docs/design-intel-translate.md 6.3 节字符键的边界、6.4 节 isClear 与敌对数量）。
+// 「安全」用语的测试（docs/macos/design-intel-translate.md 6.3 节字符键的边界、6.4 节 isClear 与敌对数量）。
 // 前 6 条是审查时复现的误判：否定、疑问、「无人机」「安全等级」这类词里的字不算「安全」，写了人数时敌对数量不是 0。
 // 其余是对照：真正报「安全」的写法仍认得出。星系取自 StaticDataFixtures；消息是编的。
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗域的界面文字（docs/design-intel-translate.md 第 11 节，28 条）：两个浮窗的列表说明与右键菜单，
+// 浮窗域的界面文字（docs/macos/design-intel-translate.md 第 11 节，28 条）：两个浮窗的列表说明与右键菜单，
 // 以及「预警」「翻译」两页共用的浮窗设置与频道列表。
 // 每种语言一个不含存储属性的结构体实现本协议（Localization/<语言>/OverlayStrings+<语言>.swift），
 // 漏了一条时结构体不满足协议，编译不过。带参数的文字写成函数，各语言自己拼接（俄语的复数由俄语实现处理）。

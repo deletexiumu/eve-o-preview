@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 星图数据文件的查找与读取（docs/design-intel-translate.md 4.4 节）。按顺序找 eve-static.json：
+// 星图数据文件的查找与读取（docs/macos/design-intel-translate.md 4.4 节）。按顺序找 eve-static.json：
 // 1. 环境变量 EVEO_STATIC_DATA 指定的路径（只用于调试）。
 // 2. ~/Library/Application Support/EVE-O Preview/eve-static.json（用户手动覆盖）。
-// 3. Bundle.main.resourceURL 下的 eve-static.json（scripts/build-app.sh 复制进去的）。
-// 4. 从可执行文件所在目录向上找，至多 6 级，第一个含 packaging/eve-static.json 的目录（swift run 与探针用）。
+// 3. Bundle.main.resourceURL 下的 eve-static.json（macos/scripts/build-app.sh 复制进去的）。
+// 4. 从可执行文件所在目录向上找，至多 6 级，第一个含 shared/static/eve-static.json 的目录（swift run 与探针用）。
 // 取第一个存在的；第 2 条与第 3 条都存在时两个都解码，取 sdeBuild 较大的。第 2 条无效时记一条日志，接着看后面的。
 // 读文件与解码在调用方的后台任务里做（load 是非隔离的 async 方法），数据在本次运行内不变。
 
@@ -110,12 +110,13 @@ public struct BundleStaticDataProvider: StaticDataProvider {
         }
     }
 
-    /// 从可执行文件所在目录向上找 packaging/eve-static.json，至多 6 级。
+    /// 从可执行文件所在目录向上找 shared/static/eve-static.json，至多 6 级。
     private func repositoryFile() -> URL? {
         guard let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() else { return nil }
         var directory = executable.deletingLastPathComponent()
         for _ in 0..<Self.repositorySearchDepth {
-            let file = directory.appendingPathComponent("packaging").appendingPathComponent(Self.fileName)
+            let file = directory.appendingPathComponent("shared").appendingPathComponent("static")
+                .appendingPathComponent(Self.fileName)
             if FileManager.default.fileExists(atPath: file.path) { return file }
             let parent = directory.deletingLastPathComponent()
             if parent.path == directory.path { break }

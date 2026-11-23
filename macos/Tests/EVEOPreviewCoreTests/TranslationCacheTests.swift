@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 译文缓存（docs/design-intel-translate.md 7.8 节，14.1 节 TranslationCacheTests）：命中与未命中；
+// 译文缓存（docs/macos/design-intel-translate.md 7.8 节，14.1 节 TranslationCacheTests）：命中与未命中；
 // 容量满时丢最久没用的；读取会刷新新旧顺序；snapshot 清掉 isDirty；从条目恢复；另有合并与大量写入。
 
 import Testing

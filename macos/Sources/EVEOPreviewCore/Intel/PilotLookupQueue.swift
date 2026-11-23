@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对的排队与节流（docs/design-intel-translate.md 6.10 节）。只是状态机，不发请求、不读时钟：
+// 人名核对的排队与节流（docs/macos/design-intel-translate.md 6.10 节）。只是状态机，不发请求、不读时钟：
 // 时刻都由调用方传入（墙上时钟）。
 // - enqueue：名字按比较键记进待查，记下排进来的时刻；已在待查或在途的不重复排；超过 2,000 个时丢最早的。
 // - takeBatch：有一批在途、在等待且没到时刻、没有待查、最早的名字排进来不足 0.5 秒、距上一批不足 2 秒时返回 nil；

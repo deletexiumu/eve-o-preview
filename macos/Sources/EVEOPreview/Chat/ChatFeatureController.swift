@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警与翻译的总控（docs/design-intel-translate.md 9.2 节）：
+// 预警与翻译的总控（docs/macos/design-intel-translate.md 9.2 节）：
 // - 请求：当前配置方案的 intel.enabled 或 translation.enabled 为真时启动聊天日志跟踪，都为假时停止。
 //   channels 是已启用功能的频道的并集；followsLocation 取 intel.enabled；backfillSeconds 取
 //   「预警启用时的 windowMinutes × 60」与「翻译启用时的 600」里较大的一个。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的中文文字（docs/design-intel-translate.md 第 11 节）。用词按第 11 节的词表与第 17 节的术语：
+// 预警域的中文文字（docs/macos/design-intel-translate.md 第 11 节）。用词按第 11 节的词表与第 17 节的术语：
 // 浮窗、预警、频道、跳、敌对、聊天日志、星图数据、人名核对；ESI 不翻译。
 
 import Foundation

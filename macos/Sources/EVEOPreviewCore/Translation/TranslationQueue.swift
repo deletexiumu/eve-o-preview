@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译的缓冲与排队（docs/design-intel-translate.md 7.6 节）。缓冲按收听者分开，每个收听者至多 300 条。
+// 翻译的缓冲与排队（docs/macos/design-intel-translate.md 7.6 节）。缓冲按收听者分开，每个收听者至多 300 条。
 // 规则：
 // - 消息由控制器决定进入时的阶段（skipped、done、pending、off）。
 // - activate：换了活动角色，把它最近 600 秒内最新 20 条里 off 的消息排进队列。

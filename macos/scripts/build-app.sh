@@ -3,9 +3,9 @@
 #
 # 组装并签名 dist/EVE-O Preview.app（架构文档 9.1 节）。
 #
-# 用法：scripts/build-app.sh
+# 用法：macos/scripts/build-app.sh
 # 环境变量：
-#   VERSION        写进 Info.plist 的版本号，默认取仓库根目录 VERSION 文件的内容
+#   VERSION        写进 Info.plist 的版本号，默认取 macos/VERSION 文件的内容
 #   LABEL          构建标签，写进 Info.plist 的 EVEOBuildLabel，默认等于 VERSION；CI 给 PR 构建填 1.1.0-pr.12.abc1234 这样的值
 #   SIGN_IDENTITY  代码签名身份；不设时钥匙串里有「EVEO Preview Dev」就用它，否则 ad-hoc（-）
 #   UNIVERSAL      设为 1 时分别编译 arm64 与 x86_64，再用 lipo 合成通用二进制；默认只编译本机架构
@@ -14,16 +14,18 @@
 
 set -euo pipefail
 
-# 仓库根目录：脚本在 scripts/ 下，根目录是它的上一级。
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+# macOS 工程目录（脚本在 macos/scripts/ 下，工程目录是它的上一级）与仓库根目录。
+# swift 命令在工程目录里运行；dist/ 放在仓库根目录，CI 从那里取产物。
+MACOS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd "$MACOS/.." && pwd)"
+cd "$MACOS"
 
-VERSION="${VERSION:-$(tr -d '[:space:]' < "$ROOT/VERSION")}"
+VERSION="${VERSION:-$(tr -d '[:space:]' < "$MACOS/VERSION")}"
 LABEL="${LABEL:-$VERSION}"
 APP_NAME="EVE-O Preview"
 BUNDLE_ID="io.github.deletexiumu.eveopreview-macos"
 DEV_IDENTITY="EVEO Preview Dev"
-APP="$ROOT/dist/$APP_NAME.app"
+APP="$REPO/dist/$APP_NAME.app"
 
 # 1. 编译发布版。
 # 通用二进制不用 swift build --arch arm64 --arch x86_64：那条路径要 Xcode 自带的 xcbuild，
@@ -53,29 +55,29 @@ echo "==> 组装 ${APP}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/EVEOPreview"
-# 2b. 星图数据（docs/design-intel-translate.md 4.4 节）：随包分发，应用用 Bundle.main 读取。
+# 2b. 星图数据（docs/macos/design-intel-translate.md 4.4 节）：随包分发，应用用 Bundle.main 读取。
 #     在签名之前放入，签名时一并封存。文件缺失时只警告：预警不认星系与舰船，其余功能照常。
-if [[ -f "$ROOT/packaging/eve-static.json" ]]; then
-    cp "$ROOT/packaging/eve-static.json" "$APP/Contents/Resources/eve-static.json"
+if [[ -f "$REPO/shared/static/eve-static.json" ]]; then
+    cp "$REPO/shared/static/eve-static.json" "$APP/Contents/Resources/eve-static.json"
 else
-    echo "警告：缺少 packaging/eve-static.json，预警浮窗将不认星系与舰船（运行 scripts/build-sde-data.py 生成）" >&2
+    echo "警告：缺少 shared/static/eve-static.json，预警浮窗将不认星系与舰船（运行 shared/static/build-sde-data.py 生成）" >&2
 fi
 
 # 3. 由模板生成 Info.plist，填版本号并检查格式。
 # 版本号里的 /、&、\ 对 sed 的替换串有特殊含义，先转义；& < > 在 plist（XML）里也要转义。
 VERSION_XML="$(printf '%s' "$VERSION" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
 VERSION_SED="$(printf '%s' "$VERSION_XML" | sed -e 's/[\/&]/\\&/g')"
-sed "s/__VERSION__/$VERSION_SED/g" "$ROOT/packaging/Info.plist" > "$APP/Contents/Info.plist"
+sed "s/__VERSION__/$VERSION_SED/g" "$MACOS/packaging/Info.plist" > "$APP/Contents/Info.plist"
 
-# 4. 有 packaging/AppIcon.png 时生成 icns，并在 Info.plist 里登记图标。
-if [[ -f "$ROOT/packaging/AppIcon.png" ]]; then
+# 4. 有 macos/packaging/AppIcon.png 时生成 icns，并在 Info.plist 里登记图标。
+if [[ -f "$MACOS/packaging/AppIcon.png" ]]; then
     echo "==> 生成图标"
     ICONSET="$WORK/AppIcon.iconset"
     mkdir -p "$ICONSET"
     for size in 16 32 128 256 512; do
-        sips -z "$size" "$size" "$ROOT/packaging/AppIcon.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+        sips -z "$size" "$size" "$MACOS/packaging/AppIcon.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
         double=$((size * 2))
-        sips -z "$double" "$double" "$ROOT/packaging/AppIcon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+        sips -z "$double" "$double" "$MACOS/packaging/AppIcon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
     done
     iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
     plutil -insert CFBundleIconFile -string AppIcon "$APP/Contents/Info.plist"
@@ -83,7 +85,7 @@ fi
 # 4b. 构建标签与提交号（v1.1 设计 8.1、8.3 节）：应用据此判断 PR 或 main 构建是否该收到同版本号正式版的更新。
 #     不在 git 仓库里（如从源码包构建）时取不到提交号，就不写 EVEOBuildCommit。
 plutil -insert EVEOBuildLabel -string "$LABEL" "$APP/Contents/Info.plist"
-if COMMIT="$(git -C "$ROOT" rev-parse --short=7 HEAD 2>/dev/null)"; then
+if COMMIT="$(git -C "$REPO" rev-parse --short=7 HEAD 2>/dev/null)"; then
     plutil -insert EVEOBuildCommit -string "$COMMIT" "$APP/Contents/Info.plist"
 fi
 plutil -lint "$APP/Contents/Info.plist"
@@ -123,7 +125,7 @@ echo
 echo "产物：${APP}"
 if [[ "$IDENTITY" == "-" ]]; then
     echo "签名：ad-hoc"
-    echo "提示：ad-hoc 签名没有稳定身份，每次重新构建后都要重新授予屏幕录制与辅助功能权限（见 docs/development.md）。"
+    echo "提示：ad-hoc 签名没有稳定身份，每次重新构建后都要重新授予屏幕录制与辅助功能权限（见 docs/macos/development.md）。"
 else
     echo "签名：${IDENTITY}"
 fi

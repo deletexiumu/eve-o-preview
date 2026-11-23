@@ -34,7 +34,7 @@ final class SettingsViewModel {
     private(set) var hideAll = false
     /// 游戏日志跟踪服务的状态，「提醒」页的状态行用它（反馈文档 7.11 节）。
     private(set) var combatLogStatus: CombatLogStatus = .stopped
-    /// 聊天日志跟踪服务的状态，「预警」页与「翻译」页的状态行用它（docs/design-intel-translate.md 第 10 节）。
+    /// 聊天日志跟踪服务的状态，「预警」页与「翻译」页的状态行用它（docs/macos/design-intel-translate.md 第 10 节）。
     private(set) var chatLogStatus: ChatLogStatus = .stopped
     /// 日志目录里最近出现过的频道，「从日志添加」菜单用它；由 `refreshDiscoveredChannels()` 更新。
     private(set) var discoveredChannels: [DiscoveredChannel] = []

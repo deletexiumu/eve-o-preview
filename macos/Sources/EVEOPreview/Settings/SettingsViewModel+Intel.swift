@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口视图模型的「预警」页部分（docs/design-intel-translate.md 第 10 节）：预警设置的绑定、状态行的文字、
+// 设置窗口视图模型的「预警」页部分（docs/macos/design-intel-translate.md 第 10 节）：预警设置的绑定、状态行的文字、
 // 各角色位置的读取与手动设置、参考星系、星图数据的版本，以及 6.9 节增补的人名核对状态与人名缓存。
 // 位置、核对状态与缓存条数来自 coordinator.chat.intel 的只读属性，不是本视图模型的存储属性；
 // 页面在 body 里读 chatRevision，这些值变化时随之重绘。

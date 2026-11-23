@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 术语匹配（docs/design-intel-translate.md 6.3 节）：在聊天正文里找星系、星域、舰船、舰船分组与情报用语。
+// 术语匹配（docs/macos/design-intel-translate.md 6.3 节）：在聊天正文里找星系、星域、舰船、舰船分组与情报用语。
 // 类型由 WP-0 冻结；索引的建立与扫描规则归 WP-B（本文件的 TermMatcher）。
 //
 // 索引：每个术语的每个名称（英文名与各语言名称）各建一个键。含汉字、假名或谚文的名称建「字符键」（原样，

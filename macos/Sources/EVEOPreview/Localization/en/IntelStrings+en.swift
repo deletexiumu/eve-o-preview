@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的英文文字（docs/design-intel-translate.md 第 11 节）。用词按第 11 节的词表：overlay、intel、channel、
+// 预警域的英文文字（docs/macos/design-intel-translate.md 第 11 节）。用词按第 11 节的词表：overlay、intel、channel、
 // jump、hostile、chat log、map data、name check；ESI 不翻译。英文复数按数量取单复数形式。
 
 import Foundation

@@ -1,4 +1,4 @@
-<p align="center"><img src="packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS 아이콘"></p>
+<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS 아이콘"></p>
 
 # EVE-O Preview for macOS
 
@@ -66,7 +66,7 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 ### 소스에서 빌드
 
-앱을 직접 빌드하려면 [docs/development.md](docs/development.md)(영어)를 참고하십시오. 디버깅 도구, CI, 릴리스 절차도 그곳에 설명되어 있습니다.
+앱을 직접 빌드하려면 [docs/macos/development.md](docs/macos/development.md)(영어)를 참고하십시오. 디버깅 도구, CI, 릴리스 절차도 그곳에 설명되어 있습니다.
 
 ## 권한
 
@@ -269,4 +269,4 @@ macOS 사용자 이름, 전체 이름, 홈 폴더 경로, 컴퓨터 이름은 `[
 
 EVE Online 및 관련 로고는 CCP ehf.의 상표입니다. 이 프로젝트는 CCP와 관련이 없으며 CCP의 승인을 받지 않았습니다.
 
-앱 아이콘은 원본 프로젝트 EveOPlus/eve-o-preview(GPL-3.0)의 분자 아이콘을 재사용합니다. 배경은 `scripts/make-app-icon.py`로 그렸으며 CCP 상표나 게임 아트를 포함하지 않습니다.
+앱 아이콘은 원본 프로젝트 EveOPlus/eve-o-preview(GPL-3.0)의 분자 아이콘을 재사용합니다. 배경은 `macos/scripts/make-app-icon.py`로 그렸으며 CCP 상표나 게임 아트를 포함하지 않습니다.

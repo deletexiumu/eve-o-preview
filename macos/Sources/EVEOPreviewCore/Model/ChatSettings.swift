@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警与聊天翻译的设置（docs/design-intel-translate.md 3.1 节）。
+// 预警与聊天翻译的设置（docs/macos/design-intel-translate.md 3.1 节）。
 // - IntelSettings、TranslationSettings 属于配置方案，JSON 路径是 profiles[].intel 与 profiles[].translation。
 // - TranslationEndpointSettings 是全局设置，JSON 路径是 general.translationEndpoint。API Key 不在这里，存在钥匙串。
 // - ChannelRef 同时存频道名与 Channel ID，匹配规则见 5.3 节。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对的分人（docs/design-intel-translate.md 6.9 节）。IntelParser 推断的人名段经 ESI 核对后，
+// 人名核对的分人（docs/macos/design-intel-translate.md 6.9 节）。IntelParser 推断的人名段经 ESI 核对后，
 // 按查到的角色名重新分人；结果在显示时套用，IntelReport 本身不变。
 //
 // - runs：报告里的人名段。相邻两个 pilot 段之间只有一段正好一个空格的 plain 时属于同一段（6.4 节第 6 条把

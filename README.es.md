@@ -1,4 +1,4 @@
-<p align="center"><img src="packaging/AppIcon.png" width="128" alt="Icono de EVE-O Preview for macOS"></p>
+<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="Icono de EVE-O Preview for macOS"></p>
 
 # EVE-O Preview for macOS
 
@@ -66,7 +66,7 @@ Cada versión incluye también el código fuente en `.tar.gz` y `.zip`, y un arc
 
 ### Compilar desde el código fuente
 
-Para compilar la app por tu cuenta, sigue [docs/development.md](docs/development.md) (en inglés). Ahí también se describen las herramientas de depuración, la CI y el proceso de publicación.
+Para compilar la app por tu cuenta, sigue [docs/macos/development.md](docs/macos/development.md) (en inglés). Ahí también se describen las herramientas de depuración, la CI y el proceso de publicación.
 
 ## Permisos
 
@@ -269,4 +269,4 @@ La app se conecta a GitHub para buscar y descargar actualizaciones. Solo se cone
 
 EVE Online y los logotipos relacionados son marcas comerciales de CCP ehf. Este proyecto no está afiliado a CCP ni cuenta con su respaldo.
 
-El icono de la app reutiliza el icono de la molécula del proyecto original EveOPlus/eve-o-preview (GPL-3.0). El fondo lo dibuja `scripts/make-app-icon.py` y no contiene marcas comerciales de CCP ni arte del juego.
+El icono de la app reutiliza el icono de la molécula del proyecto original EveOPlus/eve-o-preview (GPL-3.0). El fondo lo dibuja `macos/scripts/make-app-icon.py` y no contiene marcas comerciales de CCP ni arte del juego.

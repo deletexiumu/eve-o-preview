@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 服务预设与接口设置的解析（docs/design-intel-translate.md 7.3 节，14.1 节 TranslationProvidersTests）：
+// 服务预设与接口设置的解析（docs/macos/design-intel-translate.md 7.3 节，14.1 节 TranslationProvidersTests）：
 // 7 个预设都能解析（custom 缺地址除外）；空串回到预设值；带用户名、查询串的地址是 invalidURL；
 // 公网的 http 是 insecureRemoteHTTP；isLocalHost 对每一类各一例，另有两个反例。
 

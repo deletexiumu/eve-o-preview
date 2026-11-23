@@ -1025,9 +1025,9 @@ v1.1 起菜单新增「检查更新…」「报告问题…」，有可用更新
 | --- | --- | --- |
 | `Package.swift` | 包定义 | 第 0 步 |
 | `.gitignore` | 增加 `.build/`、`dist/`、`.swiftpm/`，删除 Windows 专属条目 | 第 0 步 |
-| `README.md`、`docs/development.md` | macOS 版的用户说明；构建、调试、CI 与发布说明 | WP-C |
-| `docs/architecture.md` | 本文 | 主会话 |
-| `scripts/build-app.sh`、`packaging/Info.plist` | 构建与打包 | WP-C |
+| `README.md`、`docs/macos/development.md` | macOS 版的用户说明；构建、调试、CI 与发布说明 | WP-C |
+| `docs/macos/architecture.md` | 本文 | 主会话 |
+| `macos/scripts/build-app.sh`、`macos/packaging/Info.plist` | 构建与打包 | WP-C |
 | `scripts/check_quality.py` | 质量检查（已存在，见 9.3 节） | 主会话 |
 
 `Sources/EVEOPreviewCore/`（WP-A）：
@@ -1095,14 +1095,14 @@ v1.1 起菜单新增「检查更新…」「报告问题…」，有可用更新
 
 ## 9 构建与打包
 
-### 9.1 `scripts/build-app.sh`
+### 9.1 `macos/scripts/build-app.sh`
 
 脚本做以下事情：
 
 1. 运行 `swift build -c release --product EVEOPreview`。环境变量 `UNIVERSAL=1` 时改为按 `arm64-apple-macosx14.0` 与 `x86_64-apple-macosx14.0` 两个三元组各编译一次，再用 `lipo -create` 合成通用二进制。不用 `swift build --arch arm64 --arch x86_64`，因为那条路径依赖 Xcode 的 xcbuild，只装 Command Line Tools 时不可用。
 2. 建 `dist/EVE-O Preview.app/Contents/{MacOS,Resources}`，把可执行文件复制为 `Contents/MacOS/EVEOPreview`。
-3. 用 `packaging/Info.plist` 生成 `Contents/Info.plist`，把版本号换成环境变量 `VERSION`（默认取仓库根目录 `VERSION` 文件的内容），并用 `plutil -lint` 检查。
-4. 如果存在 `packaging/AppIcon.png`，用 `sips` 与 `iconutil` 生成 `Contents/Resources/AppIcon.icns`。随后写入两个附加键：`EVEOBuildLabel` 取环境变量 `LABEL`（默认等于 `VERSION`）；`EVEOBuildCommit` 取 `git rev-parse --short=7 HEAD`，不在 git 仓库里时不写。自动更新用这两个键区分正式版与 PR、`main` 的构建（v1.1 设计 8.3 节）。
+3. 用 `macos/packaging/Info.plist` 生成 `Contents/Info.plist`，把版本号换成环境变量 `VERSION`（默认取仓库根目录 `VERSION` 文件的内容），并用 `plutil -lint` 检查。
+4. 如果存在 `macos/packaging/AppIcon.png`，用 `sips` 与 `iconutil` 生成 `Contents/Resources/AppIcon.icns`。随后写入两个附加键：`EVEOBuildLabel` 取环境变量 `LABEL`（默认等于 `VERSION`）；`EVEOBuildCommit` 取 `git rev-parse --short=7 HEAD`，不在 git 仓库里时不写。自动更新用这两个键区分正式版与 PR、`main` 的构建（v1.1 设计 8.3 节）。
 5. 选签名身份：`SIGN_IDENTITY` 有值时用它；否则钥匙串里有 `EVEO Preview Dev` 时用它；都没有时用 `-`（ad-hoc）。运行 `codesign --force --sign "$身份" --identifier io.github.deletexiumu.eveopreview-macos "dist/EVE-O Preview.app"`，再用 `codesign --verify --strict` 检查。
 6. 打印产物路径和签名方式。使用 ad-hoc 签名时多打印一行提示：重新构建后要重新授权。
 
@@ -1132,7 +1132,7 @@ Info.plist 的键：
 
 1. 打开「钥匙串访问」，选菜单「证书助理」里的「创建证书」。
 2. 名称填 `EVEO Preview Dev`，身份类型选「自签名根证书」，证书类型选「代码签名」，创建。
-3. 运行 `SIGN_IDENTITY="EVEO Preview Dev" scripts/build-app.sh`。首次签名时允许 `codesign` 访问钥匙串。
+3. 运行 `SIGN_IDENTITY="EVEO Preview Dev" macos/scripts/build-app.sh`。首次签名时允许 `codesign` 访问钥匙串。
 
 授权记录错乱时，运行 `tccutil reset ScreenCapture io.github.deletexiumu.eveopreview-macos` 和 `tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos`，再重新授权。
 用 `swift run` 直接运行可执行文件时，权限记在终端应用名下，适合开发调试。
@@ -1149,7 +1149,7 @@ Info.plist 的键：
 
 脚本逐个文件打印注释率与行数，最后打印合计。本文「宜在 400 行以内」一类的推荐值不由脚本检查，由审查方核对。
 
-### 9.4 `scripts/package-release.sh`
+### 9.4 `macos/scripts/package-release.sh`
 
 附件名是 CI 与应用内更新之间的契约，见 v1.1 设计 8.1 节与本文 9.5 节。
 
@@ -1165,7 +1165,7 @@ Info.plist 的键：
 
 ### 9.5 CI 与发布
 
-工作流是 `.github/workflows/build.yml`，跑在 GitHub 托管的 `macos-15` 运行器上。仓库是公开仓库，不用自托管运行器；打包要用 macOS 的 `hdiutil` 与 `codesign`。第三方 action 钉到提交 SHA，行尾注释写版本号。
+工作流是 `.github/workflows/macos.yml`，跑在 GitHub 托管的 `macos-15` 运行器上。仓库是公开仓库，不用自托管运行器；打包要用 macOS 的 `hdiutil` 与 `codesign`。第三方 action 钉到提交 SHA，行尾注释写版本号。
 
 | 触发 | 做的事 | 产物 |
 | --- | --- | --- |
@@ -1179,7 +1179,7 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 
 发布新版本的步骤：
 
-1. 在 PR 里把 `VERSION` 文件改成新版本号，并新增 `docs/release-notes/v<版本号>.md`，合并到 `main`。
+1. 在 PR 里把 `VERSION` 文件改成新版本号，并新增 `docs/release-notes/macos/v<版本号>.md`，合并到 `main`。
 2. 如果这次改了工作流的 release 任务，先手动运行工作流并勾选「演练发布」，检查草稿 Release 的附件与说明，再删掉草稿。
 3. 在 `main` 上打 tag 并推送：`git tag -a v<版本号> -m "..." && git push origin v<版本号>`。
 
@@ -1192,7 +1192,7 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 
 ### 9.6 签名证书
 
-2026-11-20 起，CI 用固定的自签名证书「EVE-O Preview Release」签名（RSA 3072，代码签名用途，有效期到 2036-11-17）。证书的 SHA-1 记在 `packaging/release-cert-sha1.txt`，签出的指定要求是 `identifier "io.github.deletexiumu.eveopreview-macos" and certificate root = H"<SHA-1>"`。指定要求在各版本之间不变，所以系统记录的屏幕录制与辅助功能授权在升级后仍然有效。从 v1.0.0 起，所有发布版都用这张证书签名。
+2026-11-20 起，CI 用固定的自签名证书「EVE-O Preview Release」签名（RSA 3072，代码签名用途，有效期到 2036-11-17）。证书的 SHA-1 记在 `macos/packaging/release-cert-sha1.txt`，签出的指定要求是 `identifier "io.github.deletexiumu.eveopreview-macos" and certificate root = H"<SHA-1>"`。指定要求在各版本之间不变，所以系统记录的屏幕录制与辅助功能授权在升级后仍然有效。从 v1.0.0 起，所有发布版都用这张证书签名。
 
 | 位置 | 内容 |
 | --- | --- |
@@ -1214,13 +1214,13 @@ PR 构建检出 PR 的头提交，不用 GitHub 生成的合并提交，所以�
 如果私钥泄露或丢失，按以下步骤换证书：
 
 1. 生成新证书（代码签名用途），导出为 p12，用 `security import` 导入临时钥匙串并签一个应用，确认能用。
-2. 更新两个 Actions secret 与 `packaging/release-cert-sha1.txt`。
+2. 更新两个 Actions secret 与 `macos/packaging/release-cert-sha1.txt`。
 3. 在发布说明里写明：这个版本换了签名证书，已安装的版本只会提示更新、不能自动安装，用户要手动下载安装并重新授予屏幕录制与辅助功能权限。
 4. 演练发布，确认指定要求钉在新证书上，再打 tag。
 
 ### 9.7 发布说明格式
 
-`docs/release-notes/v<版本号>.md` 原样作为 Release 正文。英文在前，其余语言按 zh、ja、ko、ru、fr、de、es 的顺序各占一个可折叠区块，每块用 HTML 注释标出语言代码，代码与界面语言代码一致：
+`docs/release-notes/macos/v<版本号>.md` 原样作为 Release 正文。英文在前，其余语言按 zh、ja、ko、ru、fr、de、es 的顺序各占一个可折叠区块，每块用 HTML 注释标出语言代码，代码与界面语言代码一致：
 
 ```markdown
 <!-- lang:en -->
@@ -1250,9 +1250,9 @@ v1.1 的工作包、测试与手工验证见 v1.1 设计第 13、14 节；风险
 | --- | --- | --- |
 | WP-A | `Package.swift`、`.gitignore`；Core 全部实现与 `Tests/`；Platform 的骨架（`Capture/CaptureTypes.swift` 完整，`PlatformServices.swift` 的 `makeLive()` 写 `fatalError("未实现")`）；`EVEOProbe/main.swift` 与 `EVEOPreview/main.swift` 各一个能编译的空入口 | `swift build` 通过，`swift test` 全绿，10.2 节的用例齐全 |
 | WP-B | Platform 全部实现、`EVEOProbe`；先做 6.7 节的实测，回报 V2、V4、V5、V6、V7、V8 | 探针的 5 个命令在 3 个真实客户端上通过 |
-| WP-C | App 全部实现（含 `FakeServices`）、`scripts/build-app.sh`、`packaging/`、`README.md` | `EVEO_FAKE=1` 下界面功能可用，`build-app.sh` 产出能启动的 `.app` |
+| WP-C | App 全部实现（含 `FakeServices`）、`macos/scripts/build-app.sh`、`macos/packaging/`、`README.md` | `EVEO_FAKE=1` 下界面功能可用，`build-app.sh` 产出能启动的 `.app` |
 
-WP-A 之后文件的归属：Core 与 `Tests/` 归 WP-A，Platform 与 `EVEOProbe` 归 WP-B，App、`scripts/build-app.sh`、`packaging/`、`README.md` 归 WP-C。
+WP-A 之后文件的归属：Core 与 `Tests/` 归 WP-A，Platform 与 `EVEOProbe` 归 WP-B，App、`macos/scripts/build-app.sh`、`macos/packaging/`、`README.md` 归 WP-C。
 契约要改时，工作包停下并报主会话；主会话改本文，再让文件的归属方改代码。
 WP-C 用 `FakeServices` 代替 Platform，不等 WP-B。
 
@@ -1260,7 +1260,7 @@ WP-C 用 `FakeServices` 代替 Platform，不等 WP-B。
 
 1. 合入 WP-A，运行 `swift test`。
 2. 合入 WP-B，在真实客户端上跑探针，确定 6.4 节的最终步骤。
-3. 合入 WP-C，主会话确认 `AppDelegate` 在没有 `EVEO_FAKE` 时使用 `makeLive()`，运行 `scripts/build-app.sh` 和 `python3 scripts/check_quality.py`。
+3. 合入 WP-C，主会话确认 `AppDelegate` 在没有 `EVEO_FAKE` 时使用 `makeLive()`，运行 `macos/scripts/build-app.sh` 和 `python3 scripts/check_quality.py`。
 4. 测试方（Opus）补测试并按 10.3 节做手工验证。
 5. 交审查方（Fable）独立审查。
 

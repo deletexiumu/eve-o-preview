@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 「预警」页与「翻译」页共用的频道列表（docs/design-intel-translate.md 第 10 节）。放在页的 Form 里，自成一组：
+// 「预警」页与「翻译」页共用的频道列表（docs/macos/design-intel-translate.md 第 10 节）。放在页的 Form 里，自成一组：
 // - 已选频道的列表，每行有名称与「移除」按钮；内置频道显示本地化的名字（本地、军团、联盟、舰队）。
 // - 「从日志添加」菜单：列出 discovered 里还没选的频道（名称与「N 个角色」）；includesBuiltIns 为真时另列
 //   4 个内置频道；末尾是「刷新」。日志里种类是本地、军团、联盟、舰队的频道不在发现列表里出现：

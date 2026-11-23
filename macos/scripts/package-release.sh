@@ -4,9 +4,9 @@
 # 生成发布文件（架构文档 9.4 节）：安装用的 dmg、源码包（tar.gz 与 zip）和 SHA-256 校验和。
 # 产物放在 dist/release/，CI 把这个目录整个上传。
 #
-# 用法：scripts/package-release.sh
+# 用法：macos/scripts/package-release.sh
 # 环境变量：
-#   VERSION     写进 Info.plist 的版本号，默认取仓库根目录 VERSION 文件的内容
+#   VERSION     写进 Info.plist 的版本号，默认取 macos/VERSION 文件的内容
 #   LABEL       文件名里的版本标签，默认等于 VERSION；CI 给 PR 构建填 1.0.0-pr.12.abc1234 这样的值。
 #               同时传给 build-app.sh，写进 Info.plist 的 EVEOBuildLabel
 #   SKIP_BUILD  设为 1 时不调用 build-app.sh，直接打包已有的 dist/EVE-O Preview.app
@@ -16,9 +16,11 @@
 
 set -euo pipefail
 
-# 仓库根目录：脚本在 scripts/ 下，根目录是它的上一级。
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+# macOS 工程目录（脚本在 macos/scripts/ 下，工程目录是它的上一级）与仓库根目录。
+# git archive 在仓库根目录运行，源码包含整个仓库；dist/ 也放在仓库根目录。
+MACOS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd "$MACOS/.." && pwd)"
+cd "$REPO"
 
 # 源码包要用 git archive，先确认在 git 仓库里，免得构建完才失败。
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
@@ -26,17 +28,17 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
     exit 1
 fi
 
-VERSION="${VERSION:-$(tr -d '[:space:]' < "$ROOT/VERSION")}"
+VERSION="${VERSION:-$(tr -d '[:space:]' < "$MACOS/VERSION")}"
 LABEL="${LABEL:-$VERSION}"
-APP="$ROOT/dist/EVE-O Preview.app"
-OUT="$ROOT/dist/release"
+APP="$REPO/dist/EVE-O Preview.app"
+OUT="$REPO/dist/release"
 
 # 1. 构建并签名 .app。
 if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
-    VERSION="$VERSION" LABEL="$LABEL" "$ROOT/scripts/build-app.sh"
+    VERSION="$VERSION" LABEL="$LABEL" "$MACOS/scripts/build-app.sh"
 fi
 if [[ ! -d "$APP" ]]; then
-    echo "找不到 ${APP}，请先运行 scripts/build-app.sh" >&2
+    echo "找不到 ${APP}，请先运行 macos/scripts/build-app.sh" >&2
     exit 1
 fi
 

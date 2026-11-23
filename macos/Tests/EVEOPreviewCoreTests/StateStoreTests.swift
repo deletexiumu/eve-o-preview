@@ -157,7 +157,7 @@ struct StateStoreTests {
     }
 }
 
-/// state.json 的预警记录（docs/design-intel-translate.md 3.1 节）。角色名是虚构的。
+/// state.json 的预警记录（docs/macos/design-intel-translate.md 3.1 节）。角色名是虚构的。
 struct ChatStateStoreTests {
     /// 没有 chat 键的旧 state.json 解码成空的手动位置；其余记录不受影响。
     @Test func missingChatKey() throws {

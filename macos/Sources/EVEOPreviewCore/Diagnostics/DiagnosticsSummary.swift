@@ -49,7 +49,7 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
         public var cycleGroups: [CycleGroupSummary]
         /// 角色热键，按角色名排序（不区分大小写）后的序号排列，只有热键。
         public var characterHotkeys: [[String]]
-        /// 预警的摘要：只有开关与数量，不含频道名与参考星系名（docs/design-intel-translate.md 3.4 节）。
+        /// 预警的摘要：只有开关与数量，不含频道名与参考星系名（docs/macos/design-intel-translate.md 3.4 节）。
         public var intel: IntelSummary
         /// 翻译的摘要：只有开关、数量与预设编号，不含频道名、接口地址与模型名。
         public var translation: TranslationSummary
@@ -118,7 +118,7 @@ public struct ConfigSummary: Sendable, Equatable, Codable {
     }
 }
 
-/// 预警设置的摘要（docs/design-intel-translate.md 3.4 节）。频道名与参考星系名都不进报告。
+/// 预警设置的摘要（docs/macos/design-intel-translate.md 3.4 节）。频道名与参考星系名都不进报告。
 public struct IntelSummary: Sendable, Equatable, Codable {
     /// 是否启用。
     public var enabled: Bool
@@ -150,7 +150,7 @@ public struct IntelSummary: Sendable, Equatable, Codable {
     }
 }
 
-/// 翻译设置的摘要（docs/design-intel-translate.md 3.4 节）。频道名、接口地址与模型名都不进报告。
+/// 翻译设置的摘要（docs/macos/design-intel-translate.md 3.4 节）。频道名、接口地址与模型名都不进报告。
 public struct TranslationSummary: Sendable, Equatable, Codable {
     /// 是否启用。
     public var enabled: Bool

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警消息的解析结果（docs/design-intel-translate.md 6.4 节）：把一条消息分成星系、舰船、人数、情报用语、
+// 预警消息的解析结果（docs/macos/design-intel-translate.md 6.4 节）：把一条消息分成星系、舰船、人数、情报用语、
 // 推断的人名与普通文字几段，并汇总出星系、舰船数量、人名与敌对数量。由 IntelParser 产出，WP-0 冻结。
 
 import Foundation

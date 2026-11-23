@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警消息的缓冲（docs/design-intel-translate.md 6.5 节）：按收听者分开，每个收听者至多 300 条，
+// 预警消息的缓冲（docs/macos/design-intel-translate.md 6.5 节）：按收听者分开，每个收听者至多 300 条，
 // 编号在整个缓冲里递增、从 1 起。浮窗只显示活动角色的那一份，切换客户端时立即换内容。
 // - 同一个收听者的消息按到达顺序排列，新的追加在末尾，已有的条目不挪位置。跟踪服务把每一轮补读的事件
 //   按时间排好再交来（ChatLogTailer.flushBackfill），所以一轮之内仍是时间顺序。不按时间插入的理由：

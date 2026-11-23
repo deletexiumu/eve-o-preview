@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 模型服务的 HTTP 传输（docs/design-intel-translate.md 7.4 节）：
+// 模型服务的 HTTP 传输（docs/macos/design-intel-translate.md 7.4 节）：
 // - 每次请求建一个 .ephemeral 的 URLSession：不用 cookie、不留缓存、不存凭据，用完即作废。
 // - `User-Agent: EVE-O-Preview/<版本>`，版本取本进程 Info.plist 的版本号，没有时是 0.0.0。
 // - 不跟随重定向：收到 3xx 时原样交回，Core 把它归为 rejected，Key 不会被带到别的主机。

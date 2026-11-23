@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗域的英文文字（docs/design-intel-translate.md 第 11 节）。
+// 浮窗域的英文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 英文只区分单数与复数，条数在函数里直接判断。
 
 import Foundation

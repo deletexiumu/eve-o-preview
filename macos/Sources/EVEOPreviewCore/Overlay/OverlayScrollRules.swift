@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗列表的滚动规则（docs/design-intel-translate.md 8.5 节）。纯函数，由 App 的 InfoOverlayContentView 调用。
+// 浮窗列表的滚动规则（docs/macos/design-intel-translate.md 8.5 节）。纯函数，由 App 的 InfoOverlayContentView 调用。
 // - 状态是 OverlayScrollState：是否贴住底部，以及离开底部后新到了几条。初始是贴住底部。
 // - 用户滚动后：内容底部到可见区域底部的距离不超过 8 点时贴住底部并把条数清零，否则不贴。
 // - 内容追加后：贴住底部时不计数（视图随后滚到底部）；不贴时累加条数，新消息条据此显示。

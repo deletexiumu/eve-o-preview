@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// ChatLogParser 的用例（docs/design-intel-translate.md 5.2 节、14.1 节）。说话人、收听者与频道名都是虚构的。
+// ChatLogParser 的用例（docs/macos/design-intel-translate.md 5.2 节、14.1 节）。说话人、收听者与频道名都是虚构的。
 // 最后一组用例走一遍真实的读取路径：带 BOM 的 UTF-16 小端字节 → LogLineFramer → parseHeader 与 parseLine。
 
 import Foundation

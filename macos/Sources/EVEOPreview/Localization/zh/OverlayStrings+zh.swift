@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗域的中文文字（docs/design-intel-translate.md 第 11 节）。
+// 浮窗域的中文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 用词与菜单栏的「显示预警浮窗」「显示翻译浮窗」一致：浮窗、频道、锁定布局。
 
 import Foundation

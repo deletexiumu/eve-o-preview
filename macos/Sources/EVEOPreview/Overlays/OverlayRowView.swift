@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗列表的一行（docs/design-intel-translate.md 8.4 节）：一个多行的 NSTextField 标签，内容是 OverlayStyle 拼出的富文本，
+// 浮窗列表的一行（docs/macos/design-intel-translate.md 8.4 节）：一个多行的 NSTextField 标签，内容是 OverlayStyle 拼出的富文本，
 // 按词折行，不可选中；emphasis 是 alert 或 clear 时画行的背景。
 // 行高由 measuredHeight 给出：用与标签同样设置的 NSTextFieldCell 按列宽量出文字的高度，向上取整后加 4 点。
 // 用标签自己的单元格量，量出的高度与标签实际折行一致（boundingRect 不含单元格的内边距，可能少一行）。

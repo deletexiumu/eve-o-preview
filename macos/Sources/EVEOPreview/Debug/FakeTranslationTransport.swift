@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 演示模式的模型传输（docs/design-intel-translate.md 9.5 节）：不发真实请求，不联网。
+// 演示模式的模型传输（docs/macos/design-intel-translate.md 9.5 节）：不发真实请求，不联网。
 // 0.6 秒后返回答复，每条译文是原文前面加〔译〕，原文语言写成 und。答复是 OpenAI 兼容格式；
 // 请求的地址以 /messages 结尾（Anthropic 预设）时改用 Anthropic 的格式，演示模式选哪个预设都能看到译文。
 // 从请求体的用户消息里取「消息：」后面的 JSON 数组；取不到时返回空数组，这一批按格式不对处理。

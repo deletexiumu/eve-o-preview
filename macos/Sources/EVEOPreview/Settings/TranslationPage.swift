@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口的「翻译」页（docs/design-intel-translate.md 第 10 节）。内容依次是：
+// 设置窗口的「翻译」页（docs/macos/design-intel-translate.md 第 10 节）。内容依次是：
 // 1. 开关「显示翻译浮窗」与状态行；暂停或等待时附「立即重试」；聊天日志有错误时附说明。
 // 2. 频道列表（列出内置频道）。
 // 3. 目标语言、「同时显示原文」、「只显示翻译过的消息」。

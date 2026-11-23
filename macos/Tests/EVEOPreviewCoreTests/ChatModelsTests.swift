@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// WP-0 写完整的几处小规则的用例（docs/design-intel-translate.md 6.4 节、7.2 节）：
+// WP-0 写完整的几处小规则的用例（docs/macos/design-intel-translate.md 6.4 节、7.2 节）：
 // IntelParser.remainder(of:)（WP-B 不改它，测试用手工构造的 IntelReport）、IntelReport.isIntelLike、
 // TranslationFailure 的致命与等待时长、TranslationTarget.resolved、CharacterNameMatch。
 // IntelParserTests 归 WP-B，所以 remainder 的用例放在这个 WP-0 的文件里。人名都是虚构的。

@@ -902,7 +902,7 @@ final class AlertFlashLayer: CALayer {
 默认的日志目录在「文稿」里。未启用沙盒的应用第一次读「文稿」时，系统弹出「文件与文件夹」的授权提示（V12）。
 
 - 战斗提醒默认关闭。用户在「提醒」页打开开关时才第一次读目录，系统提示出现在用户刚做完的操作之后。
-- `packaging/Info.plist` 增加 `NSDocumentsFolderUsageDescription`，值是英文：`EVE-O Preview reads EVE game logs in Documents/EVE/logs to flash a thumbnail when its character is attacked.`。Info.plist 的文字不随界面语言变化（没有资源目录）。
+- `macos/packaging/Info.plist` 增加 `NSDocumentsFolderUsageDescription`，值是英文：`EVE-O Preview reads EVE game logs in Documents/EVE/logs to flash a thumbnail when its character is attacked.`。Info.plist 的文字不随界面语言变化（没有资源目录）。
 - 用户拒绝后，列目录返回权限错误，状态是 `accessDenied`。「提醒」页显示说明和「打开系统设置」按钮，按钮调 `openSystemSettings(.filesAndFolders)`，打开 `x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders`。
 - 状态是 `accessDenied` 时每 10 秒重试一次列目录，用户在系统设置里授权后自动恢复。
 - 用 `swift run` 运行时，权限记在终端应用名下。
@@ -1042,9 +1042,9 @@ final class AlertFlashLayer: CALayer {
 
 | 文件 | 改动 | 归属 |
 | --- | --- | --- |
-| `packaging/Info.plist` | 加 `NSDocumentsFolderUsageDescription` | WP-3 |
-| `docs/architecture.md`、`docs/design-feedback-round1.md` | 设计 | 主会话 |
-| `README.md`、`docs/manual-test-checklist.md` | 语言、热键、战斗提醒的说明；10.2 节的条目 | 主会话，在集成时按各工作包回报的文字写 |
+| `macos/packaging/Info.plist` | 加 `NSDocumentsFolderUsageDescription` | WP-3 |
+| `docs/macos/architecture.md`、`docs/macos/design-feedback-round1.md` | 设计 | 主会话 |
+| `README.md`、`docs/macos/manual-test-checklist.md` | 语言、热键、战斗提醒的说明；10.2 节的条目 | 主会话，在集成时按各工作包回报的文字写 |
 
 9.1 节第 6 项的改名会碰到每一个含 `L10n.` 调用的文件，上表已全部列出。没有列出的文件本轮不改。工作包发现要改表外的文件，或要改不属于自己的文件时，停下并报主会话。
 
@@ -1082,7 +1082,7 @@ final class AlertFlashLayer: CALayer {
 
 ### 9.2 并行的三个工作包
 
-三个工作包各在自己的 git worktree 里做，基线是 WP-0 的提交。开工前核对基线：`docs/design-feedback-round1.md` 与 `Sources/EVEOPreviewCore/CombatLog/CombatLogModels.swift` 应存在，不存在说明 worktree 建在了旧的提交上。
+三个工作包各在自己的 git worktree 里做，基线是 WP-0 的提交。开工前核对基线：`docs/macos/design-feedback-round1.md` 与 `Sources/EVEOPreviewCore/CombatLog/CombatLogModels.swift` 应存在，不存在说明 worktree 建在了旧的提交上。
 任何两个工作包都不改同一个文件（第 8 节）。
 
 | 工作包 | 内容 | 完成标准 |
@@ -1096,7 +1096,7 @@ final class AlertFlashLayer: CALayer {
 - 不执行 `git commit`，提交只由主会话做。
 - 不留临时文件和调试脚本。
 - 契约或本文要改时停下，报主会话；主会话改文档，再让文件的归属方改代码。
-- 要写进 `README.md` 与 `docs/manual-test-checklist.md` 的文字，放在回报里，不直接改这两个文件。
+- 要写进 `README.md` 与 `docs/macos/manual-test-checklist.md` 的文字，放在回报里，不直接改这两个文件。
 - 回报里附 `swift build`、`swift test` 与 `python3 scripts/check_quality.py` 的输出摘要。
 - `ru`、`ja`、`ko` 的译文按 5.2 节标注，用 5.5 节的词表。
 
@@ -1105,7 +1105,7 @@ final class AlertFlashLayer: CALayer {
 1. 主会话完成 WP-0，运行 `swift build` 与 `swift test`，提交。
 2. 三个工作包并行。WP-2 的探针结果（V9）出来后，主会话先确认 6.6 节的权限说法是否要改。
 3. 按 WP-1、WP-2、WP-3 的顺序合入。文件不重叠，顺序只影响每一步之后的编译核对：每合入一个，运行一次 `swift build` 与 `swift test`。
-4. 主会话更新 `README.md`、`docs/manual-test-checklist.md`，运行 `python3 scripts/check_quality.py` 与 `scripts/build-app.sh`。
+4. 主会话更新 `README.md`、`docs/macos/manual-test-checklist.md`，运行 `python3 scripts/check_quality.py` 与 `macos/scripts/build-app.sh`。
 5. 测试方按 10.2 节做手工验证。鼠标热键与战斗提醒的条目要用户配合。
 6. 交审查方独立审查。审查时核对：第 8 节的归属有没有被越界改动；`ru`、`ja`、`ko` 的文件头有没有审校说明；`Core` 的测试是否覆盖 10.1 节。
 
@@ -1143,7 +1143,7 @@ final class AlertFlashLayer: CALayer {
 
 上游的样例以 GPL-3.0 发布，与本项目的许可证相同；样例文件的头部注明出处。
 
-### 10.2 手工验证（集成后追加到 `docs/manual-test-checklist.md`）
+### 10.2 手工验证（集成后追加到 `docs/macos/manual-test-checklist.md`）
 
 第 1 组，边框：
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// ChatLogDirectory 的用例（docs/design-intel-translate.md 5.2 节、5.4 节、14.1 节）：候选目录、文件名、
+// ChatLogDirectory 的用例（docs/macos/design-intel-translate.md 5.2 节、5.4 节、14.1 节）：候选目录、文件名、
 // 跟踪文件的取舍与 UTF-16 的偶数偏移量。频道名与收听者都是虚构的。
 
 import Testing

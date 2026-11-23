@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// ChannelRef.matches 的用例（docs/design-intel-translate.md 5.3 节、14.1 节）。频道名与 ID 都是虚构的。
+// ChannelRef.matches 的用例（docs/macos/design-intel-translate.md 5.3 节、14.1 节）。频道名与 ID 都是虚构的。
 
 import Testing
 import EVEOPreviewCore

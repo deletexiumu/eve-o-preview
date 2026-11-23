@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对分人的测试（docs/design-intel-translate.md 6.9 节、14.1 节）。人名都是虚构的。
+// 人名核对分人的测试（docs/macos/design-intel-translate.md 6.9 节、14.1 节）。人名都是虚构的。
 
 import Testing
 import Foundation

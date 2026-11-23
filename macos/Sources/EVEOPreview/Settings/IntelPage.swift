@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口的「预警」页（docs/design-intel-translate.md 第 10 节）。内容依次是：
+// 设置窗口的「预警」页（docs/macos/design-intel-translate.md 第 10 节）。内容依次是：
 // 1. 开关「显示预警浮窗」与聊天日志的状态行；没有访问权限时附说明与「打开系统设置」按钮。
 // 2. 频道列表（ChannelListEditor，不列内置频道）。
 // 3. 我的位置：每个在线角色一行，位置文字、星系输入框（回车提交，查不到时行下提示）与「清除」按钮。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译的判断与分批规则（docs/design-intel-translate.md 7.6 节、7.8 节，14.1 节 TranslationRulesTests）：
+// 翻译的判断与分批规则（docs/macos/design-intel-translate.md 7.6 节、7.8 节，14.1 节 TranslationRulesTests）：
 // alreadyIn 对 8 种目标语言的正例与反例（含中日混排、没有字母的消息）；skipReason 的 4 种原因与 nil；
 // cacheKey 对空白、`*`、换行的处理；nextBatch 的条数、字数上限、相同原文只取一条、第一条超长时仍被取出；
 // renderTerms 只换写法不同的术语。术语匹配与情报分段都手工构造，不依赖 WP-B 的实现。

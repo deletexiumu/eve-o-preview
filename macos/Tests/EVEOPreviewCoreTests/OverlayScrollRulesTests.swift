@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// OverlayScrollRules 的用例（docs/design-intel-translate.md 8.5 节、14.1 节）。
+// OverlayScrollRules 的用例（docs/macos/design-intel-translate.md 8.5 节、14.1 节）。
 
 import Testing
 import EVEOPreviewCore

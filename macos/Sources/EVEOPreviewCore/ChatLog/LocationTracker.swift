@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 角色位置的记录（docs/design-intel-translate.md 6.2 节）。位置有两个自动来源（Local 聊天日志的系统消息、
+// 角色位置的记录（docs/macos/design-intel-translate.md 6.2 节）。位置有两个自动来源（Local 聊天日志的系统消息、
 // 游戏日志的跳跃与离站记录）与手动设置；不知道角色位置时，跳数从参考星系算。
 // CharacterLocation 与 LocationSource 由 WP-0 建在 ChatLogModels.swift（ChatState 引用它们），规则在这里。
 //

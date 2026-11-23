@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 协调器的预警与翻译浮窗部分（docs/design-intel-translate.md 9.3 节）：
+// 协调器的预警与翻译浮窗部分（docs/macos/design-intel-translate.md 9.3 节）：
 // - startChatOverlays()：在 start() 里、startCombatAlerts() 之后调用。接上浮窗管理器与总控的回调，按配置启动。
 // - chatSettingsDidChange(old:new:)：配置变了以后交给总控，并按开关重新判断后台活动（App Nap）。
 // - replanOverlays()：在 replan() 里、缩略图面板应用之后调用，返回浮窗规划的 nextWakeAt。

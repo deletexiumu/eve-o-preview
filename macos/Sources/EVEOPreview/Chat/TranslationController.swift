@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译功能的控制器（docs/design-intel-translate.md 7.6 节、7.7 节、7.8 节、7.10 节）：持有翻译队列、译文缓存、
+// 翻译功能的控制器（docs/macos/design-intel-translate.md 7.6 节、7.7 节、7.8 节、7.10 节）：持有翻译队列、译文缓存、
 // 内存里的 Key 与一个发送任务，产出翻译浮窗的内容。由 ChatFeatureController 通过 ChatFeedConsumer 调用；
 // 「翻译」页经 SettingsViewModel+Translation.swift 调用本文件末尾的设置接口。
 //

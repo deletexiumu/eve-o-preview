@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 「预警」页与「翻译」页共用的浮窗设置（docs/design-intel-translate.md 第 10 节）：背景不透明度（0.2～1.0，
+// 「预警」页与「翻译」页共用的浮窗设置（docs/macos/design-intel-translate.md 第 10 节）：背景不透明度（0.2～1.0，
 // 步长 0.05）、字号（10～24）、位置与尺寸（v1.2.1）、「恢复默认位置」按钮与手势说明。放在页的 Form 里，自成一组。
 // 滑块立即写入（架构文档 7.4 节的约定）；取值范围取自 OverlayPanelSettings，越界的值由 ConfigValidator 夹取。
 // 位置与尺寸：数字框显示浮窗实际使用的 frame（没保存过时是默认位置），回车或失去焦点时提交；

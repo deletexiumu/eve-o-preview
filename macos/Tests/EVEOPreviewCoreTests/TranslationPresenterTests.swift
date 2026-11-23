@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译浮窗的一行（docs/design-intel-translate.md 7.10 节，14.1 节 TranslationPresenterTests）：表里的 5 行；
+// 翻译浮窗的一行（docs/macos/design-intel-translate.md 7.10 节，14.1 节 TranslationPresenterTests）：表里的 5 行；
 // 多于一个频道时显示频道名；foreignOnly 隐藏的两种情形；copyText。说话人与频道名是虚构的。
 
 import Testing

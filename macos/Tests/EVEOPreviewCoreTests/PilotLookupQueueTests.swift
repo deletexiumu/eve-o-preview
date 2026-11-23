@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 人名核对排队与节流的测试（docs/design-intel-translate.md 6.10 节、14.1 节）。名字是编的。
+// 人名核对排队与节流的测试（docs/macos/design-intel-translate.md 6.10 节、14.1 节）。名字是编的。
 
 import Testing
 import Foundation

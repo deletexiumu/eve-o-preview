@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译的判断与分批规则（docs/design-intel-translate.md 7.6 节、7.8 节）：
+// 翻译的判断与分批规则（docs/macos/design-intel-translate.md 7.6 节、7.8 节）：
 // - alreadyIn：按文字种类的占比判断消息是否已经是目标语言（参考实现 translate.py 的 already_in）。
 // - skipReason：不用交给模型的原因。
 // - cacheKey：缓存比对用的原文（参考实现 translator.py 的 cache_key）。

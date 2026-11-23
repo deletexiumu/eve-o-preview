@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的俄文文字（docs/design-intel-translate.md 第 11 节）。
+// 预警域的俄文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与 WP-0 的俄文文字一致：разведка（预警）、оверлей（浮窗）、канал（频道）、журнал чата（聊天日志）；
 // 跳是 прыжок，敌对是 враждебный，星图数据是 данные карты，ESI 不翻译。

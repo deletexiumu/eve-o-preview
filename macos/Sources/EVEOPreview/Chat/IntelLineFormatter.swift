@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 用 L10n.intel 实现 Core 的 IntelLineFormatting（docs/design-intel-translate.md 6.7 节）：预警浮窗每一行里的
+// 用 L10n.intel 实现 Core 的 IntelLineFormatting（docs/macos/design-intel-translate.md 6.7 节）：预警浮窗每一行里的
 // 时间、跳数、数量与用语。每次调用时取当前界面语言的文字，切换语言后下一次刷新即是新语言。
 // 状态行的「多久以前」也用它的 age(seconds:)。
 

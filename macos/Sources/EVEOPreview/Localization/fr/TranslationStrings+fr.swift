@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译域的法文文字（docs/design-intel-translate.md 第 11 节）。
+// 翻译域的法文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词按第 11 节的词表：superposition（浮窗）、canal（频道）、service de modèle（模型服务）；
 // 钥匙串用 macOS 法文界面的官方名称「trousseau」。

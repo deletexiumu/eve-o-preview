@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Windows 版的检查（docs/windows/architecture.md 7.3 节）。
+# - 向 main 发起或更新 PR、推送到 main、手动运行：质量门禁、发布说明与 Rust 工作区的检查。
+#   PR 上工作流总会触发，但 changes 任务看改动的路径：没有动 windows/、shared/、scripts/、docs/release-notes/windows/
+#   与本文件时，后面的任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
+# - 推送 win-v* tag：同样检查。建 Release 的任务在 M9 加入，届时 Release 一律不标为 latest，
+#   并核对 /releases/latest 仍是 macOS 的 v* tag（已安装的 macOS 客户端靠它检查更新）。
+# Rust 工作区在 M2 加入 windows/Cargo.toml。在那之前 core 任务只跑与平台无关的检查，Rust 的步骤自动跳过。
+# 在 Windows 运行器上构建、跑集成探针的 build 任务在 M3 加入。
+# 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
+
+name: Windows
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - "shared/**"
+      - "scripts/**"
+      - "docs/release-notes/windows/**"
+      - ".github/workflows/windows.yml"
+    tags: ["win-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一个 PR 推新提交时取消正在跑的旧运行；main 与 tag 不取消。
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # 判断这次运行要不要检查 Windows 版：只有 PR 看改动的路径，tag、推送到 main 与手动运行都检查。
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      windows: ${{ steps.diff.outputs.windows }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 改动的路径
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            echo "windows=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
+          echo "$CHANGED"
+          if grep -qE '^(windows/|shared/|scripts/|docs/release-notes/windows/|\.github/workflows/windows\.yml$)' <<< "$CHANGED"; then
+            echo "windows=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::这个 PR 没有改动 Windows 相关的路径，跳过检查"
+            echo "windows=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # 与平台无关的检查，在 Linux 上跑：质量门禁、发布说明、文档链接；有 Rust 工作区时再跑格式、
+  # 默认成员（与 Windows 无关的 crate）的测试，以及整个工作区对 Windows 目标的类型检查。
+  core:
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      # 只查 windows/ 的 Rust 与 Slint；macOS 的 Swift 由 macos.yml 查。还没有源码时跳过。
+      - name: 质量门禁
+        if: hashFiles('windows/**/*.rs', 'windows/**/*.slint') != ''
+        run: python3 scripts/check_quality.py windows
+
+      - name: 发布说明标记
+        if: hashFiles('docs/release-notes/windows/*.md') != ''
+        run: python3 scripts/check_release_notes.py docs/release-notes/windows/*.md
+
+      - name: 文档链接
+        run: python3 scripts/check_links.py
+
+      # tag 必须与 windows/VERSION 一致（Windows 的版本号与 macOS 独立）。
+      - name: tag 与版本号
+        if: startsWith(github.ref, 'refs/tags/win-v')
+        run: |
+          [[ -f windows/VERSION ]] || { echo "::error::缺少 windows/VERSION"; exit 1; }
+          BASE="$(tr -d '[:space:]' < windows/VERSION)"
+          if [[ "${GITHUB_REF_NAME#win-v}" != "$BASE" ]]; then
+            echo "::error::tag ${GITHUB_REF_NAME} 与 windows/VERSION 文件（${BASE}）不一致"
+            exit 1
+          fi
+
+      - name: Rust 工具链
+        if: hashFiles('windows/Cargo.toml') != ''
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup target add x86_64-pc-windows-msvc
+          rustc --version
+          cargo --version
+
+      - name: 格式
+        if: hashFiles('windows/Cargo.toml') != ''
+        working-directory: windows
+        run: cargo fmt --all --check
+
+      - name: 默认成员的测试
+        if: hashFiles('windows/Cargo.toml') != ''
+        working-directory: windows
+        run: cargo test --locked
+
+      - name: Windows 目标的类型检查
+        if: hashFiles('windows/Cargo.toml') != ''
+        working-directory: windows
+        run: cargo check --locked --workspace --all-targets --target x86_64-pc-windows-msvc

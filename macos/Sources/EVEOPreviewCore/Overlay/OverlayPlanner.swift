@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗的规划（docs/design-intel-translate.md 8.6 节）：由客户端、前台、配置与屏幕算出每个已启用浮窗的
+// 浮窗的规划（docs/macos/design-intel-translate.md 8.6 节）：由客户端、前台、配置与屏幕算出每个已启用浮窗的
 // 可见性、位置、层级与外观，以及活动角色。纯函数，由协调器在每次重算时调用。
 // 类型与 activeCharacter 由 WP-0 写完整；plan 的可见性规则与 clampedFrame 由 WP-A 完成。
 // 可见性（8.6 节）：没有任何客户端时不可见；「离开 EVE 时隐藏」到期后不可见，开关与延迟与缩略图共用；

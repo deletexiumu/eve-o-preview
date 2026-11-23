@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 解码后的星图数据（docs/design-intel-translate.md 4.3 节）：星系、星域、舰船与舰船分组的名称，星门的邻接表，
+// 解码后的星图数据（docs/macos/design-intel-translate.md 4.3 节）：星系、星域、舰船与舰船分组的名称，星门的邻接表，
 // 以及按名称查星系的索引与术语匹配器。建一次，在本次运行内不变，可在任何线程读。
 //
 // 规则：

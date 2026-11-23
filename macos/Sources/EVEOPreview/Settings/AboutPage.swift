@@ -45,7 +45,7 @@ struct AboutPage: View {
             Section(L10n.settings.disclaimerHeader) {
                 Text(L10n.settings.focusOnlyText).fixedSize(horizontal: false, vertical: true)
                 Text(L10n.settings.gameLogText).fixedSize(horizontal: false, vertical: true)
-                // 预警与翻译只读日志；翻译把聊天内容发给用户选的模型服务（docs/design-intel-translate.md R32、R38）。
+                // 预警与翻译只读日志；翻译把聊天内容发给用户选的模型服务（docs/macos/design-intel-translate.md R32、R38）。
                 Text(L10n.settings.aboutChatLogsNote).fixedSize(horizontal: false, vertical: true)
                 Text(L10n.settings.networkText).fixedSize(horizontal: false, vertical: true)
                 Text(L10n.settings.eveIPText).font(.caption).foregroundStyle(.secondary)

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志跟踪服务的主线程外壳（docs/design-intel-translate.md 5.4 节，做法同 FileCombatLogMonitor）。
+// 聊天日志跟踪服务的主线程外壳（docs/macos/design-intel-translate.md 5.4 节，做法同 FileCombatLogMonitor）。
 // 把 ChatLogTailer 在自己的串行队列上读到的事件与状态切回主线程，交给 onEvents 与 onStatusChange。
 // - start(_:)：请求与上次相同且正在跟踪时不做任何事；不同时停掉旧的跟踪服务，按新请求重建并重新补读。
 // - stop()：停掉跟踪服务，状态变成 stopped。

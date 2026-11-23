@@ -10,7 +10,7 @@ import EVEOPreviewPlatform
 
 /// App 层的日志工厂。
 enum AppLog {
-    /// 发布包的 bundle id，与 `packaging/Info.plist` 一致。
+    /// 发布包的 bundle id，与 `macos/packaging/Info.plist` 一致。
     static let bundleID = PlatformLog.subsystem
 
     /// 按模块名建一个日志入口。

@@ -301,7 +301,7 @@ extension ConfigValidatorTests {
     }
 }
 
-/// 预警与翻译设置的校验（docs/design-intel-translate.md 3.2 节的 7 条规则）。频道名是虚构的。
+/// 预警与翻译设置的校验（docs/macos/design-intel-translate.md 3.2 节的 7 条规则）。频道名是虚构的。
 struct ChatConfigValidatorTests {
     /// 只含一个配置方案的配置，便于修改后校验。
     private func config(_ edit: (inout Profile) -> Void) -> AppConfig {

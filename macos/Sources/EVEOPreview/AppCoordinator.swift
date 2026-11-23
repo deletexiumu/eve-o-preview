@@ -27,7 +27,7 @@ final class AppCoordinator {
     let isFakeMode: Bool
     /// 缩略图面板的管理器。
     let windowManager = ThumbnailWindowManager()
-    /// 预警与翻译浮窗的管理器（docs/design-intel-translate.md 9.3 节）。
+    /// 预警与翻译浮窗的管理器（docs/macos/design-intel-translate.md 9.3 节）。
     let overlayManager = InfoOverlayManager()
     /// 预警与翻译的总控。
     let chat: ChatFeatureController
@@ -371,7 +371,7 @@ final class AppCoordinator {
         session.interactingWindows.formIntersection(visibleIDs)
         windowManager.apply(plan.presentations, interacting: session.interactingWindows)
         services.capture.reconcile(plan.captures, liveWindows: Set(registry.clients.map(\.id)))
-        // 浮窗在缩略图之后规划（docs/design-intel-translate.md 9.3 节）；两份规划的唤醒时刻取较早的一个。
+        // 浮窗在缩略图之后规划（docs/macos/design-intel-translate.md 9.3 节）；两份规划的唤醒时刻取较早的一个。
         let overlayWake = replanOverlays()
         persistAutoLayouts(plan.layoutsToPersist)
         scheduleWake(at: [plan.nextWakeAt, overlayWake].compactMap { $0 }.min())

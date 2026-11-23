@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 角色名的比较（docs/design-intel-translate.md 6.2 节、6.5 节，做法同反馈文档 7.5 节）：
+// 角色名的比较（docs/macos/design-intel-translate.md 6.2 节、6.5 节，做法同反馈文档 7.5 节）：
 // 先按原样比较，没有相等的再不区分大小写比较。日志文件头里的收听者与窗口标题里的角色名大小写可能不同；
 // 原样相等的优先，是为了两个只差大小写的角色名仍能分开。
 

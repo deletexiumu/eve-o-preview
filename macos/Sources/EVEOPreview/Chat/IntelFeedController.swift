@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警功能的控制器（docs/design-intel-translate.md 6.8 节）：持有位置记录、预警缓冲与跳数表的缓存，
+// 预警功能的控制器（docs/macos/design-intel-translate.md 6.8 节）：持有位置记录、预警缓冲与跳数表的缓存，
 // 产出预警浮窗的内容。由 ChatFeatureController 通过 ChatFeedConsumer 调用，全部方法在主线程。
 // 6.9 节、6.10 节增补：经 ESI 核对人名。排队、发送与缓存写在 IntelFeedController+PilotLookup.swift，
 // 要用的存储属性（缓存、队列、发送任务）放在本文件里，不设为 private。

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警消息分段的测试（docs/design-intel-translate.md 6.4 节、14.1 节）。人名都是虚构的；
+// 预警消息分段的测试（docs/macos/design-intel-translate.md 6.4 节、14.1 节）。人名都是虚构的；
 // 星系与舰船取自 StaticDataFixtures，与用户的日志无关。
 
 import Testing

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// ESI 人名核对的请求与答复（docs/design-intel-translate.md 6.10 节，依据 E1～E6）。
+// ESI 人名核对的请求与答复（docs/macos/design-intel-translate.md 6.10 节，依据 E1～E6）。
 // 请求：POST https://esi.evetech.net/universe/ids，不带查询串，请求体是名字的 JSON 数组。6 个请求头：
 // Content-Type、Accept、Accept-Language: en、X-Compatibility-Date: 2020-01-01、X-Tenant: tranquility、User-Agent。
 // User-Agent 里只有应用名、版本与项目地址，不写邮箱、角色名或任何能认出用户的内容。

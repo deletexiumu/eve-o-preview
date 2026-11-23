@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 聊天日志的文件头与消息行的解析（docs/design-intel-translate.md 5.2 节）。
+// 聊天日志的文件头与消息行的解析（docs/macos/design-intel-translate.md 5.2 节）。
 // - 文件是带 BOM 的 UTF-16 小端（C2），由调用方用 LogLineFramer 切成行后交给这里。
 // - 文件头固定 12 行：两条全是 `-` 的分隔线之间是 Channel ID、Channel Name、Listener、Session started 4 个字段。
 //   标签在 8 种语言的客户端里都是英文（C4）；标签不认识而正好 4 行时按位置取。

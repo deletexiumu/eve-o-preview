@@ -55,7 +55,7 @@
 | U10 | 本机构建的 dmg 是 2,618,184 字节 | 下载上限定为 300 MiB，留足余量 |
 | U11 | `AppCoordinator.configDidChange` 每次都调 `rebuildHotkeys()` 与 `setNeedsReplan()`（`AppCoordinator.swift:253`）。`ConfigController` 在 `loadError` 不为空时不写盘（`ConfigController.swift:93`） | 检查时刻、ETag、跳过的版本不放进 `config.json`（3.3 节） |
 | U12 | `SystemPermissionService.relaunch()` 以参数 `--relaunched-from <PID>` 打开 `Bundle.main.bundleURL`，并转发 `EVEO_*` 环境变量 | 安装后复用它重新启动。替换后包的路径不变，新实例启动的是新版本 |
-| U13 | 现有的 `docs/release-notes/v1.0.0.md` 没有语言标记 | 选取规则有「没有标记时用全文」一条（8.2 节） |
+| U13 | 现有的 `docs/release-notes/macos/v1.0.0.md` 没有语言标记 | 选取规则有「没有标记时用全文」一条（8.2 节） |
 | U14 | 质量检查的现状：161 个文件，注释 4,898 行，代码 14,826 行，注释率 24.8% | 两个新域的文字文件会拉低注释率（R24） |
 
 ## 3 配置与状态文件
@@ -887,7 +887,7 @@ public enum IssueURLBuilder {
 
 ### 8.2 发布说明的格式与选取
 
-格式由主会话定下，原文如下（`docs/release-notes/<tag>.md` 原样用作 Release 正文）：
+格式由主会话定下，原文如下（`docs/release-notes/macos/<tag>.md` 原样用作 Release 正文）：
 
 - 英文正文在最前，包在 `<!-- lang:en -->` 与 `<!-- /lang:en -->` 之间。
 - 之后每种语言一个可折叠的块，顺序是 zh、ja、ko、ru。每块的形式是：`<!-- lang:zh -->`，换行，`<details><summary>简体中文</summary>`，空行，Markdown 正文，空行，`</details>`，换行，`<!-- /lang:zh -->`。ja（日本語）、ko（한국어）、ru（Русский）同理。
@@ -1685,9 +1685,9 @@ README 的卸载说明应列出这 4 个位置。
 
 | 文件 | 改动 |
 | --- | --- |
-| `.github/workflows/build.yml`、`scripts/build-app.sh`、`scripts/package-release.sh`、`packaging/` | 签名、`Info.plist` 的两个新键、契约检查 |
+| `.github/workflows/macos.yml`、`macos/scripts/build-app.sh`、`macos/scripts/package-release.sh`、`macos/packaging/` | 签名、`Info.plist` 的两个新键、契约检查 |
 | `.github/ISSUE_TEMPLATE/bug_report.md`、`.github/ISSUE_TEMPLATE/config.yml` | 新建。7.6 节 |
-| `docs/`、5 份 README、`docs/release-notes/v1.1.0.md` | 第 15 节 |
+| `docs/`、5 份 README、`docs/release-notes/macos/v1.1.0.md` | 第 15 节 |
 
 ## 13 工作包与集成
 
@@ -1704,7 +1704,7 @@ README 的卸载说明应列出这 4 个位置。
 
 ### 13.2 并行的四个工作包
 
-四个工作包各在自己的 git worktree 里做，基线是 WP-0 的提交。开工前核对基线：`docs/design-v1.1.md` 与 `Sources/EVEOPreviewCore/Contracts/UpdateContracts.swift` 应存在，不存在说明 worktree 建在了旧的提交上。
+四个工作包各在自己的 git worktree 里做，基线是 WP-0 的提交。开工前核对基线：`docs/macos/design-v1.1.md` 与 `Sources/EVEOPreviewCore/Contracts/UpdateContracts.swift` 应存在，不存在说明 worktree 建在了旧的提交上。
 任何两个工作包都不改同一个文件（第 12 节）。
 
 | 工作包 | 内容 | 完成标准 |
@@ -1721,7 +1721,7 @@ README 的卸载说明应列出这 4 个位置。
 - 实现由工作包自己完成，不转派给别的代理或外部命令行工具。
 - 不启动、不重启用户正在运行的应用，不发送模拟输入，不切换 EVE 窗口，不截屏。要运行应用才能核对的项目，写进回报，由主会话与用户约时间。
 - 契约或本文要改时停下，报主会话；主会话改文档，再让文件的归属方改代码。
-- 要写进 README 与 `docs/manual-test-checklist.md` 的文字放在回报里，不直接改这些文件。
+- 要写进 README 与 `docs/macos/manual-test-checklist.md` 的文字放在回报里，不直接改这些文件。
 - 回报里附 `swift build`、`swift test` 与 `python3 scripts/check_quality.py` 的输出摘要。
 - `ru`、`ja`、`ko` 的译文按反馈文档 5.2 节标注，用 11.3 节与反馈文档 5.5 节的词表。
 
@@ -1729,13 +1729,13 @@ README 的卸载说明应列出这 4 个位置。
 
 这些文件主会话正在改（签名），工作包不碰。本文对它们的要求：
 
-1. `scripts/build-app.sh` 把 `EVEOBuildLabel` 与 `EVEOBuildCommit` 写进 `Info.plist`。标签取环境变量 `LABEL`，没有时取 `VERSION`；提交取 `git rev-parse --short=7 HEAD`，取不到时不写。`package-release.sh` 与 CI 把 `LABEL` 传下去。没有这两个键时，PR 构建不会收到同版本号正式版的更新（8.3 节）。
+1. `macos/scripts/build-app.sh` 把 `EVEOBuildLabel` 与 `EVEOBuildCommit` 写进 `Info.plist`。标签取环境变量 `LABEL`，没有时取 `VERSION`；提交取 `git rev-parse --short=7 HEAD`，取不到时不写。`package-release.sh` 与 CI 把 `LABEL` 传下去。没有这两个键时，PR 构建不会收到同版本号正式版的更新（8.3 节）。
 2. CI 核对指定要求时接受 `certificate leaf = H"…"` 的写法（U5）。自签名证书只有一级，`leaf` 与 `root` 指同一张证书；也可以在签名时用 `--requirements` 显式写成 `certificate root`，两种做法里应用的核对都成立。
 3. CI 在打包后核对 8.1 节的契约：附件名、dmg 顶层的 `EVE-O Preview.app` 是目录、`SHA256SUMS.txt` 有 dmg 那一行、`Info.plist` 的 5 个键。
 4. CI 核对发布说明文件的标记成对出现（8.2 节）：每个 `<!-- lang:xx -->` 有对应的 `<!-- /lang:xx -->`，`en` 块存在。
 5. 新建 7.6 节的两个 Issue 模板文件。
 6. 第 15 节的文档更新。
-7. 可选：`scripts/make-update-test-feed.sh`，由 `dist/release/` 的内容生成 14.2 节第 5 组要用的 `feed.json`。
+7. 可选：`macos/scripts/make-update-test-feed.sh`，由 `dist/release/` 的内容生成 14.2 节第 5 组要用的 `feed.json`。
 8. 发布手册里写明发布证书的备份办法与更换证书时的做法（R18）。
 
 ### 13.4 集成顺序
@@ -1743,7 +1743,7 @@ README 的卸载说明应列出这 4 个位置。
 1. 主会话（或一个实现代理）完成 WP-0，运行 `swift build` 与 `swift test`，提交。
 2. 四个工作包并行。WP-1 的 `.ips` 核实结果与 WP-3 的签名核实结果出来后，主会话先确认 6.2 节与 9.3 节是否要改。
 3. 按 WP-1、WP-2、WP-3、WP-4 的顺序合入。文件不重叠，顺序只影响每一步之后的编译核对：每合入一个，运行一次 `swift build` 与 `swift test`。
-4. 主会话更新文档，运行 `python3 scripts/check_quality.py` 与 `scripts/build-app.sh`。
+4. 主会话更新文档，运行 `python3 scripts/check_quality.py` 与 `macos/scripts/build-app.sh`。
 5. 按 14.2 节做手工验证。第 5 组要用户配合（要退出正在运行的应用）。
 6. 用 `workflow_dispatch` 演练一次草稿 Release，核对附件与发布说明符合 8.1、8.2 节。
 7. 交审查方独立审查。审查时核对：第 12 节的归属有没有被越界改动；9.3 节的 12 步是否逐步实现、顺序是否一致；`Core` 的测试是否覆盖 14.1 节；新文字文件的审校标注。
@@ -1778,7 +1778,7 @@ README 的卸载说明应列出这 4 个位置。
 | `UpdatePolicyTests` | `capability` 表的 8 行，含开发证书在测试地址下可装、ad-hoc 在测试地址下仍不可装；`offer` 表的 6 行，含跳过的版本在用户发起时仍提示、更新的版本不受跳过影响；`isCheckDue` 的各分支，含时钟调回与限流；`validate` 的每种错误与全部通过；`comparableVersion` 先取标签 |
 | `ReleaseNotesTests` | 8.2 节的完整样例取各语言；非英文块去掉 `<details>` 与 `<summary>`；缺某种语言时取英文；没有任何标记时（1.0.0 的说明）返回全文；CRLF；标记里多空格与大写；`blocks` 表的每种行；段落合并；代码块里的 `#` 不算标题 |
 
-### 14.2 手工验证（集成后追加到 `docs/manual-test-checklist.md`）
+### 14.2 手工验证（集成后追加到 `docs/macos/manual-test-checklist.md`）
 
 第 1 组，日志：
 
@@ -1842,7 +1842,7 @@ README 的卸载说明应列出这 4 个位置。
 
 集成时由主会话改。工作包把要写的文字放在回报里。
 
-`docs/architecture.md`：
+`docs/macos/architecture.md`：
 
 | 章节 | 改动 |
 | --- | --- |
@@ -1874,8 +1874,8 @@ README 的卸载说明应列出这 4 个位置。
 
 其他：
 
-- `docs/manual-test-checklist.md`：追加 14.2 节的 6 组。
-- `docs/release-notes/v1.1.0.md`：按 8.2 节的格式写。内容应有：从 1.0.0 升级要手动安装一次、权限保留；应用开始访问 GitHub 及关闭办法；新功能。
+- `docs/macos/manual-test-checklist.md`：追加 14.2 节的 6 组。
+- `docs/release-notes/macos/v1.1.0.md`：按 8.2 节的格式写。内容应有：从 1.0.0 升级要手动安装一次、权限保留；应用开始访问 GitHub 及关闭办法；新功能。
 - 「关于」页的说明：`networkText`（WP-0）。
 
 ## 16 风险与待核实事项

@@ -1,20 +1,29 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# 构建、测试并打包 EVE-O Preview for macOS（架构文档 9.5 节）。
+# 构建、测试并打包 EVE-O Preview for macOS（docs/macos/architecture.md 9.5 节，docs/windows/architecture.md 7.3 节）。
 # - 向 main 发起或更新 PR、推送到 main、手动运行：质量门禁、单元测试、打包，产物作为工作流制品上传。
+#   PR 上工作流总会触发，但 changes 任务看改动的路径：没有动 macos/、shared/、scripts/、docs/release-notes/macos/
+#   与本文件时，build 任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
 # - 推送 v* tag：同样构建，再把 dmg、源码包和校验和发布到 GitHub Release。
 # - 手动运行并勾选「演练发布」：同样构建，再建一个草稿 Release（不打 tag，不公开），用来在正式打 tag 前验证 release 任务。
 # 仓库是公开仓库，用 GitHub 托管的 macOS 运行器（打包要用 hdiutil 与 codesign）。
 # 签名：有 secret 时用固定的自签名证书「EVE-O Preview Release」，升级后系统权限不丢；来自 fork 的 PR 拿不到 secret，退回 ad-hoc。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
 
-name: Build
+name: macOS
 
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
+    paths:
+      - "macos/**"
+      - "shared/**"
+      - "scripts/**"
+      - "docs/release-notes/macos/**"
+      - ".github/workflows/macos.yml"
+    # macOS 永久用 v* 的 tag；Windows 用 win-v*，由 windows.yml 处理，不会匹配这里。
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -29,11 +38,45 @@ permissions:
 
 # 同一个 PR 推新提交时取消正在跑的旧运行；main 与 tag 不取消正在跑的运行（同组里排队的旧运行仍会被新运行替换）。
 concurrency:
-  group: build-${{ github.ref }}
+  group: macos-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # 判断这次运行要不要构建 macOS 版：只有 PR 看改动的路径，tag、推送到 main 与手动运行都构建。
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      macos: ${{ steps.diff.outputs.macos }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 改动的路径
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
+          echo "$CHANGED"
+          if grep -qE '^(macos/|shared/|scripts/|docs/release-notes/macos/|\.github/workflows/macos\.yml$)' <<< "$CHANGED"; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::这个 PR 没有改动 macOS 相关的路径，跳过构建"
+            echo "macos=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: changes
+    if: needs.changes.outputs.macos == 'true'
     runs-on: macos-15
     timeout-minutes: 45
     outputs:
@@ -55,18 +98,24 @@ jobs:
           swift --version
           xcodebuild -version
 
+      # 只查 macOS 的 Swift 代码；windows/ 的 Rust 与 Slint 由 windows.yml 查。
       - name: 质量门禁
-        run: python3 scripts/check_quality.py
+        run: python3 scripts/check_quality.py macos/Sources macos/Tests
 
       # 发布说明的语言标记写错时，应用内的更新提示会退回英文或显示全文，在这里提前拦下（架构文档 9.7 节）。
       - name: 发布说明标记
-        run: python3 scripts/check_release_notes.py
+        run: python3 scripts/check_release_notes.py docs/release-notes/macos/*.md
+
+      # 目录重组后文档之间的相对链接容易失效，GitHub 不报错，在这里拦下。
+      - name: 文档链接
+        run: python3 scripts/check_links.py
 
       - name: 单元测试
+        working-directory: macos
         run: swift test
 
       # 算版本号与文件名标签：
-      # - tag v1.2.3：标签为 1.2.3，且应与 VERSION 文件一致；
+      # - tag v1.2.3：标签为 1.2.3，且应与 macos/VERSION 文件一致；
       # - PR：<VERSION>-pr.<编号>.<PR 头提交的前 7 位>；
       # - 其他：<VERSION>-dev.<提交的前 7 位>。
       - name: 版本号
@@ -75,11 +124,11 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          BASE="$(tr -d '[:space:]' < VERSION)"
+          BASE="$(tr -d '[:space:]' < macos/VERSION)"
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             TAG_VERSION="${GITHUB_REF_NAME#v}"
             if [[ "$TAG_VERSION" != "$BASE" ]]; then
-              echo "::error::tag ${GITHUB_REF_NAME} 与 VERSION 文件（${BASE}）不一致"
+              echo "::error::tag ${GITHUB_REF_NAME} 与 macos/VERSION 文件（${BASE}）不一致"
               exit 1
             fi
             LABEL="$BASE"
@@ -138,10 +187,10 @@ jobs:
           LABEL: ${{ steps.version.outputs.label }}
           UNIVERSAL: "1"
           SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
-        run: scripts/package-release.sh
+        run: macos/scripts/package-release.sh
 
       # 核对 dmg 里的应用（不是 dist/ 下的）：通用二进制含两种架构、签名有效、版本号正确、带「应用程序」替身；
-      # 用固定证书签名时，指定要求应钉在 packaging/release-cert-sha1.txt 记录的证书上。
+      # 用固定证书签名时，指定要求应钉在 macos/packaging/release-cert-sha1.txt 记录的证书上。
       # 同时核对 CI 与应用自动更新之间的契约（v1.1 设计 8.1 节）：附件名、dmg 顶层的应用是真实目录、
       # SHA256SUMS.txt 有 dmg 那一行、Info.plist 的 5 个键。改这些会让已安装的版本无法自动更新。
       - name: 检查产物
@@ -180,7 +229,7 @@ jobs:
           REQUIREMENT="$(codesign -d -r- "$APP" 2>&1 | grep '^designated')"
           echo "$REQUIREMENT"
           if [[ "$SIGN_IDENTITY" != "-" ]]; then
-            CERT_SHA1="$(tr -d '[:space:]' < packaging/release-cert-sha1.txt)"
+            CERT_SHA1="$(tr -d '[:space:]' < macos/packaging/release-cert-sha1.txt)"
             # 自签名证书只有一级，codesign 生成的要求可能写成 certificate root 或 certificate leaf，指的是同一张证书。
             if [[ "$REQUIREMENT" != *"certificate root = H\"${CERT_SHA1}\""* && "$REQUIREMENT" != *"certificate leaf = H\"${CERT_SHA1}\""* ]]; then
               echo "::error::指定要求没有钉在发布证书 ${CERT_SHA1} 上"
@@ -205,8 +254,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           LABEL: ${{ steps.version.outputs.label }}
         run: |
-          swift build --product EVEOProbe
-          PROBE="$(swift build --show-bin-path)/EVEOProbe"
+          swift build --package-path macos --product EVEOProbe
+          PROBE="$(swift build --package-path macos --show-bin-path)/EVEOProbe"
           WORK="$(mktemp -d)"
           NEW_MOUNT="$WORK/new"
           OLD_MOUNT="$WORK/old"
@@ -241,7 +290,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      # 只为读 docs/release-notes/ 下的发布说明，不留写权限的凭据。
+      # 只为读 docs/release-notes/macos/ 下的发布说明，不留写权限的凭据。
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -251,7 +300,7 @@ jobs:
           name: EVE-O-Preview-${{ needs.build.outputs.label }}
           path: release-files
 
-      # 说明取 docs/release-notes/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号带 - 时标为预发布。
+      # 说明取 docs/release-notes/macos/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号带 - 时标为预发布。
       # 演练：建草稿 Release，名字带 -rehearsal，不打 tag、不公开，看完后在 Releases 页面删掉。
       # Release 已存在时不覆盖附件：已经发出去的文件和校验和不应被悄悄换掉，要重发按架构文档 9.5 节重打 tag。
       - name: 发布 Release
@@ -260,7 +309,7 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
           REHEARSAL: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          NOTES="docs/release-notes/v${VERSION}.md"
+          NOTES="docs/release-notes/macos/v${VERSION}.md"
           if [[ "$REHEARSAL" == "true" ]]; then
             TAG="v${VERSION}-rehearsal.${GITHUB_RUN_NUMBER}"
             args=(--draft --prerelease --target "$GITHUB_SHA")

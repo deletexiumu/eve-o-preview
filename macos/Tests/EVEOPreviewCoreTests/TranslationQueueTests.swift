@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译的队列（docs/design-intel-translate.md 7.6 节，14.1 节 TranslationQueueTests）：进入队列不足 1 秒时不取；
+// 翻译的队列（docs/macos/design-intel-translate.md 7.6 节，14.1 节 TranslationQueueTests）：进入队列不足 1 秒时不取；
 // 同一时刻只有一批在途；complete 把相同原文的消息一并完成；3 类失败各自的状态与消息阶段；waiting 到时后可再取；
 // 连续失败时等待时长加倍且有上限；reset；activate 只排最近 600 秒内的最新 20 条；nextAttempt 的各种结果。
 // 另有：只取活动角色的消息、旧请求的结果、清空缓冲不解除暂停。收听者名是虚构的。

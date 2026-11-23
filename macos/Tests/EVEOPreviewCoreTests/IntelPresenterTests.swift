@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警行的测试（docs/design-intel-translate.md 6.7 节、6.9 节、14.1 节）。说话人与人名是虚构的；
+// 预警行的测试（docs/macos/design-intel-translate.md 6.7 节、6.9 节、14.1 节）。说话人与人名是虚构的；
 // 文字由固定输出的 IntelLineFormatting 给出，便于逐段比较。
 
 import Testing

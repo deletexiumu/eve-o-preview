@@ -130,7 +130,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     /// 「显示预警浮窗」「显示翻译浮窗」：对应功能已开启时打勾，点击切换当前配置方案里的 `enabled`
-    /// （docs/design-intel-translate.md 第 10 节）。
+    /// （docs/macos/design-intel-translate.md 第 10 节）。
     private func overlayItem(_ kind: OverlayKind) -> NSMenuItem {
         let profile = coordinator.profile
         let isOn = kind == .intel ? profile.intel.enabled : profile.translation.enabled

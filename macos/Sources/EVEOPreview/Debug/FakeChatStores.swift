@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 演示模式的钥匙串、译文缓存与人名核对（docs/design-intel-translate.md 9.5 节、6.10 节）：只在内存里，
+// 演示模式的钥匙串、译文缓存与人名核对（docs/macos/design-intel-translate.md 9.5 节、6.10 节）：只在内存里，
 // 不碰系统钥匙串，不读写 translation-cache.json 与 pilot-names.json，也不联网。
 // EVEO_FAKE=1 时由 FakeServices 使用。状态用锁保护，可在任何线程调用。
 

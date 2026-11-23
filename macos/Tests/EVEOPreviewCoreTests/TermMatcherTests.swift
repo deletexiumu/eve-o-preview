@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 术语匹配的测试（docs/design-intel-translate.md 6.3 节、14.1 节）。星图数据用 StaticDataFixtures，
+// 术语匹配的测试（docs/macos/design-intel-translate.md 6.3 节、14.1 节）。星图数据用 StaticDataFixtures，
 // 名称与 ID 取自 SDE；聊天文字是编的。
 
 import Testing

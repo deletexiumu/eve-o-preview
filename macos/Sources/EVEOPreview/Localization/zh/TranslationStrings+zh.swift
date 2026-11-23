@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译域的中文文字（docs/design-intel-translate.md 第 11 节）。用词按第 11 节的词表与第 17 节的术语：
+// 翻译域的中文文字（docs/macos/design-intel-translate.md 第 11 节）。用词按第 11 节的词表与第 17 节的术语：
 // 翻译频道、浮窗、模型服务、译文缓存；macOS 的官方名称「钥匙串」。
 
 import Foundation

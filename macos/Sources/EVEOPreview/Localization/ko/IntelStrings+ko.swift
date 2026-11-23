@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的韩文文字（docs/design-intel-translate.md 第 11 节）。
+// 预警域的韩文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与 WP-0 的韩文文字一致：정찰（预警）、오버레이（浮窗）、채널（频道）、채팅 로그（聊天日志）；
 // 跳是점프，敌对是적대，星图数据是맵 데이터，ESI 不翻译。

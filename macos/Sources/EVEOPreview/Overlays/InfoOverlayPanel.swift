@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗面板（docs/design-intel-translate.md 8.3 节）：设置与 ThumbnailPanel 相同，只有背景不同。
+// 浮窗面板（docs/macos/design-intel-translate.md 8.3 节）：设置与 ThumbnailPanel 相同，只有背景不同。
 // - 无边框、不抢焦点（nonactivatingPanel，永不成为 key 与 main 窗口），出现在所有空间与全屏客户端之上的辅助层。
 // - 背景透明，由内容视图的图层画（只有背景随不透明度变，文字始终不透明）。
 // - 重写 sendEvent：鼠标按键事件先交给 OverlayInteraction（移动、缩放、菜单、新消息条），它不处理的再走 super。

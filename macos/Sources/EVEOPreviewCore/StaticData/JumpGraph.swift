@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 跳数（docs/design-intel-translate.md 6.6 节）：只按星门连接算，不考虑跳桥、虫洞与安全等级的路线偏好。
+// 跳数（docs/macos/design-intel-translate.md 6.6 节）：只按星门连接算，不考虑跳桥、虫洞与安全等级的路线偏好。
 // distances 从出发星系做一次广度优先，得到 maxJumps 跳以内每个星系的跳数；IntelFeedController 按
 // 「出发星系与 maxJumps」缓存这张表，出发星系变了才重算。表至多遍历已知空间的 5,485 个星系（S5）。
 

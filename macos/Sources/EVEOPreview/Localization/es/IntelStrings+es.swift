@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警域的西班牙文文字（docs/design-intel-translate.md 第 11 节）。
+// 预警域的西班牙文文字（docs/macos/design-intel-translate.md 第 11 节）。
 // 译文由机器生成，待母语者审校（反馈文档 5.2 节）。
 // 用词与 WP-0 的西班牙文文字一致：inteligencia（预警）、superposición（浮窗）、canal（频道）、registro de chat
 // （聊天日志）；跳是 salto，敌对是 hostil，星图数据是 datos del mapa，ESI 不翻译。

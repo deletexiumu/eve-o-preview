@@ -3,13 +3,13 @@
 <!--
   SPDX-License-Identifier: GPL-3.0-or-later
   EVE-O Preview 的 Info.plist 模板（架构文档 9.1 节）。
-  scripts/build-app.sh 把 __VERSION__ 换成环境变量 VERSION（默认取仓库根目录的 VERSION 文件）；
-  有 packaging/AppIcon.png 时再加上 CFBundleIconFile。
+  macos/scripts/build-app.sh 把 __VERSION__ 换成环境变量 VERSION（默认取 macos/VERSION 文件）；
+  有 macos/packaging/AppIcon.png 时再加上 CFBundleIconFile。
   不写屏幕录制、辅助功能的用途说明键：这两项权限的系统弹窗文字由系统提供（架构文档 4.4 节）。
   NSDocumentsFolderUsageDescription 是读「文稿」里游戏日志与聊天日志时系统提示的说明
-  （反馈文档 7.9 节、docs/design-intel-translate.md 5.7 节）。
+  （反馈文档 7.9 节、docs/macos/design-intel-translate.md 5.7 节）。
   NSAppTransportSecurity 的 NSAllowsLocalNetworking 只放行本机与局域网地址的明文 HTTP（Ollama 预设用到），
-  公网主机仍只能用 HTTPS；不加 NSAllowsArbitraryLoads（docs/design-intel-translate.md 7.11 节）。
+  公网主机仍只能用 HTTPS；不加 NSAllowsArbitraryLoads（docs/macos/design-intel-translate.md 7.11 节）。
   NSLocalNetworkUsageDescription 是第一次连局域网里的模型服务（如另一台电脑上的 Ollama）时，
   系统「本地网络」权限提示里的说明（审查 m10）。连本机 localhost 不弹这个提示。
   Info.plist 的文字不随界面语言变化（没有资源目录），所以用英文。

@@ -1,4 +1,4 @@
-<p align="center"><img src="packaging/AppIcon.png" width="128" alt="Значок EVE-O Preview for macOS"></p>
+<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="Значок EVE-O Preview for macOS"></p>
 
 # EVE-O Preview for macOS
 
@@ -66,7 +66,7 @@ xattr -dr com.apple.quarantine "/Applications/EVE-O Preview.app"
 
 ### Сборка из исходного кода
 
-Как собрать приложение самостоятельно, описано в [docs/development.md](docs/development.md) (на английском). Там же описаны инструменты отладки, CI и процесс выпуска релизов.
+Как собрать приложение самостоятельно, описано в [docs/macos/development.md](docs/macos/development.md) (на английском). Там же описаны инструменты отладки, CI и процесс выпуска релизов.
 
 ## Разрешения
 
@@ -269,4 +269,4 @@ EVE-O Preview проверяет наличие нового релиза на G
 
 EVE Online и связанные с ней логотипы являются товарными знаками CCP ehf. Этот проект не связан с CCP и не одобрен ею.
 
-Значок приложения повторно использует значок молекулы из исходного проекта EveOPlus/eve-o-preview (GPL-3.0). Фон рисует `scripts/make-app-icon.py`; он не содержит товарных знаков CCP и игровой графики.
+Значок приложения повторно использует значок молекулы из исходного проекта EveOPlus/eve-o-preview (GPL-3.0). Фон рисует `macos/scripts/make-app-icon.py`; он не содержит товарных знаков CCP и игровой графики.

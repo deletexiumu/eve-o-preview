@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 服务预设与接口设置的解析（docs/design-intel-translate.md 7.3 节）。
+// 服务预设与接口设置的解析（docs/macos/design-intel-translate.md 7.3 节）。
 // - presets：7 个预设。预设地址与模型名在 2026-11-21 对照各家的官方文档核对过（V35），与参考实现不同的几项：
 //   deepseek 的模型由 deepseek-chat 改为 deepseek-flash（DeepSeek 的更新日志写明旧名称 2026-07-24 停用，
 //   快速开始页的示例用 deepseek-flash）；openai 的模型由 gpt-4.1-mini 改为 gpt-6-luna（gpt-4.1-mini 在模型页上

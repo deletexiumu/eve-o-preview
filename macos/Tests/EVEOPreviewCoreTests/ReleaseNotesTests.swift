@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // ReleaseNotes 的用例（v1.1 设计 8.2、8.7 节、14.1 节）：按界面语言取段落、去掉折叠标签、回退到英文与全文、
-// CRLF、标记的写法，以及 `blocks` 表的每种行。另用仓库里真实的 docs/release-notes/v1.0.0.md 核对一遍。
+// CRLF、标记的写法，以及 `blocks` 表的每种行。另用仓库里真实的 docs/release-notes/macos/v1.0.0.md 核对一遍。
 
 import Foundation
 import Testing
@@ -202,11 +202,12 @@ struct ReleaseNotesTests {
 
     // MARK: - 仓库里的 v1.0.0 说明
 
-    /// 读仓库里的 docs/release-notes/v1.0.0.md。文件不在时用例失败，不跳过。
+    /// 读仓库里的 docs/release-notes/macos/v1.0.0.md。文件不在时用例失败，不跳过。
     static func repositoryNotes() throws -> String {
+        // 本文件在 macos/Tests/EVEOPreviewCoreTests/ 下，往上 4 级是仓库根目录。
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let url = root.appendingPathComponent("docs/release-notes/v1.0.0.md")
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let url = root.appendingPathComponent("docs/release-notes/macos/v1.0.0.md")
         return try #require(try? String(contentsOf: url, encoding: .utf8), "找不到 \(url.path)")
     }
 

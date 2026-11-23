@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 位置记录的测试（docs/design-intel-translate.md 6.2 节、14.1 节）。角色名是虚构的；
+// 位置记录的测试（docs/macos/design-intel-translate.md 6.2 节、14.1 节）。角色名是虚构的；
 // 线索的正文按 5.6 节的句式写，星系取自 StaticDataFixtures。
 
 import Testing

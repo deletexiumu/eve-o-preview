@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗的鼠标手势（docs/design-intel-translate.md 8.7 节），由 InfoOverlayPanel.sendEvent 调用 handle(_:)。
+// 浮窗的鼠标手势（docs/macos/design-intel-translate.md 8.7 节），由 InfoOverlayPanel.sendEvent 调用 handle(_:)。
 //
 // | 操作 | 手势 |
 // | 滚动列表 | 滚轮或触控板双指滑动（不经过这里） |

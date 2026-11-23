@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 请求与答复（docs/design-intel-translate.md 7.4 节、7.5 节，14.1 节 TranslationWireTests）：
+// 请求与答复（docs/macos/design-intel-translate.md 7.4 节、7.5 节，14.1 节 TranslationWireTests）：
 // 两种接口的地址（含 baseURL 以 /v1 结尾）、请求头与请求体的键；请求体里没有 temperature；Key 为空时没有
 // Authorization；两种接口的正常答复；content 是数组的 OpenAI 答复；含思考块的 Anthropic 答复只取文字；
 // refusal、max_tokens、finish_reason: length；7.5 节表里每个状态码的归类与 retry-after 的夹取；

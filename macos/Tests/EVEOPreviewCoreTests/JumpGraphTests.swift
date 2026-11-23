@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 跳数的测试（docs/design-intel-translate.md 6.6 节、14.1 节）。星门连接是夹具里编的：
+// 跳数的测试（docs/macos/design-intel-translate.md 6.6 节、14.1 节）。星门连接是夹具里编的：
 // Jita — Perimeter — New Caldari — Urlen — Hek — Amarr，New Caldari — 1DQ1-A — T5ZI-S — HED-GP，
 // Naga — EC-P8R 另成一块，Onsooh、Aunsou、Thera 没有星门。
 

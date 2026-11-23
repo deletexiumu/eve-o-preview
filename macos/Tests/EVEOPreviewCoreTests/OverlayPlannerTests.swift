@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// OverlayPlanner 的用例（docs/design-intel-translate.md 8.6 节、14.1 节）。
+// OverlayPlanner 的用例（docs/macos/design-intel-translate.md 8.6 节、14.1 节）。
 // 角色名用 Fixtures 里虚构的名字。
 
 import Foundation

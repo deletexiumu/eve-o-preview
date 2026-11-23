@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译的提示词（docs/design-intel-translate.md 7.9 节，14.1 节 TranslationPromptTests）：系统提示里有目标语言的
+// 翻译的提示词（docs/macos/design-intel-translate.md 7.9 节，14.1 节 TranslationPromptTests）：系统提示里有目标语言的
 // 自称与 5 条规则；有术语与没有术语的用户消息；编号从 1 起且与 ids 对应；pins 去重、不钉写法相同的词、
 // 不钉情报用语。
 

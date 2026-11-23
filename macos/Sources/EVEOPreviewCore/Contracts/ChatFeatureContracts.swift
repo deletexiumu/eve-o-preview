@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警与翻译用到的平台协议（docs/design-intel-translate.md 4.3 节、7.2 节）。协议只含 Core 的值类型，
+// 预警与翻译用到的平台协议（docs/macos/design-intel-translate.md 4.3 节、7.2 节）。协议只含 Core 的值类型，
 // 由 EVEOPreviewPlatform 实现；演示模式与测试用 App 里的假实现。聊天日志的 ChatLogMonitor 在 PlatformContracts.swift。
 // - StaticDataProvider：读并解码星图数据文件（eve-static.json）。
 // - TranslationTransport：发一个 HTTP 请求；请求的内容与答复的解析都在 Core 的 TranslationWire。

@@ -185,7 +185,7 @@ enum ProblemReportBuilder {
         }
     }
 
-    /// 聊天日志跟踪服务的状态名，只带文件数，不带路径（docs/design-intel-translate.md 3.4 节）。
+    /// 聊天日志跟踪服务的状态名，只带文件数，不带路径（docs/macos/design-intel-translate.md 3.4 节）。
     private static func chatLogStatusName(_ status: ChatLogStatus) -> String {
         switch status {
         case .stopped: return "stopped"

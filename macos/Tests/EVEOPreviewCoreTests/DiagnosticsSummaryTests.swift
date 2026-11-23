@@ -173,7 +173,7 @@ struct DiagnosticsSummaryTests {
     }
 }
 
-/// 预警与翻译的摘要（docs/design-intel-translate.md 3.4 节）：频道名、参考星系名、接口地址与模型名都不进报告。
+/// 预警与翻译的摘要（docs/macos/design-intel-translate.md 3.4 节）：频道名、参考星系名、接口地址与模型名都不进报告。
 struct ChatDiagnosticsSummaryTests {
     /// 名字与地址都带特征串 `SECRET`，断言摘要的 JSON 里没有它。
     @Test func summaryHasNoNamesOrAddresses() throws {

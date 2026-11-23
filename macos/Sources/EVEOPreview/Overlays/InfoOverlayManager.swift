@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 两个浮窗面板的管理器（docs/design-intel-translate.md 8.7 节）：按规划器给出的呈现建、改、关面板，
+// 两个浮窗面板的管理器（docs/macos/design-intel-translate.md 8.7 节）：按规划器给出的呈现建、改、关面板，
 // 把内容交给面板，把拖动与右键菜单的结果交给委托（协调器）。面板不知道预警与翻译的区别。
 // - apply：呈现里没有的浮窗（功能没启用）关掉面板；有的建或更新。拖动中的浮窗不应用 frame。
 // - setContent：只交给已有的面板；协调器在浮窗变成可见时会再补一次内容，所以没有面板时直接丢弃。

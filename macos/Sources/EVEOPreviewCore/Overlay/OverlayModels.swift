@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 浮窗的内容模型（docs/design-intel-translate.md 8.2 节）。预警与翻译各自把消息排成 OverlayContent，
+// 浮窗的内容模型（docs/macos/design-intel-translate.md 8.2 节）。预警与翻译各自把消息排成 OverlayContent，
 // 浮窗面板只认这里的类型，不知道预警与翻译的区别。样式到颜色、字重的对应在 App 的 Overlays/OverlayStyle.swift。
 
 import Foundation

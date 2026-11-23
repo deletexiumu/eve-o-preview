@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""从 CCP 的静态数据（SDE）生成精简的星图数据文件 packaging/eve-static.json。
+"""从 CCP 的静态数据（SDE）生成精简的星图数据文件 shared/static/eve-static.json。
 
-做法见 docs/design-intel-translate.md 4.1 节与 4.2 节：
+做法见 docs/macos/design-intel-translate.md 4.1 节与 4.2 节：
 1. 读 latest.jsonl 取 buildNumber 与 releaseDate。
 2. 用 HTTP 分段请求读压缩包末尾的目录，只下载用到的 5 个文件，边下载边解压边按行解析。
    服务器不支持分段请求时，把整个压缩包下载到临时文件再读，读完删除。
@@ -11,10 +11,10 @@
 5. 键按固定顺序，记录按 ID 排序，分隔符不带空格，末尾一个换行。同一个 SDE 版本两次运行的输出逐字节相同。
 
 只用 Python 标准库。用法：
-  python3 scripts/build-sde-data.py                 生成文件，打印各类记录的数量与文件大小
-  python3 scripts/build-sde-data.py --check         只比较版本：相同退出 0，落后退出 2，连不上退出 3
-  python3 scripts/build-sde-data.py --output 路径    写到别的位置
-  python3 scripts/build-sde-data.py --build 版本号   用指定的 SDE 版本，不读 latest.jsonl
+  python3 shared/static/build-sde-data.py                 生成文件，打印各类记录的数量与文件大小
+  python3 shared/static/build-sde-data.py --check         只比较版本：相同退出 0，落后退出 2，连不上退出 3
+  python3 shared/static/build-sde-data.py --output 路径    写到别的位置
+  python3 shared/static/build-sde-data.py --build 版本号   用指定的 SDE 版本，不读 latest.jsonl
 """
 
 import argparse
@@ -45,8 +45,8 @@ OTHER_LANGUAGES = ("zh", "ru", "ja", "ko", "fr", "de", "es")
 SYSTEM_ID_RANGE = (30_000_000, 31_999_999)
 # 舰船的类别 ID。
 SHIP_CATEGORY_ID = 6
-# 默认的输出位置：仓库的 packaging/eve-static.json。
-DEFAULT_OUTPUT = Path(__file__).resolve().parent.parent / "packaging" / "eve-static.json"
+# 默认的输出位置：与脚本同目录的 eve-static.json，即仓库的 shared/static/eve-static.json。
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "eve-static.json"
 # 分段读压缩包目录时，每次请求的块大小。
 RANGE_BLOCK = 65_536
 

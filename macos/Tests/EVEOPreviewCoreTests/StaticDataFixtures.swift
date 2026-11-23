@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 测试用的小份星图数据（docs/design-intel-translate.md 14.1 节）。经 StaticDataFile 的 JSON 解码得到，
+// 测试用的小份星图数据（docs/macos/design-intel-translate.md 14.1 节）。经 StaticDataFile 的 JSON 解码得到，
 // 名称、ID 与安全等级取自 SDE 3720952；星门连接是这里编的，与游戏的星图无关。三个并行的工作包只读不改。
 //
 // 内容：
@@ -61,7 +61,7 @@ enum StaticDataFixtures {
     static let rifter = 587
     static let vexorNavyIssue = 17_843
 
-    /// 数据文件的 JSON 文本，格式与 packaging/eve-static.json 相同。
+    /// 数据文件的 JSON 文本，格式与 shared/static/eve-static.json 相同。
     static let json = """
     {"format":1,"sdeBuild":3720952,"sdeReleaseDate":"2026-11-19T11:07:08Z",
     "regions":[{"i":10000002,"n":"The Forge","l":{"zh":"伏尔戈"}},{"i":10000030,"n":"Heimatar","l":{"zh":"西玛特尔"}}],

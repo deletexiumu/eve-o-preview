@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""生成 packaging/AppIcon.png（1024x1024 的 macOS 应用图标）。
+"""生成 macos/packaging/AppIcon.png（1024x1024 的 macOS 应用图标）。
 
 图标主体是上游 EveOPlus/eve-o-preview 的分子图标，背景是程序绘制的深空渐变与星点，
 不含 CCP 的 EVE 商标或游戏美术。
@@ -9,7 +9,7 @@
 取自 https://github.com/EveOPlus/eve-o-preview 的提交 26470b2。本仓库不收录这张源图，
 重新生成图标时先从上游取得，再把路径作为第一个参数传入。
 
-用法：python3 scripts/make-app-icon.py <分子图标 PNG> packaging/AppIcon.png
+用法：python3 macos/scripts/make-app-icon.py <分子图标 PNG> macos/packaging/AppIcon.png
 依赖 Pillow。
 """
 # 生成 macOS 风格应用图标：深空渐变圆角方形背景 + 上游分子图标

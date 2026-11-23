@@ -20,7 +20,7 @@ public struct AppState: Sendable, Equatable, Codable {
     public var diagnostics: DiagnosticsState
     /// 已经补到配置里的一次性默认值（`OneTimeDefaults` 的 id），v1.2 新增，缺键时为空。
     public var appliedDefaults: [String]
-    /// 预警与翻译的记录（docs/design-intel-translate.md 3.1 节），缺键时为空。
+    /// 预警与翻译的记录（docs/macos/design-intel-translate.md 3.1 节），缺键时为空。
     public var chat: ChatState
 
     /// 当前的状态文件版本。
@@ -49,7 +49,7 @@ public struct AppState: Sendable, Equatable, Codable {
     }
 }
 
-/// 预警与翻译的记录（docs/design-intel-translate.md 3.1 节、6.2 节）。
+/// 预警与翻译的记录（docs/macos/design-intel-translate.md 3.1 节、6.2 节）。
 public struct ChatState: Sendable, Equatable, Codable {
     /// 手动设置的位置，角色名 → 位置。角色登录后一直停在同一个星系时没有自动线索，靠它在重启后恢复。
     public var manualLocations: [String: CharacterLocation]

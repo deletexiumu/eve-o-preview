@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 翻译域的英文文字（docs/design-intel-translate.md 第 11 节）。英文是默认语言，按第 11 节的表逐条写出。
+// 翻译域的英文文字（docs/macos/design-intel-translate.md 第 11 节）。英文是默认语言，按第 11 节的表逐条写出。
 
 import Foundation
 
