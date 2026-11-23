@@ -94,6 +94,9 @@ impl Report {
             if ok { "通过" } else { "失败" },
             if required { "" } else { "（参考项）" }
         );
+        if !ok {
+            println!("       {detail}");
+        }
         if !ok && required {
             self.failed_required.push(name.to_owned());
         }
@@ -330,31 +333,30 @@ fn close_to((r, g, b): (u8, u8, u8), expected: u32) -> bool {
 }
 
 /// 依次激活每个客户端，核对前台窗口、升级步骤与前台事件。
+///
+/// 前台事件逐次核对：每次激活后取出这段时间的事件，只要求真正换了前台的那几次（步骤不是
+/// `alreadyForeground`）收到该客户端的前台事件。最后启动的假客户端本来就在前台，激活它不会有事件。
 fn check_activation(clients: &[EveClient], hooks: &WindowEventHooks, report: &mut Report) {
     hooks.drain();
     let mut details = Vec::new();
+    let mut events_ok = true;
     let mut all_ok = true;
     for client in clients.iter().rev().chain(clients.iter().take(1)) {
         let outcome = activation::activate(client.id);
         pump_for(Duration::from_millis(150));
         let foreground = foreground_window() == Some(client.id);
         all_ok &= outcome.succeeded() && foreground;
+        let events = hooks.drain();
+        let changed = outcome.step != ActivationStep::AlreadyForeground;
+        let event = events.contains(&WindowEvent::Foreground(client.id));
+        events_ok &= !changed || event;
         details.push(json!({
             "client": client.display_title(), "step": step_name(outcome.step), "foreground": foreground,
+            "foregroundEvent": event, "eventCount": events.len(),
         }));
     }
     report.check("激活客户端并成为前台", all_ok, true, json!(details));
-    let events = hooks.drain();
-    let seen: Vec<_> = clients
-        .iter()
-        .map(|c| events.contains(&WindowEvent::Foreground(c.id)))
-        .collect();
-    report.check(
-        "每次激活都收到前台变化事件",
-        seen.iter().all(|&s| s),
-        true,
-        json!({"seen": seen, "eventCount": events.len()}),
-    );
+    report.check("每次换前台都收到前台变化事件", events_ok, true, json!(details));
 }
 
 /// 激活步骤的名字。
