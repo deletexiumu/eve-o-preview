@@ -21,7 +21,8 @@ config_struct! {
 
 /// 「全部隐藏」的默认热键：三个修饰键一起按不容易误触，明确写成全局生效。
 ///
-/// macOS 写作 ⌃⌥⌘H；Windows 版的写法随 M2c 的热键解析确定（`cmd` 对应 `win`，见架构文档 5.5 节）。
+/// 字符串两端相同。macOS 上是 ⌃⌥⌘H；Windows 把 `opt` 读成 Alt、`cmd` 读成 Win，即 Ctrl+Alt+Win+H，
+/// 这个组合 Windows 没有占用（见 `hotkeys::planner` 的保留名单）。
 pub const DEFAULT_TOGGLE_HIDE_ALL: &str = "ctrl+opt+cmd+H@global";
 
 config_struct! {

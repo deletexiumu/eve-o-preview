@@ -7,6 +7,7 @@
 //! 配置的迁移、校验与编辑。
 
 mod migrator;
+pub mod one_time_defaults;
 pub mod profile_editor;
 mod validator;
 

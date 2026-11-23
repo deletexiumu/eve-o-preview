@@ -1,0 +1,1426 @@
+{
+  "parse": [
+    {
+      "name": "规范写法原样",
+      "input": "ctrl+shift+F13",
+      "expect": "ctrl+shift+F13"
+    },
+    {
+      "name": "各段去空白、不分大小写",
+      "input": " Ctrl + Shift + f13 ",
+      "expect": "ctrl+shift+F13"
+    },
+    {
+      "name": "修饰键按固定顺序输出",
+      "input": "shift+ctrl+F13",
+      "expect": "ctrl+shift+F13"
+    },
+    {
+      "name": "重复的修饰键按一个处理",
+      "input": "ctrl+ctrl+F1",
+      "expect": "ctrl+F1"
+    },
+    {
+      "name": "opt 在 Windows 读成 alt",
+      "input": "opt+Num1",
+      "expect": {
+        "macos": "opt+Num1",
+        "windows": "alt+Num1"
+      }
+    },
+    {
+      "name": "alt 在 macOS 读成 opt",
+      "input": "alt+Num1",
+      "expect": {
+        "macos": "opt+Num1",
+        "windows": "alt+Num1"
+      }
+    },
+    {
+      "name": "四个修饰键",
+      "input": "cmd+opt+ctrl+shift+h",
+      "expect": {
+        "macos": "ctrl+opt+shift+cmd+H",
+        "windows": "ctrl+alt+shift+win+H"
+      }
+    },
+    {
+      "name": "win 只有 Windows 认",
+      "input": "win+F13",
+      "expect": {
+        "macos": null,
+        "windows": "win+F13"
+      }
+    },
+    {
+      "name": "鼠标侧键",
+      "input": "ctrl+Mouse4",
+      "expect": "ctrl+Mouse4"
+    },
+    {
+      "name": "鼠标中键，不分大小写",
+      "input": "MOUSE3",
+      "expect": "Mouse3"
+    },
+    {
+      "name": "鼠标序号上限能解析",
+      "input": "Mouse32",
+      "expect": "Mouse32"
+    },
+    {
+      "name": "左键不能绑定",
+      "input": "Mouse1",
+      "expect": null
+    },
+    {
+      "name": "右键不能绑定",
+      "input": "Mouse2",
+      "expect": null
+    },
+    {
+      "name": "鼠标序号越界",
+      "input": "Mouse33",
+      "expect": null
+    },
+    {
+      "name": "鼠标序号 0",
+      "input": "Mouse0",
+      "expect": null
+    },
+    {
+      "name": "键码各按本平台解释",
+      "input": "Key65",
+      "expect": {
+        "macos": "Key65",
+        "windows": "A"
+      }
+    },
+    {
+      "name": "表外键码",
+      "input": "cmd+Key110",
+      "expect": {
+        "macos": "cmd+Key110",
+        "windows": "win+Key110"
+      }
+    },
+    {
+      "name": "键码超出 Windows 的范围",
+      "input": "Key300",
+      "expect": {
+        "macos": "Key300",
+        "windows": null
+      }
+    },
+    {
+      "name": "键码 0",
+      "input": "Key0",
+      "expect": {
+        "macos": "A",
+        "windows": null
+      }
+    },
+    {
+      "name": "键码带前导零",
+      "input": "Key007",
+      "expect": {
+        "macos": "X",
+        "windows": "Key7"
+      }
+    },
+    {
+      "name": "Key 后面没有数字",
+      "input": "Key",
+      "expect": null
+    },
+    {
+      "name": "Key 后面是符号",
+      "input": "Key-1",
+      "expect": null
+    },
+    {
+      "name": "Key 与数字用加号隔开",
+      "input": "Key+5",
+      "expect": null
+    },
+    {
+      "name": "Mouse 后面带字母",
+      "input": "Mouse4x",
+      "expect": null
+    },
+    {
+      "name": "全角数字",
+      "input": "Key１",
+      "expect": null
+    },
+    {
+      "name": "空串",
+      "input": "",
+      "expect": null
+    },
+    {
+      "name": "末尾空段",
+      "input": "ctrl+",
+      "expect": null
+    },
+    {
+      "name": "开头空段",
+      "input": "+F1",
+      "expect": null
+    },
+    {
+      "name": "中间空段",
+      "input": "ctrl++F1",
+      "expect": null
+    },
+    {
+      "name": "只有修饰键",
+      "input": "ctrl",
+      "expect": null
+    },
+    {
+      "name": "未知修饰键",
+      "input": "hyper+F1",
+      "expect": null
+    },
+    {
+      "name": "制表符也去掉",
+      "input": "ctrl\t+\tF13",
+      "expect": "ctrl+F13"
+    },
+    {
+      "name": "换行不去掉",
+      "input": "ctrl+F13\n",
+      "expect": null
+    },
+    {
+      "name": "键名不分大小写",
+      "input": "num9",
+      "expect": "Num9"
+    },
+    {
+      "name": "键名不分大小写 2",
+      "input": "PAGEUP",
+      "expect": "PageUp"
+    },
+    {
+      "name": "Space",
+      "input": "space",
+      "expect": "Space"
+    },
+    {
+      "name": "Delete 是退格键",
+      "input": "ctrl+Delete",
+      "expect": "ctrl+Delete"
+    },
+    {
+      "name": "F21 不在表里",
+      "input": "f21",
+      "expect": null
+    },
+    {
+      "name": "作用范围后缀",
+      "input": "ctrl+Mouse4@game",
+      "expect": "ctrl+Mouse4@game"
+    },
+    {
+      "name": "后缀两侧的空白与大小写",
+      "input": "alt+F13 @ Global",
+      "expect": {
+        "macos": "opt+F13@global",
+        "windows": "alt+F13@global"
+      }
+    },
+    {
+      "name": "后缀大写",
+      "input": "F13@GAME",
+      "expect": "F13@game"
+    },
+    {
+      "name": "后缀后面的空白",
+      "input": "ctrl+F13 @game ",
+      "expect": "ctrl+F13@game"
+    },
+    {
+      "name": "空后缀",
+      "input": "F13@",
+      "expect": null
+    },
+    {
+      "name": "@ 前面为空",
+      "input": "@game",
+      "expect": null
+    },
+    {
+      "name": "多个 @",
+      "input": "F13@game@global",
+      "expect": null
+    },
+    {
+      "name": "未知后缀",
+      "input": "F13@other",
+      "expect": null
+    }
+  ],
+  "plan": [
+    {
+      "name": "遍历顺序与编号",
+      "profile": {
+        "hotkeys": {
+          "toggleHideAll": [
+            "ctrl+shift+H"
+          ],
+          "minimizeAll": [
+            "ctrl+shift+M"
+          ],
+          "cycleLoginClients": [
+            "ctrl+F1"
+          ]
+        },
+        "cycleGroups": [
+          {
+            "id": "g1",
+            "forwardHotkeys": [
+              "F13"
+            ],
+            "backwardHotkeys": [
+              "shift+F13"
+            ]
+          },
+          {
+            "id": "g2",
+            "forwardHotkeys": [
+              "F14"
+            ],
+            "backwardHotkeys": []
+          }
+        ],
+        "characterHotkeys": {
+          "b": [
+            "Num2"
+          ],
+          "张三": [
+            "Num4"
+          ],
+          "A": [
+            "Num1"
+          ],
+          "a": [
+            "ctrl+Num3"
+          ]
+        }
+      },
+      "expect": {
+        "bindings": [
+          {
+            "id": 1,
+            "hotkey": "ctrl+shift+H",
+            "action": "toggleHideAll",
+            "scope": "global"
+          },
+          {
+            "id": 2,
+            "hotkey": "ctrl+shift+M",
+            "action": "minimizeAll",
+            "scope": "global"
+          },
+          {
+            "id": 3,
+            "hotkey": "ctrl+F1",
+            "action": "cycleLoginClients",
+            "scope": "global"
+          },
+          {
+            "id": 4,
+            "hotkey": "F13",
+            "action": "cycle:g1:forward",
+            "scope": "global"
+          },
+          {
+            "id": 5,
+            "hotkey": "shift+F13",
+            "action": "cycle:g1:backward",
+            "scope": "global"
+          },
+          {
+            "id": 6,
+            "hotkey": "F14",
+            "action": "cycle:g2:forward",
+            "scope": "global"
+          },
+          {
+            "id": 7,
+            "hotkey": "Num1",
+            "action": "character:A",
+            "scope": "global"
+          },
+          {
+            "id": 8,
+            "hotkey": "ctrl+Num3",
+            "action": "character:a",
+            "scope": "global"
+          },
+          {
+            "id": 9,
+            "hotkey": "Num2",
+            "action": "character:b",
+            "scope": "global"
+          },
+          {
+            "id": 10,
+            "hotkey": "Num4",
+            "action": "character:张三",
+            "scope": "global"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "name": "后缀覆盖默认作用范围",
+      "profile": {
+        "hotkeyDefaultScope": "game",
+        "hotkeys": {
+          "toggleHideAll": [
+            "ctrl+F1@global",
+            "ctrl+F2"
+          ],
+          "minimizeAll": [
+            "ctrl+F3@game"
+          ]
+        }
+      },
+      "expect": {
+        "bindings": [
+          {
+            "id": 1,
+            "hotkey": "ctrl+F1",
+            "action": "toggleHideAll",
+            "scope": "global"
+          },
+          {
+            "id": 2,
+            "hotkey": "ctrl+F2",
+            "action": "toggleHideAll",
+            "scope": "game"
+          },
+          {
+            "id": 3,
+            "hotkey": "ctrl+F3",
+            "action": "minimizeAll",
+            "scope": "game"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "name": "重复只比较热键，不比较作用范围",
+      "profile": {
+        "hotkeys": {
+          "toggleHideAll": [
+            "ctrl+F1@global"
+          ],
+          "minimizeAll": [
+            "ctrl+F1@game",
+            "ctrl+F2"
+          ]
+        },
+        "cycleGroups": [
+          {
+            "id": "g",
+            "forwardHotkeys": [
+              "CTRL+f1"
+            ],
+            "backwardHotkeys": []
+          }
+        ]
+      },
+      "expect": {
+        "bindings": [
+          {
+            "id": 1,
+            "hotkey": "ctrl+F1",
+            "action": "toggleHideAll",
+            "scope": "global"
+          },
+          {
+            "id": 2,
+            "hotkey": "ctrl+F2",
+            "action": "minimizeAll",
+            "scope": "global"
+          }
+        ],
+        "issues": [
+          {
+            "kind": "duplicate",
+            "hotkey": "ctrl+F1",
+            "kept": "toggleHideAll",
+            "dropped": "minimizeAll"
+          },
+          {
+            "kind": "duplicate",
+            "hotkey": "ctrl+F1",
+            "kept": "toggleHideAll",
+            "dropped": "cycle:g:forward"
+          }
+        ]
+      }
+    },
+    {
+      "name": "无法解析的字符串原样报告",
+      "profile": {
+        "hotkeys": {
+          "toggleHideAll": [
+            "ctrl+",
+            "ctrl+F1"
+          ]
+        },
+        "characterHotkeys": {
+          "X": [
+            "hyper+F1"
+          ]
+        }
+      },
+      "expect": {
+        "bindings": [
+          {
+            "id": 1,
+            "hotkey": "ctrl+F1",
+            "action": "toggleHideAll",
+            "scope": "global"
+          }
+        ],
+        "issues": [
+          {
+            "kind": "unparsable",
+            "text": "ctrl+",
+            "action": "toggleHideAll"
+          },
+          {
+            "kind": "unparsable",
+            "text": "hyper+F1",
+            "action": "character:X"
+          }
+        ]
+      }
+    },
+    {
+      "name": "缺修饰键：功能键与小键盘除外",
+      "profile": {
+        "hotkeys": {
+          "minimizeAll": [
+            "A",
+            "shift+A",
+            "shift+F5",
+            "Num0",
+            "Space",
+            "ctrl+A"
+          ]
+        }
+      },
+      "expect": {
+        "bindings": [
+          {
+            "id": 1,
+            "hotkey": "shift+F5",
+            "action": "minimizeAll",
+            "scope": "global"
+          },
+          {
+            "id": 2,
+            "hotkey": "Num0",
+            "action": "minimizeAll",
+            "scope": "global"
+          },
+          {
+            "id": 3,
+            "hotkey": "ctrl+A",
+            "action": "minimizeAll",
+            "scope": "global"
+          }
+        ],
+        "issues": [
+          {
+            "kind": "rejected",
+            "hotkey": "A",
+            "action": "minimizeAll",
+            "reason": "missingModifier"
+          },
+          {
+            "kind": "rejected",
+            "hotkey": "shift+A",
+            "action": "minimizeAll",
+            "reason": "missingModifier"
+          },
+          {
+            "kind": "rejected",
+            "hotkey": "Space",
+            "action": "minimizeAll",
+            "reason": "missingModifier"
+          }
+        ]
+      }
+    },
+    {
+      "name": "被拒绝与重复的不占编号",
+      "profile": {
+        "hotkeys": {
+          "toggleHideAll": [
+            "B",
+            "ctrl+F1"
+          ],
+          "minimizeAll": [
+            "ctrl+F1",
+            "ctrl+F2"
+          ]
+        }
+      },
+      "expect": {
+        "bindings": [
+          {
+            "id": 1,
+            "hotkey": "ctrl+F1",
+            "action": "toggleHideAll",
+            "scope": "global"
+          },
+          {
+            "id": 2,
+            "hotkey": "ctrl+F2",
+            "action": "minimizeAll",
+            "scope": "global"
+          }
+        ],
+        "issues": [
+          {
+            "kind": "rejected",
+            "hotkey": "B",
+            "action": "toggleHideAll",
+            "reason": "missingModifier"
+          },
+          {
+            "kind": "duplicate",
+            "hotkey": "ctrl+F1",
+            "kept": "toggleHideAll",
+            "dropped": "minimizeAll"
+          }
+        ]
+      }
+    },
+    {
+      "name": "鼠标按键不需要修饰键；Windows 只认中键与两个侧键",
+      "profile": {
+        "hotkeys": {
+          "toggleHideAll": [
+            "Mouse4",
+            "Mouse3@game"
+          ],
+          "minimizeAll": [
+            "ctrl+Mouse5"
+          ],
+          "cycleLoginClients": [
+            "Mouse6",
+            "Mouse32"
+          ]
+        }
+      },
+      "expect": {
+        "macos": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "Mouse4",
+              "action": "toggleHideAll",
+              "scope": "global"
+            },
+            {
+              "id": 2,
+              "hotkey": "Mouse3",
+              "action": "toggleHideAll",
+              "scope": "game"
+            },
+            {
+              "id": 3,
+              "hotkey": "ctrl+Mouse5",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 4,
+              "hotkey": "Mouse6",
+              "action": "cycleLoginClients",
+              "scope": "global"
+            },
+            {
+              "id": 5,
+              "hotkey": "Mouse32",
+              "action": "cycleLoginClients",
+              "scope": "global"
+            }
+          ],
+          "issues": []
+        },
+        "windows": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "Mouse4",
+              "action": "toggleHideAll",
+              "scope": "global"
+            },
+            {
+              "id": 2,
+              "hotkey": "Mouse3",
+              "action": "toggleHideAll",
+              "scope": "game"
+            },
+            {
+              "id": 3,
+              "hotkey": "ctrl+Mouse5",
+              "action": "minimizeAll",
+              "scope": "global"
+            }
+          ],
+          "issues": [
+            {
+              "kind": "rejected",
+              "hotkey": "Mouse6",
+              "action": "cycleLoginClients",
+              "reason": "unsupportedMouseButton"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "Mouse32",
+              "action": "cycleLoginClients",
+              "reason": "unsupportedMouseButton"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "macOS 的系统保留组合",
+      "profile": {
+        "hotkeys": {
+          "minimizeAll": [
+            "cmd+Tab",
+            "cmd+shift+Q",
+            "cmd+opt+Q",
+            "cmd+H"
+          ]
+        }
+      },
+      "expect": {
+        "macos": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "opt+cmd+Q",
+              "action": "minimizeAll",
+              "scope": "global"
+            }
+          ],
+          "issues": [
+            {
+              "kind": "rejected",
+              "hotkey": "cmd+Tab",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "shift+cmd+Q",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "cmd+H",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            }
+          ]
+        },
+        "windows": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "win+Tab",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 2,
+              "hotkey": "shift+win+Q",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 3,
+              "hotkey": "alt+win+Q",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 4,
+              "hotkey": "win+H",
+              "action": "minimizeAll",
+              "scope": "global"
+            }
+          ],
+          "issues": []
+        }
+      }
+    },
+    {
+      "name": "Windows 的系统保留组合",
+      "profile": {
+        "hotkeys": {
+          "minimizeAll": [
+            "opt+Tab",
+            "opt+shift+Tab",
+            "opt+F4",
+            "opt+Space",
+            "opt+Escape",
+            "ctrl+Escape",
+            "ctrl+shift+Escape",
+            "ctrl+opt+Tab",
+            "cmd+L",
+            "ctrl+cmd+L",
+            "F12",
+            "shift+F12",
+            "ctrl+F12"
+          ]
+        }
+      },
+      "expect": {
+        "macos": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "opt+Tab",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 2,
+              "hotkey": "opt+shift+Tab",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 3,
+              "hotkey": "opt+F4",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 4,
+              "hotkey": "opt+Space",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 5,
+              "hotkey": "opt+Escape",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 6,
+              "hotkey": "ctrl+Escape",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 7,
+              "hotkey": "ctrl+shift+Escape",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 8,
+              "hotkey": "ctrl+opt+Tab",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 9,
+              "hotkey": "cmd+L",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 10,
+              "hotkey": "ctrl+cmd+L",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 11,
+              "hotkey": "F12",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 12,
+              "hotkey": "shift+F12",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 13,
+              "hotkey": "ctrl+F12",
+              "action": "minimizeAll",
+              "scope": "global"
+            }
+          ],
+          "issues": []
+        },
+        "windows": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "ctrl+alt+Tab",
+              "action": "minimizeAll",
+              "scope": "global"
+            },
+            {
+              "id": 2,
+              "hotkey": "ctrl+F12",
+              "action": "minimizeAll",
+              "scope": "global"
+            }
+          ],
+          "issues": [
+            {
+              "kind": "rejected",
+              "hotkey": "alt+Tab",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "alt+shift+Tab",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "alt+F4",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "alt+Space",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "alt+Escape",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "ctrl+Escape",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "ctrl+shift+Escape",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "win+L",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "ctrl+win+L",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "F12",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            },
+            {
+              "kind": "rejected",
+              "hotkey": "shift+F12",
+              "action": "minimizeAll",
+              "reason": "systemReserved"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "新配置方案的默认热键两端都能注册",
+      "profile": {
+        "hotkeys": {
+          "toggleHideAll": [
+            "ctrl+opt+cmd+H@global"
+          ]
+        }
+      },
+      "expect": {
+        "macos": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "ctrl+opt+cmd+H",
+              "action": "toggleHideAll",
+              "scope": "global"
+            }
+          ],
+          "issues": []
+        },
+        "windows": {
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "ctrl+alt+win+H",
+              "action": "toggleHideAll",
+              "scope": "global"
+            }
+          ],
+          "issues": []
+        }
+      }
+    }
+  ],
+  "mouseMatcher": [
+    {
+      "name": "游戏范围：前台是 EVE 才触发，按下的松开也吞掉",
+      "steps": [
+        {
+          "op": "bindings",
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "ctrl+Mouse4",
+              "scope": "game"
+            }
+          ]
+        },
+        {
+          "op": "check",
+          "shouldListen": false,
+          "hasActiveBinding": false
+        },
+        {
+          "op": "down",
+          "hotkey": "ctrl+Mouse4",
+          "expect": "pass"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        },
+        {
+          "op": "frontmost",
+          "value": true
+        },
+        {
+          "op": "check",
+          "shouldListen": true,
+          "hasActiveBinding": true
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        },
+        {
+          "op": "down",
+          "hotkey": "ctrl+Mouse4",
+          "expect": "fire:1"
+        },
+        {
+          "op": "dragged",
+          "hotkey": "Mouse4",
+          "expect": "swallow"
+        },
+        {
+          "op": "dragged",
+          "hotkey": "Mouse3",
+          "expect": "pass"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse4",
+          "expect": "swallow"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        }
+      ]
+    },
+    {
+      "name": "按下后离开游戏：松开照样吞掉，等松开有时限",
+      "steps": [
+        {
+          "op": "bindings",
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "Mouse5",
+              "scope": "game"
+            }
+          ]
+        },
+        {
+          "op": "frontmost",
+          "value": true
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse5",
+          "expect": "fire:1"
+        },
+        {
+          "op": "frontmost",
+          "value": false
+        },
+        {
+          "op": "check",
+          "shouldListen": true,
+          "hasActiveBinding": false
+        },
+        {
+          "op": "refresh",
+          "now": 100,
+          "expect": 110
+        },
+        {
+          "op": "refresh",
+          "now": 105,
+          "expect": 110
+        },
+        {
+          "op": "up",
+          "hotkey": "shift+Mouse5",
+          "expect": "swallow"
+        },
+        {
+          "op": "check",
+          "shouldListen": false,
+          "hasActiveBinding": false
+        },
+        {
+          "op": "refresh",
+          "now": 106,
+          "expect": null
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse5",
+          "expect": "pass"
+        },
+        {
+          "op": "frontmost",
+          "value": true
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse5",
+          "expect": "fire:1"
+        },
+        {
+          "op": "frontmost",
+          "value": false
+        },
+        {
+          "op": "refresh",
+          "now": 200,
+          "expect": 210
+        },
+        {
+          "op": "refresh",
+          "now": 210,
+          "expect": null
+        },
+        {
+          "op": "check",
+          "shouldListen": false,
+          "hasActiveBinding": false
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse5",
+          "expect": "pass"
+        }
+      ]
+    },
+    {
+      "name": "暂停、替换绑定与钩子被摘掉",
+      "steps": [
+        {
+          "op": "bindings",
+          "bindings": [
+            {
+              "id": 1,
+              "hotkey": "Mouse3",
+              "scope": "global"
+            },
+            {
+              "id": 2,
+              "hotkey": "Mouse3",
+              "scope": "global"
+            }
+          ]
+        },
+        {
+          "op": "refresh",
+          "now": 0,
+          "expect": null
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse3",
+          "expect": "fire:1"
+        },
+        {
+          "op": "suspended",
+          "value": true
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse3",
+          "expect": "swallow"
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse3",
+          "expect": "pass"
+        },
+        {
+          "op": "check",
+          "shouldListen": false,
+          "hasActiveBinding": false
+        },
+        {
+          "op": "suspended",
+          "value": false
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse3",
+          "expect": "fire:1"
+        },
+        {
+          "op": "bindings",
+          "bindings": [
+            {
+              "id": 7,
+              "hotkey": "alt+Mouse4",
+              "scope": "global"
+            }
+          ]
+        },
+        {
+          "op": "down",
+          "hotkey": "opt+Mouse4",
+          "expect": "fire:7"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse3",
+          "expect": "swallow"
+        },
+        {
+          "op": "hookRemoved"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        },
+        {
+          "op": "down",
+          "hotkey": "alt+Mouse4",
+          "expect": "fire:7"
+        },
+        {
+          "op": "down",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        },
+        {
+          "op": "up",
+          "hotkey": "Mouse4",
+          "expect": "pass"
+        }
+      ]
+    }
+  ],
+  "oneTimeDefaults": {
+    "pending": [
+      {
+        "name": "都没补过",
+        "applied": [],
+        "expect": [
+          "hotkeys.toggleHideAll.ctrlOptCmdH",
+          "overlay.highlightEnabled.on"
+        ]
+      },
+      {
+        "name": "补过的与不认识的",
+        "applied": [
+          "overlay.highlightEnabled.on",
+          "x.y"
+        ],
+        "expect": [
+          "hotkeys.toggleHideAll.ctrlOptCmdH"
+        ]
+      },
+      {
+        "name": "都补过",
+        "applied": [
+          "overlay.highlightEnabled.on",
+          "hotkeys.toggleHideAll.ctrlOptCmdH"
+        ],
+        "expect": []
+      }
+    ],
+    "apply": [
+      {
+        "name": "补默认热键并打开高亮；已有热键或组合被占用时不补",
+        "ids": [
+          "hotkeys.toggleHideAll.ctrlOptCmdH",
+          "overlay.highlightEnabled.on",
+          "unknown"
+        ],
+        "profiles": [
+          {
+            "id": "p1",
+            "name": "1",
+            "overlay": {
+              "highlightEnabled": false,
+              "highlightColor": "#112233"
+            }
+          },
+          {
+            "id": "p2",
+            "name": "2",
+            "hotkeys": {
+              "toggleHideAll": [
+                "F13"
+              ]
+            }
+          },
+          {
+            "id": "p3",
+            "name": "3",
+            "characterHotkeys": {
+              "A": [
+                "cmd+ctrl+opt+h"
+              ]
+            }
+          },
+          {
+            "id": "p4",
+            "name": "4",
+            "cycleGroups": [
+              {
+                "id": "g",
+                "forwardHotkeys": [],
+                "backwardHotkeys": [
+                  "ctrl+opt+cmd+H@game"
+                ]
+              }
+            ]
+          }
+        ],
+        "expect": [
+          {
+            "toggleHideAll": [
+              "ctrl+opt+cmd+H@global"
+            ],
+            "highlightEnabled": true,
+            "highlightColor": "#112233"
+          },
+          {
+            "toggleHideAll": [
+              "F13"
+            ],
+            "highlightEnabled": true
+          },
+          {
+            "toggleHideAll": [],
+            "highlightEnabled": true
+          },
+          {
+            "toggleHideAll": [],
+            "highlightEnabled": true
+          }
+        ]
+      },
+      {
+        "name": "只补列出的项",
+        "ids": [
+          "overlay.highlightEnabled.on"
+        ],
+        "profiles": [
+          {
+            "id": "p1",
+            "name": "1"
+          }
+        ],
+        "expect": [
+          {
+            "toggleHideAll": [],
+            "highlightEnabled": true
+          }
+        ]
+      },
+      {
+        "name": "占用判断按本平台解析：win 只有 Windows 认",
+        "ids": [
+          "hotkeys.toggleHideAll.ctrlOptCmdH"
+        ],
+        "profiles": [
+          {
+            "id": "p1",
+            "name": "1",
+            "hotkeys": {
+              "minimizeAll": [
+                "ctrl+alt+win+H"
+              ]
+            }
+          }
+        ],
+        "expect": {
+          "macos": [
+            {
+              "toggleHideAll": [
+                "ctrl+opt+cmd+H@global"
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "toggleHideAll": []
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
