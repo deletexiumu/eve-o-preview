@@ -100,12 +100,14 @@ Code rules (section 8 of the architecture document): files stay under 1,000 line
 
 ## CI
 
+Pull requests are not built on GitHub's macOS runners, which often queue for a long time. Instead, the maintainer runs `scripts/verify_macos.sh <PR number>` on their own Mac. It checks out the PR's head commit in a temporary worktree, runs the l10n generation check, the quality gate, the release-notes check, the link check, `swift build` and `swift test`, and reports the result as the commit status `local/macos`. A PR that touches none of `macos/`, `shared/`, `scripts/`, `docs/release-notes/macos/` or the workflow is reported as passing without a build. Branch protection requires `local/macos`.
+
 `.github/workflows/macos.yml` runs on GitHub-hosted macOS runners:
 
-- Every pull request to `main` that changes `macos/`, `shared/`, `scripts/`, `docs/release-notes/macos/` or the workflow, and every such push to `main`, runs the quality gate, the release-notes check and the unit tests, then builds a universal dmg and the source archives. They are uploaded as a workflow artifact named `EVE-O-Preview-<version>-pr.<number>.<commit>` (or `-dev.<commit>` for pushes) and kept for 30 days.
+- Running it manually runs the same checks and the unit tests, then builds a universal dmg and the source archives. They are uploaded as a workflow artifact named `EVE-O-Preview-<version>-dev.<commit>` and kept for 30 days.
 - Pushing a `v*` tag builds the same files and publishes them as a GitHub Release. The tag must match the `macos/VERSION` file. If `docs/release-notes/macos/<tag>.md` exists, it becomes the release notes.
 
-Release builds are signed with the project's fixed self-signed certificate "EVE-O Preview Release", so macOS keeps the Screen Recording and Accessibility permissions across updates. Pull requests from forks cannot read the signing secret and fall back to an ad-hoc signature.
+Release builds are signed with the project's fixed self-signed certificate "EVE-O Preview Release", so macOS keeps the Screen Recording and Accessibility permissions across updates. Without the signing secret (for example, a manual run in a fork), the build falls back to an ad-hoc signature.
 
 ## Releasing a version
 
