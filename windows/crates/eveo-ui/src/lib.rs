@@ -15,3 +15,4 @@ pub use generated::*;
 
 pub mod bind;
 pub mod screenshot;
+pub mod switching;

@@ -116,7 +116,7 @@ fn set_foreground(window: HWND) {
 }
 
 /// 发一次未分配键的按下与抬起，让系统认为本进程刚收到输入。
-fn send_unassigned_key() {
+pub(crate) fn send_unassigned_key() {
     let key = |flags: KEYBD_EVENT_FLAGS| INPUT {
         r#type: INPUT_KEYBOARD,
         Anonymous: INPUT_0 {

@@ -20,6 +20,7 @@ use eveo_app_core::gesture::{Button, GestureOutput, Modifiers};
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::{Coordinator, Effect, Event, ForegroundOwner, SettingsPage};
 use eveo_core::geometry::ScreenInfo;
+use eveo_core::hotkeys::HotkeyScope;
 use eveo_core::layout::ResizeEdges;
 use eveo_core::model::WindowId;
 use eveo_platform_win::discovery::{ClientFilter, candidate_windows};
@@ -27,10 +28,11 @@ use eveo_platform_win::events::{
     WindowEvent, WindowEventHooks, foreground_window, local_timestamp, window_pid,
 };
 use eveo_platform_win::hotkey::{HotkeyMessage, HotkeyWindow};
+use eveo_platform_win::recorder::{HotkeyRecorder, RecordOutcome};
 use eveo_platform_win::thumbnail::{CursorShape, MouseButton, ThumbnailInput};
 use eveo_platform_win::tray::{TrayEvent, TrayIcon};
 use eveo_platform_win::{activation, appearance, menu, screens, single_instance};
-use eveo_ui::bind;
+use eveo_ui::{bind, switching};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use slint::ComponentHandle;
 use windows::Win32::Foundation::HWND;
@@ -68,6 +70,10 @@ enum Input {
     ClientEdit(bind::ClientEdit),
     /// 「客户端」页的「全部隐藏」开关，值是用户要的新状态。
     HideAll(bool),
+    /// 「切换与热键」页上的改动。
+    SwitchingEdit(switching::SwitchingEdit),
+    /// 「切换与热键」页的录制按钮（位置标识、原文；新增时原文为空串）。
+    Record(String, String),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -131,6 +137,8 @@ struct App {
     tray: TrayIcon,
     /// 设置窗口；第一次打开时建，关闭只是隐藏。
     settings: Option<eveo_ui::SettingsWindow>,
+    /// 正在录制的热键：位置、被替换的原文（新增时为空串）与录制器。
+    recording: Option<(switching::Slot, String, HotkeyRecorder)>,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -181,6 +189,7 @@ pub fn run() -> ExitCode {
         thumbnails: ThumbnailManager::default(),
         tray,
         settings: None,
+        recording: None,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -260,6 +269,9 @@ impl App {
             Input::SettingsEdited => self.settings_edited(false, runtime),
             Input::UnifySizes => self.settings_edited(true, runtime),
             Input::ClientEdit(edit) => self.client_edited(&edit, runtime),
+            Input::SwitchingEdit(edit) => self.switching_edited(&edit, runtime),
+            // 录制的结果不经回调，由定时器从录制器取（见 check_recording）。
+            Input::Record(slot, text) => self.toggle_recording(&slot, text),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -276,12 +288,13 @@ impl App {
         for effect in effects {
             self.execute(effect, runtime);
         }
-        self.refresh_clients_page();
+        self.refresh_settings_pages();
     }
 
-    /// 设置窗口开着时刷新「客户端」页（「预览与布局」页只随配置变化，在 ConfigChanged 里刷新）：在线客户端、「全部隐藏」与角色设置随时可能变。
+    /// 设置窗口开着时刷新「客户端」与「切换与热键」两页（「预览与布局」页只随配置变化，在 ConfigChanged 里刷新）：
+    /// 在线客户端、「全部隐藏」、热键规划与录制状态随时可能变。
     /// 每处理一个事件调一次；绑定层逐行比较，没变的行不碰，所以频繁调用也只是几次比较。
-    fn refresh_clients_page(&self) {
+    fn refresh_settings_pages(&self) {
         let Some(window) = &self.settings else {
             return;
         };
@@ -293,7 +306,24 @@ impl App {
             // 在线客户端取协调器的登记表，与缩略图用的是同一份，两边不会对不上。
             let clients = self.coordinator.registry().clients();
             bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
+            self.show_switching(window, profile);
         }
+    }
+
+    /// 填「切换与热键」页：热键规划的问题、注册失败项与录制状态一起交给绑定层。
+    /// 注册失败项由热键服务记着（它最清楚哪些注册成功了），每次刷新时取一份。
+    fn show_switching(&self, window: &eveo_ui::SettingsWindow, profile: &eveo_core::model::Profile) {
+        let failed = self.hotkeys.failures();
+        let state = switching::SwitchingState {
+            clients: self.coordinator.registry().clients(),
+            plan: self.coordinator.hotkey_plan(),
+            failed: &failed,
+            recording: self
+                .recording
+                .as_ref()
+                .map(|(slot, text, _)| (slot.clone(), text.clone())),
+        };
+        switching::show_switching(window, profile, &state);
     }
 
     /// 执行一个效果。
@@ -368,6 +398,8 @@ impl App {
                 _ => self.poll_soon(),
             }
         }
+        // 热键录制的结果：钩子回调只记下结果，这里取走并写进配置。
+        self.check_recording(runtime);
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());
         let now = Instant::now();
@@ -576,6 +608,7 @@ impl App {
                 let name = name.to_string();
                 post(&weak, Input::ClientEdit(bind::ClientEdit::ResetColor { name }));
             });
+            connect_switching(&window, runtime);
             self.settings = Some(window);
         }
         let Some(window) = &self.settings else {
@@ -585,6 +618,7 @@ impl App {
             bind::show_previews(window, profile);
             let clients = self.coordinator.registry().clients();
             bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
+            self.show_switching(window, profile);
         }
         // 「通用」页还没做：托盘与首次启动先打开「预览与布局」，那一页已经能用。
         window.set_page(match page {
@@ -620,6 +654,173 @@ impl App {
         // 没有变化（例如输入框里的颜色还没输完）就不打扰协调器：省一次重算，也不排一次写盘。
         if &config != self.coordinator.config() {
             self.send(Event::ConfigEdited(config), runtime);
+        }
+    }
+}
+
+/// 接上「切换与热键」页的回调：每个回调都转成输入排队，不在 Slint 的事件处理中途借用应用。
+fn connect_switching(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
+    use switching::SwitchingEdit as Edit;
+    let model = window.global::<eveo_ui::SwitchingModel>();
+    // 每个回调持有自己的弱引用；回调里只做参数换算，位置标识解析不了（不应出现）时丢弃这次操作。
+    let sender = |runtime: &Rc<Runtime>| {
+        let weak = Rc::downgrade(runtime);
+        move |edit: Edit| post(&weak, Input::SwitchingEdit(edit))
+    };
+    let send = sender(runtime);
+    // 默认作用范围：单选的下标 0 是全局，1 是仅游戏内。
+    model.on_default_scope_changed(move |index| {
+        let scope = if index == 1 {
+            HotkeyScope::Game
+        } else {
+            HotkeyScope::Global
+        };
+        send(Edit::DefaultScope(scope));
+    });
+    let send = sender(runtime);
+    // 新建循环组：id 在这里生成，绑定层只负责写进配置，测试里可以用固定的 id。
+    model.on_add_group(move || send(Edit::AddGroup(switching::new_group_id())));
+    let send = sender(runtime);
+    // 改名在回车或离开输入框时提交；空白名称由绑定层拒绝。
+    model.on_rename_group(move |id, name| {
+        send(Edit::RenameGroup {
+            id: id.into(),
+            name: name.into(),
+        });
+    });
+    let send = sender(runtime);
+    // 删除不再确认，与 macOS 一致。
+    model.on_delete_group(move |id| send(Edit::DeleteGroup(id.into())));
+    let send = sender(runtime);
+    model.on_add_member(move |id, name| {
+        // 下拉框里在线的角色带「 ●」后缀，去掉后才是角色名。
+        let name = name.strip_suffix(" ●").unwrap_or(&name).to_owned();
+        send(Edit::AddMember { id: id.into(), name });
+    });
+    let send = sender(runtime);
+    // Slint 的整数是 i32；负的位置不应出现，出现时丢弃。
+    model.on_move_member(move |id, index, delta| {
+        if let Ok(index) = usize::try_from(index) {
+            send(Edit::MoveMember {
+                id: id.into(),
+                index,
+                delta,
+            });
+        }
+    });
+    let send = sender(runtime);
+    model.on_remove_member(move |id, index| {
+        if let Ok(index) = usize::try_from(index) {
+            send(Edit::RemoveMember { id: id.into(), index });
+        }
+    });
+    let send = sender(runtime);
+    // 移除与改范围都按「位置 + 原文」定位，原文已不在列表里时绑定层什么也不做。
+    model.on_remove_hotkey(move |slot, text| {
+        if let Some(slot) = switching::Slot::parse(&slot) {
+            send(Edit::RemoveHotkey {
+                slot,
+                text: text.into(),
+            });
+        }
+    });
+    let send = sender(runtime);
+    model.on_set_scope(move |slot, text, index| {
+        // 下拉框的顺序：跟随默认、全局、仅游戏内。
+        let scope = match index {
+            1 => Some(HotkeyScope::Global),
+            2 => Some(HotkeyScope::Game),
+            _ => None,
+        };
+        if let Some(slot) = switching::Slot::parse(&slot) {
+            send(Edit::SetScope {
+                slot,
+                text: text.into(),
+                scope,
+            });
+        }
+    });
+    let weak = Rc::downgrade(runtime);
+    // 录制按钮不改配置，只切换录制状态，单独走一个输入。
+    model.on_record(move |slot, text| post(&weak, Input::Record(slot.into(), text.into())));
+}
+
+impl App {
+    /// 「切换与热键」页上的改动：与其他页一样从协调器手里的配置出发，有变化才交给协调器。
+    fn switching_edited(&mut self, edit: &switching::SwitchingEdit, runtime: &Rc<Runtime>) {
+        let mut config = self.coordinator.config().clone();
+        let Some(profile) = config.active_profile_mut() else {
+            return;
+        };
+        switching::apply_switching_edit(profile, edit);
+        if &config != self.coordinator.config() {
+            self.send(Event::ConfigEdited(config), runtime);
+        }
+    }
+
+    /// 点了录制按钮：正在录这一行时取消；否则结束别的录制，开始录这一行。录制期间暂停全部热键。
+    fn toggle_recording(&mut self, slot: &str, text: String) {
+        let Some(slot) = switching::Slot::parse(slot) else {
+            return;
+        };
+        // 再点正在录制的那个按钮等于取消，与 macOS 的录制按钮相同。
+        let same = self
+            .recording
+            .as_ref()
+            .is_some_and(|(s, t, _)| *s == slot && *t == text);
+        self.stop_recording();
+        // 钩子装不上（极少见）时不进入录制状态，按钮保持原样。
+        if !same && let Ok(recorder) = HotkeyRecorder::start() {
+            self.hotkeys.set_suspended(true);
+            self.recording = Some((slot, text, recorder));
+        }
+        self.refresh_settings_pages();
+    }
+
+    /// 结束录制：摘掉钩子，恢复热键。
+    fn stop_recording(&mut self) {
+        if self.recording.take().is_some() {
+            self.hotkeys.set_suspended(false);
+        }
+    }
+
+    /// 定时器里检查录制：有结果时写进配置；设置窗口不在前台（切到了别的程序）时取消，
+    /// 否则热键会一直暂停（同 macOS 在设置窗口失去焦点时取消录制）。
+    fn check_recording(&mut self, runtime: &Rc<Runtime>) {
+        let Some((slot, text, recorder)) = &self.recording else {
+            return;
+        };
+        // 先取结果再看前台：按下组合键的同时切走了窗口，录到的结果仍然有效。
+        let outcome = recorder.take_outcome();
+        // 设置窗口的句柄在显示后才有；取不到时按不在前台处理，录制随即取消。
+        let settings_foreground = self
+            .settings
+            .as_ref()
+            .and_then(settings_hwnd)
+            .is_some_and(|hwnd| foreground_window() == Some(eveo_platform_win::window_id(hwnd)));
+        if outcome.is_none() && settings_foreground {
+            return;
+        }
+        let edit = match outcome {
+            Some(RecordOutcome::Recorded(hotkey)) => Some(switching::SwitchingEdit::Recorded {
+                slot: slot.clone(),
+                text: text.clone(),
+                hotkey,
+            }),
+            // 清除只对已有的一行有意义；新增时按 Backspace 等于取消。
+            Some(RecordOutcome::Cleared) if !text.is_empty() => {
+                Some(switching::SwitchingEdit::RemoveHotkey {
+                    slot: slot.clone(),
+                    text: text.clone(),
+                })
+            }
+            _ => None,
+        };
+        self.stop_recording();
+        match edit {
+            Some(edit) => self.switching_edited(&edit, runtime),
+            // 没有改动时也要刷新一次，按钮从「按下组合键…」恢复原样。
+            None => self.refresh_settings_pages(),
         }
     }
 }

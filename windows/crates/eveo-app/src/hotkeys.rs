@@ -6,13 +6,17 @@
 // - 作用范围是 game 的键盘热键只在前台是 EVE 客户端时注册，否则别的程序收不到这个组合。
 //   前台变化时只增删这些热键，不换代。
 // - 鼠标绑定交给低级鼠标钩子的匹配器；有鼠标绑定时才装钩子，没有时拆掉，平时不拦截任何鼠标事件。
+// - 设置窗口录制热键时暂停：注销全部键盘热键、让匹配器放行，录完再恢复，按下的组合不会被自己的热键吞掉。
+// - 注册失败（被别的程序占用）的绑定记下来，设置窗口在对应热键旁提示；下次成功注册时清掉。
 
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use eveo_core::hotkeys::activation::is_active;
 use eveo_core::hotkeys::backend::hotkey_id;
-use eveo_core::hotkeys::{HotkeyBinding, HotkeyTrigger, MouseBinding, MouseHotkeyMatcher};
+use eveo_core::hotkeys::{
+    Hotkey, HotkeyAction, HotkeyBinding, HotkeyTrigger, MouseBinding, MouseHotkeyMatcher,
+};
 use eveo_platform_win::hotkey::HotkeyWindow;
 use eveo_platform_win::mouse_hook::{MouseHook, SharedMatcher};
 
@@ -32,6 +36,10 @@ pub struct HotkeyService {
     matcher: SharedMatcher,
     /// 鼠标钩子；没有鼠标绑定时为 `None`。
     mouse_hook: Option<MouseHook>,
+    /// 是否暂停（设置窗口正在录制热键）。
+    suspended: bool,
+    /// 注册失败的绑定 id。
+    failed: HashSet<u32>,
 }
 
 impl HotkeyService {
@@ -45,6 +53,8 @@ impl HotkeyService {
             game_foreground: false,
             matcher: Arc::new(Mutex::new(MouseHotkeyMatcher::new())),
             mouse_hook: None,
+            suspended: false,
+            failed: HashSet::new(),
         }
     }
 
@@ -59,6 +69,8 @@ impl HotkeyService {
         self.generation = hotkey_id::next_generation(self.generation);
         self.window.unregister_all();
         self.registered.clear();
+        // 绑定 id 随规划重排，旧的失败记录对不上新的绑定，清掉后按这次注册的结果重记。
+        self.failed.clear();
         self.bindings = bindings;
         self.sync_keyboard();
         let mouse: Vec<MouseBinding> = self
@@ -90,6 +102,29 @@ impl HotkeyService {
         self.sync_keyboard();
     }
 
+    /// 暂停或恢复全部热键（录制热键期间暂停）。
+    /// 暂停时键盘热键全部注销（不换代，恢复时按原编号重新注册），鼠标匹配器放行全部按键；
+    /// 录制器另外用钩子吞掉按下的组合，两层都在，录制时不会触发任何热键。
+    pub fn set_suspended(&mut self, suspended: bool) {
+        if suspended == self.suspended {
+            return;
+        }
+        self.suspended = suspended;
+        lock(&self.matcher).set_suspended(suspended);
+        self.sync_keyboard();
+    }
+
+    /// 注册失败的热键，按动作与组合，给设置窗口的问题提示用。
+    /// 只含当前一代里注册失败、之后也没注册成功的绑定；作用范围是 game 的热键只在 EVE 在前台时注册，
+    /// 所以它们的失败要等切到游戏后才知道。
+    pub fn failures(&self) -> Vec<(HotkeyAction, Hotkey)> {
+        self.bindings
+            .iter()
+            .filter(|b| self.failed.contains(&b.id))
+            .map(|b| (b.action.clone(), b.hotkey))
+            .collect()
+    }
+
     /// 把 WM_HOTKEY 里的编号换回绑定 id；上一代的编号返回 `None`。
     pub fn decode(&self, raw: i32) -> Option<u32> {
         let (generation, id) = hotkey_id::decode(raw)?;
@@ -103,7 +138,7 @@ impl HotkeyService {
             let HotkeyTrigger::Key(key) = binding.hotkey.trigger else {
                 continue;
             };
-            if !is_active(binding.scope, self.game_foreground, false) {
+            if !is_active(binding.scope, self.game_foreground, self.suspended) {
                 continue;
             }
             if let Some(raw) = hotkey_id::encode(self.generation, binding.id) {
@@ -125,10 +160,13 @@ impl HotkeyService {
             if self.registered.contains(&raw) {
                 continue;
             }
-            // 被别的程序占用或系统拒绝时跳过这一个，其余热键照常注册。
-            // 冲突提示要等设置窗口的热键页（它在热键旁标出冲突），届时把失败项交给设置窗口。
+            // 被别的程序占用或系统拒绝时跳过这一个，其余热键照常注册；失败的记下，设置窗口在热键旁提示。
+            // 注册结果按绑定 id 记：同一个组合换了动作（id 变了）时，旧的失败记录不会挂到新动作上。
             if self.window.register(raw, binding.hotkey.modifiers, key).is_ok() {
                 self.registered.insert(raw);
+                self.failed.remove(&binding.id);
+            } else {
+                self.failed.insert(binding.id);
             }
         }
     }

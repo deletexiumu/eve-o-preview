@@ -33,7 +33,7 @@ fn main() {
         eprintln!("建不了 {}：{error}", out.display());
         std::process::exit(2);
     }
-    // 「预览与布局」页：首屏（窗口默认大小）与整页（内容全部展开）各一张，明暗两套；「客户端」页明暗各一张。
+    // 「预览与布局」页：首屏（窗口默认大小）与整页（内容全部展开）各一张，明暗两套；「客户端」页明暗各一张；「切换与热键」页整页一张、暗色首屏一张。
     let shots = [
         ("settings-previews-light.png", false, 1, (1040, 760)),
         ("settings-previews-dark.png", true, 1, (1040, 760)),
@@ -41,6 +41,8 @@ fn main() {
         ("settings-previews-dark-full.png", true, 1, (1040, 1560)),
         ("settings-clients-light.png", false, 0, (1040, 760)),
         ("settings-clients-dark.png", true, 0, (1040, 760)),
+        ("settings-switching-light-full.png", false, 2, (1040, 1500)),
+        ("settings-switching-dark.png", true, 2, (1040, 760)),
     ];
     // 逐张渲染；任何一张失败就以非零码退出，CI 能发现。
     for (name, dark, page, size) in shots {

@@ -11,8 +11,9 @@ import { Theme } from "theme.slint";
 import { NavItem, PageHeader } from "components.slint";
 import { PreviewsModel, PreviewsPage } from "previews.slint";
 import { CharacterRow, ClientsModel, ClientsPage } from "clients.slint";
+import { CycleGroupData, HotkeyRow, HotkeySlotData, MemberRow, SwitchingModel, SwitchingPage } from "switching.slint";
 
-export { CharacterRow, ClientsModel, PreviewsModel }
+export { CharacterRow, ClientsModel, CycleGroupData, HotkeyRow, HotkeySlotData, MemberRow, PreviewsModel, SwitchingModel }
 
 // 还没做完的页：页标题加一句说明。导航项先全部列出，测试的人能看到完整的结构，
 // 也不必在每次加页时改导航；页做好后把对应的 ComingSoonPage 换成真正的页面。
@@ -115,7 +116,7 @@ export component SettingsWindow inherits Window {
                 // 页的数据在全局模型里，切走再切回来时控件重建，但值不丢，也不用重新从配置读。
                 if page == 1: PreviewsPage { }
                 if page == 0: ClientsPage { }
-                if page == 2: ComingSoonPage { title: "切换与热键"; }
+                if page == 2: SwitchingPage { }
                 if page == 3: ComingSoonPage { title: "提醒"; }
                 if page == 4: ComingSoonPage { title: "预警"; }
                 if page == 5: ComingSoonPage { title: "翻译"; }
