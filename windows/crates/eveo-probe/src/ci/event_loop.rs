@@ -52,6 +52,7 @@ struct Outcome {
     mouse: Option<u32>,
     thumbnail: Option<String>,
     activation: Option<bool>,
+    mica: Option<Result<(), String>>,
     timed_out: bool,
 }
 
@@ -76,7 +77,6 @@ pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mu
         );
         return;
     }
-    let mica = mica(&window);
     hooks.drain();
 
     let outcome = Rc::new(RefCell::new(Outcome::default()));
@@ -88,6 +88,7 @@ pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mu
     {
         let outcome = Rc::clone(&outcome);
         let natives = Rc::clone(&natives);
+        let weak = window.as_weak();
         timer.start(
             slint::TimerMode::Repeated,
             Duration::from_millis(100),
@@ -95,6 +96,8 @@ pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mu
                 let mut current = step.borrow_mut();
                 match *current {
                     0 => {
+                        // winit 在事件循环开始后才真正建窗口，句柄要在循环里取。
+                        outcome.borrow_mut().mica = weak.upgrade().map(|w| mica(&w));
                         start_natives(target, &outcome, &mut natives.borrow_mut());
                         *current = 1;
                     }
@@ -150,6 +153,7 @@ pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mu
         true,
         json!({"activated": outcome.activation, "foregroundEvent": foreground, "eventCount": events.len()}),
     );
+    let mica = outcome.mica.clone().unwrap_or_else(|| Err("窗口已释放".into()));
     report.check(
         "Slint 窗口设 Mica 背景",
         mica.is_ok(),
