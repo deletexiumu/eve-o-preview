@@ -74,18 +74,12 @@ export component SettingsWindow inherits Window {
                 padding-left: 6px;
                 padding-bottom: 16px;
                 spacing: 12px;
-                // 应用图标的占位：橙红渐变方块，正式图标在 M8 设计。
-                Rectangle {
+                // 应用图标：与标题栏同一张头像（64 像素，在高缩放比例下也清晰）。
+                Image {
+                    source: @image-url("images/app-icon.png");
                     width: 28px;
                     height: 28px;
-                    border-radius: 6px;
-                    background: @linear-gradient(135deg, #f2a23c 0%, #c0392b 100%);
-                    Text {
-                        text: "EO";
-                        color: #ffffff;
-                        font-size: 12px;
-                        font-weight: 700;
-                    }
+                    image-fit: contain;
                 }
                 Text {
                     text: "EVE-O Preview";
