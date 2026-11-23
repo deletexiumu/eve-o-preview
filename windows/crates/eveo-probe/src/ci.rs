@@ -3,7 +3,7 @@
 // CI 集成探针（架构文档 8.2 节）：启动四个假客户端（三个已登录、一个在登录界面），然后逐项核对：
 // 运行环境（DWM、前台、显示器）、发现与 Core 的主窗口挑选、DWM 缩略图（截图取色）、激活、
 // 键盘热键（SendInput 触发 RegisterHotKey）、重复注册的冲突、鼠标中键与侧键热键（低级鼠标钩子，含重装）、
-// 窗口事件、最小化后的缩略图。
+// 这些原生窗口与钩子在 Slint 事件循环里共存（W7）、窗口事件、最小化后的缩略图。
 // 每一项记成 report.json 里的一条检查；必需项失败时整次运行失败。
 
 //! `eveo-probe ci`。
@@ -38,6 +38,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 use windows::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE, XBUTTON1};
 
 use crate::option;
+
+mod event_loop;
 
 /// 一个假客户端的设定：标题、颜色（RRGGBB）、位置。
 struct FakeSpec {
@@ -138,6 +140,7 @@ pub fn run(args: &[String]) -> i32 {
         check_activation(&clients, &hooks, &mut report);
         check_hotkeys(&mut report);
         check_mouse_hotkeys(&mut report);
+        event_loop::check(&clients, &hooks, &mut report);
         check_minimized(&clients, &thumbnails, &out, &mut report);
     }
     drop(thumbnails);
