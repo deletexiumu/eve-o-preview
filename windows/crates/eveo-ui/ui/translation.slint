@@ -1,0 +1,216 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「翻译」页，对应 macOS 的 TranslationPage（docs/macos/design-intel-translate.md 第 10 节）。依次是
+// 总开关与状态、频道（可添加 4 个内置频道）、目标语言与显示、模型服务、浮窗、页尾的隐私与费用说明。
+// 开关、频道、目标语言与浮窗在当前配置方案的 translation 里；模型服务在 general.translationEndpoint，对全部方案生效。
+//
+// 翻译本身、API Key（Windows 上存进凭据管理器）、「测试」与译文缓存在 M6 接上，现在状态行与 Key 一行写明这一点。
+// 换服务预设时清掉自定义的地址与模型名（与 macOS 相同）；输入框的提示是预设的默认值，留空就用它。
+
+import { ComboBox, LineEdit, Switch } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { ChannelListSection, OverlaySection } from "chat.slint";
+import { SettingsText, TranslationText } from "generated/l10n.slint";
+
+// 本页的数据。
+export global TranslationModel {
+    // translation.enabled。
+    in-out property <bool> enabled;
+    // translation.channels 显示的名字。
+    in property <[string]> channels;
+    // 频道已满 16 项。
+    in property <bool> channels-full;
+    // 4 个内置频道是否已选。
+    in property <[bool]> built-in-selected: [false, false, false, false];
+    // 目标语言下拉的选项：第一项「跟随界面语言」，其余是 8 种语言的自称。
+    in property <[string]> target-names;
+    // translation.targetLanguage 在上面选项里的下标（TranslationTarget 的声明顺序）。
+    in-out property <int> target: 0;
+    // translation.showOriginal 与 foreignOnly。
+    in-out property <bool> show-original: true;
+    in-out property <bool> foreign-only;
+    // 服务预设的名字与选中的下标（TranslationProviderId 的声明顺序）。
+    in property <[string]> provider-names;
+    in-out property <int> provider: 0;
+    // 接口地址与模型名；空串表示用预设值，预设值作为输入框的提示。
+    in-out property <string> base-url;
+    in-out property <string> model;
+    in property <string> base-url-placeholder;
+    in property <string> model-placeholder;
+    // 这个预设是否用 Key；不用时 Key 一行只说明不需要。
+    in property <bool> uses-key: true;
+    // translation.overlay 的显示范围、不透明度、字号，与是否保存过位置。
+    in-out property <int> overlay-visibility;
+    in-out property <float> overlay-opacity: 0.75;
+    in-out property <float> overlay-font-size: 12;
+    in property <bool> overlay-has-frame;
+    // 用户改了某个值：Rust 读回整页。
+    callback edited();
+    // 移除第几个频道。
+    callback remove-channel(int);
+    // 按名称添加频道。
+    callback add-channel(string);
+    // 添加第几个内置频道（本地、军团、联盟、舰队）。
+    callback add-built-in(int);
+    // 「恢复默认位置」。
+    callback reset-overlay-frame();
+}
+
+// 「翻译」页。
+export component TranslationPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: SettingsText.page-translation;
+        subtitle: TranslationText.page-subtitle;
+    }
+
+    // 第 1 组：总开关与状态。
+    // 打开后才读聊天日志、才把消息发给模型服务。
+    SettingRow {
+        title: TranslationText.enable-toggle;
+        Switch {
+            checked <=> TranslationModel.enabled;
+            toggled => {
+                TranslationModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: TranslationText.status-label;
+        Text {
+            text: TranslationText.not-available-yet;
+            color: Theme.text-secondary;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+            wrap: word-wrap;
+            // 状态文字较长，限制宽度并换行。
+            max-width: 380px;
+        }
+    }
+    Footnote { text: SettingsText.chat-log-help; }
+
+    // 第 2 组：翻译频道，可直接添加内置频道（本地频道最常用）。
+    ChannelListSection {
+        channels: TranslationModel.channels;
+        full: TranslationModel.channels-full;
+        show-built-ins: true;
+        built-in-selected: TranslationModel.built-in-selected;
+        help: TranslationText.channels-help;
+        remove(index) => { TranslationModel.remove-channel(index); }
+        add-name(text) => { TranslationModel.add-channel(text); }
+        add-built-in(index) => { TranslationModel.add-built-in(index); }
+    }
+
+    // 第 3 组：目标语言与显示。
+    SectionHeader { text: TranslationText.target-header; }
+    SettingRow {
+        title: TranslationText.target-language;
+        // 第一项「跟随界面语言」，其余是语言的自称，选项文字不随界面语言变。
+        ComboBox {
+            model: TranslationModel.target-names;
+            current-index <=> TranslationModel.target;
+            // 「跟随界面语言」在德语、法语里较长，下拉框放宽一些。
+            width: 260px;
+            selected(v) => { TranslationModel.edited(); }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: TranslationText.show-original;
+        Switch {
+            checked <=> TranslationModel.show-original;
+            toggled => {
+                TranslationModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: TranslationText.foreign-only;
+        // 打开后与目标语言相同的消息不显示，浮窗里只剩外语消息的译文。
+        Switch {
+            checked <=> TranslationModel.foreign-only;
+            toggled => {
+                TranslationModel.edited();
+            }
+        }
+    }
+
+    // 第 4 组：模型服务。地址与模型名在回车或离开输入框时提交。
+    SectionHeader { text: TranslationText.model-header; }
+    SettingRow {
+        title: TranslationText.provider;
+        // 服务名不翻译；最后一项「其他」是界面文字。
+        ComboBox {
+            model: TranslationModel.provider-names;
+            current-index <=> TranslationModel.provider;
+            width: 260px;
+            selected(v) => { TranslationModel.edited(); }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: TranslationText.base-url;
+        LineEdit {
+            text <=> TranslationModel.base-url;
+            placeholder-text: TranslationModel.base-url-placeholder;
+            // 地址通常较长。
+            width: 340px;
+            accepted(text) => {
+                TranslationModel.edited();
+            }
+            changed has-focus => {
+                if !self.has-focus {
+                    TranslationModel.edited();
+                }
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: TranslationText.model;
+        LineEdit {
+            text <=> TranslationModel.model;
+            placeholder-text: TranslationModel.model-placeholder;
+            width: 340px;
+            accepted(text) => {
+                TranslationModel.edited();
+            }
+            changed has-focus => {
+                if !self.has-focus {
+                    TranslationModel.edited();
+                }
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: TranslationText.api-key;
+        // Ollama 这类本机服务不用 Key；其余服务的 Key 随翻译功能加上（存进 Windows 凭据管理器，不进配置文件）。
+        Text {
+            text: TranslationModel.uses-key ? TranslationText.api-key-not-available-yet : TranslationText.key-not-required;
+            color: Theme.text-secondary;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+            wrap: word-wrap;
+            max-width: 380px;
+        }
+    }
+
+    // 第 5 组：浮窗。
+    OverlaySection {
+        visibility <=> TranslationModel.overlay-visibility;
+        background-opacity <=> TranslationModel.overlay-opacity;
+        text-size <=> TranslationModel.overlay-font-size;
+        has-frame: TranslationModel.overlay-has-frame;
+        edited => { TranslationModel.edited(); }
+        reset-frame => { TranslationModel.reset-overlay-frame(); }
+    }
+    // 页尾：发给谁、花多少，两句说明。
+    Footnote { text: TranslationText.privacy-note; }
+    Footnote { text: TranslationText.cost-note; }
+    // 页底留白。
+    Rectangle { height: 24px; }
+}

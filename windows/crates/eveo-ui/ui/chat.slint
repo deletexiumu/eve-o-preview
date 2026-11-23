@@ -1,0 +1,189 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「预警」页与「翻译」页共用的两组控件，对应 macOS 的 ChannelListEditor 与 OverlaySettingsSection
+// （docs/macos/design-intel-translate.md 第 10 节）：
+// - ChannelListSection：已选频道的列表（每行「移除」），「按名称添加」的输入框；翻译页另有一行添加 4 个内置频道。
+//   macOS 的「从日志添加」要读聊天日志目录，随读日志的功能在 M6 加上。已有 16 项时添加的入口置灰。
+// - OverlaySection：浮窗的显示范围、背景不透明度、字号与「恢复默认位置」。
+//   macOS 的位置与尺寸数字框要用浮窗的布局规划，随浮窗在 M6 加上。
+// 频道的增删是动作（回调带下标或文字，由 Rust 改配置）；浮窗的值与其他页一样双向绑定，改动后触发 edited。
+
+import { Button, LineEdit, Slider } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { RadioOption, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+import { OverlayText, SettingsText } from "generated/l10n.slint";
+
+// 频道列表的一组：标题、已选频道、添加入口。
+export component ChannelListSection inherits VerticalLayout {
+    // 已选频道显示的名字；内置频道是本地化的名字。
+    in property <[string]> channels;
+    // 已满 16 项，添加的入口置灰。
+    in property <bool> full;
+    // 是否显示添加内置频道的一行（翻译页显示，预警页不显示，与 macOS 相同）。
+    in property <bool> show-built-ins;
+    // 4 个内置频道（本地、军团、联盟、舰队）是否已选；已选的按钮置灰。
+    in property <[bool]> built-in-selected: [false, false, false, false];
+    // 列表下面的说明。
+    in property <string> help;
+    // 移除第几项。
+    callback remove(int);
+    // 按名称添加一项。
+    callback add-name(string);
+    // 添加第几个内置频道，顺序同上。
+    callback add-built-in(int);
+
+    SectionHeader { text: OverlayText.channels-header; }
+    // 空列表时显示一行灰字，免得只剩添加入口，看不出列表在哪里。
+    if channels.length == 0: SettingRow {
+        title: OverlayText.no-channels;
+        enabled: false;
+    }
+    // 每个频道一张卡片；按钮只带下标，由 Rust 按下标删（列表的顺序就是配置里的顺序）。
+    for name[index] in channels: VerticalLayout {
+        padding-bottom: 4px;
+        SettingRow {
+            title: name;
+            Button {
+                text: OverlayText.remove-channel;
+                clicked => {
+                    root.remove(index);
+                }
+            }
+        }
+    }
+    // 内置频道按 ID 匹配，不受客户端语言影响，所以单独给按钮，不让用户手打名字。
+    if show-built-ins: VerticalLayout {
+        padding-bottom: 4px;
+        SettingRow {
+            title: OverlayText.add-built-in;
+            // 4 个按钮的文字都很短，一行放得下。
+            Button {
+                text: OverlayText.built-in-local;
+                enabled: !root.full && !root.built-in-selected[0];
+                clicked => { root.add-built-in(0); }
+            }
+            Button {
+                text: OverlayText.built-in-corp;
+                enabled: !root.full && !root.built-in-selected[1];
+                clicked => { root.add-built-in(1); }
+            }
+            Button {
+                text: OverlayText.built-in-alliance;
+                enabled: !root.full && !root.built-in-selected[2];
+                clicked => { root.add-built-in(2); }
+            }
+            Button {
+                text: OverlayText.built-in-fleet;
+                enabled: !root.full && !root.built-in-selected[3];
+                clicked => { root.add-built-in(3); }
+            }
+        }
+    }
+    SettingRow {
+        title: OverlayText.add-by-name;
+        // 回车时添加并清空；游戏里看到的名字，大小写不同的视为同一个频道。
+        LineEdit {
+            placeholder-text: OverlayText.add-by-name-placeholder;
+            enabled: !root.full;
+            width: 260px;
+            accepted(text) => {
+                root.add-name(text);
+                self.text = "";
+            }
+        }
+    }
+    // 列表的说明放在最后，相当于 macOS 表单分组的 footer。
+    Text {
+        text: root.help;
+        color: Theme.text-secondary;
+        font-size: 12px;
+        wrap: word-wrap;
+    }
+}
+
+// 浮窗设置的一组：显示范围（单选）、背景不透明度、字号、恢复默认位置。
+export component OverlaySection inherits VerticalLayout {
+    // 显示范围：0 始终显示，1 仅游戏内（OverlayVisibility 的声明顺序）。
+    in-out property <int> visibility;
+    // 背景不透明度，0.2～1.0。
+    in-out property <float> background-opacity: 0.75;
+    // 字号，10～24，步长 1。
+    in-out property <float> text-size: 12;
+    // 是否保存过位置；没保存过时「恢复默认位置」置灰。
+    in property <bool> has-frame;
+    // 用户改了某个值。
+    callback edited();
+    // 「恢复默认位置」。
+    callback reset-frame();
+
+    SectionHeader { text: OverlayText.overlay-header; }
+    // 显示范围用单选：两项互斥，选项文字较长（「仅游戏内」带说明），下拉框放不下。
+    Rectangle {
+        background: Theme.card;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        VerticalLayout {
+            padding: 14px;
+            padding-left: 18px;
+            spacing: 10px;
+            Text {
+                text: OverlayText.visibility-label;
+                color: Theme.text;
+            }
+            RadioOption {
+                text: OverlayText.visibility-always;
+                checked: root.visibility == 0;
+                clicked => {
+                    root.visibility = 0;
+                    root.edited();
+                }
+            }
+            RadioOption {
+                text: OverlayText.visibility-game-only;
+                checked: root.visibility == 1;
+                clicked => {
+                    root.visibility = 1;
+                    root.edited();
+                }
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: OverlayText.opacity;
+        // 只是背景的不透明度，文字始终不透明。
+        Slider {
+            value <=> root.background-opacity;
+            minimum: 0.2;
+            maximum: 1.0;
+            width: 200px;
+            changed(v) => { root.edited(); }
+        }
+        ValueLabel { text: Math.round(root.background-opacity * 100) + "%"; }
+    }
+    RowGap { }
+    SettingRow {
+        title: OverlayText.font-size;
+        // 第一行（人名或译文）的字号；第二行的原文按比例小一号，由浮窗自己算。
+        Slider {
+            value <=> root.text-size;
+            minimum: 10;
+            maximum: 24;
+            step: 1;
+            width: 200px;
+            changed(v) => { root.edited(); }
+        }
+        ValueLabel { text: Math.round(root.text-size) + " " + SettingsText.points; }
+    }
+    RowGap { }
+    SettingRow {
+        title: OverlayText.position-label;
+        // 浮窗被拖到屏幕外或尺寸不合适时，用它回到默认位置。
+        Button {
+            text: OverlayText.reset-frame;
+            enabled: root.has-frame;
+            clicked => { root.reset-frame(); }
+        }
+    }
+}

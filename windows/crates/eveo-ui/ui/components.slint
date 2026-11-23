@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 设置窗口各页共用的控件：导航项、页标题、分组标题、设置行、颜色输入。
+// 设置窗口各页共用的控件：导航项、页标题、分组标题、设置行、颜色输入、单选项。
 // 外观仿 Windows 11 设置应用：每行一张圆角卡片，左边是名字与说明，右边是控件。
 
 import { LineEdit } from "std-widgets.slint";
@@ -208,5 +208,39 @@ export component Footnote inherits VerticalLayout {
         color: Theme.text-secondary;
         font-size: 12px;
         wrap: word-wrap;
+    }
+}
+
+// 单选按钮的一项：圆圈加文字，整行可点。std-widgets 没有单选按钮，这里按 Win11 的样子画。
+export component RadioOption inherits HorizontalLayout {
+    // 选项文字。
+    in property <string> text;
+    // 是否选中。
+    in property <bool> checked;
+    // 被点了。
+    callback clicked();
+    spacing: 10px;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            // 选中时用粗的强调色描边画出实心圆点，与 Win11 的单选按钮相同。
+            border-width: checked ? 5px : 1px;
+            border-color: checked ? Theme.accent : Theme.text-secondary;
+            background: Theme.card;
+        }
+    }
+    Text {
+        text: root.text;
+        color: Theme.text;
+        vertical-alignment: center;
+        wrap: word-wrap;
+    }
+    TouchArea {
+        clicked => {
+            root.clicked();
+        }
     }
 }

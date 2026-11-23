@@ -8,6 +8,7 @@ notes = """
 [protocols.OverlayStrings]
 doc = "浮窗与两页共用设置控件的文字。"
 accessor = "overlay"
+slint = true
 
 [OverlayStrings.newMessages]
 section = "浮窗的列表"
@@ -89,6 +90,14 @@ doc = "「从日志添加」菜单。"
 
 [OverlayStrings.addByNamePlaceholder]
 doc = "「按名称添加」输入框的占位文字。"
+
+[OverlayStrings.addBuiltIn]
+doc = "Windows「翻译」页：频道列表下添加内置频道（本地、军团、联盟、舰队）的一行的名字。"
+platforms = ["windows"]
+
+[OverlayStrings.addByName]
+doc = "Windows：频道列表下按名称添加一行的名字。"
+platforms = ["windows"]
 
 [OverlayStrings.removeChannel]
 doc = "「移除」按钮。"

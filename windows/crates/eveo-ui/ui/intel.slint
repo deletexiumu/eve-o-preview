@@ -1,0 +1,205 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「预警」页，对应 macOS 的 IntelPage（docs/macos/design-intel-translate.md 第 10 节）。依次是
+// 总开关与状态、频道、参考星系、显示（保留最近、最多计算、高亮距离、显示原文）、人名核对、浮窗、页尾说明。
+// 设置在当前配置方案的 intel 里。
+//
+// 读聊天日志、预警浮窗与星图数据在 M6 接上，现在状态行写明这一点。macOS 的「我的位置」要列在线角色的位置，
+// 人名核对的状态与缓存要有查询服务，都随功能一起加；参考星系现在只记下文字，查不到星系的提示也随星图数据加上。
+// 与其他页的约定相同：控件只在用户操作时触发 edited，Rust 读回整页；频道的增删是单独的回调。
+
+import { LineEdit, SpinBox, Switch } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+import { ChannelListSection, OverlaySection } from "chat.slint";
+import { IntelText, SettingsText } from "generated/l10n.slint";
+
+// 本页的数据。
+export global IntelModel {
+    // intel.enabled。
+    in-out property <bool> enabled;
+    // intel.channels 显示的名字。
+    in property <[string]> channels;
+    // 频道已满 16 项。
+    in property <bool> channels-full;
+    // intel.referenceSystem；空串表示没有。
+    in-out property <string> reference-system;
+    // intel.windowMinutes，5～120，步长 5。
+    in-out property <int> window-minutes: 30;
+    // intel.maxJumps，1～30。
+    in-out property <int> max-jumps: 15;
+    // intel.alertJumps，0～30；0 表示不高亮。
+    in-out property <int> alert-jumps: 5;
+    // intel.showOriginal。
+    in-out property <bool> show-original: true;
+    // intel.resolvePilotNames。
+    in-out property <bool> resolve-pilots: true;
+    // intel.overlay 的显示范围、不透明度、字号，与是否保存过位置。
+    in-out property <int> overlay-visibility;
+    in-out property <float> overlay-opacity: 0.75;
+    in-out property <float> overlay-font-size: 12;
+    in property <bool> overlay-has-frame;
+    // 用户改了某个值：Rust 读回整页。
+    callback edited();
+    // 移除第几个频道。
+    callback remove-channel(int);
+    // 按名称添加频道。
+    callback add-channel(string);
+    // 「恢复默认位置」。
+    callback reset-overlay-frame();
+}
+
+// 「预警」页。
+export component IntelPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: SettingsText.page-intel;
+        subtitle: IntelText.page-subtitle;
+    }
+
+    // 第 1 组：总开关与状态。开关在配置方案里，不同方案可以分别开关。
+    // 打开后才读聊天日志：读日志目录的时机与 macOS 相同，用户明确打开功能后才开始。
+    SettingRow {
+        title: IntelText.enable-toggle;
+        Switch {
+            checked <=> IntelModel.enabled;
+            toggled => {
+                IntelModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: IntelText.status-label;
+        Text {
+            text: IntelText.not-available-yet;
+            color: Theme.text-secondary;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+            wrap: word-wrap;
+            // 状态文字较长，限制宽度并换行，不把左边的名字挤没。
+            max-width: 380px;
+        }
+    }
+    // EVE 默认不把聊天写进文件，这句提醒用户去游戏设置里打开。
+    Footnote { text: SettingsText.chat-log-help; }
+
+    // 第 2 组：预警频道（不列内置频道：预警只看玩家建的情报频道）。
+    ChannelListSection {
+        channels: IntelModel.channels;
+        full: IntelModel.channels-full;
+        show-built-ins: false;
+        help: IntelText.channels-help;
+        remove(index) => { IntelModel.remove-channel(index); }
+        add-name(text) => { IntelModel.add-channel(text); }
+    }
+
+    // 第 3 组：参考星系。不知道角色在哪里时，跳数从它算。
+    SectionHeader { text: IntelText.location-header; }
+    SettingRow {
+        title: IntelText.reference-system;
+        description: IntelText.reference-system-help;
+        // 回车或离开输入框时提交：输入到一半的名字不写进配置。
+        LineEdit {
+            text <=> IntelModel.reference-system;
+            placeholder-text: IntelText.system-placeholder;
+            width: 220px;
+            accepted(text) => {
+                IntelModel.edited();
+            }
+            changed has-focus => {
+                if !self.has-focus {
+                    IntelModel.edited();
+                }
+            }
+        }
+    }
+
+    // 第 4 组：显示。数字框右边是带单位的数值（单位随数量变化，例如俄语的复数）。
+    SectionHeader { text: IntelText.display-header; }
+    SettingRow {
+        title: IntelText.window-minutes;
+        // 步长 5 分钟：精确到分钟没有意义，步长大一点按几下就能到。
+        SpinBox {
+            value <=> IntelModel.window-minutes;
+            minimum: 5;
+            maximum: 120;
+            step-size: 5;
+            width: 120px;
+            edited(v) => { IntelModel.edited(); }
+        }
+        ValueLabel {
+            text: IntelText.minutes(IntelModel.window-minutes);
+            width: 80px;
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: IntelText.max-jumps;
+        // 超过这个跳数显示「超过 N 跳」，不再往外找路径。
+        SpinBox {
+            value <=> IntelModel.max-jumps;
+            minimum: 1;
+            maximum: 30;
+            width: 120px;
+            edited(v) => { IntelModel.edited(); }
+        }
+        ValueLabel {
+            text: IntelText.jumps-unit(IntelModel.max-jumps);
+            width: 80px;
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: IntelText.alert-jumps;
+        description: IntelText.alert-jumps-help;
+        SpinBox {
+            value <=> IntelModel.alert-jumps;
+            minimum: 0;
+            maximum: 30;
+            width: 120px;
+            edited(v) => { IntelModel.edited(); }
+        }
+        ValueLabel {
+            text: IntelText.jumps-unit(IntelModel.alert-jumps);
+            width: 80px;
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: IntelText.show-original;
+        // 每条下面附原始消息，人名与数量推断错了时能对照。
+        Switch {
+            checked <=> IntelModel.show-original;
+            toggled => {
+                IntelModel.edited();
+            }
+        }
+    }
+
+    // 第 5 组：人名核对（向 CCP 的 ESI 查几个连在一起的人名各是谁）。
+    SectionHeader { text: IntelText.pilot-lookup-label; }
+    SettingRow {
+        title: IntelText.resolve-pilots-toggle;
+        description: IntelText.resolve-pilots-help;
+        Switch {
+            checked <=> IntelModel.resolve-pilots;
+            toggled => {
+                IntelModel.edited();
+            }
+        }
+    }
+
+    // 第 6 组：浮窗。外观改动立即生效，与缩略图的滑块一样。
+    OverlaySection {
+        visibility <=> IntelModel.overlay-visibility;
+        background-opacity <=> IntelModel.overlay-opacity;
+        text-size <=> IntelModel.overlay-font-size;
+        has-frame: IntelModel.overlay-has-frame;
+        edited => { IntelModel.edited(); }
+        reset-frame => { IntelModel.reset-overlay-frame(); }
+    }
+    Footnote { text: IntelText.footnote; }
+    // 页底留白。
+    Rectangle { height: 24px; }
+}

@@ -32,8 +32,6 @@ pub trait SettingsStrings: Sync {
     fn window_title(&self) -> &'static str;
     /// Windows 设置窗口导航顶部查找框的占位文字。
     fn search_settings(&self) -> &'static str;
-    /// Windows 测试版：还没做完的设置页，页标题下的说明。
-    fn coming_soon(&self) -> &'static str;
     /// 长度单位「点」，接在数字后面（如「28 点」）。
     fn points(&self) -> &'static str;
     /// 把按角色的颜色恢复成默认值的按钮。
@@ -355,9 +353,6 @@ impl SettingsStrings for SettingsStringsEn {
     }
     fn search_settings(&self) -> &'static str {
         "Find a setting"
-    }
-    fn coming_soon(&self) -> &'static str {
-        "This page is still in progress and will arrive in a later test build."
     }
     fn points(&self) -> &'static str {
         "pt"
@@ -839,9 +834,6 @@ impl SettingsStrings for SettingsStringsZh {
     fn search_settings(&self) -> &'static str {
         "查找设置"
     }
-    fn coming_soon(&self) -> &'static str {
-        "这一页还在做，稍后的测试版会加上。"
-    }
     fn points(&self) -> &'static str {
         "点"
     }
@@ -1318,9 +1310,6 @@ impl SettingsStrings for SettingsStringsRu {
     }
     fn search_settings(&self) -> &'static str {
         "Найти параметр"
-    }
-    fn coming_soon(&self) -> &'static str {
-        "Эта страница ещё в работе и появится в одной из следующих тестовых сборок."
     }
     fn points(&self) -> &'static str {
         "пт"
@@ -1803,9 +1792,6 @@ impl SettingsStrings for SettingsStringsJa {
     fn search_settings(&self) -> &'static str {
         "設定の検索"
     }
-    fn coming_soon(&self) -> &'static str {
-        "このページは作成中です。今後のテスト版で追加されます。"
-    }
     fn points(&self) -> &'static str {
         "pt"
     }
@@ -2283,9 +2269,6 @@ impl SettingsStrings for SettingsStringsKo {
     fn search_settings(&self) -> &'static str {
         "설정 찾기"
     }
-    fn coming_soon(&self) -> &'static str {
-        "이 페이지는 아직 작업 중이며 이후 테스트 빌드에서 추가됩니다."
-    }
     fn points(&self) -> &'static str {
         "pt"
     }
@@ -2762,9 +2745,6 @@ impl SettingsStrings for SettingsStringsFr {
     }
     fn search_settings(&self) -> &'static str {
         "Rechercher un paramètre"
-    }
-    fn coming_soon(&self) -> &'static str {
-        "Cette page est en cours de réalisation et arrivera dans une prochaine version de test."
     }
     fn points(&self) -> &'static str {
         "pt"
@@ -3246,9 +3226,6 @@ impl SettingsStrings for SettingsStringsDe {
     fn search_settings(&self) -> &'static str {
         "Einstellung suchen"
     }
-    fn coming_soon(&self) -> &'static str {
-        "Diese Seite ist noch in Arbeit und kommt in einem späteren Testbuild."
-    }
     fn points(&self) -> &'static str {
         "pt"
     }
@@ -3728,9 +3705,6 @@ impl SettingsStrings for SettingsStringsEs {
     }
     fn search_settings(&self) -> &'static str {
         "Buscar una configuración"
-    }
-    fn coming_soon(&self) -> &'static str {
-        "Esta página aún está en desarrollo y llegará en una próxima versión de prueba."
     }
     fn points(&self) -> &'static str {
         "pt"

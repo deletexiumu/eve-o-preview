@@ -16,7 +16,7 @@
 
 import { Button, ComboBox, LineEdit } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { PageHeader, RadioOption, RowGap, SectionHeader, SettingRow } from "components.slint";
 import { HotkeyText, SettingsText } from "generated/l10n.slint";
 
 // 一条热键。
@@ -196,40 +196,6 @@ component HotkeySlotCard inherits Rectangle {
                     }
                 }
             }
-        }
-    }
-}
-
-// 单选按钮的一项：圆圈加文字，整行可点。std-widgets 没有单选按钮，这里按 Win11 的样子画。
-component RadioOption inherits HorizontalLayout {
-    // 选项文字。
-    in property <string> text;
-    // 是否选中。
-    in property <bool> checked;
-    // 被点了。
-    callback clicked();
-    spacing: 10px;
-    VerticalLayout {
-        alignment: center;
-        Rectangle {
-            width: 18px;
-            height: 18px;
-            border-radius: 9px;
-            // 选中时用粗的强调色描边画出实心圆点，与 Win11 的单选按钮相同。
-            border-width: checked ? 5px : 1px;
-            border-color: checked ? Theme.accent : Theme.text-secondary;
-            background: Theme.card;
-        }
-    }
-    Text {
-        text: root.text;
-        color: Theme.text;
-        vertical-alignment: center;
-        wrap: word-wrap;
-    }
-    TouchArea {
-        clicked => {
-            root.clicked();
         }
     }
 }

@@ -4,6 +4,7 @@
 pageSubtitle = "Reads intel channel logs and shows where hostiles are, how many, what ships, and how far."
 enableToggle = "Show intel overlay"
 statusLabel = "Status"
+notAvailableYet = "Reading chat logs and the intel overlay arrive in a later test build; you can fill in the settings now"
 channelsHelp = "Choose the channels where hostiles are reported."
 
 locationHeader = "My Location"

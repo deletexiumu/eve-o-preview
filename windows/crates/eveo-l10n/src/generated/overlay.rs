@@ -64,6 +64,10 @@ pub trait OverlayStrings: Sync {
     fn add_from_logs(&self) -> &'static str;
     /// 「按名称添加」输入框的占位文字。
     fn add_by_name_placeholder(&self) -> &'static str;
+    /// Windows「翻译」页：频道列表下添加内置频道（本地、军团、联盟、舰队）的一行的名字。
+    fn add_built_in(&self) -> &'static str;
+    /// Windows：频道列表下按名称添加一行的名字。
+    fn add_by_name(&self) -> &'static str;
     /// 「移除」按钮。
     fn remove_channel(&self) -> &'static str;
     /// 列表为空时的说明。
@@ -162,6 +166,12 @@ impl OverlayStrings for OverlayStringsEn {
     }
     fn add_by_name_placeholder(&self) -> &'static str {
         "Type a channel name and press Return"
+    }
+    fn add_built_in(&self) -> &'static str {
+        "Add a built-in channel"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "Add by name"
     }
     fn remove_channel(&self) -> &'static str {
         "Remove"
@@ -273,6 +283,12 @@ impl OverlayStrings for OverlayStringsZh {
     }
     fn add_by_name_placeholder(&self) -> &'static str {
         "输入频道名称后按回车"
+    }
+    fn add_built_in(&self) -> &'static str {
+        "添加内置频道"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "按名称添加"
     }
     fn remove_channel(&self) -> &'static str {
         "移除"
@@ -386,6 +402,12 @@ impl OverlayStrings for OverlayStringsRu {
     fn add_by_name_placeholder(&self) -> &'static str {
         "Введите название канала и нажмите Return"
     }
+    fn add_built_in(&self) -> &'static str {
+        "Добавить встроенный канал"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "Добавить по названию"
+    }
     fn remove_channel(&self) -> &'static str {
         "Удалить"
     }
@@ -498,6 +520,12 @@ impl OverlayStrings for OverlayStringsJa {
     fn add_by_name_placeholder(&self) -> &'static str {
         "チャンネル名を入力して Return キーを押す"
     }
+    fn add_built_in(&self) -> &'static str {
+        "組み込みチャンネルを追加"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "名前で追加"
+    }
     fn remove_channel(&self) -> &'static str {
         "削除"
     }
@@ -605,6 +633,12 @@ impl OverlayStrings for OverlayStringsKo {
     }
     fn add_by_name_placeholder(&self) -> &'static str {
         "채널 이름을 입력하고 Return 키를 누르세요"
+    }
+    fn add_built_in(&self) -> &'static str {
+        "기본 채널 추가"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "이름으로 추가"
     }
     fn remove_channel(&self) -> &'static str {
         "제거"
@@ -717,6 +751,12 @@ impl OverlayStrings for OverlayStringsFr {
     fn add_by_name_placeholder(&self) -> &'static str {
         "Saisissez un nom de canal puis appuyez sur Retour"
     }
+    fn add_built_in(&self) -> &'static str {
+        "Ajouter un canal intégré"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "Ajouter par nom"
+    }
     fn remove_channel(&self) -> &'static str {
         "Retirer"
     }
@@ -827,6 +867,12 @@ impl OverlayStrings for OverlayStringsDe {
     }
     fn add_by_name_placeholder(&self) -> &'static str {
         "Kanalnamen eingeben und Zeilenschalter drücken"
+    }
+    fn add_built_in(&self) -> &'static str {
+        "Integrierten Kanal hinzufügen"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "Nach Namen hinzufügen"
     }
     fn remove_channel(&self) -> &'static str {
         "Entfernen"
@@ -941,6 +987,12 @@ impl OverlayStrings for OverlayStringsEs {
     }
     fn add_by_name_placeholder(&self) -> &'static str {
         "Escribe el nombre de un canal y pulsa Retorno"
+    }
+    fn add_built_in(&self) -> &'static str {
+        "Añadir un canal integrado"
+    }
+    fn add_by_name(&self) -> &'static str {
+        "Añadir por nombre"
     }
     fn remove_channel(&self) -> &'static str {
         "Quitar"

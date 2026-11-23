@@ -449,6 +449,7 @@ mod tests {
         crate::profiles::tests::check_page(&ui);
         crate::general::tests::check_page(&ui);
         crate::alerts::tests::check_page(&ui);
+        crate::chat::tests::check_page(&ui);
     }
 
     /// 「客户端」页：行的内容、刷新时保留输入到一半的颜色、配置变了才改写。
