@@ -67,7 +67,8 @@ export component AlertsPage inherits VerticalLayout {
             text: AlertsModel.status-text;
             color: Theme.text-secondary;
             vertical-alignment: center;
-            wrap: word-wrap;
+            // 按字符换行：状态里的路径没有空格，按词换行会在「C:」后面断开，把整条路径挤到下一行（真机测试发现）。
+            wrap: char-wrap;
             horizontal-alignment: right;
             // 状态文字可能较长，限制宽度并换行，不把左边的名字挤没。
             max-width: 380px;
