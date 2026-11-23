@@ -14,9 +14,9 @@ publish.workspace = true
 
 [dependencies]
 serde.workspace = true
-
-[dev-dependencies]
 serde_json.workspace = true
+unicode-segmentation.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true

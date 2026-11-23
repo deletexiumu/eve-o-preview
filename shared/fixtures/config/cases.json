@@ -1,0 +1,1120 @@
+{
+  "cases": [
+    {
+      "name": "空对象：补一个 Default 方案，全部取默认值（键名与默认值的基准）",
+      "input": {},
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [
+          "profiles",
+          "activeProfileID"
+        ],
+        "match": "exact",
+        "config": {
+          "activeProfileID": "<uuid>",
+          "general": {
+            "autoInstallUpdates": true,
+            "checkForUpdates": true,
+            "language": "en",
+            "logLevel": "info",
+            "onboardingCompleted": false,
+            "pollIntervalMs": 1000,
+            "showDockIcon": true,
+            "translationEndpoint": {
+              "baseURL": "",
+              "model": "",
+              "provider": "deepseek"
+            }
+          },
+          "profiles": [
+            {
+              "behavior": {
+                "alwaysOnTop": true,
+                "hideActiveClientThumbnail": false,
+                "hideDelaySeconds": 1,
+                "hideWhenEVENotFrontmost": false,
+                "lockLayout": false
+              },
+              "capture": {
+                "frameRate": 15,
+                "titleBarCropHeight": 28
+              },
+              "characterHotkeys": {},
+              "combatAlert": {
+                "color": "#FF3B30",
+                "durationSeconds": 3,
+                "enabled": false,
+                "includeMisses": true,
+                "minimumDamage": 1,
+                "style": "both"
+              },
+              "cycleGroups": [],
+              "hiddenCharacters": [],
+              "highlightColors": {},
+              "hotkeyDefaultScope": "global",
+              "hotkeys": {
+                "cycleLoginClients": [],
+                "minimizeAll": [],
+                "toggleHideAll": [
+                  "ctrl+opt+cmd+H@global"
+                ]
+              },
+              "id": "<uuid>",
+              "intel": {
+                "alertJumps": 5,
+                "channels": [],
+                "enabled": false,
+                "maxJumps": 15,
+                "overlay": {
+                  "fontSize": 12,
+                  "opacity": 0.75,
+                  "visibility": "always"
+                },
+                "resolvePilotNames": true,
+                "showOriginal": true,
+                "windowMinutes": 30
+              },
+              "layouts": {},
+              "loginPosition": {
+                "x": 5,
+                "y": 40
+              },
+              "name": "Default",
+              "overlay": {
+                "borderColor": "#C0C0C0",
+                "borderEnabled": true,
+                "borderThickness": 2,
+                "highlightColor": "#ADFF2F",
+                "highlightEnabled": true,
+                "highlightThickness": 3,
+                "showTitle": true,
+                "titleColor": "#FFFFFF",
+                "titleFontSize": 12
+              },
+              "thumbnail": {
+                "defaultSize": {
+                  "height": 216,
+                  "width": 384
+                },
+                "lockAspectRatio": false,
+                "maximumSize": {
+                  "height": 540,
+                  "width": 960
+                },
+                "minimumSize": {
+                  "height": 108,
+                  "width": 192
+                },
+                "opacity": 0.5,
+                "snapEnabled": true,
+                "zoomAnchor": "nw",
+                "zoomEnabled": false,
+                "zoomFactor": 2
+              },
+              "translation": {
+                "channels": [],
+                "enabled": false,
+                "foreignOnly": false,
+                "overlay": {
+                  "fontSize": 12,
+                  "opacity": 0.75,
+                  "visibility": "always"
+                },
+                "showOriginal": true,
+                "targetLanguage": "ui"
+              }
+            }
+          ],
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "name": "手写的最小配置：缺的键都取默认值；解码出的方案不带新建方案的默认热键",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main"
+          }
+        ],
+        "activeProfileID": "P1"
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [],
+        "match": "subset",
+        "config": {
+          "activeProfileID": "P1",
+          "profiles": [
+            {
+              "id": "P1",
+              "name": "Main",
+              "hotkeys": {
+                "toggleHideAll": [],
+                "minimizeAll": [],
+                "cycleLoginClients": []
+              },
+              "thumbnail": {
+                "opacity": 0.5
+              },
+              "loginPosition": {
+                "x": 5,
+                "y": 40
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "版本 0 迁移到 1",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main"
+          }
+        ],
+        "activeProfileID": "P1",
+        "schemaVersion": 0
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": 0,
+        "clamped": [],
+        "match": "subset",
+        "config": {
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "name": "null 与缺键一样取默认值，可选键为 null 时不写出",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "thumbnail": {
+              "opacity": null,
+              "zoomFactor": null,
+              "defaultSize": null
+            },
+            "intel": {
+              "referenceSystem": null,
+              "overlay": {
+                "frame": null,
+                "opacity": null
+              }
+            },
+            "layouts": {
+              "A": {
+                "x": null,
+                "y": 3,
+                "width": null
+              }
+            },
+            "loginPosition": {
+              "x": null
+            }
+          }
+        ],
+        "activeProfileID": "P1",
+        "general": {
+          "eveLogDirectory": null,
+          "language": null,
+          "pollIntervalMs": null
+        }
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [],
+        "match": "subset",
+        "config": {
+          "general": {
+            "eveLogDirectory": "<absent>",
+            "language": "en",
+            "pollIntervalMs": 1000
+          },
+          "profiles": [
+            {
+              "thumbnail": {
+                "opacity": 0.5,
+                "zoomFactor": 2,
+                "defaultSize": {
+                  "width": 384,
+                  "height": 216
+                }
+              },
+              "intel": {
+                "referenceSystem": "<absent>",
+                "overlay": {
+                  "frame": "<absent>",
+                  "opacity": 0.75
+                }
+              },
+              "layouts": {
+                "A": {
+                  "x": 0,
+                  "y": 3,
+                  "width": "<absent>",
+                  "height": "<absent>"
+                }
+              },
+              "loginPosition": {
+                "x": 0,
+                "y": 0
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "不认识的枚举值取默认值，不判为损坏",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "hotkeyDefaultScope": "everywhere",
+            "combatAlert": {
+              "style": [
+                "x"
+              ]
+            },
+            "translation": {
+              "targetLanguage": {}
+            },
+            "intel": {
+              "overlay": {
+                "visibility": 3
+              }
+            },
+            "thumbnail": {
+              "zoomAnchor": "middle"
+            }
+          }
+        ],
+        "activeProfileID": "P1",
+        "general": {
+          "language": "klingon",
+          "logLevel": 5,
+          "translationEndpoint": {
+            "provider": "future"
+          }
+        }
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [],
+        "match": "subset",
+        "config": {
+          "general": {
+            "language": "en",
+            "logLevel": "info",
+            "translationEndpoint": {
+              "provider": "deepseek"
+            }
+          },
+          "profiles": [
+            {
+              "hotkeyDefaultScope": "global",
+              "combatAlert": {
+                "style": "both"
+              },
+              "translation": {
+                "targetLanguage": "ui"
+              },
+              "intel": {
+                "overlay": {
+                  "visibility": "always"
+                }
+              },
+              "thumbnail": {
+                "zoomAnchor": "nw"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "认识的枚举值原样保留",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "hotkeyDefaultScope": "game",
+            "thumbnail": {
+              "zoomAnchor": "se"
+            },
+            "intel": {
+              "overlay": {
+                "visibility": "gameOnly"
+              }
+            },
+            "translation": {
+              "targetLanguage": "ja"
+            },
+            "combatAlert": {
+              "style": "wash"
+            }
+          }
+        ],
+        "activeProfileID": "P1",
+        "general": {
+          "language": "system",
+          "logLevel": "debug",
+          "translationEndpoint": {
+            "provider": "anthropic"
+          }
+        }
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [],
+        "match": "subset",
+        "config": {
+          "general": {
+            "language": "system",
+            "logLevel": "debug",
+            "translationEndpoint": {
+              "provider": "anthropic"
+            }
+          },
+          "profiles": [
+            {
+              "hotkeyDefaultScope": "game",
+              "thumbnail": {
+                "zoomAnchor": "se"
+              },
+              "intel": {
+                "overlay": {
+                  "visibility": "gameOnly"
+                }
+              },
+              "translation": {
+                "targetLanguage": "ja"
+              },
+              "combatAlert": {
+                "style": "wash"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "多余的键忽略",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "futureKey": 1
+          }
+        ],
+        "activeProfileID": "P1",
+        "platform": "windows",
+        "somethingNew": {
+          "a": 1
+        }
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [],
+        "match": "subset",
+        "config": {
+          "activeProfileID": "P1"
+        }
+      }
+    },
+    {
+      "name": "越界值夹回范围，非法颜色改回默认值",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "thumbnail": {
+              "opacity": 5,
+              "zoomFactor": 50,
+              "minimumSize": {
+                "width": 10,
+                "height": 5000
+              }
+            },
+            "overlay": {
+              "titleFontSize": 100,
+              "highlightThickness": 0,
+              "borderThickness": 9,
+              "titleColor": "red",
+              "borderColor": "#FFF",
+              "highlightColor": " #00ff00 "
+            },
+            "behavior": {
+              "hideDelaySeconds": -3
+            },
+            "capture": {
+              "frameRate": 0,
+              "titleBarCropHeight": 99
+            },
+            "combatAlert": {
+              "durationSeconds": 0,
+              "minimumDamage": 0,
+              "color": "nope"
+            },
+            "loginPosition": {
+              "x": -1000000000.0
+            },
+            "layouts": {
+              "Zeta": {
+                "x": 1000000000.0,
+                "y": 5,
+                "width": -5,
+                "height": 0
+              },
+              "Alpha": {
+                "x": 1,
+                "y": 2,
+                "width": 300,
+                "height": 200
+              }
+            },
+            "highlightColors": {
+              "B": "nope",
+              "A": "#123456"
+            }
+          }
+        ],
+        "activeProfileID": "P1",
+        "general": {
+          "pollIntervalMs": 10,
+          "eveLogDirectory": "   ",
+          "logLevel": "error",
+          "translationEndpoint": {
+            "baseURL": " https://api.example.com/v1/// ",
+            "model": " m1 "
+          }
+        }
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [
+          "general.pollIntervalMs",
+          "general.eveLogDirectory",
+          "general.logLevel",
+          "general.translationEndpoint.baseURL",
+          "general.translationEndpoint.model",
+          "profiles[0].thumbnail.minimumSize.width",
+          "profiles[0].thumbnail.minimumSize.height",
+          "profiles[0].thumbnail.maximumSize.height",
+          "profiles[0].thumbnail.defaultSize.height",
+          "profiles[0].thumbnail.opacity",
+          "profiles[0].thumbnail.zoomFactor",
+          "profiles[0].overlay.titleFontSize",
+          "profiles[0].overlay.highlightThickness",
+          "profiles[0].overlay.borderThickness",
+          "profiles[0].overlay.borderColor",
+          "profiles[0].overlay.titleColor",
+          "profiles[0].combatAlert.durationSeconds",
+          "profiles[0].combatAlert.minimumDamage",
+          "profiles[0].combatAlert.color",
+          "profiles[0].behavior.hideDelaySeconds",
+          "profiles[0].capture.frameRate",
+          "profiles[0].capture.titleBarCropHeight",
+          "profiles[0].loginPosition",
+          "profiles[0].layouts[Zeta]",
+          "profiles[0].highlightColors[B]"
+        ],
+        "match": "subset",
+        "config": {
+          "general": {
+            "pollIntervalMs": 300,
+            "eveLogDirectory": "<absent>",
+            "logLevel": "info",
+            "translationEndpoint": {
+              "baseURL": "https://api.example.com/v1",
+              "model": "m1"
+            }
+          },
+          "profiles": [
+            {
+              "thumbnail": {
+                "opacity": 1,
+                "zoomFactor": 10,
+                "minimumSize": {
+                  "width": 32,
+                  "height": 4096
+                },
+                "maximumSize": {
+                  "width": 960,
+                  "height": 4096
+                },
+                "defaultSize": {
+                  "width": 384,
+                  "height": 4096
+                }
+              },
+              "overlay": {
+                "titleFontSize": 36,
+                "highlightThickness": 1,
+                "borderThickness": 6,
+                "titleColor": "#FFFFFF",
+                "borderColor": "#C0C0C0",
+                "highlightColor": " #00ff00 "
+              },
+              "behavior": {
+                "hideDelaySeconds": 0
+              },
+              "capture": {
+                "frameRate": 1,
+                "titleBarCropHeight": 60
+              },
+              "combatAlert": {
+                "durationSeconds": 1,
+                "minimumDamage": 1,
+                "color": "#FF3B30"
+              },
+              "loginPosition": {
+                "x": -100000,
+                "y": 0
+              },
+              "layouts": {
+                "Zeta": {
+                  "x": 100000,
+                  "y": 5,
+                  "width": "<absent>",
+                  "height": "<absent>"
+                },
+                "Alpha": {
+                  "x": 1,
+                  "y": 2,
+                  "width": 300,
+                  "height": 200
+                }
+              },
+              "highlightColors": {
+                "A": "#123456",
+                "B": "<absent>"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "方案 id 与名称：空、重复、超长、不区分大小写重名；当前方案无效时取第一个",
+      "input": {
+        "profiles": [
+          {
+            "id": "",
+            "name": "  "
+          },
+          {
+            "id": "X",
+            "name": "default"
+          },
+          {
+            "id": "X",
+            "name": "DEFAULT"
+          },
+          {
+            "id": "L",
+            "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "id": "M",
+            "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "activeProfileID": "nope"
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [
+          "profiles[0].id",
+          "profiles[0].name",
+          "profiles[2].id",
+          "profiles[2].name",
+          "profiles[3].name",
+          "profiles[4].name",
+          "activeProfileID"
+        ],
+        "match": "subset",
+        "config": {
+          "activeProfileID": "<uuid>",
+          "profiles": [
+            {
+              "id": "<uuid>",
+              "name": "Profile"
+            },
+            {
+              "id": "X",
+              "name": "default"
+            },
+            {
+              "id": "<uuid>",
+              "name": "DEFAULT 2"
+            },
+            {
+              "id": "L",
+              "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "id": "M",
+              "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "循环组：成员去重保留首次位置，id 为空或重复时换新，成员区分大小写",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "cycleGroups": [
+              {
+                "id": "",
+                "name": "G1",
+                "members": [
+                  "A",
+                  "B",
+                  "A",
+                  "C",
+                  "B"
+                ]
+              },
+              {
+                "id": "G",
+                "name": "G2"
+              },
+              {
+                "id": "G",
+                "name": "G3",
+                "members": [
+                  "a",
+                  "A"
+                ]
+              }
+            ]
+          }
+        ],
+        "activeProfileID": "P1"
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [
+          "profiles[0].cycleGroups[0].id",
+          "profiles[0].cycleGroups[0].members",
+          "profiles[0].cycleGroups[2].id"
+        ],
+        "match": "subset",
+        "config": {
+          "profiles": [
+            {
+              "cycleGroups": [
+                {
+                  "id": "<uuid>",
+                  "name": "G1",
+                  "members": [
+                    "A",
+                    "B",
+                    "C"
+                  ]
+                },
+                {
+                  "id": "G",
+                  "name": "G2",
+                  "members": []
+                },
+                {
+                  "id": "<uuid>",
+                  "name": "G3",
+                  "members": [
+                    "a",
+                    "A"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "预警与翻译：数值、频道整理与截断、空白参考星系、不可用的浮窗位置",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "intel": {
+              "windowMinutes": 1,
+              "maxJumps": 10,
+              "alertJumps": 20,
+              "referenceSystem": "  ",
+              "channels": [
+                {
+                  "name": " Local ",
+                  "id": "local"
+                },
+                {
+                  "name": "Intel"
+                },
+                {
+                  "name": "INTEL"
+                },
+                {
+                  "name": "",
+                  "id": "  "
+                },
+                {
+                  "name": "Pm",
+                  "id": "private_1"
+                },
+                {
+                  "name": "Other",
+                  "id": "local"
+                },
+                {
+                  "name": "X",
+                  "id": " "
+                }
+              ],
+              "overlay": {
+                "frame": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 0,
+                  "height": 10
+                },
+                "opacity": 0,
+                "fontSize": 99
+              }
+            },
+            "translation": {
+              "channels": [
+                {
+                  "name": "c1"
+                },
+                {
+                  "name": "c2"
+                },
+                {
+                  "name": "c3"
+                },
+                {
+                  "name": "c4"
+                },
+                {
+                  "name": "c5"
+                },
+                {
+                  "name": "c6"
+                },
+                {
+                  "name": "c7"
+                },
+                {
+                  "name": "c8"
+                },
+                {
+                  "name": "c9"
+                },
+                {
+                  "name": "c10"
+                },
+                {
+                  "name": "c11"
+                },
+                {
+                  "name": "c12"
+                },
+                {
+                  "name": "c13"
+                },
+                {
+                  "name": "c14"
+                },
+                {
+                  "name": "c15"
+                },
+                {
+                  "name": "c16"
+                },
+                {
+                  "name": "c17"
+                },
+                {
+                  "name": "c18"
+                }
+              ],
+              "overlay": {
+                "frame": {
+                  "x": 10,
+                  "y": 20,
+                  "width": 300,
+                  "height": 200
+                }
+              }
+            }
+          }
+        ],
+        "activeProfileID": "P1"
+      },
+      "expected": {
+        "outcome": "ok",
+        "migratedFrom": null,
+        "clamped": [
+          "profiles[0].intel.windowMinutes",
+          "profiles[0].intel.alertJumps",
+          "profiles[0].intel.channels",
+          "profiles[0].intel.referenceSystem",
+          "profiles[0].intel.overlay.opacity",
+          "profiles[0].intel.overlay.fontSize",
+          "profiles[0].intel.overlay.frame",
+          "profiles[0].translation.channels"
+        ],
+        "match": "subset",
+        "config": {
+          "profiles": [
+            {
+              "intel": {
+                "windowMinutes": 5,
+                "maxJumps": 10,
+                "alertJumps": 10,
+                "referenceSystem": "<absent>",
+                "channels": [
+                  {
+                    "name": "Local",
+                    "id": "local"
+                  },
+                  {
+                    "name": "Intel",
+                    "id": "<absent>"
+                  },
+                  {
+                    "name": "X",
+                    "id": "<absent>"
+                  }
+                ],
+                "overlay": {
+                  "frame": "<absent>",
+                  "opacity": 0.2,
+                  "fontSize": 24
+                }
+              },
+              "translation": {
+                "channels": [
+                  {
+                    "name": "c1"
+                  },
+                  {
+                    "name": "c2"
+                  },
+                  {
+                    "name": "c3"
+                  },
+                  {
+                    "name": "c4"
+                  },
+                  {
+                    "name": "c5"
+                  },
+                  {
+                    "name": "c6"
+                  },
+                  {
+                    "name": "c7"
+                  },
+                  {
+                    "name": "c8"
+                  },
+                  {
+                    "name": "c9"
+                  },
+                  {
+                    "name": "c10"
+                  },
+                  {
+                    "name": "c11"
+                  },
+                  {
+                    "name": "c12"
+                  },
+                  {
+                    "name": "c13"
+                  },
+                  {
+                    "name": "c14"
+                  },
+                  {
+                    "name": "c15"
+                  },
+                  {
+                    "name": "c16"
+                  }
+                ],
+                "overlay": {
+                  "frame": {
+                    "x": 10,
+                    "y": 20,
+                    "width": 300,
+                    "height": 200
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "版本比当前新",
+      "input": {
+        "schemaVersion": 2
+      },
+      "expected": {
+        "outcome": "newerSchema",
+        "found": 2
+      }
+    },
+    {
+      "name": "超出整数范围的版本按「更新的版本」处理",
+      "inputText": "{\"schemaVersion\": 1e20}",
+      "expected": {
+        "outcome": "newerSchema",
+        "found": 9223372036854775807
+      }
+    },
+    {
+      "name": "不是合法的 JSON",
+      "inputText": "{\"profiles\": [",
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "顶层是数组",
+      "input": [],
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "版本号为负",
+      "input": {
+        "schemaVersion": -1
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "版本号带小数",
+      "input": {
+        "schemaVersion": 1.5
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "版本号是布尔值",
+      "input": {
+        "schemaVersion": true
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "版本号是字符串",
+      "input": {
+        "schemaVersion": "1"
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "profiles 不是数组",
+      "input": {
+        "profiles": "x"
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "数值字段类型不对",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "thumbnail": {
+              "opacity": "x"
+            }
+          }
+        ],
+        "activeProfileID": "P1"
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "整数字段是小数",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "thumbnail": {
+              "zoomFactor": 2.5
+            }
+          }
+        ],
+        "activeProfileID": "P1"
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    },
+    {
+      "name": "zoomAnchor 不是字符串时判为损坏",
+      "input": {
+        "profiles": [
+          {
+            "id": "P1",
+            "name": "Main",
+            "thumbnail": {
+              "zoomAnchor": 5
+            }
+          }
+        ],
+        "activeProfileID": "P1"
+      },
+      "expected": {
+        "outcome": "corrupt"
+      }
+    }
+  ]
+}
