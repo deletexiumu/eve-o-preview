@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「通用」页，对应 macOS 的 GeneralPage 及其「更新」「诊断」两组：界面语言、自动检查与自动安装更新、详细日志与日志位置。
+// 这些设置在配置的 general 里，对全部配置方案生效。
+// macOS 的「在 Dock 中显示图标」在 Windows 上没有对应的东西（托盘程序本来就不占任务栏），这一页不出现。
+//
+// 与「预览与布局」页的约定相同：控件的 toggled、selected 只在用户操作时触发，触发后 Rust 读回整页组成新配置；
+// Rust 用 set_* 写值不会触发它们，不会形成循环。
+// 界面语言、更新与文件日志的功能分别在后续里程碑接上（架构文档第 9 节），现在先把选择记进配置，页上写明这一点。
+
+import { Button, ComboBox, Switch } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+
+// 本页的数据。字段对应配置的 general。
+export global GeneralModel {
+    // 界面语言：下标同 LanguagePreference 的顺序（English、中文……Español、跟随系统）。
+    in-out property <int> language: 8;
+    // general.checkForUpdates。
+    in-out property <bool> check-updates: true;
+    // general.autoInstallUpdates。
+    in-out property <bool> auto-install: true;
+    // general.logLevel 是 debug 时为真。
+    in-out property <bool> verbose-log;
+    // 日志文件夹的完整路径。
+    in property <string> log-path;
+    // 用户改了某个值：Rust 读回整页。
+    callback edited();
+    // 在资源管理器里显示日志文件夹。
+    callback reveal-logs();
+}
+
+// 「通用」页。
+export component GeneralPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: "通用";
+        subtitle: "对全部配置方案生效的设置。";
+    }
+
+    // 语言：前 8 项用各语言的自称，不随界面语言变化，选错了也认得出自己的语言；最后一项随界面语言。
+    SettingRow {
+        title: "界面语言";
+        ComboBox {
+            model: ["English", "中文", "Русский", "日本語", "한국어", "Français", "Deutsch", "Español", "跟随系统"];
+            current-index <=> GeneralModel.language;
+            // 宽度放得下最长的自称（Français、Español）与「跟随系统」。
+            width: 160px;
+            selected(v) => {
+                GeneralModel.edited();
+            }
+        }
+    }
+    Footnote {
+        text: "部分译文由机器生成，欢迎指正。Windows 版目前只有中文界面，其他语言在后续测试版加上，这里的选择会先记下。";
+    }
+
+    SectionHeader { text: "更新"; }
+    SettingRow {
+        title: "自动检查更新";
+        description: "每天访问一次 GitHub，不发送个人数据。";
+        Switch {
+            checked <=> GeneralModel.check-updates;
+            toggled => {
+                GeneralModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    // 自动安装依附于自动检查：检查关着时置灰，值照样保留。
+    SettingRow {
+        title: "自动安装更新";
+        description: "在后台下载，没有 EVE 客户端运行时安装；也会在退出 EVE-O Preview 时安装。";
+        enabled: GeneralModel.check-updates;
+        Switch {
+            checked <=> GeneralModel.auto-install;
+            enabled: GeneralModel.check-updates;
+            toggled => {
+                GeneralModel.edited();
+            }
+        }
+    }
+    Footnote {
+        text: "更新功能在后续测试版加上，在那之前请到 GitHub 的发布页下载新版本。";
+    }
+
+    SectionHeader { text: "诊断"; }
+    SettingRow {
+        title: "详细日志";
+        description: "在日志文件里写入更多细节。重现问题之前打开它。";
+        Switch {
+            checked <=> GeneralModel.verbose-log;
+            toggled => {
+                GeneralModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    // 日志的位置：%LOCALAPPDATA% 下的 EVE-O Preview\logs。
+    SettingRow {
+        title: "日志文件";
+        description: GeneralModel.log-path;
+        Button {
+            text: "在资源管理器中显示";
+            clicked => {
+                GeneralModel.reveal-logs();
+            }
+        }
+    }
+    Footnote {
+        text: "文件日志在后续测试版加上。";
+    }
+    // 页底留白，滚到底时最后一行不贴着窗口边。
+    Rectangle { height: 24px; }
+}

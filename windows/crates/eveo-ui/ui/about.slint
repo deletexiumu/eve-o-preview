@@ -1,0 +1,156 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「关于」页，对应 macOS 的 AboutPage（架构文档 7.4 节）：版本、上游项目与许可证（GPL-3.0）、
+// 「只切换焦点、不广播输入」等说明与 EVE 的商标声明。GPL-3.0 要求标明来源与许可证，这两条链接不能去掉。
+// 链接由 Rust 用默认浏览器打开；页上只放固定的地址，不接受别处传来的地址。
+
+import { Theme } from "theme.slint";
+import { Footnote, PageHeader, SectionHeader } from "components.slint";
+
+// 本页的数据。
+export global AboutModel {
+    // 版本号，由 Rust 填。
+    in property <string> version;
+    // 打开一个链接。
+    callback open-url(string);
+}
+
+// 一张卡片里的一段说明文字，可换行。
+component Paragraph inherits Rectangle {
+    // 文字。
+    in property <string> text;
+    background: Theme.card;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    VerticalLayout {
+        padding: 14px;
+        padding-left: 18px;
+        padding-right: 18px;
+        Text {
+            text: root.text;
+            color: Theme.text;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// 链接：强调色文字，悬停时手形光标并加深。
+component Link inherits Text {
+    // 显示的文字。
+    in property <string> label;
+    // 地址。
+    in property <string> url;
+    text: label;
+    color: touch.has-hover ? Theme.text : Theme.accent;
+    touch := TouchArea {
+        // 手形光标提示可点；整段文字都是点击区域。
+        mouse-cursor: pointer;
+        clicked => {
+            AboutModel.open-url(root.url);
+        }
+    }
+}
+
+// 说明加一条链接的卡片：上游项目与许可证各一张。
+component LinkCard inherits Rectangle {
+    // 说明文字。
+    in property <string> text;
+    // 链接文字。
+    in property <string> label;
+    // 链接地址。
+    in property <string> url;
+    background: Theme.card;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    VerticalLayout {
+        padding: 14px;
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 6px;
+        Text {
+            text: root.text;
+            color: Theme.text;
+            wrap: word-wrap;
+        }
+        // 链接靠左，不拉满整行（整行可点会误触）。
+        HorizontalLayout {
+            alignment: start;
+            Link {
+                label: root.label;
+                url: root.url;
+            }
+        }
+    }
+}
+
+// 「关于」页。
+export component AboutPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: "EVE-O Preview";
+        subtitle: "EVE Online 多开客户端的实时缩略图与快速切换（Windows 原生版）。";
+    }
+
+    // 版本与一句话介绍。
+    Rectangle {
+        background: Theme.card;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        VerticalLayout {
+            padding: 14px;
+            padding-left: 18px;
+            padding-right: 18px;
+            spacing: 6px;
+            HorizontalLayout {
+                Text {
+                    // 左边是名字，右边是版本号，与设置行的排法一致。
+                    text: "版本";
+                    color: Theme.text;
+                    horizontal-stretch: 1;
+                }
+                Text {
+                    text: AboutModel.version;
+                    color: Theme.text-secondary;
+                }
+            }
+            Text {
+                // 一句话介绍，次要文字色。
+                text: "每个客户端一个实时缩略图，点击切换，支持循环组热键与多套配置方案。";
+                color: Theme.text-secondary;
+                wrap: word-wrap;
+            }
+        }
+    }
+
+    // 上游项目与许可证：GPL-3.0 要求标明来源与许可证。
+    SectionHeader { text: "上游项目与许可证"; }
+    LinkCard {
+        text: "本应用参照 EveOPlus/eve-o-preview 的功能重新实现，没有移植其源码。";
+        label: "EveOPlus/eve-o-preview";
+        url: "https://github.com/EveOPlus/eve-o-preview";
+    }
+    Rectangle { height: 4px; }
+    LinkCard {
+        text: "本应用与上游一样以 GNU 通用公共许可证第 3 版（GPL-3.0）发布。";
+        label: "GNU GPL v3.0";
+        url: "https://www.gnu.org/licenses/gpl-3.0.html";
+    }
+
+    // 说明：只切换焦点、不广播输入（与上游的边界相同），只读日志，联网的范围。
+    SectionHeader { text: "说明"; }
+    // 与上游的边界相同：不做输入广播（架构文档 R7）。
+    Paragraph { text: "本工具只切换窗口焦点，不向多个客户端广播输入，不读取或修改游戏内存。"; }
+    Rectangle { height: 4px; }
+    Paragraph { text: "战斗提醒只读取 EVE 客户端自己写出的游戏日志文件，不读游戏内存、不改文件、不发送输入。"; }
+    Rectangle { height: 4px; }
+    Paragraph { text: "预警与翻译只读聊天日志和游戏日志。翻译会把聊天内容发给你选择的模型服务。打开「联网核对人名」时，预警消息里连在一起的人名会发给 CCP 的 ESI 接口。"; }
+    Rectangle { height: 4px; }
+    Paragraph { text: "EVE-O Preview 只在检查和下载更新时访问 GitHub，可在「通用」页关闭。问题报告不会自动发送。"; }
+    // 商标声明用小字，放在最后。
+    Footnote { text: "EVE Online 及相关标志是 CCP ehf. 的商标。本项目与 CCP 没有关联，也未获其认可。"; }
+    // 页底留白。
+    Rectangle { height: 24px; }
+}

@@ -6,7 +6,6 @@
 
 //! 「配置方案」页。
 
-use std::path::Path;
 use std::rc::Rc;
 
 use eveo_app_core::Event;
@@ -15,7 +14,7 @@ use eveo_core::config::new_id;
 use eveo_ui::profiles::{self, ProfileEdit};
 use slint::ComponentHandle;
 
-use super::{App, Input, Runtime, post};
+use super::{App, Input, Runtime, post, shell};
 
 /// 「配置方案」页发给应用的输入。
 #[derive(Debug, Clone)]
@@ -62,7 +61,7 @@ impl App {
             ProfilesInput::NameEdited => self.check_profile_name(),
             ProfilesInput::ConfirmName => self.confirm_profile_name(runtime),
             // 路径取配置存储实际用的那个，与页上显示的一致。
-            ProfilesInput::Reveal => reveal_in_explorer(self.store.path()),
+            ProfilesInput::Reveal => shell::reveal(self.store.path()),
         }
     }
 
@@ -108,24 +107,4 @@ impl App {
             self.check_profile_name();
         }
     }
-}
-
-/// 打开资源管理器并选中配置文件。文件还没写过（第一次运行、没改过设置）时打开所在的文件夹；
-/// 文件夹也不存在时什么都不做。
-fn reveal_in_explorer(path: &Path) {
-    use std::os::windows::process::CommandExt;
-    use std::process::Command;
-    // 资源管理器总在系统路径上，不必写全路径。
-    let mut command = Command::new("explorer.exe");
-    if path.is_file() {
-        // explorer 自己解析参数：路径含空格（「EVE-O Preview」）时要在 /select, 之后加引号，
-        // 整个参数加引号它不认，所以用 raw_arg 原样传。
-        command.raw_arg(format!("/select,\"{}\"", path.display()));
-    } else if let Some(dir) = path.parent().filter(|dir| dir.is_dir()) {
-        command.arg(dir);
-    } else {
-        return;
-    }
-    // 启动失败（极少见）不影响设置窗口，忽略。
-    let _ = command.spawn();
 }
