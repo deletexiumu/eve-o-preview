@@ -21,6 +21,7 @@ pub mod message_loop;
 pub mod mouse_hook;
 pub mod overlay;
 pub mod process;
+pub mod recorder;
 pub mod screens;
 pub mod screenshot;
 pub mod single_instance;

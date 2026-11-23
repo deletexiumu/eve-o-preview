@@ -254,7 +254,7 @@ fn decide(context: &HookContext, kind: MouseButtonEventKind, button: u8) -> bool
 }
 
 /// 此刻按着的修饰键。
-fn current_modifiers() -> HotkeyModifiers {
+pub(crate) fn current_modifiers() -> HotkeyModifiers {
     // SAFETY: 只读按键状态；最高位为 1 表示按着。
     let down = |key: VIRTUAL_KEY| unsafe { GetAsyncKeyState(i32::from(key.0)) } < 0;
     let mut modifiers = HotkeyModifiers::NONE;

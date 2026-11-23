@@ -1,0 +1,474 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「切换与热键」页，对应 macOS 的 SwitchingPage 与 HotkeyListEditor：
+// - 页首：热键的默认作用范围（没有后缀的热键跟随它），单选，表明只能选一种。
+// - 循环组：新建、改名、删除；成员的顺序（从已知角色添加、上移下移、移除）；前进与后退热键。
+// - 每个角色的直达热键。
+// - 通用热键：全部隐藏、全部最小化、在登录客户端之间循环。
+//
+// 每个动作的热键是一个列表。每一行：问题提示、录制按钮（显示组合键，点了重录）、作用范围、移除；末尾「添加」。
+// 录制由 Rust 用低级键盘与鼠标钩子完成（按虚拟键码记，与键盘布局无关，也分得清小键盘），
+// 页面只显示「正在录制」的状态。录制中按 Esc 取消，单按 Backspace 或 Delete 清除这一行。
+//
+// 热键的位置用字符串标识（slot），由 Rust 解释：`group:<id>:forward`、`group:<id>:backward`、
+// `character:<角色名>`、`toggleHideAll`、`minimizeAll`、`cycleLoginClients`。
+// 一行热键用配置原文定位（text），不用下标：录制期间别处改了列表，下标会指错行。
+
+import { Button, ComboBox, LineEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+
+// 一条热键。
+export struct HotkeyRow {
+    // 配置原文，用来定位这一行。
+    text: string,
+    // 界面写法（如 Ctrl+Shift+F13）；解析不了时是原文。
+    label: string,
+    // 作用范围：0 跟随默认，1 全局，2 仅游戏内；解析不了时为 -1，不显示范围。
+    scope: int,
+    // 这一条的问题（重复、被拒绝、注册失败、解析不了）；空串表示没有问题。
+    problem: string,
+}
+
+// 一个动作的热键列表。
+export struct HotkeySlotData {
+    // 位置标识，见文件头。
+    slot: string,
+    // 行标题：角色名或动作名。
+    title: string,
+    // 已有的热键。
+    rows: [HotkeyRow],
+}
+
+// 循环组的一个成员。
+export struct MemberRow {
+    // 角色名。
+    name: string,
+    // 是否在线。
+    online: bool,
+}
+
+// 一个循环组。
+export struct CycleGroupData {
+    // 循环组的 id。
+    id: string,
+    // 名称，与输入框双向绑定；回车或离开输入框时提交。
+    name: string,
+    // 配置里当前的名称。Rust 只在它变了时改写 name，用户正在输入的名称不会被下一次刷新冲掉。
+    saved-name: string,
+    // 前进与后退热键。
+    forward: HotkeySlotData,
+    backward: HotkeySlotData,
+    // 成员，按循环顺序。
+    members: [MemberRow],
+    // 可以添加的角色（不在组里的已知角色，在线的排前面并带圆点）。下拉框的第一项是提示文字。
+    candidates: [string],
+}
+
+// 本页的数据。
+export global SwitchingModel {
+    // 默认作用范围：0 全局，1 仅游戏内。
+    in-out property <int> default-scope;
+    // 跟随默认时的范围名称，用在每行的范围下拉框里。
+    out property <string> default-scope-name: default-scope == 0 ? "全局" : "仅游戏内";
+    // 循环组。
+    in-out property <[CycleGroupData]> groups;
+    // 每个角色的直达热键，按角色名排序。
+    in property <[HotkeySlotData]> characters;
+    // 通用热键：全部隐藏、全部最小化、登录客户端循环。
+    in property <[HotkeySlotData]> general;
+    // 正在录制的位置与行：`<slot>|<text>`；新增一行时 text 为空；不在录制时为空串。
+    in property <string> recording;
+    // 用户选了默认作用范围。
+    callback default-scope-changed(int);
+    // 新建循环组。
+    callback add-group();
+    // 改名（id、新名称）。全是空白的名称不接受。
+    callback rename-group(string, string);
+    // 删除循环组。
+    callback delete-group(string);
+    // 添加成员（id、角色名）。
+    callback add-member(string, string);
+    // 移动成员（id、位置、-1 上移或 1 下移）。
+    callback move-member(string, int, int);
+    // 移除成员（id、位置）。
+    callback remove-member(string, int);
+    // 开始录制（slot、原文；新增时原文为空串）。再点正在录制的按钮取消。
+    callback record(string, string);
+    // 移除一条热键（slot、原文）。
+    callback remove-hotkey(string, string);
+    // 改一条热键的作用范围（slot、原文、0 跟随默认 / 1 全局 / 2 仅游戏内）。
+    callback set-scope(string, string, int);
+}
+
+// 一条热键：问题提示、录制按钮、作用范围、移除。
+component HotkeyLine inherits HorizontalLayout {
+    // 所属的位置。
+    in property <string> slot;
+    // 这一行的数据。
+    in property <HotkeyRow> entry;
+    // 这一行是否正在录制。
+    // 页面只有一个录制状态，每行自己比较：只有被点的那一行显示「按下组合键…」。
+    property <bool> recording: SwitchingModel.recording == slot + "|" + entry.text;
+    spacing: 6px;
+    alignment: end;
+    // 问题提示：橙色文字，放在按钮左边，长的提示换行。
+    if entry.problem != "": Text {
+        text: "⚠ " + entry.problem;
+        color: #d97706;
+        font-size: 12px;
+        vertical-alignment: center;
+        wrap: word-wrap;
+        max-width: 220px;
+    }
+    // 显示组合键；点了开始重录，录制中显示提示。
+    Button {
+        // 录制中按钮用强调色，提醒按键会被录下而不是传给别处。
+        text: recording ? "按下组合键…" : entry.label;
+        primary: recording;
+        min-width: 150px;
+        clicked => {
+            SwitchingModel.record(slot, entry.text);
+        }
+    }
+    // 作用范围；解析不了的一条没有范围可改，只能重录或移除。
+    if entry.scope >= 0: ComboBox {
+        // 第一项写出默认范围此刻是什么，不用回到页首查看。
+        model: ["跟随默认（" + SwitchingModel.default-scope-name + "）", "全局", "仅游戏内"];
+        current-index: entry.scope;
+        width: 170px;
+        selected(value) => {
+            SwitchingModel.set-scope(slot, entry.text, self.current-index);
+        }
+    }
+    Button {
+        text: "移除";
+        clicked => {
+            // 移除不再确认：录错了可以马上重录。
+            SwitchingModel.remove-hotkey(slot, entry.text);
+        }
+    }
+}
+
+// 一个动作的热键卡片：左边标题，右边热键列表与「添加」按钮。
+component HotkeySlotCard inherits Rectangle {
+    // 这个动作的数据。
+    in property <HotkeySlotData> data;
+    // 新增一行是否正在录制。
+    // 新增一行的录制状态：原文为空串。
+    property <bool> adding: SwitchingModel.recording == data.slot + "|";
+    // 不写 min-height：显式的最小高度会盖掉内容算出的最小高度，热键多时卡片会被压扁、与下一张重叠。
+    background: Theme.card;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    HorizontalLayout {
+        padding: 10px;
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 16px;
+        // 标题竖直居中，过长时省略。
+        Text {
+            text: data.title;
+            color: Theme.text;
+            vertical-alignment: center;
+            overflow: elide;
+            min-width: 120px;
+            horizontal-stretch: 1;
+        }
+        VerticalLayout {
+            spacing: 6px;
+            alignment: center;
+            // 已有的热键，每条一行，按配置里的顺序。
+            for row in data.rows: HotkeyLine {
+                slot: data.slot;
+                entry: row;
+            }
+            // 「添加」：录到的组合追加到列表；列表里已有同一个组合时不追加。
+            HorizontalLayout {
+                alignment: end;
+                Button {
+                    text: adding ? "按下组合键…（Esc 取消）" : "添加热键";
+                    primary: adding;
+                    clicked => {
+                        SwitchingModel.record(data.slot, "");
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 单选按钮的一项：圆圈加文字，整行可点。std-widgets 没有单选按钮，这里按 Win11 的样子画。
+component RadioOption inherits HorizontalLayout {
+    // 选项文字。
+    in property <string> text;
+    // 是否选中。
+    in property <bool> checked;
+    // 被点了。
+    callback clicked();
+    spacing: 10px;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            // 选中时用粗的强调色描边画出实心圆点，与 Win11 的单选按钮相同。
+            border-width: checked ? 5px : 1px;
+            border-color: checked ? Theme.accent : Theme.text-secondary;
+            background: Theme.card;
+        }
+    }
+    Text {
+        text: root.text;
+        color: Theme.text;
+        vertical-alignment: center;
+        wrap: word-wrap;
+    }
+    TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// 小号的说明文字，放在分组下面。
+component Hint inherits VerticalLayout {
+    // 说明文字。
+    in property <string> text;
+    padding-top: 4px;
+    Text {
+        text: root.text;
+        color: Theme.text-secondary;
+        font-size: 12px;
+        wrap: word-wrap;
+    }
+}
+
+// 一个循环组的卡片：名称与删除、前进与后退热键、成员列表与添加成员。
+component CycleGroupCard inherits VerticalLayout {
+    // 这个循环组；名称与列表的行双向绑定。
+    in-out property <CycleGroupData> group;
+    spacing: 4px;
+    // 名称一行：输入框占满，右边是删除按钮。
+    Rectangle {
+        min-height: 56px;
+        background: Theme.card;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        HorizontalLayout {
+            padding-left: 18px;
+            padding-right: 18px;
+            spacing: 12px;
+            Text {
+                text: "名称";
+                color: Theme.text;
+                vertical-alignment: center;
+            }
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                // 名称输入框与列表的行双向绑定；Rust 刷新时保留正在输入的文字（见 saved-name）。
+                name-edit := LineEdit {
+                    text <=> group.name;
+                    // 回车提交；离开输入框时也提交（见下面的 changed）。
+                    accepted(text) => {
+                        SwitchingModel.rename-group(group.id, text);
+                    }
+                    changed has-focus => {
+                        if !self.has-focus {
+                            SwitchingModel.rename-group(group.id, self.text);
+                        }
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "删除循环组";
+                    clicked => {
+                        SwitchingModel.delete-group(group.id);
+                    }
+                }
+            }
+        }
+    }
+    // 前进与后退热键，各一张卡片，标题是方向。
+    HotkeySlotCard { data: group.forward; }
+    HotkeySlotCard { data: group.backward; }
+    // 成员：序号、名称（在线带绿点）、上移、下移、移除。
+    Rectangle {
+        background: Theme.card;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        VerticalLayout {
+            padding: 10px;
+            padding-left: 18px;
+            padding-right: 18px;
+            spacing: 6px;
+            HorizontalLayout {
+                spacing: 12px;
+                Text {
+                    text: "成员（按循环顺序）";
+                    color: Theme.text;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                // 添加成员：只能从已知角色里选，成员名要与窗口标题里的角色名完全一致，手输容易出错。
+                ComboBox {
+                    // 第一项是提示文字「添加成员…」，选了别的项后立刻添加并回到第一项。
+                    model: group.candidates;
+                    current-index: 0;
+                    enabled: group.candidates.length > 1;
+                    width: 200px;
+                    selected(value) => {
+                        if self.current-index > 0 {
+                            SwitchingModel.add-member(group.id, value);
+                        }
+                        self.current-index = 0;
+                    }
+                }
+            }
+            if group.members.length == 0: Text {
+                text: "还没有成员。从右上角的列表里添加角色。";
+                color: Theme.text-secondary;
+            }
+            // 每个成员一行：序号、在线点、名称、上移、下移、移除。
+            for member[index] in group.members: HorizontalLayout {
+                spacing: 8px;
+                Text {
+                    text: (index + 1) + ".";
+                    color: Theme.text-secondary;
+                    width: 24px;
+                    vertical-alignment: center;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: member.online ? #3fb950 : Theme.divider;
+                    }
+                }
+                Text {
+                    text: member.name;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: "上移";
+                    // 第一个成员不能再上移，最后一个不能再下移。
+                    enabled: index > 0;
+                    clicked => {
+                        SwitchingModel.move-member(group.id, index, -1);
+                    }
+                }
+                Button {
+                    text: "下移";
+                    enabled: index < group.members.length - 1;
+                    clicked => {
+                        SwitchingModel.move-member(group.id, index, 1);
+                    }
+                }
+                Button {
+                    text: "移除";
+                    clicked => {
+                        SwitchingModel.remove-member(group.id, index);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 「切换与热键」页。
+export component SwitchingPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: "切换与热键";
+        subtitle: "用热键在角色之间切换：循环组按顺序轮换，直达热键直接切到某个角色";
+    }
+
+    // 默认作用范围。
+    Rectangle {
+        background: Theme.card;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.card-border;
+        VerticalLayout {
+            padding: 14px;
+            padding-left: 18px;
+            spacing: 10px;
+            Text {
+                // 单选：只能选一种，选项文字讲清「全局」也包括游戏内。
+                text: "热键的默认作用范围";
+                color: Theme.text;
+            }
+            RadioOption {
+                text: "全局：在任何程序里都生效（包括游戏内）";
+                checked: SwitchingModel.default-scope == 0;
+                clicked => {
+                    SwitchingModel.default-scope = 0;
+                    SwitchingModel.default-scope-changed(0);
+                }
+            }
+            RadioOption {
+                text: "仅游戏内：只在 EVE 窗口位于前台时生效";
+                checked: SwitchingModel.default-scope == 1;
+                clicked => {
+                    SwitchingModel.default-scope = 1;
+                    SwitchingModel.default-scope-changed(1);
+                }
+            }
+        }
+    }
+    Hint {
+        text: "每个热键只有一种作用范围；没有单独设置的热键跟随这里，也可以在热键旁单独修改。";
+    }
+
+    SectionHeader { text: "循环组"; }
+    SettingRow {
+        // 新建的循环组排在最后，名称带序号，随后可以改名。
+        title: "新建循环组";
+        description: "一组角色按顺序轮换，配前进与后退热键";
+        Button {
+            text: "新建";
+            clicked => {
+                SwitchingModel.add-group();
+            }
+        }
+    }
+    // 每个循环组一组卡片，组与组之间多留一点空。
+    for group in SwitchingModel.groups: VerticalLayout {
+        padding-top: 12px;
+        CycleGroupCard { group <=> group; }
+    }
+
+    SectionHeader { text: "角色直达热键"; }
+    if SwitchingModel.characters.length == 0: SettingRow {
+        title: "还没有角色";
+        description: "登录游戏后，角色会出现在这里";
+    }
+    // 每个已知角色一张卡片，按名称排序，与「客户端」页一致。
+    for slot in SwitchingModel.characters: VerticalLayout {
+        padding-bottom: 4px;
+        HotkeySlotCard { data: slot; }
+    }
+
+    SectionHeader { text: "通用热键"; }
+    // 全部隐藏、全部最小化、登录客户端循环。
+    for slot in SwitchingModel.general: VerticalLayout {
+        padding-bottom: 4px;
+        HotkeySlotCard { data: slot; }
+    }
+    Hint {
+        text: "键盘热键要带 Ctrl、Alt 或 Win 之一（F1～F20 与小键盘数字键可以单独用）；Alt+Tab、Win+L 这类系统组合不能用。鼠标只支持中键与两个侧键，录到的鼠标热键默认仅游戏内生效，免得在别的程序里吞掉侧键。";
+    }
+    Rectangle { height: 24px; }
+}

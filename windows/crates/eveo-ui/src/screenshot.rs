@@ -86,6 +86,15 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let (profile, clients) = sample();
     crate::bind::show_previews(&ui, &profile);
     crate::bind::show_clients(&ui, &profile, &clients, false);
+    // 「切换与热键」页的问题提示来自热键规划，与应用里一样由 Core 算出；截图里没有注册失败与录制。
+    let plan = eveo_core::hotkeys::planner::plan(&profile);
+    let state = crate::switching::SwitchingState {
+        clients: &clients,
+        plan: &plan,
+        failed: &[],
+        recording: None,
+    };
+    crate::switching::show_switching(&ui, &profile, &state);
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;
@@ -113,6 +122,23 @@ fn sample() -> (Profile, Vec<EveClient>) {
     profile.hidden_characters.push("Old Alt".to_owned());
     // 与 Windows 版新配置的默认热键相同（共用默认值是 macOS 的组合键）。
     profile.hotkeys.toggle_hide_all = vec!["ctrl+alt+shift+H@global".to_owned()];
+    // 「切换与热键」页：一个两人的循环组，一个角色的直达热键（键盘一条、鼠标侧键一条），
+    // 再故意放一条缺修饰键的热键，示意问题提示的样子。
+    // 循环组的 id 固定，截图每次都一样。
+    profile.cycle_groups.push(eveo_core::model::CycleGroup {
+        id: "GROUP-1".to_owned(),
+        name: "主力舰队".to_owned(),
+        forward_hotkeys: vec!["ctrl+F13".to_owned()],
+        backward_hotkeys: vec!["ctrl+shift+F13".to_owned()],
+        members: vec!["Aria Voss".to_owned(), "Kestrel Nine".to_owned()],
+    });
+    profile.character_hotkeys.insert(
+        "Aria Voss".to_owned(),
+        vec!["alt+Num1".to_owned(), "ctrl+Mouse4@game".to_owned()],
+    );
+    profile
+        .character_hotkeys
+        .insert("Kestrel Nine".to_owned(), vec!["K".to_owned()]);
     profile
         .highlight_colors
         .insert("Kestrel Nine".to_owned(), "#FF8C00".to_owned());
