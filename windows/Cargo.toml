@@ -13,12 +13,14 @@ members = [
     "crates/eveo-platform-win",
     "crates/eveo-fake-client",
     "crates/eveo-probe",
+    "crates/eveo-ui",
 ]
 default-members = [
     "crates/eveo-core",
     "crates/eveo-platform-win",
     "crates/eveo-fake-client",
     "crates/eveo-probe",
+    "crates/eveo-ui",
 ]
 
 [workspace.package]
@@ -35,8 +37,8 @@ serde_json = "1"
 unicode-segmentation = "1"
 uuid = { version = "1", features = ["v4"] }
 raw-window-handle = "0.6"
-# 探针只用 winit 后端与软件渲染器验证事件循环共存（W7）；应用的界面 crate 再按需打开别的特性。
-slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "raw-window-handle-06"] }
+# 只开基础特性；各 crate 按需加后端与渲染器（探针用 winit 后端，界面截图用软件渲染器）。
+slint = { version = "1.19", default-features = false, features = ["std", "compat-1-2"] }
 eveo-core = { path = "crates/eveo-core" }
 eveo-platform-win = { path = "crates/eveo-platform-win" }
 windows = { version = "0.62", features = [

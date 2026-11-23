@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Slint 界面，对应 macOS App 的 Settings 与 Overlays（架构文档 2.3 节、3.1 节）。三个系统都能编译，
+# 截图工具在 Linux 上用软件渲染器把界面画成 PNG，云端与 CI 可以直接看图。
+
+[package]
+name = "eveo-ui"
+description = "EVE-O Preview Windows 版的 Slint 界面"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+slint = { workspace = true, features = ["renderer-software", "software-renderer-path"] }
+png = "0.18"
+# std-widgets 的 fluent 样式用 SVG 图标。各后端会打开 Slint 内核的 svg 与图片解码特性；截图工具不带后端，只能在这里直接打开。
+# 版本必须与 slint 完全一致。
+i-slint-core = { version = "=1.19.0", default-features = false, features = ["svg", "image-decoders"] }
+
+[build-dependencies]
+slint-build = "1.19"
+
+# Slint 生成的代码要用 unsafe（虚表），工作区的 forbid 不能被它覆盖，这里改成 deny：
+# 手写代码照样不许 unsafe，生成代码自带 allow。
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
