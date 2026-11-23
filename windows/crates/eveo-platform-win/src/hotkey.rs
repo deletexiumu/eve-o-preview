@@ -99,6 +99,11 @@ impl HotkeyWindow {
         }
     }
 
+    /// 窗口句柄。鼠标热键（`mouse_hook`）也把触发消息投递到这里。
+    pub fn hwnd(&self) -> HWND {
+        self.hwnd
+    }
+
     /// 一条消息是不是发给本窗口的热键消息；是时返回热键编号。
     pub fn hotkey_id(&self, msg: &MSG) -> Option<i32> {
         (msg.hwnd == self.hwnd && msg.message == WM_HOTKEY).then_some(msg.wParam.0 as i32)

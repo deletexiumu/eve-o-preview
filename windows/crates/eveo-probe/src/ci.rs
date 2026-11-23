@@ -2,25 +2,28 @@
 //
 // CI 集成探针（架构文档 8.2 节）：启动四个假客户端（三个已登录、一个在登录界面），然后逐项核对：
 // 运行环境（DWM、前台、显示器）、发现与 Core 的主窗口挑选、DWM 缩略图（截图取色）、激活、
-// 键盘热键（SendInput 触发 RegisterHotKey）、重复注册的冲突、窗口事件、最小化后的缩略图。
+// 键盘热键（SendInput 触发 RegisterHotKey）、重复注册的冲突、鼠标中键与侧键热键（低级鼠标钩子，含重装）、
+// 窗口事件、最小化后的缩略图。
 // 每一项记成 report.json 里的一条检查；必需项失败时整次运行失败。
 
 //! `eveo-probe ci`。
 
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use eveo_core::clients::selector;
 use eveo_core::geometry::ScreenRect;
-use eveo_core::hotkeys::Hotkey;
 use eveo_core::hotkeys::backend::hotkey_id;
+use eveo_core::hotkeys::{Hotkey, HotkeyModifiers, HotkeyScope, MouseBinding, MouseHotkeyMatcher};
 use eveo_core::model::{EveClient, WindowId};
 use eveo_platform_win::activation::{self, ActivationStep};
 use eveo_platform_win::discovery::{self, ClientFilter};
 use eveo_platform_win::events::{WindowEvent, WindowEventHooks, foreground_window};
 use eveo_platform_win::hotkey::{HotkeyWindow, RegisterError};
 use eveo_platform_win::message_loop::{pump_for, pump_until};
+use eveo_platform_win::mouse_hook::MouseHook;
 use eveo_platform_win::screenshot::Screenshot;
 use eveo_platform_win::thumbnail::ThumbnailWindow;
 use eveo_platform_win::{hwnd, process, screens};
@@ -28,9 +31,11 @@ use serde_json::{Value, json};
 use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::Win32::Graphics::Dwm::DwmIsCompositionEnabled;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, VIRTUAL_KEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP,
+    MOUSE_EVENT_FLAGS, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP,
+    MOUSEINPUT, SendInput, VIRTUAL_KEY,
 };
-use windows::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE};
+use windows::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE, XBUTTON1};
 
 use crate::option;
 
@@ -132,6 +137,7 @@ pub fn run(args: &[String]) -> i32 {
     if clients.len() == FAKES.len() {
         check_activation(&clients, &hooks, &mut report);
         check_hotkeys(&mut report);
+        check_mouse_hotkeys(&mut report);
         check_minimized(&clients, &thumbnails, &out, &mut report);
     }
     drop(thumbnails);
@@ -420,9 +426,9 @@ fn check_hotkeys(report: &mut Report) {
     );
 }
 
-/// 用 SendInput 按下修饰键与键，再按相反顺序抬起。
-fn send_chord(modifiers: &[u16], key: u8) {
-    let input = |vk: u16, up: bool| INPUT {
+/// 一个键盘事件。
+fn key_input(vk: u16, up: bool) -> INPUT {
+    INPUT {
         r#type: INPUT_KEYBOARD,
         Anonymous: INPUT_0 {
             ki: KEYBDINPUT {
@@ -431,13 +437,132 @@ fn send_chord(modifiers: &[u16], key: u8) {
                 ..Default::default()
             },
         },
-    };
-    let mut inputs: Vec<INPUT> = modifiers.iter().map(|&m| input(m, false)).collect();
-    inputs.push(input(u16::from(key), false));
-    inputs.push(input(u16::from(key), true));
-    inputs.extend(modifiers.iter().rev().map(|&m| input(m, true)));
+    }
+}
+
+/// 一个鼠标按钮事件。
+fn mouse_input(flags: MOUSE_EVENT_FLAGS, data: u32) -> INPUT {
+    INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dwFlags: flags,
+                mouseData: data,
+                ..Default::default()
+            },
+        },
+    }
+}
+
+/// 按下修饰键，送出中间的事件，再按相反顺序抬起修饰键。
+fn send_with_modifiers(modifiers: &[u16], middle: [INPUT; 2]) {
+    let mut inputs: Vec<INPUT> = modifiers.iter().map(|&m| key_input(m, false)).collect();
+    inputs.extend(middle);
+    inputs.extend(modifiers.iter().rev().map(|&m| key_input(m, true)));
     // SAFETY: inputs 在调用期间有效，结构大小如实给出。
     unsafe { SendInput(&inputs, size_of::<INPUT>() as i32) };
+}
+
+/// 用 SendInput 按下修饰键与键，再按相反顺序抬起。
+fn send_chord(modifiers: &[u16], key: u8) {
+    let key = u16::from(key);
+    send_with_modifiers(modifiers, [key_input(key, false), key_input(key, true)]);
+}
+
+/// 鼠标中键与侧键热键：低级鼠标钩子在专用线程，命中时吞掉按下与松开并通知主线程；重装后照样工作。
+fn check_mouse_hotkeys(report: &mut Report) {
+    const VK_CONTROL: u16 = 0x11;
+    const VK_SHIFT: u16 = 0x10;
+    let window = match HotkeyWindow::create() {
+        Ok(window) => window,
+        Err(error) => {
+            report.check(
+                "建鼠标热键的通知窗口",
+                false,
+                true,
+                json!({"error": error.message()}),
+            );
+            return;
+        }
+    };
+    let mut matcher = MouseHotkeyMatcher::new();
+    matcher.replace_bindings(vec![
+        MouseBinding {
+            id: 7,
+            button: 2,
+            modifiers: HotkeyModifiers::CONTROL,
+            scope: HotkeyScope::Global,
+        },
+        MouseBinding {
+            id: 8,
+            button: 3,
+            modifiers: HotkeyModifiers::CONTROL | HotkeyModifiers::SHIFT,
+            scope: HotkeyScope::Global,
+        },
+    ]);
+    let hook = match MouseHook::start(Arc::new(Mutex::new(matcher)), window.hwnd()) {
+        Ok(hook) => hook,
+        Err(error) => {
+            report.check("安装低级鼠标钩子", false, true, json!({"error": error}));
+            return;
+        }
+    };
+    let wait_fire = |timeout: Duration| {
+        let mut fired = None;
+        pump_until(timeout, |msg| {
+            fired = MouseHook::fired_binding(msg);
+            fired.is_some()
+        });
+        fired
+    };
+    let pending = |hook: &MouseHook| {
+        let matcher = hook.matcher().lock().unwrap_or_else(|e| e.into_inner());
+        matcher.swallowed_buttons().len()
+    };
+
+    let middle = [
+        mouse_input(MOUSEEVENTF_MIDDLEDOWN, 0),
+        mouse_input(MOUSEEVENTF_MIDDLEUP, 0),
+    ];
+    send_with_modifiers(&[VK_CONTROL], middle);
+    let fired = wait_fire(Duration::from_secs(3));
+    pump_for(Duration::from_millis(100));
+    let left = pending(&hook);
+    report.check(
+        "Ctrl+中键触发鼠标热键，按下与松开都被吞掉",
+        fired == Some(7) && left == 0,
+        true,
+        json!({"fired": fired, "unreleased": left}),
+    );
+
+    send_with_modifiers(&[], middle);
+    let fired = wait_fire(Duration::from_millis(500));
+    report.check(
+        "修饰键不符时放行，不触发",
+        fired.is_none() && pending(&hook) == 0,
+        true,
+        json!({"fired": fired}),
+    );
+
+    hook.reinstall();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while hook.install_count() < 2 && Instant::now() < deadline {
+        pump_for(Duration::from_millis(50));
+    }
+    let reinstalled = hook.install_count() >= 2;
+    let x1 = XBUTTON1 as u32;
+    let side = [
+        mouse_input(MOUSEEVENTF_XDOWN, x1),
+        mouse_input(MOUSEEVENTF_XUP, x1),
+    ];
+    send_with_modifiers(&[VK_CONTROL, VK_SHIFT], side);
+    let fired = wait_fire(Duration::from_secs(3));
+    report.check(
+        "重装钩子后 Ctrl+Shift+侧键照样触发",
+        reinstalled && fired == Some(8),
+        true,
+        json!({"installs": hook.install_count(), "fired": fired}),
+    );
 }
 
 /// 最小化第一个客户端，截图看缩略图显示什么（对应真实客户端的 W3），再还原。只作参考。
