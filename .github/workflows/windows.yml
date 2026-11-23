@@ -111,6 +111,13 @@ jobs:
           rustc --version
           cargo --version
 
+      # Linux 上编译界面 crate（Slint 的软件渲染器）要找系统字体，依赖 fontconfig 的开发包。
+      - name: 系统依赖
+        if: hashFiles('windows/Cargo.toml') != ''
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libfontconfig1-dev
+
       - name: 格式
         if: hashFiles('windows/Cargo.toml') != ''
         working-directory: windows
