@@ -105,6 +105,11 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     config.profiles.push(Profile::make_new("shot-3", "挖矿"));
     let path = r"C:\Users\Pilot\AppData\Roaming\EVE-O Preview\config.json";
     crate::profiles::show_profiles(&ui, &config, path);
+    // 「通用」与「关于」页：新配置的默认值（界面语言跟随系统）与版本号。
+    config.general.language = eveo_core::model::LanguagePreference::System;
+    let logs = r"C:\Users\Pilot\AppData\Local\EVE-O Preview\logs";
+    crate::general::show_general(&ui, &config.general, logs);
+    crate::general::show_about(&ui);
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;

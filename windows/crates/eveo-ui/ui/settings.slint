@@ -13,8 +13,10 @@ import { PreviewsModel, PreviewsPage } from "previews.slint";
 import { CharacterRow, ClientsModel, ClientsPage } from "clients.slint";
 import { CycleGroupData, HotkeyRow, HotkeySlotData, MemberRow, SwitchingModel, SwitchingPage } from "switching.slint";
 import { ProfileRow, ProfilesModel, ProfilesPage } from "profiles.slint";
+import { GeneralModel, GeneralPage } from "general.slint";
+import { AboutModel, AboutPage } from "about.slint";
 
-export { CharacterRow, ClientsModel, CycleGroupData, HotkeyRow, HotkeySlotData, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel }
+export { AboutModel, CharacterRow, ClientsModel, CycleGroupData, GeneralModel, HotkeyRow, HotkeySlotData, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel }
 
 // 还没做完的页：页标题加一句说明。导航项先全部列出，测试的人能看到完整的结构，
 // 也不必在每次加页时改导航；页做好后把对应的 ComingSoonPage 换成真正的页面。
@@ -122,8 +124,8 @@ export component SettingsWindow inherits Window {
                 if page == 4: ComingSoonPage { title: "预警"; }
                 if page == 5: ComingSoonPage { title: "翻译"; }
                 if page == 6: ProfilesPage { }
-                if page == 7: ComingSoonPage { title: "通用"; }
-                if page == 8: ComingSoonPage { title: "关于"; }
+                if page == 7: GeneralPage { }
+                if page == 8: AboutPage { }
             }
         }
     }

@@ -197,3 +197,16 @@ export component ValueLabel inherits Text {
     horizontal-alignment: right;
     width: 52px;
 }
+
+// 小号的说明文字，放在分组下面（相当于 macOS 表单分组的 footer）。上方留一点空，与卡片分开。
+export component Footnote inherits VerticalLayout {
+    // 说明文字。
+    in property <string> text;
+    padding-top: 4px;
+    Text {
+        text: root.text;
+        color: Theme.text-secondary;
+        font-size: 12px;
+        wrap: word-wrap;
+    }
+}

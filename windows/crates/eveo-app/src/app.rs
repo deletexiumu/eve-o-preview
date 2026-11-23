@@ -41,7 +41,9 @@ use crate::hotkeys::HotkeyService;
 use crate::menus;
 use crate::thumbnails::ThumbnailManager;
 
+mod general;
 mod profiles;
+mod shell;
 
 /// 定时器的周期：取窗口事件、检查轮询、唤醒与写盘。
 const TICK: Duration = Duration::from_millis(50);
@@ -78,6 +80,8 @@ enum Input {
     Record(String, String),
     /// 「配置方案」页的操作。
     Profiles(profiles::ProfilesInput),
+    /// 「通用」与「关于」页的操作。
+    General(general::GeneralInput),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -143,6 +147,8 @@ struct App {
     settings: Option<eveo_ui::SettingsWindow>,
     /// 正在录制的热键：位置、被替换的原文（新增时为空串）与录制器。
     recording: Option<(switching::Slot, String, HotkeyRecorder)>,
+    /// 日志文件夹，「通用」页显示它的位置。
+    logs_dir: std::path::PathBuf,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -194,6 +200,7 @@ pub fn run() -> ExitCode {
         tray,
         settings: None,
         recording: None,
+        logs_dir: paths.logs_dir(),
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -277,6 +284,7 @@ impl App {
             // 录制的结果不经回调，由定时器从录制器取（见 check_recording）。
             Input::Record(slot, text) => self.toggle_recording(&slot, text),
             Input::Profiles(input) => self.profiles_input(input, runtime),
+            Input::General(input) => self.general_input(input, runtime),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -373,6 +381,10 @@ impl App {
                 }
                 if let (Some(window), Some(profile)) = (&self.settings, config.active_profile()) {
                     bind::show_previews(window, profile);
+                }
+                // 「通用」页同样只随配置变化。
+                if let Some(window) = &self.settings {
+                    self.show_general(window);
                 }
             }
             Effect::ScheduleWake(at) => self.wake_at = at,
@@ -622,6 +634,7 @@ impl App {
             });
             connect_switching(&window, runtime);
             profiles::connect(&window, runtime);
+            general::connect(&window, runtime);
             self.settings = Some(window);
         }
         let Some(window) = &self.settings else {
@@ -634,7 +647,9 @@ impl App {
             self.show_switching(window, profile);
         }
         self.show_profiles(window);
-        // 「通用」页还没做：托盘与首次启动先打开「预览与布局」，那一页已经能用。
+        self.show_general(window);
+        // 托盘的「设置」、左键与首次启动（都是 General）打开「预览与布局」：最常改的设置在那一页，
+        // 「通用」页的几项很少动，从导航进入。
         window.set_page(match page {
             SettingsPage::Clients => 0,
             SettingsPage::Previews | SettingsPage::General => 1,

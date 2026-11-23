@@ -10,7 +10,7 @@
 
 import { Button, LineEdit, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
 
 // 一个角色的行。
 export struct CharacterRow {
@@ -170,19 +170,6 @@ component NoteCard inherits Rectangle {
             vertical-alignment: center;
             wrap: word-wrap;
         }
-    }
-}
-
-// 小号的说明文字，放在分组下面（相当于 macOS 表单分组的 footer）。上方留一点空，与卡片分开。
-component Footnote inherits VerticalLayout {
-    // 说明文字。
-    in property <string> text;
-    padding-top: 4px;
-    Text {
-        text: root.text;
-        color: Theme.text-secondary;
-        font-size: 12px;
-        wrap: word-wrap;
     }
 }
 
