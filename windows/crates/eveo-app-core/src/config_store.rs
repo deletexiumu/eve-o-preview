@@ -12,7 +12,7 @@ use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
 
 use eveo_core::config::{CURRENT_SCHEMA_VERSION, ConfigError, decode, encode, new_id, normalized};
-use eveo_core::model::AppConfig;
+use eveo_core::model::{AppConfig, DEFAULT_TOGGLE_HIDE_ALL, LanguagePreference, Profile};
 
 /// 读配置时出现、但不妨碍继续运行的情况，由设置窗口提示用户。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -235,9 +235,38 @@ impl JsonFileConfigStore {
     }
 }
 
+/// Windows 上新配置方案的「全部隐藏」默认热键。
+///
+/// 共用的默认值是 macOS 的 `ctrl+opt+cmd+H`，在 Windows 上会成为 Ctrl+Alt+Win+H：
+/// 带 Win 的组合多被系统与输入法占用，按起来也别扭，所以换成 Ctrl+Alt+Shift+H。
+/// 只改新建的配置；从 macOS 拷来或用户自己设过的热键原样保留。
+pub const WINDOWS_TOGGLE_HIDE_ALL: &str = "ctrl+alt+shift+H@global";
+
 /// 新的默认配置，配置方案 id 是随机的 UUID。
+///
+/// 在共用默认值之上换成 Windows 的习惯：界面语言跟随系统（共用默认值是英文，macOS 由系统设置决定显示语言），
+/// 「全部隐藏」的热键见 [`WINDOWS_TOGGLE_HIDE_ALL`]。
 pub fn default_config() -> AppConfig {
-    AppConfig::make_default(new_id())
+    let mut config = AppConfig::make_default(new_id());
+    config.general.language = LanguagePreference::System;
+    for profile in &mut config.profiles {
+        apply_windows_hotkeys(profile);
+    }
+    config
+}
+
+/// 新建一个配置方案（设置窗口里的「新建方案」用），默认值同 [`default_config`]。
+pub fn new_profile(id: impl Into<String>, name: impl Into<String>) -> Profile {
+    let mut profile = Profile::make_new(id, name);
+    apply_windows_hotkeys(&mut profile);
+    profile
+}
+
+/// 「全部隐藏」仍是 macOS 的默认组合时换成 Windows 的。
+fn apply_windows_hotkeys(profile: &mut Profile) {
+    if profile.hotkeys.toggle_hide_all == [DEFAULT_TOGGLE_HIDE_ALL] {
+        profile.hotkeys.toggle_hide_all = vec![WINDOWS_TOGGLE_HIDE_ALL.to_owned()];
+    }
 }
 
 /// 校验配置，有改正时追加 `ValuesClamped` 警告，组装结果。
@@ -286,6 +315,25 @@ mod tests {
         assert_eq!(result.warnings, vec![ConfigWarning::CreatedDefault]);
         assert_eq!(result.config.profiles.len(), 1);
         assert!(!dir.store().path().exists());
+    }
+
+    /// 默认配置用 Windows 的习惯：语言跟随系统，「全部隐藏」不带 Win 键，热键能解析且校验不改它。
+    #[test]
+    fn default_config_uses_windows_conventions() {
+        let config = default_config();
+        assert_eq!(config.general.language, LanguagePreference::System);
+        let hotkeys = &config.profiles[0].hotkeys.toggle_hide_all;
+        assert_eq!(hotkeys, &[WINDOWS_TOGGLE_HIDE_ALL]);
+        let spec = eveo_core::hotkeys::HotkeySpec::parse(WINDOWS_TOGGLE_HIDE_ALL).expect("能解析");
+        assert_eq!(spec.hotkey.to_string(), "ctrl+alt+shift+H");
+        assert_eq!(normalized(config.clone()).config, config);
+        // 新建的方案同样换掉，用户设过的热键不动。
+        let profile = new_profile("p2", "Second");
+        assert_eq!(profile.hotkeys.toggle_hide_all, [WINDOWS_TOGGLE_HIDE_ALL]);
+        let mut custom = Profile::make_new("p3", "Third");
+        custom.hotkeys.toggle_hide_all = vec!["F13@global".to_owned()];
+        apply_windows_hotkeys(&mut custom);
+        assert_eq!(custom.hotkeys.toggle_hide_all, ["F13@global"]);
     }
 
     /// 写入后读回得到相同配置；目录不存在时自动创建，写完不留临时文件。

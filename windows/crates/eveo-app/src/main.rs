@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// EVE-O Preview Windows 版的入口。发布版不开控制台窗口（windows 子系统）；调试版保留控制台看输出。
+// EVE-O Preview Windows 版的入口。用 windows 子系统，不开控制台窗口：调试版也会交给测试的人在游戏旁边运行，
+// 弹出的控制台会盖住游戏画面（真机测试发现）。应用本身不往控制台输出，诊断日志随后写到 %LOCALAPPDATA% 的 logs 目录。
 // 真正的内容在 app 模块，只在 Windows 上编译。
 
 //! EVE-O Preview for Windows。
 
-#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 #[cfg(windows)]
 mod app;
