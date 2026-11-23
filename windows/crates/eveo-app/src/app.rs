@@ -29,8 +29,11 @@ use eveo_platform_win::events::{
 use eveo_platform_win::hotkey::{HotkeyMessage, HotkeyWindow};
 use eveo_platform_win::thumbnail::{CursorShape, MouseButton, ThumbnailInput};
 use eveo_platform_win::tray::{TrayEvent, TrayIcon};
-use eveo_platform_win::{activation, menu, screens, single_instance};
+use eveo_platform_win::{activation, appearance, menu, screens, single_instance};
+use eveo_ui::bind;
+use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use slint::ComponentHandle;
+use windows::Win32::Foundation::HWND;
 
 use crate::hotkeys::HotkeyService;
 use crate::menus;
@@ -57,6 +60,10 @@ enum Input {
     Tray(TrayEvent),
     /// 定时器。
     Tick,
+    /// 设置窗口里改了值：读回整页，组成新配置交给协调器。
+    SettingsEdited,
+    /// 设置窗口的「统一尺寸」按钮。
+    UnifySizes,
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -243,9 +250,11 @@ impl App {
             // 托盘：右键弹菜单；左键与另一个实例的唤醒都打开设置窗口（Windows 托盘程序的习惯）。
             Input::Tray(TrayEvent::RightClick) => self.tray_menu(runtime),
             Input::Tray(TrayEvent::LeftClick | TrayEvent::ActivateRequested) => {
-                self.open_settings(SettingsPage::General);
+                self.open_settings(SettingsPage::General, runtime);
             }
             Input::Tick => self.tick(runtime),
+            Input::SettingsEdited => self.settings_edited(false, runtime),
+            Input::UnifySizes => self.settings_edited(true, runtime),
         }
     }
 
@@ -285,10 +294,14 @@ impl App {
             // 热键服务自己处理代数与作用范围，这里只转交。
             Effect::RegisterHotkeys(bindings) => self.hotkeys.replace(bindings),
             Effect::SetGameForeground(game) => self.hotkeys.set_game_foreground(game),
-            // 配置变化：推迟写盘，连续改动（例如拖动后又改设置）只写一次。设置窗口的同步随设置页一起做。
-            Effect::ConfigChanged(_) => {
+            // 配置变化：推迟写盘，连续改动（例如拖动后又改设置）只写一次。
+            // 设置窗口开着时把新配置显示出来：改动可能来自拖动缩略图、托盘或热键，不只来自设置窗口。
+            Effect::ConfigChanged(config) => {
                 if self.writable {
                     self.save_at = Some(Instant::now() + SAVE_DELAY);
+                }
+                if let (Some(window), Some(profile)) = (&self.settings, config.active_profile()) {
+                    bind::show_previews(window, profile);
                 }
             }
             Effect::ScheduleWake(at) => self.wake_at = at,
@@ -303,7 +316,7 @@ impl App {
                 self.poll_soon();
             }
             Effect::PollNow => self.poll_at = Instant::now(),
-            Effect::OpenSettings(page) => self.open_settings(page),
+            Effect::OpenSettings(page) => self.open_settings(page, runtime),
             // 退出：先写盘，再让主循环返回到 run() 的收尾。
             Effect::Quit => {
                 self.flush();
@@ -498,23 +511,65 @@ impl App {
         }
     }
 
-    /// 打开设置窗口并切到某一页。设置窗口目前是视觉原型（M4），各页的内容随后补上。
-    fn open_settings(&mut self, page: SettingsPage) {
+    /// 打开设置窗口并切到某一页。第一次打开时建窗口、接上回调，并按系统外观选明暗。
+    fn open_settings(&mut self, page: SettingsPage, runtime: &Rc<Runtime>) {
+        // 设置窗口第一次打开时才创建，关掉后只是隐藏，下次打开保留滚动位置与所在页。
         if self.settings.is_none() {
-            self.settings = eveo_ui::SettingsWindow::new().ok();
+            // 创建失败（例如图形后端不可用）时什么也不做，托盘菜单仍可用。
+            let Ok(window) = eveo_ui::SettingsWindow::new() else {
+                return;
+            };
+            // 明暗只在建窗口时读一次；系统在窗口开着时切换明暗，下次打开设置窗口才跟上。
+            window.set_dark(appearance::apps_use_dark_theme());
+            // 回调只排队，不在 Slint 的事件处理中途借用应用（见 Runtime::post）。
+            let model = window.global::<eveo_ui::PreviewsModel>();
+            let weak = Rc::downgrade(runtime);
+            model.on_edited(move || post(&weak, Input::SettingsEdited));
+            let weak = Rc::downgrade(runtime);
+            model.on_unify_sizes(move || post(&weak, Input::UnifySizes));
+            self.settings = Some(window);
         }
         let Some(window) = &self.settings else {
             return;
         };
+        if let Some(profile) = self.coordinator.config().active_profile() {
+            bind::show_previews(window, profile);
+        }
+        // 「通用」页还没做：托盘与首次启动先打开「预览与布局」，那一页已经能用。
         window.set_page(match page {
             SettingsPage::Clients => 0,
-            SettingsPage::Previews => 1,
+            SettingsPage::Previews | SettingsPage::General => 1,
             SettingsPage::Switching => 2,
             SettingsPage::Profiles => 6,
-            SettingsPage::General => 7,
             SettingsPage::About => 8,
         });
         let _ = window.show();
+        // 窗口句柄在 show 之后才有；标题栏跟着系统的明暗走。
+        if let Some(hwnd) = settings_hwnd(window) {
+            appearance::set_dark_title_bar(hwnd, window.get_dark());
+        }
+    }
+
+    /// 设置窗口里改了值：从当前配置出发读回「预览与布局」页，有变化才交给协调器。
+    /// `unify` 为真时再清掉各角色单独调过的尺寸。
+    fn settings_edited(&mut self, unify: bool, runtime: &Rc<Runtime>) {
+        let Some(window) = &self.settings else {
+            return;
+        };
+        // 从协调器手里的配置出发，而不是窗口上次显示的：拖动缩略图等改动可能在这期间发生，
+        // 从旧副本出发会把它们覆盖掉。
+        let mut config = self.coordinator.config().clone();
+        let Some(profile) = config.active_profile_mut() else {
+            return;
+        };
+        bind::read_previews(window, profile);
+        if unify {
+            bind::unify_sizes(profile);
+        }
+        // 没有变化（例如输入框里的颜色还没输完）就不打扰协调器：省一次重算，也不排一次写盘。
+        if &config != self.coordinator.config() {
+            self.send(Event::ConfigEdited(config), runtime);
+        }
     }
 }
 
@@ -544,4 +599,16 @@ fn cursor_for(edges: ResizeEdges) -> CursorShape {
 /// 当前光标位置（弹菜单用）。
 fn cursor_point() -> eveo_core::geometry::ScreenPoint {
     eveo_platform_win::thumbnail::cursor_position()
+}
+
+/// 设置窗口的 Win32 句柄；窗口还没显示或不是 Win32 窗口时返回 `None`。
+fn settings_hwnd(window: &eveo_ui::SettingsWindow) -> Option<HWND> {
+    // Slint 经 raw-window-handle 交出底层窗口；窗口还没显示时可能拿不到句柄，这时返回 None。
+    let handle = window.window().window_handle();
+    let raw = handle.window_handle().ok()?;
+    // 在 Windows 上只会是 Win32 句柄；其他变体只为让 match 完整。
+    match raw.as_raw() {
+        RawWindowHandle::Win32(win32) => Some(HWND(win32.hwnd.get() as *mut core::ffi::c_void)),
+        _ => None,
+    }
 }

@@ -23,7 +23,9 @@ eveo-core.workspace = true
 eveo-app-core.workspace = true
 eveo-platform-win.workspace = true
 eveo-ui = { path = "../eveo-ui" }
-slint = { workspace = true, features = ["backend-winit", "renderer-software"] }
+raw-window-handle.workspace = true
+windows.workspace = true
+slint = { workspace = true, features = ["backend-winit", "renderer-software", "raw-window-handle-06"] }
 
 [lints]
 workspace = true
