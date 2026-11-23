@@ -58,6 +58,7 @@ struct Outcome {
 
 /// 在 Slint 的事件循环里跑一遍原生窗口、热键与钩子，核对它们共存正常。
 pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mut Report) {
+    // 用第二个假客户端做目标：第一个可能还在前台，激活它看不出前台事件。
     let Some(target) = clients.get(1).map(|c| c.id) else {
         return;
     };
@@ -77,6 +78,7 @@ pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mu
         );
         return;
     }
+    // 清掉之前检查留下的窗口事件，之后取到的都来自事件循环里的这几步。
     hooks.drain();
 
     let outcome = Rc::new(RefCell::new(Outcome::default()));
@@ -119,13 +121,16 @@ pub(super) fn check(clients: &[EveClient], hooks: &WindowEventHooks, report: &mu
             },
         );
     }
+    // 事件循环在定时器调 quit_event_loop 后返回；返回前原生窗口的消息全部由 winit 分发。
     let run = slint::run_event_loop();
     timer.stop();
     let _ = window.hide();
+    // 先销毁原生对象（注销热键、拆钩子、销毁缩略图），再取事件，避免它们影响之后的检查。
     natives.borrow_mut().clear();
     let events = hooks.drain();
 
     let outcome = outcome.borrow();
+    // 热键编号带代数 2：与 ci.rs 里用的代数不同，确认处理函数收到的是这一次注册的编号。
     let expected_id = hotkey_id::encode(2, 1).unwrap_or(0);
     report.check(
         "Slint 事件循环里键盘热键经窗口过程送到处理函数",
@@ -168,6 +173,7 @@ fn start_natives(
     outcome: &Rc<RefCell<Outcome>>,
     natives: &mut Vec<Box<dyn std::any::Any>>,
 ) {
+    // 热键窗口建在事件循环所在的线程上，WM_HOTKEY 才会经 winit 的消息循环分发到它的窗口过程。
     let Ok(mut window) = HotkeyWindow::create() else {
         return;
     };
@@ -184,6 +190,7 @@ fn start_natives(
     {
         let _ = window.register(id, hotkey.modifiers, key);
     }
+    // 鼠标钩子在自己的线程上，命中后把消息投递到上面的热键窗口，由主线程的事件循环分发。
     let mut matcher = MouseHotkeyMatcher::new();
     matcher.replace_bindings(vec![MouseBinding {
         id: 9,
@@ -208,6 +215,7 @@ fn start_natives(
 
 /// 第二步：激活目标客户端，再用 SendInput 触发键盘热键与 Ctrl+中键。
 fn trigger(target: WindowId, outcome: &Rc<RefCell<Outcome>>) {
+    // 先激活再送按键：作用范围是 global 的热键与前台无关，激活只为产生一次前台事件。
     let activated = activation::activate(target).succeeded();
     outcome.borrow_mut().activation = Some(activated);
     const VK_CONTROL: u16 = 0x11;

@@ -15,13 +15,16 @@ pub mod activation;
 pub mod discovery;
 pub mod events;
 pub mod hotkey;
+pub mod menu;
 pub mod message_loop;
 pub mod mouse_hook;
 pub mod process;
 pub mod screens;
 pub mod screenshot;
+pub mod single_instance;
 mod text;
 pub mod thumbnail;
+pub mod tray;
 mod window_class;
 
 use eveo_core::model::WindowId;

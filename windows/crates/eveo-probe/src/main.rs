@@ -24,7 +24,7 @@ fn main() {
         Some("list") => report::list(),
         _ => {
             eprintln!(
-                "用法：eveo-probe ci --fake-client <路径> --out <目录> | report --out <文件> [--redact] [--activate] | list"
+                "用法：eveo-probe ci --fake-client <路径> --out <目录> [--app <路径>] | report --out <文件> [--redact] [--activate] | list"
             );
             2
         }

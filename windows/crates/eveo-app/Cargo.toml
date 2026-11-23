@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Windows 版的可执行文件（架构文档 3.1 节）：把 eveo-app-core 的协调器接到 eveo-platform-win 的窗口、
+# 热键、钩子与托盘上，主循环是 Slint 的事件循环（W7 已验证原生窗口与钩子能在里面共存）。
+# 只在 Windows 上有内容；其他系统上编译成一个只打印说明的空壳，工作区在 Linux 上照样能 cargo test。
+
+[package]
+name = "eveo-app"
+description = "EVE-O Preview Windows 版的可执行文件"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "eve-o-preview"
+path = "src/main.rs"
+
+[target.'cfg(windows)'.dependencies]
+eveo-core.workspace = true
+eveo-app-core.workspace = true
+eveo-platform-win.workspace = true
+eveo-ui = { path = "../eveo-ui" }
+slint = { workspace = true, features = ["backend-winit", "renderer-software"] }
+
+[lints]
+workspace = true

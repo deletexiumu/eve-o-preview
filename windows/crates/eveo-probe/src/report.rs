@@ -31,11 +31,14 @@ fn rect_json(r: ScreenRect) -> Value {
 
 /// 列出全部顶层窗口（可见的在前），打印成表格。
 pub fn list() -> i32 {
+    // 与应用一样按每显示器 DPI 感知运行，打印的坐标才是物理像素，能与应用的布局对照。
     screens::enable_per_monitor_dpi();
+    // 只列可见窗口：隐藏的窗口数量多，对判定客户端没有帮助。
     for window in discovery::top_level_windows()
         .into_iter()
         .filter(|w| w.is_visible)
     {
+        // 读不到进程信息（例如受保护的系统进程）时显示问号，不跳过这一行。
         let process = process_info(window.pid)
             .map(|p| p.image_name)
             .unwrap_or_else(|| "?".into());
@@ -58,7 +61,9 @@ pub fn run(args: &[String]) -> i32 {
         eprintln!("用法：eveo-probe report --out <文件> [--redact] [--activate]");
         return 2;
     };
+    // --redact：角色名换成编号，报告可以直接贴到公开的议题里。
     let redact = args.iter().any(|a| a == "--redact");
+    // --activate：会依次切换前台，运行期间不要操作电脑；不加时只读不改。
     let activate = args.iter().any(|a| a == "--activate");
     screens::enable_per_monitor_dpi();
 
@@ -69,6 +74,7 @@ pub fn run(args: &[String]) -> i32 {
     };
     let candidates = discovery::candidate_windows(&filter);
     let mut names = Names::new(redact);
+    // 每个进程有几个 exefile.exe 顶层窗口：大于 1 时主窗口挑选（Core 的 selector）才有意义。
     let mut per_process: BTreeMap<u32, usize> = BTreeMap::new();
     let windows: Vec<Value> = candidates
         .iter()
@@ -83,6 +89,7 @@ pub fn run(args: &[String]) -> i32 {
             })
         })
         .collect();
+    // 用与应用相同的规则挑主窗口，报告里的客户端就是应用会显示缩略图的那些。
     let main = selector::main_windows(&candidates.iter().map(|c| c.window.clone()).collect::<Vec<_>>());
     let clients: Vec<EveClient> = main.iter().map(EveClient::from_window).collect();
 
@@ -92,6 +99,7 @@ pub fn run(args: &[String]) -> i32 {
     } else {
         Value::Null
     };
+    // 报告的键名带 W 编号，与架构文档第 9 节的待实测清单对应。
     let report = json!({
         "probeVersion": env!("CARGO_PKG_VERSION"),
         "probeElevated": process::current_process_elevated(),
@@ -121,6 +129,7 @@ fn thumbnail_facts(clients: &[EveClient], names: &mut Names) -> Value {
     let facts: Vec<Value> = clients
         .iter()
         .map(|client| {
+            // 窗口放在左上角、不置顶，只为拿到源尺寸；注册后等一会儿让 DWM 准备好。
             let result =
                 ThumbnailWindow::create(ScreenRect::new(0.0, 0.0, 192.0, 108.0), false).and_then(|mut t| {
                     t.register(client.id)?;
@@ -144,6 +153,7 @@ fn activation_facts(clients: &[EveClient], names: &mut Names) -> Value {
     let facts: Vec<Value> = clients
         .iter()
         .map(|client| {
+            // 每次激活后等 300 毫秒再读前台：激活是异步生效的。
             let outcome = activation::activate(client.id);
             pump_for(Duration::from_millis(300));
             json!({
@@ -160,6 +170,7 @@ fn activation_facts(clients: &[EveClient], names: &mut Names) -> Value {
             })
         })
         .collect();
+    // 把用户原来的前台窗口还回去，探针跑完后桌面与开始时一样。
     if let Some(original) = original {
         activation::activate(original);
     }
@@ -184,6 +195,7 @@ impl Names {
     /// 窗口标题（`EVE - 角色名`）或显示名（角色名）。登录界面的 `EVE`、`EVE (<pid>)` 原样保留，
     /// 角色名按需换成编号，标题的 `EVE - ` 前缀保留。
     fn title(&mut self, text: &str) -> String {
+        // 登录界面的标题不含角色名，脱敏时原样保留，便于区分登录客户端。
         if !self.redact || text == "EVE" || text.starts_with("EVE (") {
             return text.to_owned();
         }
@@ -191,6 +203,7 @@ impl Names {
             Some(name) => ("EVE - ", name),
             None => ("", text),
         };
+        // 编号按第一次出现的顺序给，同一个角色在报告各处编号相同。
         let next = self.seen.len() + 1;
         let index = *self.seen.entry(name.to_owned()).or_insert(next);
         format!("{prefix}角色 {index}")

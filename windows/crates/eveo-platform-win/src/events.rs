@@ -10,11 +10,12 @@ use std::cell::RefCell;
 
 use eveo_core::model::WindowId;
 use windows::Win32::Foundation::HWND;
+use windows::Win32::System::SystemInformation::GetLocalTime;
 use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook, UnhookWinEvent};
 use windows::Win32::UI::WindowsAndMessaging::{
     EVENT_OBJECT_DESTROY, EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE, EVENT_OBJECT_SHOW,
     EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GetForegroundWindow,
-    OBJID_WINDOW, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
+    GetWindowThreadProcessId, OBJID_WINDOW, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
 };
 
 use crate::window_id;
@@ -48,6 +49,24 @@ pub fn foreground_window() -> Option<WindowId> {
     // SAFETY: 只读。
     let hwnd = unsafe { GetForegroundWindow() };
     (!hwnd.is_invalid()).then(|| window_id(hwnd))
+}
+
+/// 窗口所属进程的 PID；窗口已不存在时返回 `None`。
+pub fn window_pid(id: WindowId) -> Option<u32> {
+    let mut pid = 0u32;
+    // SAFETY: pid 是有效的输出位置；窗口无效时返回 0。
+    let thread = unsafe { GetWindowThreadProcessId(crate::hwnd(id), Some(&mut pid)) };
+    (thread != 0 && pid != 0).then_some(pid)
+}
+
+/// 本地时间，格式 `yyyyMMdd-HHmmss`，用于损坏配置文件的隔离文件名。
+pub fn local_timestamp() -> String {
+    // SAFETY: 只读系统时钟。
+    let t = unsafe { GetLocalTime() };
+    format!(
+        "{:04}{:02}{:02}-{:02}{:02}{:02}",
+        t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond
+    )
 }
 
 /// 一组 WinEvent 钩子。丢弃时全部摘掉。必须在有消息循环的线程上创建，事件在该线程上取。
