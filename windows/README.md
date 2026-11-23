@@ -4,7 +4,7 @@ Windows 原生版，方案见 [架构文档](../docs/windows/architecture.md)。
 
 | crate | 对应 macOS | 状态 |
 | --- | --- | --- |
-| `crates/eveo-core` | `EVEOPreviewCore` | 几何、客户端模型、标题解析、主窗口挑选、客户端登记、循环（M2a）；配置模型、迁移、校验、配置方案增删改（M2b） |
+| `crates/eveo-core` | `EVEOPreviewCore` | 几何、客户端模型、标题解析、主窗口挑选、客户端登记、循环（M2a）；配置模型、迁移、校验、配置方案增删改（M2b）；布局与吸附、热键解析与规划、鼠标热键匹配、一次性默认值（M2c） |
 
 ## 本地检查
 

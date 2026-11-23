@@ -1,0 +1,1985 @@
+{
+ "snapMove": [
+  {
+   "name": "左对右",
+   "proposed": [
+    705,
+    120,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     700,
+     120,
+     100,
+     50
+    ],
+    "snappedX": 700,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "右对左",
+   "proposed": [
+    395,
+    120,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     400,
+     120,
+     100,
+     50
+    ],
+    "snappedX": 500,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "左对左，上边贴邻居下边",
+   "proposed": [
+    504,
+    205,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     500,
+     200,
+     100,
+     50
+    ],
+    "snappedX": 500,
+    "snappedY": 200
+   }
+  },
+  {
+   "name": "右对右",
+   "proposed": [
+    605,
+    205,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     600,
+     200,
+     100,
+     50
+    ],
+    "snappedX": 700,
+    "snappedY": 200
+   }
+  },
+  {
+   "name": "恰好在阈值上算阈值内",
+   "proposed": [
+    708,
+    120,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     700,
+     120,
+     100,
+     50
+    ],
+    "snappedX": 700,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "阈值外不动",
+   "proposed": [
+    709,
+    120,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     709,
+     120,
+     100,
+     50
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "多个目标取最近的",
+   "proposed": [
+    705,
+    200,
+    100,
+    105
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      100,
+      200,
+      100
+     ],
+     [
+      0,
+      300,
+      703,
+      20
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     703,
+     200,
+     100,
+     105
+    ],
+    "snappedX": 703,
+    "snappedY": 200
+   }
+  },
+  {
+   "name": "y 方向离得远的邻居不参与 x 方向吸附",
+   "proposed": [
+    705,
+    120,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      500,
+      900,
+      200,
+      100
+     ]
+    ],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     705,
+     120,
+     100,
+     50
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "没有目标时不动",
+   "proposed": [
+    5,
+    600,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": []
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     5,
+     600,
+     100,
+     50
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "屏幕左边",
+   "proposed": [
+    5,
+    600,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     [
+      0,
+      33,
+      1728,
+      1084
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     0,
+     600,
+     100,
+     50
+    ],
+    "snappedX": 0,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "屏幕右边",
+   "proposed": [
+    1625,
+    600,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     [
+      0,
+      33,
+      1728,
+      1084
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     1628,
+     600,
+     100,
+     50
+    ],
+    "snappedX": 1728,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "可用范围的上边也是目标",
+   "proposed": [
+    900,
+    38,
+    100,
+    50
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": [
+     [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     [
+      0,
+      33,
+      1728,
+      1084
+     ]
+    ]
+   },
+   "threshold": 8,
+   "expected": {
+    "rect": [
+     900,
+     33,
+     100,
+     50
+    ],
+    "snappedX": null,
+    "snappedY": 33
+   }
+  }
+ ],
+ "snapResize": [
+  {
+   "name": "只动被拖动的边",
+   "proposed": [
+    400,
+    300,
+    203,
+    150
+   ],
+   "movingEdges": [
+    "right"
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      300,
+      300,
+      97,
+      50
+     ],
+     [
+      608,
+      300,
+      50,
+      50
+     ]
+    ],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": null,
+   "expected": {
+    "rect": [
+     400,
+     300,
+     208,
+     150
+    ],
+    "snappedX": 608,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "约束优先于吸附，对齐线作废",
+   "proposed": [
+    400,
+    300,
+    963,
+    150
+   ],
+   "movingEdges": [
+    "right"
+   ],
+   "targets": {
+    "neighbors": [
+     [
+      1368,
+      300,
+      50,
+      50
+     ]
+    ],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": null,
+   "expected": {
+    "rect": [
+     400,
+     300,
+     960,
+     150
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "拖左边缩到最小宽度以下，右边不动",
+   "proposed": [
+    250,
+    100,
+    50,
+    200
+   ],
+   "movingEdges": [
+    "left"
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": null,
+   "expected": {
+    "rect": [
+     108,
+     100,
+     192,
+     200
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "拖左上角缩到最小尺寸以下，右下不动",
+   "proposed": [
+    280,
+    280,
+    20,
+    20
+   ],
+   "movingEdges": [
+    "left",
+    "top"
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": null,
+   "expected": {
+    "rect": [
+     108,
+     192,
+     192,
+     108
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "宽高比：拖右边以宽算高",
+   "proposed": [
+    100,
+    100,
+    300,
+    100
+   ],
+   "movingEdges": [
+    "right"
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": 2,
+   "expected": {
+    "rect": [
+     100,
+     100,
+     300,
+     150
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "宽高比：拖下边以高算宽",
+   "proposed": [
+    100,
+    100,
+    200,
+    150
+   ],
+   "movingEdges": [
+    "bottom"
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": 2,
+   "expected": {
+    "rect": [
+     100,
+     100,
+     300,
+     150
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  },
+  {
+   "name": "宽高比与最大尺寸冲突：拖上边时下边固定",
+   "proposed": [
+    100,
+    0,
+    400,
+    700
+   ],
+   "movingEdges": [
+    "top"
+   ],
+   "targets": {
+    "neighbors": [],
+    "screens": []
+   },
+   "threshold": 8,
+   "minimum": [
+    192,
+    108
+   ],
+   "maximum": [
+    960,
+    540
+   ],
+   "aspectRatio": 1,
+   "expected": {
+    "rect": [
+     100,
+     160,
+     540,
+     540
+    ],
+    "snappedX": null,
+    "snappedY": null
+   }
+  }
+ ],
+ "resizeEdges": [
+  {
+   "name": "左边",
+   "point": [
+    5,
+    50
+   ],
+   "rect": [
+    0,
+    0,
+    200,
+    100
+   ],
+   "margin": 12,
+   "expected": [
+    "left"
+   ]
+  },
+  {
+   "name": "右下角",
+   "point": [
+    195,
+    95
+   ],
+   "rect": [
+    0,
+    0,
+    200,
+    100
+   ],
+   "margin": 12,
+   "expected": [
+    "right",
+    "bottom"
+   ]
+  },
+  {
+   "name": "左上角",
+   "point": [
+    10,
+    3
+   ],
+   "rect": [
+    0,
+    0,
+    200,
+    100
+   ],
+   "margin": 12,
+   "expected": [
+    "left",
+    "top"
+   ]
+  },
+  {
+   "name": "中间",
+   "point": [
+    100,
+    50
+   ],
+   "rect": [
+    0,
+    0,
+    200,
+    100
+   ],
+   "margin": 12,
+   "expected": []
+  },
+  {
+   "name": "矩形外",
+   "point": [
+    -5,
+    50
+   ],
+   "rect": [
+    0,
+    0,
+    200,
+    100
+   ],
+   "margin": 12,
+   "expected": []
+  },
+  {
+   "name": "矩形太窄时取更近的边",
+   "point": [
+    6,
+    50
+   ],
+   "rect": [
+    0,
+    0,
+    20,
+    100
+   ],
+   "margin": 12,
+   "expected": [
+    "left"
+   ]
+  }
+ ],
+ "edgeGrip": [
+  {
+   "name": "离左边 6 命中",
+   "point": [
+    106,
+    200
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "left"
+   ]
+  },
+  {
+   "name": "离左边 6.5 不命中",
+   "point": [
+    106.5,
+    200
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": []
+  },
+  {
+   "name": "右边",
+   "point": [
+    495,
+    200
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "right"
+   ]
+  },
+  {
+   "name": "上边",
+   "point": [
+    300,
+    104
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "top"
+   ]
+  },
+  {
+   "name": "下边",
+   "point": [
+    300,
+    300
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "bottom"
+   ]
+  },
+  {
+   "name": "矩形外",
+   "point": [
+    99,
+    200
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": []
+  },
+  {
+   "name": "矩形外（下方）",
+   "point": [
+    300,
+    301
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": []
+  },
+  {
+   "name": "角区比边缘带长",
+   "point": [
+    103,
+    110
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "left",
+    "top"
+   ]
+  },
+  {
+   "name": "右下角",
+   "point": [
+    497,
+    298
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "right",
+    "bottom"
+   ]
+  },
+  {
+   "name": "两边都远于 6 时不命中",
+   "point": [
+    110,
+    110
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": []
+  },
+  {
+   "name": "离上边 20 只是左边",
+   "point": [
+    103,
+    120
+   ],
+   "rect": [
+    100,
+    100,
+    400,
+    200
+   ],
+   "expected": [
+    "left"
+   ]
+  },
+  {
+   "name": "小矩形的中心",
+   "point": [
+    8,
+    8
+   ],
+   "rect": [
+    0,
+    0,
+    16,
+    16
+   ],
+   "expected": []
+  },
+  {
+   "name": "小矩形的边缘带收窄到 4",
+   "point": [
+    3,
+    8
+   ],
+   "rect": [
+    0,
+    0,
+    16,
+    16
+   ],
+   "expected": [
+    "left"
+   ]
+  },
+  {
+   "name": "小矩形离边 5 不命中",
+   "point": [
+    5,
+    8
+   ],
+   "rect": [
+    0,
+    0,
+    16,
+    16
+   ],
+   "expected": []
+  },
+  {
+   "name": "宽为 0 的矩形",
+   "point": [
+    1,
+    1
+   ],
+   "rect": [
+    0,
+    0,
+    0,
+    10
+   ],
+   "expected": []
+  }
+ ],
+ "clampSize": [
+  {
+   "name": "不带比例时各自夹取",
+   "size": [
+    10,
+    10000
+   ],
+   "aspectRatio": null,
+   "expected": [
+    192,
+    540
+   ]
+  },
+  {
+   "name": "带比例时按宽算高",
+   "size": [
+    400,
+    400
+   ],
+   "aspectRatio": 2,
+   "expected": [
+    400,
+    200
+   ]
+  },
+  {
+   "name": "高越界时按高的上限算宽",
+   "size": [
+    900,
+    100
+   ],
+   "aspectRatio": 1,
+   "expected": [
+    540,
+    540
+   ]
+  },
+  {
+   "name": "高越下限时按高的下限算宽",
+   "size": [
+    200,
+    100
+   ],
+   "aspectRatio": 4,
+   "expected": [
+    432,
+    108
+   ]
+  },
+  {
+   "name": "比例无效时忽略",
+   "size": [
+    400,
+    400
+   ],
+   "aspectRatio": 0,
+   "expected": [
+    400,
+    400
+   ]
+  }
+ ],
+ "clampToScreens": [
+  {
+   "name": "露出 32 时不动",
+   "rect": [
+    -352,
+    100,
+    384,
+    216
+   ],
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "minimumVisible": 32,
+   "expected": [
+    -352,
+    100,
+    384,
+    216
+   ]
+  },
+  {
+   "name": "露出 24 时拉回",
+   "rect": [
+    -360,
+    100,
+    384,
+    216
+   ],
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "minimumVisible": 32,
+   "expected": [
+    0,
+    100,
+    384,
+    216
+   ]
+  },
+  {
+   "name": "没有屏幕信息时原样返回",
+   "rect": [
+    -360,
+    100,
+    384,
+    216
+   ],
+   "screens": [],
+   "minimumVisible": 32,
+   "expected": [
+    -360,
+    100,
+    384,
+    216
+   ]
+  },
+  {
+   "name": "拉回到可用范围的右下角",
+   "rect": [
+    5000,
+    5000,
+    384,
+    216
+   ],
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "minimumVisible": 32,
+   "expected": [
+    1344,
+    901,
+    384,
+    216
+   ]
+  },
+  {
+   "name": "拉回到中心点最近的屏幕",
+   "rect": [
+    -3000,
+    100,
+    384,
+    216
+   ],
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    },
+    {
+     "frame": [
+      -1920,
+      0,
+      1920,
+      1080
+     ],
+     "visibleFrame": [
+      -1920,
+      0,
+      1920,
+      1080
+     ],
+     "scale": 1,
+     "isMain": false
+    }
+   ],
+   "minimumVisible": 32,
+   "expected": [
+    -1920,
+    100,
+    384,
+    216
+   ]
+  }
+ ],
+ "resolveFrame": [
+  {
+   "name": "有记录：宽高为空时用默认尺寸",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {
+    "Pilot Alpha": {
+     "x": 100,
+     "y": 200
+    }
+   },
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     100,
+     200,
+     384,
+     216
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "有记录且尺寸越界：夹到范围内",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {
+    "Pilot Alpha": {
+     "x": 100,
+     "y": 200,
+     "width": 1000,
+     "height": 100
+    }
+   },
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     100,
+     200,
+     960,
+     108
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "无记录：可用范围左上角起，边距 16",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {},
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     16,
+     49,
+     384,
+     216
+    ],
+    "isAutoPlaced": true
+   }
+  },
+  {
+   "name": "无记录：跳过被占用的格子",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {},
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [
+    [
+     16,
+     49,
+     384,
+     216
+    ]
+   ],
+   "expected": {
+    "frame": [
+     16,
+     273,
+     384,
+     216
+    ],
+    "isAutoPlaced": true
+   }
+  },
+  {
+   "name": "无记录：一列排满换下一列",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {},
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [
+    [
+     16,
+     49,
+     384,
+     216
+    ],
+    [
+     16,
+     273,
+     384,
+     216
+    ],
+    [
+     16,
+     497,
+     384,
+     216
+    ],
+    [
+     16,
+     721,
+     384,
+     216
+    ]
+   ],
+   "expected": {
+    "frame": [
+     408,
+     49,
+     384,
+     216
+    ],
+    "isAutoPlaced": true
+   }
+  },
+  {
+   "name": "无记录：屏幕排满时叠放在第一个格子",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {},
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [
+    [
+     0,
+     0,
+     1728,
+     1117
+    ]
+   ],
+   "expected": {
+    "frame": [
+     16,
+     49,
+     384,
+     216
+    ],
+    "isAutoPlaced": true
+   }
+  },
+  {
+   "name": "无记录且没有屏幕信息",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {},
+   "screens": [],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     16,
+     16,
+     384,
+     216
+    ],
+    "isAutoPlaced": true
+   }
+  },
+  {
+   "name": "登录客户端从 loginPosition 开始",
+   "identity": {
+    "kind": "login"
+   },
+   "loginIndex": 0,
+   "layouts": {},
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     5,
+     40,
+     384,
+     216
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "未知客户端按序号层叠",
+   "identity": {
+    "kind": "unknown"
+   },
+   "loginIndex": 2,
+   "layouts": {},
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     53,
+     88,
+     384,
+     216
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "屏幕外的记录拉回",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {
+    "Pilot Alpha": {
+     "x": 5000,
+     "y": 5000
+    }
+   },
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     1344,
+     901,
+     384,
+     216
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "在负坐标副屏上时保持原位",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {
+    "Pilot Alpha": {
+     "x": -1500,
+     "y": 100
+    }
+   },
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    },
+    {
+     "frame": [
+      -1920,
+      0,
+      1920,
+      1080
+     ],
+     "visibleFrame": [
+      -1920,
+      0,
+      1920,
+      1080
+     ],
+     "scale": 1,
+     "isMain": false
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     -1500,
+     100,
+     384,
+     216
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "副屏拔掉后拉回主屏",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {
+    "Pilot Alpha": {
+     "x": -1500,
+     "y": 100
+    }
+   },
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     0,
+     100,
+     384,
+     216
+    ],
+    "isAutoPlaced": false
+   }
+  },
+  {
+   "name": "别的角色的记录不算",
+   "identity": {
+    "kind": "character",
+    "name": "Pilot Alpha"
+   },
+   "loginIndex": 0,
+   "layouts": {
+    "pilot alpha": {
+     "x": 100,
+     "y": 200
+    }
+   },
+   "screens": [
+    {
+     "frame": [
+      0,
+      0,
+      1728,
+      1117
+     ],
+     "visibleFrame": [
+      0,
+      33,
+      1728,
+      1084
+     ],
+     "scale": 2,
+     "isMain": true
+    }
+   ],
+   "occupied": [],
+   "expected": {
+    "frame": [
+     16,
+     49,
+     384,
+     216
+    ],
+    "isAutoPlaced": true
+   }
+  }
+ ],
+ "zoom": [
+  {
+   "name": "左上角不动",
+   "base": [
+    100,
+    100,
+    200,
+    100
+   ],
+   "factor": 2,
+   "anchor": "nw",
+   "expected": [
+    100,
+    100,
+    400,
+    200
+   ]
+  },
+  {
+   "name": "中心不动",
+   "base": [
+    100,
+    100,
+    200,
+    100
+   ],
+   "factor": 2,
+   "anchor": "center",
+   "expected": [
+    0,
+    50,
+    400,
+    200
+   ]
+  },
+  {
+   "name": "右下角不动",
+   "base": [
+    100,
+    100,
+    200,
+    100
+   ],
+   "factor": 3,
+   "anchor": "se",
+   "expected": [
+    -300,
+    -100,
+    600,
+    300
+   ]
+  },
+  {
+   "name": "上边中点不动",
+   "base": [
+    100,
+    100,
+    200,
+    100
+   ],
+   "factor": 2,
+   "anchor": "n",
+   "expected": [
+    0,
+    100,
+    400,
+    200
+   ]
+  },
+  {
+   "name": "倍数不大于 1 时不变",
+   "base": [
+    100,
+    100,
+    200,
+    100
+   ],
+   "factor": 1,
+   "anchor": "se",
+   "expected": [
+    100,
+    100,
+    200,
+    100
+   ]
+  }
+ ],
+ "crop": [
+  {
+   "name": "裁掉顶部",
+   "sourceSize": [
+    1000,
+    100
+   ],
+   "cropHeight": 25,
+   "expected": [
+    0,
+    0.25,
+    1,
+    0.75
+   ]
+  },
+  {
+   "name": "裁剪高度为 0",
+   "sourceSize": [
+    1000,
+    100
+   ],
+   "cropHeight": 0,
+   "expected": [
+    0,
+    0,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "源高度无效",
+   "sourceSize": [
+    1000,
+    0
+   ],
+   "cropHeight": 10,
+   "expected": [
+    0,
+    0,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "裁剪高度不小于源高度",
+   "sourceSize": [
+    1000,
+    100
+   ],
+   "cropHeight": 100,
+   "expected": [
+    0,
+    0,
+    1,
+    1
+   ]
+  }
+ ]
+}

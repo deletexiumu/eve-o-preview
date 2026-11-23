@@ -287,7 +287,7 @@ macOS 的协调器在 App 里，没有单元测试。Windows 版把协调器的�
 | 作用范围 `game` | 前台是 EVE 时注册，前台离开 EVE 时注销。这样在别的应用里这些键不会被我们吃掉。前台变化来自 4.5 节，注册与注销的差异由 Core 的 `HotkeyPlanner` 计算 |
 | 作用范围 `global` | 一直注册 |
 | 键名与虚拟键码 | 配置里是 `ctrl+shift+F13` 这样的字符串。Windows 的 `KeyCodeTable` 把键名映射到 `VK_*`。修饰键见 5.5 节 |
-| 鼠标中键与侧键 | `WH_MOUSE_LL`，装在专用线程。只看 `WM_MBUTTONDOWN`、`WM_XBUTTONDOWN`（`XBUTTON1`、`XBUTTON2`）；命中绑定且作用范围满足时吞掉事件（返回 1）并通知主线程，否则原样放行 |
+| 鼠标中键与侧键 | `WH_MOUSE_LL`，装在专用线程。只看中键与两个侧键（`XBUTTON1`、`XBUTTON2`）的按下与松开；按下命中绑定且作用范围满足时吞掉事件（返回 1）并通知主线程，它对应的松开也吞掉，否则原样放行。判断由 Core 的 `MouseHotkeyMatcher` 做，与 macOS 共用 `shared/fixtures/hotkey` 的用例 |
 | 钩子被摘掉 | 回调超时后系统会不加通知地摘掉钩子。回调里不做任何耗时操作；另外每 30 秒重装一次钩子（先装新的再卸旧的） |
 | 修饰键状态 | 鼠标热键带修饰键时，在回调里用 `GetAsyncKeyState` 读 Ctrl、Shift、Alt |
 | 没有鼠标绑定时 | 不装钩子，线程不启动 |
