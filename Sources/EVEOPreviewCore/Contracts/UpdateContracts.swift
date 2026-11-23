@@ -15,15 +15,23 @@ public struct UpdateFeed: Sendable, Equatable {
     /// 正式的检查地址。
     public static let productionURL = URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest")!
     /// 正式的 Release 列表地址（8.8 节）。每页个数与 `ReleaseHistory.pageSize` 一致，由用例核对。
+    /// 1.3.0 起每页 100 条：仓库以后同时发布 Windows 版（tag `win-v*`），30 条里会被它们占掉一部分。
     public static let productionHistoryURL =
-        URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=30")!
-    /// 正式地址下，附件与发布页的地址应以它开头。
+        URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=100")!
+    /// 正式地址下，附件与发布页的地址应以它开头。仓库改名之前它也是打开发布页时的默认地址。
     public static let productionAssetPrefix = "https://github.com/deletexiumu/eve-o-preview-macos/releases/"
+    /// 仓库计划改名后的附件与发布页前缀（1.3.0 起同样接受）。
+    ///
+    /// GitHub 改名后，检查地址仍会被重定向到新仓库，但答复里的 `html_url` 与 `browser_download_url` 换成新名字。
+    /// ≤1.2.2 只认旧名字，所以改名后不能自动安装；1.3.0 先认上两个名字，改名才不会中断自动更新。
+    public static let renamedAssetPrefix = "https://github.com/deletexiumu/eve-o-preview/releases/"
     /// 正式地址下，附件与发布页的主机。`html_url`、`browser_download_url` 与缓存的发布页都在这个主机上；
     /// 下载时重定向到的文件存储主机不经 `accepts` 核对（见 `UpdateDownloader`）。
     static let productionAssetHost = "github.com"
-    /// 正式地址下，附件与发布页的路径前缀。
-    static let productionAssetPathPrefix = "/deletexiumu/eve-o-preview-macos/releases/"
+    /// 正式地址下，附件与发布页允许的路径前缀：旧仓库名与改名后的仓库名各一个，都以 `/releases/` 结尾，
+    /// 所以 `eve-o-preview` 不会误配 `eve-o-preview-macos` 或 `eve-o-preview-fork` 这类名字。
+    static let productionAssetPathPrefixes = ["/deletexiumu/eve-o-preview-macos/releases/",
+                                              "/deletexiumu/eve-o-preview/releases/"]
     /// 测试地址用 `http` 时允许的主机（已去掉 IPv6 的方括号、转成小写）。
     static let loopbackHosts: Set<String> = ["127.0.0.1", "localhost", "::1"]
 
@@ -70,9 +78,9 @@ public struct UpdateFeed: Sendable, Equatable {
     }
 
     /// 附件与发布页的地址是否可用。测试地址下应与 feedURL 同源。正式地址下同时满足：
-    /// - 原文以 productionAssetPrefix 开头，不含反斜杠、`%2e`（编码的点，不分大小写）、`%2f`、`%5c`；
+    /// - 原文以 productionAssetPrefix 或 renamedAssetPrefix 开头，不含反斜杠、`%2e`（编码的点，不分大小写）、`%2f`、`%5c`；
     /// - 按地址解析后协议是 https，主机正好是 `github.com`，没有用户名与密码，端口省略或是 443；
-    /// - 路径以本仓库的 `/releases/` 开头，没有 `.` 或 `..` 段（如 `…/releases/../../../evil/repo/…`）。
+    /// - 路径以本仓库（新旧两个名字之一）的 `/releases/` 开头，没有 `.` 或 `..` 段（如 `…/releases/../../../evil/repo/…`）。
     ///
     /// 同源指协议、主机与端口都相同；端口省略时按协议的默认端口（http 80，https 443）比较。
     public func accepts(_ urlString: String) -> Bool {
@@ -85,7 +93,8 @@ public struct UpdateFeed: Sendable, Equatable {
 
     /// 正式地址下的规则，见 `accepts`。先查原文：`URLComponents.path` 会解码百分号编码，解码后再查就晚了。
     static func isProductionAsset(_ urlString: String) -> Bool {
-        guard urlString.hasPrefix(productionAssetPrefix), !urlString.contains("\\") else { return false }
+        let knownPrefix = [productionAssetPrefix, renamedAssetPrefix].contains { urlString.hasPrefix($0) }
+        guard knownPrefix, !urlString.contains("\\") else { return false }
         let lowered = urlString.lowercased()
         guard !["%2e", "%2f", "%5c"].contains(where: lowered.contains) else { return false }
         guard let components = URLComponents(string: urlString),
@@ -94,7 +103,8 @@ public struct UpdateFeed: Sendable, Equatable {
               components.user == nil, components.password == nil,
               components.port == nil || components.port == 443 else { return false }
         let path = components.percentEncodedPath
-        guard path.hasPrefix(productionAssetPathPrefix) else { return false }
+        // 原文前缀与路径前缀分开核对：原文查的是未解析的字符串，路径查的是解析后的结果，两者都要命中。
+        guard productionAssetPathPrefixes.contains(where: { path.hasPrefix($0) }) else { return false }
         let segments = path.split(separator: "/", omittingEmptySubsequences: false)
         return !segments.contains { $0 == "." || $0 == ".." }
     }

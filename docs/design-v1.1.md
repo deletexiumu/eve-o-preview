@@ -1230,7 +1230,7 @@ public enum ReleaseHistory {
 // [Core] UpdateFeed.historyURL；UpdateService.fetchReleaseHistory(feed:appVersion:) -> ReleaseHistoryPage?
 ```
 
-- 检查本身不变，仍只请求 `releases/latest`。有新版本要提示时（`UpdatePolicy.offer` 得到 `.offer`），以及更新窗口显示某个版本时，`UpdateController.ensureIntermediateNotes(for:)` 在后台请求一次 Release 列表：正式地址是 `…/releases?per_page=30`；测试地址把最后一段换成 `releases.json`（`make-update-test-feed.sh` 一起生成），地址没有 `.json` 文件名或带查询串时不取。
+- 检查本身不变，仍只请求 `releases/latest`。有新版本要提示时（`UpdatePolicy.offer` 得到 `.offer`），以及更新窗口显示某个版本时，`UpdateController.ensureIntermediateNotes(for:)` 在后台请求一次 Release 列表：正式地址是 `…/releases?per_page=100`（1.3.0 之前是 30）；测试地址把最后一段换成 `releases.json`（`make-update-test-feed.sh` 一起生成），地址没有 `.json` 文件名或带查询串时不取。
 - 请求头与 8.4 节相同，不带 ETag，超时 15 秒，正文上限 2 MiB。尽力而为：非 200、限流、网络错误、解析失败都只记日志，窗口只显示最新版的说明；失败后 1 小时内不再试；`rateLimitedUntil` 在将来时不发。不写 `rateLimitedUntil`，不改阶段，检查、下载与安装都不等它。
 - 列表解析跳过草稿、预发布与 tag 解析不了的项，正文截到 65,536 个字符。挑出「正在运行的版本 < v < 最新版」的版本，按版本号从新到旧排，最多 10 个、总共不超过 262,144 个字符（超出时留较新的）。一页满 30 项、却没有一项不比正在运行的版本新时，可能还有更早的中间版本，`hasMore` 为真。`hasMore` 为真时说明最后多一行「更早版本的更新内容请到发布页查看」。
 - 结果存在 `state.updates.intermediateNotes`，只存中间版本。缓存是为同一个最新版取的、且取的时候正在运行的版本不比现在新时直接用，所以每个新的最新版最多多一次请求；启动时只读缓存，不发请求。显示前再按正在运行的版本过滤一次。测试地址留下的缓存与 `cachedRelease` 一起丢掉。这个字段解不出来时单独丢掉，不连累 `state.updates` 的其他记录。
@@ -1391,7 +1391,7 @@ public enum ReleaseHistory {
 | 请求 | 何时 | 发送的内容 |
 | --- | --- | --- |
 | `GET api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` | 「自动检查更新」打开时，启动后与每 24 小时；用户点「检查更新…」时 | 请求头 `User-Agent: EVE-O-Preview-macOS/<版本号>`、`Accept`、`X-GitHub-Api-Version`、`Accept-Language: en`、`If-None-Match`（上次答复的 ETag），以及 `URLSession` 自己加的 `Host`、`Accept-Encoding`、`Connection` |
-| `GET api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=30` | 有新版本要提示、且还没有为这个版本取过时（8.8 节），每个新版本一般只一次 | 与上一行相同，不带 `If-None-Match` |
+| `GET api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=100` | 有新版本要提示、且还没有为这个版本取过时（8.8 节），每个新版本一般只一次 | 与上一行相同，不带 `If-None-Match` |
 | 下载 `SHA256SUMS.txt` 与 dmg（`github.com`，重定向到 GitHub 的文件存储） | 用户点「安装更新」时；「自动安装」打开且发现新版本时 | 请求头 `User-Agent`、`Accept-Language: en`，以及 `URLSession` 自己加的那 3 个 |
 
 - 不发送：角色名、配置、日志、硬件信息、系统版本、任何设备或安装的标识符。不用 cookie，不留缓存。
