@@ -326,6 +326,8 @@ impl App {
                 _ => self.poll_soon(),
             }
         }
+        // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
+        self.thumbnails.animate(self.now());
         let now = Instant::now();
         if now >= self.poll_at {
             self.poll(runtime);

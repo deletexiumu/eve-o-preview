@@ -8,14 +8,17 @@
 // - 不透明度：DWM 缩略图的 opacity。
 // DWM 注册的结果（成功或失败）作为缩略图状态报回协调器，失败的下一轮规划时重试。
 // 每个窗口还有一个手势状态机（app-core 的 gesture），窗口过程的鼠标输入经应用层交给它。
+// 标题、占位、跳过标记与战斗提醒画在缩略图窗口的叠加层上；提醒的闪烁由应用的定时器调 `animate` 逐帧推进。
 
 use std::collections::{HashMap, HashSet};
 
+use eveo_app_core::flash;
 use eveo_app_core::gesture::Gesture;
 use eveo_core::geometry::{ScreenInfo, ScreenRect, screen_containing};
-use eveo_core::model::WindowId;
-use eveo_core::planning::{ThumbnailPresentation, ThumbnailStatus};
+use eveo_core::model::{COMBAT_ALERT_DEFAULT_COLOR, CombatAlertStyle, WindowId};
+use eveo_core::planning::{ThumbnailPlaceholder, ThumbnailPresentation, ThumbnailStatus};
 use eveo_core::support::hex_color;
+use eveo_platform_win::overlay::{self, OverlayAlert, OverlayContent, OverlayTitle};
 use eveo_platform_win::thumbnail::{ThumbnailInput, ThumbnailWindow};
 
 /// 没有高亮也没有中性边框时的底色：深灰，与 DWM 画面之间没有缝隙时看不到。
@@ -29,12 +32,24 @@ struct Entry {
     gesture: Gesture,
     /// 最近报给协调器的 DWM 状态。
     status: ThumbnailStatus,
+    /// 叠加层的内容；提醒的强度随闪烁逐帧改写。
+    overlay: OverlayContent,
 }
 
 /// 全部缩略图窗口，按客户端窗口 ID 存放。
-#[derive(Default)]
 pub struct ThumbnailManager {
     entries: HashMap<WindowId, Entry>,
+    /// 提醒当前的强度；新出现的提醒从这个值开始，与正在闪的步调一致。
+    intensity: f32,
+}
+
+impl Default for ThumbnailManager {
+    fn default() -> Self {
+        Self {
+            entries: HashMap::new(),
+            intensity: 1.0,
+        }
+    }
 }
 
 impl ThumbnailManager {
@@ -70,6 +85,7 @@ impl ThumbnailManager {
                         window,
                         gesture: Gesture::new(),
                         status: ThumbnailStatus::Pending,
+                        overlay: OverlayContent::default(),
                     })
                 }
             };
@@ -79,6 +95,7 @@ impl ThumbnailManager {
                 registered.contains(&id),
                 interacting,
                 screens,
+                self.intensity,
             ) {
                 changes.push((id, status));
             }
@@ -105,6 +122,28 @@ impl ThumbnailManager {
         }
     }
 
+    /// 推进提醒的闪烁：有提醒的缩略图按 `now`（秒）取闪烁曲线的值重画叠加层。
+    /// 系统关掉了动画效果时提醒静止显示。没有提醒时什么也不做，定时器空转没有开销。
+    pub fn animate(&mut self, now: f64) {
+        if !self.entries.values().any(|e| e.overlay.alert.is_some()) {
+            return;
+        }
+        // 每帧都问一次系统设置：用户在提醒期间改了「动画效果」开关，下一帧就按新的设置显示。
+        self.intensity = if overlay::animations_enabled() {
+            flash::intensity(now) as f32
+        } else {
+            1.0
+        };
+        // 只改强度、其余内容不变；平台层发现内容不同就重画这一个叠加层。
+        // 隐藏的缩略图也会更新内容，但它的叠加层隐藏着，要到再次显示时才真正画。
+        for entry in self.entries.values_mut() {
+            if let Some(alert) = &mut entry.overlay.alert {
+                alert.intensity = self.intensity;
+                entry.window.set_overlay(entry.overlay.clone());
+            }
+        }
+    }
+
     /// 销毁全部窗口（退出时）。
     pub fn clear(&mut self) {
         self.entries.clear();
@@ -118,6 +157,7 @@ fn update(
     should_register: bool,
     interacting: &HashSet<WindowId>,
     screens: &[ScreenInfo],
+    intensity: f32,
 ) -> Option<ThumbnailStatus> {
     let id = presentation.id;
     let window = &mut entry.window;
@@ -156,15 +196,56 @@ fn update(
         ThumbnailStatus::Pending
     };
     let _ = window.set_appearance(inset, presentation.is_visible, opacity);
+    // 叠加层每次呈现都重算内容，但平台层比较内容后才重画：多数重算（例如前台切换）只改边框，不碰叠加层。
+    // 缩放取所在显示器的：缩略图拖到另一块缩放不同的显示器上时，标题字号与边距随之变化。
+    entry.overlay = overlay_content(presentation, scale as f32, intensity);
+    window.set_overlay(entry.overlay.clone());
     (status != entry.status).then(|| {
         entry.status = status;
         status
     })
 }
 
-/// `#RRGGBB` 换成 Win32 的 `0x00BBGGRR`；格式不对时返回 `None`。
-fn bgr(text: &str) -> Option<u32> {
+/// 由呈现得出叠加层的内容。占位文字目前只有简体中文，界面多语言在设置窗口完成时一起做。
+fn overlay_content(presentation: &ThumbnailPresentation, scale: f32, intensity: f32) -> OverlayContent {
+    let title = presentation.shows_title.then(|| OverlayTitle {
+        text: presentation.title.clone(),
+        size: presentation.title_font_size as f32,
+        color: rgb(&presentation.title_color).unwrap_or(0xFF_FF_FF),
+    });
+    // DWM 画面在最小化时仍是最后一帧，占位铺一层深色半透明底并写明原因；注册失败时底下是边框色。
+    let placeholder = match presentation.placeholder {
+        ThumbnailPlaceholder::None => None,
+        ThumbnailPlaceholder::Unavailable => Some("画面不可用".to_owned()),
+        ThumbnailPlaceholder::Minimized => Some("已最小化".to_owned()),
+    };
+    let alert = presentation.alert.as_ref().map(|alert| OverlayAlert {
+        // 颜色已由配置校验保证合法，这里只作防御：解析失败时用默认的红色。
+        color: rgb(&alert.color)
+            .or_else(|| rgb(COMBAT_ALERT_DEFAULT_COLOR))
+            .unwrap_or(0xFF_3B_30),
+        border: matches!(alert.style, CombatAlertStyle::Border | CombatAlertStyle::Both),
+        wash: matches!(alert.style, CombatAlertStyle::Wash | CombatAlertStyle::Both),
+        intensity,
+    });
+    OverlayContent {
+        title,
+        skipped: presentation.is_skipped,
+        placeholder,
+        alert,
+        scale,
+    }
+}
+
+/// `#RRGGBB` 换成 `0xRRGGBB`；格式不对时返回 `None`。
+fn rgb(text: &str) -> Option<u32> {
     let (r, g, b) = hex_color::components(text)?;
     let byte = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
-    Some(byte(b) << 16 | byte(g) << 8 | byte(r))
+    Some(byte(r) << 16 | byte(g) << 8 | byte(b))
+}
+
+/// `#RRGGBB` 换成 Win32 的 `0x00BBGGRR`；格式不对时返回 `None`。
+fn bgr(text: &str) -> Option<u32> {
+    // 0xRRGGBB 的红与蓝对调。
+    rgb(text).map(|v| (v & 0x00_FF_00) | (v >> 16) | ((v & 0xFF) << 16))
 }

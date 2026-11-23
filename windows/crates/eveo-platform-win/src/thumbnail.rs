@@ -4,7 +4,8 @@
 // 用 DwmRegisterThumbnail 让系统把客户端窗口的画面直接合成到它上面。只取客户区（去掉标题栏与边框）。
 // 目标矩形向内缩进边框的粗细，露出的窗口底色就是边框；底色按窗口单独设（高亮色或中性边框色）。
 // 鼠标输入（按下、移动、松开、离开、失去捕获）交给 `set_input_handler` 设的处理函数，手势由应用层的状态机判断。
-// 处理函数与窗口状态放在线程局部的表里，以窗口句柄为键；窗口与处理函数都在主线程上。标题浮层另做。
+// 处理函数与窗口状态放在线程局部的表里，以窗口句柄为键；窗口与处理函数都在主线程上。
+// 标题、占位、跳过标记与提醒画在它拥有的叠加层窗口上（overlay 模块），位置与显隐随本窗口同步。
 
 //! DWM 缩略图窗口。
 
@@ -36,6 +37,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::core::{PCWSTR, Result};
 
+use crate::overlay::{OverlayContent, OverlayWindow};
 use crate::{hwnd, text::wide, window_class};
 
 /// 缩略图窗口的底色（边框露出的颜色）：深灰。M4 起按设置里的边框颜色重画。
@@ -149,6 +151,8 @@ pub struct ThumbnailWindow {
     visible: bool,
     opacity: u8,
     shown: bool,
+    /// 叠加层；建不出来时（极少见）为 `None`，缩略图照常显示，只是没有标题等内容。
+    overlay: Option<OverlayWindow>,
 }
 
 impl ThumbnailWindow {
@@ -191,6 +195,10 @@ impl ThumbnailWindow {
         });
         // SAFETY: 窗口刚建好，属于本线程。
         let _ = unsafe { ShowWindow(hwnd, SW_SHOWNOACTIVATE) };
+        let overlay = OverlayWindow::create(hwnd).ok().map(|mut overlay| {
+            overlay.set_frame((x, y, w, h));
+            overlay
+        });
         Ok(Self {
             hwnd,
             thumbnail: None,
@@ -199,7 +207,15 @@ impl ThumbnailWindow {
             visible: true,
             opacity: 255,
             shown: true,
+            overlay,
         })
+    }
+
+    /// 设置叠加层的内容（标题、占位、跳过标记、提醒）。与上次相同时不重画。
+    pub fn set_overlay(&mut self, content: OverlayContent) {
+        if let Some(overlay) = &mut self.overlay {
+            overlay.set_content(content);
+        }
     }
 
     /// 设置鼠标输入的处理函数。替换已有的处理函数。
@@ -230,6 +246,9 @@ impl ThumbnailWindow {
         let command = if shown { SW_SHOWNOACTIVATE } else { SW_HIDE };
         // SAFETY: 窗口属于本线程。
         let _ = unsafe { ShowWindow(self.hwnd, command) };
+        if let Some(overlay) = &mut self.overlay {
+            overlay.set_owner_shown(shown);
+        }
     }
 
     /// 窗口是否显示着。
@@ -297,6 +316,10 @@ impl ThumbnailWindow {
         // SAFETY: 窗口属于本线程；不激活。
         unsafe { SetWindowPos(self.hwnd, Some(after), x, y, w, h, SWP_NOACTIVATE)? };
         self.frame = frame;
+        // 叠加层是本窗口拥有的窗口，层次由系统保持在本窗口之上，这里只同步位置与大小。
+        if let Some(overlay) = &mut self.overlay {
+            overlay.set_frame((x, y, w, h));
+        }
         self.apply()
     }
 
@@ -330,6 +353,8 @@ impl ThumbnailWindow {
 
 impl Drop for ThumbnailWindow {
     fn drop(&mut self) {
+        // 先销毁叠加层：销毁主人时系统也会销毁它，之后再 DestroyWindow 就是对失效句柄操作。
+        self.overlay = None;
         self.unregister();
         STATES.with(|s| s.borrow_mut().remove(&(self.hwnd.0 as usize)));
         // SAFETY: 窗口由 create 建立，只销毁一次。

@@ -3,6 +3,7 @@
 // 应用本身的冒烟检查（M4）：在假客户端旁边启动真正的 eve-o-preview.exe，从外面核对它的行为。
 // - 配置写到探针输出目录下的临时 APPDATA，不碰运行机器上的真实配置；
 // - 每个客户端一个缩略图窗口（按类名与 PID 找），第一次运行写出 config.json，自动排位的布局已保存；
+// - 每个缩略图上有一个与它重合的叠加层窗口，左上角画着标题的深色半透明底（截图取色）；
 // - 第二个实例发现已有实例后立即退出（单实例）；
 // - 用 SendInput 左键点一个角色的缩略图，前台切到那个客户端（手势 → 协调器 → 激活）；
 // - 右键拖动这个缩略图，松开后 config.json 里它的位置跟着变（手势 → 拖动提交 → 延迟写盘）。
@@ -14,12 +15,15 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::time::{Duration, Instant};
 
-use eveo_core::geometry::ScreenRect;
+use eveo_core::geometry::{ScreenRect, screen_containing};
 use eveo_core::model::EveClient;
 use eveo_platform_win::activation;
 use eveo_platform_win::discovery::top_level_windows;
 use eveo_platform_win::events::foreground_window;
 use eveo_platform_win::message_loop::pump_for;
+use eveo_platform_win::overlay::OVERLAY_CLASS;
+use eveo_platform_win::screens::screens;
+use eveo_platform_win::screenshot::Screenshot;
 use serde_json::{Value, json};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSE_EVENT_FLAGS, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
@@ -79,6 +83,10 @@ pub(super) fn check(app: &Path, clients: &[EveClient], out: &Path, report: &mut 
         json!({"path": config_path.display().to_string(), "exists": config_path.exists()}),
     );
 
+    if let Some(frames) = &thumbnails {
+        check_overlays(pid, frames, report);
+    }
+
     // 单实例检查用同一个 APPDATA，但互斥量按会话判断，与配置目录无关。
     check_single_instance(app, &data, report);
 
@@ -88,6 +96,67 @@ pub(super) fn check(app: &Path, clients: &[EveClient], out: &Path, report: &mut 
     // 强制结束：正常退出走托盘菜单，探针没法点托盘；配置已在拖动后写盘，不依赖退出时的写盘。
     let _ = child.kill();
     let _ = child.wait();
+}
+
+/// 叠加层：每个缩略图一个、位置与它重合；默认配置显示标题，标题底把画面压暗一半。
+///
+/// 取色比较同一列上的两点：标题底内侧（左边距 4、底的内边距 5 之间，避开文字）与标题下方的画面。
+/// 两点下面是同一个假客户端的纯色画面，标题底处的最亮通道应明显低于下方（50% 黑色叠上去约剩一半）。
+fn check_overlays(pid: u32, frames: &[ScreenRect], report: &mut Report) {
+    // 叠加层在第一次呈现时画出并显示；等它们全部出现，并且位置与缩略图一一重合。
+    let matched = wait_for(Duration::from_secs(5), || {
+        let overlays = window_frames(pid, OVERLAY_CLASS);
+        let all = overlays.len() == frames.len()
+            && frames.iter().all(|f| overlays.iter().any(|o| same_frame(o, f)));
+        all.then_some(overlays)
+    });
+    report.check(
+        "每个缩略图上有一个重合的叠加层",
+        matched.is_some(),
+        true,
+        json!({"overlays": window_frames(pid, OVERLAY_CLASS).iter().map(|f| [f.x, f.y, f.width, f.height])
+            .collect::<Vec<_>>(), "thumbnails": frames.iter().map(|f| [f.x, f.y, f.width, f.height])
+            .collect::<Vec<_>>()}),
+    );
+    // 取第一个缩略图即可：每个缩略图的叠加层走同一段代码，位置已在上面逐个核对过。
+    // 坐标按所在显示器的缩放换算：叠加层的边距与字号都是 DIP，乘以缩放后才是像素。
+    let Some(frame) = frames.first() else {
+        return;
+    };
+    let scale = screen_containing(&screens(), frame.center()).map_or(1.0, |s| s.scale);
+    // 标题底从 (4, 4) 起，12 点的字高约 16，加 4 的上下空白；取底的竖直中点与它下方 40 点处。
+    let x = (frame.x + 6.0 * scale).round() as i32;
+    let pill_y = (frame.y + 14.0 * scale).round() as i32;
+    let below_y = (frame.y + 50.0 * scale).round() as i32;
+    let brightest = |c: (u8, u8, u8)| c.0.max(c.1).max(c.2);
+    // 截图要在叠加层画出之后才有意义，所以和窗口一样在超时内反复取；最后一次的取色写进报告，失败时便于判断。
+    let mut samples = None;
+    let darkened = wait_for(Duration::from_secs(5), || {
+        let shot = Screenshot::capture().ok()?;
+        let pair = (shot.pixel(x, pill_y)?, shot.pixel(x, below_y)?);
+        samples = Some(pair);
+        let (pill, below) = (brightest(pair.0), brightest(pair.1));
+        (below > 150 && f64::from(pill) < f64::from(below) * 0.7).then_some(())
+    });
+    report.check(
+        "标题的深色底画在缩略图左上角（截图取色）",
+        darkened.is_some(),
+        true,
+        json!({"point": [x, pill_y], "below": [x, below_y], "samples": samples.map(|(a, b)| {
+            vec![format!("{:02X}{:02X}{:02X}", a.0, a.1, a.2), format!("{:02X}{:02X}{:02X}", b.0, b.1, b.2)]
+        })}),
+    );
+}
+
+/// 两个矩形是否重合（允许 1 像素的取整误差）。
+///
+/// 缩略图的 frame 是浮点数，两个窗口各自取整后可能差 1；叠加层与缩略图用同一次取整的结果，
+/// 实际应完全相同，放宽 1 像素只是不让检查依赖取整的细节。
+fn same_frame(a: &ScreenRect, b: &ScreenRect) -> bool {
+    (a.x - b.x).abs() <= 1.0
+        && (a.y - b.y).abs() <= 1.0
+        && (a.width - b.width).abs() <= 1.0
+        && (a.height - b.height).abs() <= 1.0
 }
 
 /// 第二个实例：发现已有实例后通知它并立即退出，退出码 0。
@@ -191,9 +260,14 @@ fn launch(app: &Path, data: &Path) -> std::io::Result<Child> {
 
 /// 应用进程的可见缩略图窗口的矩形。
 fn thumbnail_frames(pid: u32) -> Vec<ScreenRect> {
+    window_frames(pid, THUMBNAIL_CLASS)
+}
+
+/// 应用进程里某个类名的可见顶层窗口的矩形。
+fn window_frames(pid: u32, class: &str) -> Vec<ScreenRect> {
     top_level_windows()
         .into_iter()
-        .filter(|w| w.pid == pid && w.class_name == THUMBNAIL_CLASS && w.is_visible)
+        .filter(|w| w.pid == pid && w.class_name == class && w.is_visible)
         .map(|w| w.frame)
         .collect()
 }
