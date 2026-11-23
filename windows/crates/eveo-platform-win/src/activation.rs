@@ -15,8 +15,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, IsHungAppWindow, IsIconic, SW_MINIMIZE,
-    SW_RESTORE, SetForegroundWindow, ShowWindowAsync,
+    BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, IsHungAppWindow, IsIconic,
+    IsWindowVisible, SW_MINIMIZE, SW_RESTORE, SetForegroundWindow, ShowWindowAsync,
 };
 
 use crate::hwnd;
@@ -94,6 +94,12 @@ pub fn activate(target: WindowId) -> ActivationOutcome {
         step: ActivationStep::Failed,
         restored,
     }
+}
+
+/// 窗口是否已经显示（IsWindowVisible；最小化的窗口也算显示）。句柄失效时返回假。
+pub fn is_visible(target: WindowId) -> bool {
+    // SAFETY: 只读窗口状态。
+    unsafe { IsWindowVisible(hwnd(target)) }.as_bool()
 }
 
 /// 最小化窗口，不等待对方进程。
