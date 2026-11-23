@@ -596,7 +596,7 @@ eve-o-preview/
 
 | 工作流 | 触发 | 运行器 | 任务 |
 | --- | --- | --- | --- |
-| `macos.yml` | PR 与推送到 `main`，改动涉及 `macos/**`、`shared/**`、`scripts/**`、`docs/release-notes/macos/**` 或工作流自身；推送 `v*` tag；手动运行 | `macos-15` | 现有的全部步骤，路径加上 `macos/` 前缀；另加共享生成物的漂移检查 |
+| `macos.yml` | 推送 `v*` tag；手动运行。PR 的 macOS 检查改在维护者的 Mac 上跑 `scripts/verify_macos.sh`，以提交状态 `local/macos` 上报（macOS 架构文档 9.5 节） | `macos-15` | 现有的全部步骤，路径加上 `macos/` 前缀；另加共享生成物的漂移检查 |
 | `windows.yml` | PR 与推送到 `main`，改动涉及 `windows/**`、`shared/**`、`scripts/**`、`docs/release-notes/windows/**` 或工作流自身；推送 `win-v*` tag；手动运行 | 见下 | 见下 |
 
 `windows.yml` 的任务：
@@ -609,7 +609,7 @@ eve-o-preview/
 
 细节：
 
-1. 分支保护里的必需检查不能直接挂在带路径过滤的工作流上，否则没触发的工作流会让 PR 一直等待。做法是两个工作流在 PR 上都触发，第一个任务用 `git diff` 判断有没有相关改动，没有就让后续任务跳过（跳过算通过）。
+1. 分支保护里的必需检查不能直接挂在带路径过滤的工作流上，否则没触发的工作流会让 PR 一直等待。做法是 `windows.yml` 在 PR 上总触发，第一个任务用 `git diff` 判断有没有相关改动，没有就让后续任务跳过（跳过算通过）。macOS 的本机验证脚本用同样的路径判断，没有相关改动时直接上报成功。
 2. tag 推送不受路径过滤影响，靠 tag 的前缀区分两个工作流。
 3. 质量门禁 `scripts/check_quality.py` 扩展为按语言配置：Rust（`//`、`///`、`//!`、块注释；函数从 `fn` 起算）与 `.slint`（`//`）加入检查，阈值不变：注释率大于 20%，单文件少于 1000 行，单函数少于 500 行。生成的文件（文案、词表）排除在外。
 4. 第三方 action 钉到提交 SHA，与现有约定一致。

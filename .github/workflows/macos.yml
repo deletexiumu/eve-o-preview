@@ -1,28 +1,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # 构建、测试并打包 EVE-O Preview for macOS（docs/macos/architecture.md 9.5 节，docs/windows/architecture.md 7.3 节）。
-# - 向 main 发起或更新 PR、推送到 main、手动运行：质量门禁、单元测试、打包，产物作为工作流制品上传。
-#   PR 上工作流总会触发，但 changes 任务看改动的路径：没有动 macos/、shared/、scripts/、docs/release-notes/macos/
-#   与本文件时，build 任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
-# - 推送 v* tag：同样构建，再把 dmg、源码包和校验和发布到 GitHub Release。
-# - 手动运行并勾选「演练发布」：同样构建，再建一个草稿 Release（不打 tag，不公开），用来在正式打 tag 前验证 release 任务。
+# - PR 不在 GitHub 上跑 macOS 构建：GitHub 托管的 macOS 运行器常要排队，PR 曾因排不上被取消。
+#   改为在维护者的 Mac 上运行 scripts/verify_macos.sh，结果以提交状态 local/macos 上报，分支保护把它设为必需检查。
+# - 推送 v* tag：构建、测试、打包，再把 dmg、源码包和校验和发布到 GitHub Release。
+# - 手动运行：同样构建，产物作为工作流制品上传；勾选「演练发布」时再建一个草稿 Release（不打 tag，不公开），
+#   用来在正式打 tag 前验证 release 任务。
 # 仓库是公开仓库，用 GitHub 托管的 macOS 运行器（打包要用 hdiutil 与 codesign）。
-# 签名：有 secret 时用固定的自签名证书「EVE-O Preview Release」，升级后系统权限不丢；来自 fork 的 PR 拿不到 secret，退回 ad-hoc。
+# 签名：有 secret 时用固定的自签名证书「EVE-O Preview Release」，升级后系统权限不丢；没有 secret 时（例如 fork 里手动运行）退回 ad-hoc。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
 
 name: macOS
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
-    paths:
-      - "macos/**"
-      - "shared/**"
-      - "scripts/**"
-      - "docs/release-notes/macos/**"
-      - ".github/workflows/macos.yml"
     # macOS 永久用 v* 的 tag；Windows 用 win-v*，由 windows.yml 处理，不会匹配这里。
     tags: ["v*"]
   workflow_dispatch:
@@ -36,47 +27,13 @@ on:
 permissions:
   contents: read
 
-# 同一个 PR 推新提交时取消正在跑的旧运行；main 与 tag 不取消正在跑的运行（同组里排队的旧运行仍会被新运行替换）。
+# 同一个 ref 上不并行：tag 与手动运行都不取消正在跑的运行（同组里排队的旧运行仍会被新运行替换）。
 concurrency:
   group: macos-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
-  # 判断这次运行要不要构建 macOS 版：只有 PR 看改动的路径，tag、推送到 main 与手动运行都构建。
-  changes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      macos: ${{ steps.diff.outputs.macos }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: 改动的路径
-        id: diff
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
-            echo "macos=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
-          echo "$CHANGED"
-          if grep -qE '^(macos/|shared/|scripts/|docs/release-notes/macos/|\.github/workflows/macos\.yml$)' <<< "$CHANGED"; then
-            echo "macos=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::这个 PR 没有改动 macOS 相关的路径，跳过构建"
-            echo "macos=false" >> "$GITHUB_OUTPUT"
-          fi
-
   build:
-    needs: changes
-    if: needs.changes.outputs.macos == 'true'
     runs-on: macos-15
     timeout-minutes: 45
     outputs:
@@ -86,10 +43,8 @@ jobs:
       # 正式发布与演练发布都要求用固定证书签名。
       REQUIRE_SIGNING: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release) }}
     steps:
-      # PR 构建检出 PR 头提交，而不是 GitHub 生成的合并提交，让制品名里的提交号与内容一致。
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       # Package.swift 要求 Swift 6，先打印工具链版本，失败时便于判断是不是编译器太旧。
@@ -122,13 +77,9 @@ jobs:
 
       # 算版本号与文件名标签：
       # - tag v1.2.3：标签为 1.2.3，且应与 macos/VERSION 文件一致；
-      # - PR：<VERSION>-pr.<编号>.<PR 头提交的前 7 位>；
-      # - 其他：<VERSION>-dev.<提交的前 7 位>。
+      # - 手动运行：<VERSION>-dev.<提交的前 7 位>。
       - name: 版本号
         id: version
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           BASE="$(tr -d '[:space:]' < macos/VERSION)"
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
@@ -138,8 +89,6 @@ jobs:
               exit 1
             fi
             LABEL="$BASE"
-          elif [[ -n "$PR_NUMBER" ]]; then
-            LABEL="${BASE}-pr.${PR_NUMBER}.${PR_HEAD_SHA:0:7}"
           else
             LABEL="${BASE}-dev.${GITHUB_SHA:0:7}"
           fi
@@ -159,7 +108,7 @@ jobs:
               echo "::error::发布构建缺少签名证书 secret（MACOS_SIGNING_P12_BASE64、MACOS_SIGNING_P12_PASSWORD）"
               exit 1
             fi
-            echo "::warning::没有签名证书 secret（来自 fork 的 PR 拿不到），改用 ad-hoc 签名"
+            echo "::warning::没有签名证书 secret（fork 里拿不到），改用 ad-hoc 签名"
             echo "identity=-" >> "$GITHUB_OUTPUT"
             exit 0
           fi
