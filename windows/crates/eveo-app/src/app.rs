@@ -64,6 +64,10 @@ enum Input {
     SettingsEdited,
     /// 设置窗口的「统一尺寸」按钮。
     UnifySizes,
+    /// 「客户端」页上对某个角色的改动。
+    ClientEdit(bind::ClientEdit),
+    /// 「客户端」页的「全部隐藏」开关，值是用户要的新状态。
+    HideAll(bool),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -255,6 +259,13 @@ impl App {
             Input::Tick => self.tick(runtime),
             Input::SettingsEdited => self.settings_edited(false, runtime),
             Input::UnifySizes => self.settings_edited(true, runtime),
+            Input::ClientEdit(edit) => self.client_edited(&edit, runtime),
+            // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
+            Input::HideAll(hide) => {
+                if hide != self.coordinator.tray().hide_all {
+                    self.send(Event::Tray(eveo_app_core::TrayAction::ToggleHideAll), runtime);
+                }
+            }
         }
     }
 
@@ -264,6 +275,24 @@ impl App {
         let effects = self.coordinator.handle(event, self.now());
         for effect in effects {
             self.execute(effect, runtime);
+        }
+        self.refresh_clients_page();
+    }
+
+    /// 设置窗口开着时刷新「客户端」页（「预览与布局」页只随配置变化，在 ConfigChanged 里刷新）：在线客户端、「全部隐藏」与角色设置随时可能变。
+    /// 每处理一个事件调一次；绑定层逐行比较，没变的行不碰，所以频繁调用也只是几次比较。
+    fn refresh_clients_page(&self) {
+        let Some(window) = &self.settings else {
+            return;
+        };
+        // 窗口关着时不刷新，下次打开时 open_settings 会整页填一次。
+        if !window.window().is_visible() {
+            return;
+        }
+        if let Some(profile) = self.coordinator.config().active_profile() {
+            // 在线客户端取协调器的登记表，与缩略图用的是同一份，两边不会对不上。
+            let clients = self.coordinator.registry().clients();
+            bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
         }
     }
 
@@ -527,6 +556,26 @@ impl App {
             model.on_edited(move || post(&weak, Input::SettingsEdited));
             let weak = Rc::downgrade(runtime);
             model.on_unify_sizes(move || post(&weak, Input::UnifySizes));
+            // 「客户端」页：回调带角色名，转成 ClientEdit 排队。
+            // 带角色名而不是下标：回调排队期间列表可能因轮询重排，下标会指错角色。
+            let clients = window.global::<eveo_ui::ClientsModel>();
+            let weak = Rc::downgrade(runtime);
+            clients.on_hide_all_toggled(move |hide| post(&weak, Input::HideAll(hide)));
+            let weak = Rc::downgrade(runtime);
+            clients.on_shown_toggled(move |name, shown| {
+                let name = name.to_string();
+                post(&weak, Input::ClientEdit(bind::ClientEdit::Shown { name, shown }));
+            });
+            let weak = Rc::downgrade(runtime);
+            clients.on_color_edited(move |name, text| {
+                let (name, text) = (name.to_string(), text.to_string());
+                post(&weak, Input::ClientEdit(bind::ClientEdit::Color { name, text }));
+            });
+            let weak = Rc::downgrade(runtime);
+            clients.on_color_reset(move |name| {
+                let name = name.to_string();
+                post(&weak, Input::ClientEdit(bind::ClientEdit::ResetColor { name }));
+            });
             self.settings = Some(window);
         }
         let Some(window) = &self.settings else {
@@ -534,6 +583,8 @@ impl App {
         };
         if let Some(profile) = self.coordinator.config().active_profile() {
             bind::show_previews(window, profile);
+            let clients = self.coordinator.registry().clients();
+            bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
         }
         // 「通用」页还没做：托盘与首次启动先打开「预览与布局」，那一页已经能用。
         window.set_page(match page {
@@ -567,6 +618,22 @@ impl App {
             bind::unify_sizes(profile);
         }
         // 没有变化（例如输入框里的颜色还没输完）就不打扰协调器：省一次重算，也不排一次写盘。
+        if &config != self.coordinator.config() {
+            self.send(Event::ConfigEdited(config), runtime);
+        }
+    }
+}
+
+impl App {
+    /// 「客户端」页上改了某个角色：作用到当前配置的副本上，有变化才交给协调器。
+    /// 与 settings_edited 一样从协调器手里的配置出发，不会覆盖期间别处的改动。
+    fn client_edited(&mut self, edit: &bind::ClientEdit, runtime: &Rc<Runtime>) {
+        let mut config = self.coordinator.config().clone();
+        let Some(profile) = config.active_profile_mut() else {
+            return;
+        };
+        bind::apply_client_edit(profile, edit);
+        // 没有变化（颜色输到一半、开关与现状相同）就不打扰协调器。
         if &config != self.coordinator.config() {
             self.send(Event::ConfigEdited(config), runtime);
         }

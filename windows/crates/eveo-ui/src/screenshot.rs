@@ -13,6 +13,9 @@ use slint::platform::software_renderer::{MinimalSoftwareWindow, PremultipliedRgb
 use slint::platform::{Platform, WindowAdapter, WindowEvent};
 use slint::{ComponentHandle, PhysicalSize, PlatformError};
 
+use eveo_core::geometry::ScreenRect;
+use eveo_core::model::{ClientIdentity, EveClient, Pid, Profile, WindowId};
+
 use crate::SettingsWindow;
 
 /// 一次截图的设定。
@@ -26,6 +29,8 @@ pub struct ShotOptions {
     pub scale: f32,
     /// 界面字体。Windows 上是 Segoe UI Variable；Linux 截图用装着的近似字体。
     pub font: String,
+    /// 设置窗口的页，编号同 `SettingsWindow.page`。
+    pub page: i32,
 }
 
 /// 只给软件渲染器用的平台。
@@ -77,8 +82,11 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let ui = SettingsWindow::new().map_err(|e| e.to_string())?;
     ui.set_dark(options.dark);
     ui.set_ui_font(options.font.as_str().into());
-    // 各页显示一个新配置方案的默认值，与第一次打开应用时看到的一样。
-    crate::bind::show_previews(&ui, &eveo_core::model::Profile::make_new("shot", "Default"));
+    // 各页显示一个新配置方案的默认值，与第一次打开应用时看到的一样；「客户端」页另加几个示例角色。
+    let (profile, clients) = sample();
+    crate::bind::show_previews(&ui, &profile);
+    crate::bind::show_clients(&ui, &profile, &clients, false);
+    ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;
     window.set_size(PhysicalSize::new(width, height));
@@ -94,6 +102,37 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     // 隐藏后组件释放，下一次截图从干净的状态开始。
     ui.hide().map_err(|e| e.to_string())?;
     encode(&pixels, width, height)
+}
+
+/// 截图用的配置方案与在线客户端：两个在线角色（一个设了自己的高亮颜色）、一个离线且隐藏的角色、一个登录界面。
+/// 角色名是虚构的。
+fn sample() -> (Profile, Vec<EveClient>) {
+    let mut profile = Profile::make_new("shot", "Default");
+    // 「Old Alt」只在隐藏名单里：离线、开关关着，示意配置里出现过的角色也会列出。
+    // 「Kestrel Nine」设了自己的高亮颜色，示意「默认」按钮可点的样子；其余角色跟随全局颜色。
+    profile.hidden_characters.push("Old Alt".to_owned());
+    // 与 Windows 版新配置的默认热键相同（共用默认值是 macOS 的组合键）。
+    profile.hotkeys.toggle_hide_all = vec!["ctrl+alt+shift+H@global".to_owned()];
+    profile
+        .highlight_colors
+        .insert("Kestrel Nine".to_owned(), "#FF8C00".to_owned());
+    // 窗口 ID 与 PID 随意取，只要互不相同。
+    let client = |id: u64, identity: ClientIdentity| EveClient {
+        id: WindowId(id),
+        pid: id as Pid,
+        identity,
+        window_frame: ScreenRect::new(0.0, 0.0, 1280.0, 720.0),
+        is_on_screen: true,
+        is_minimized: Some(false),
+        is_full_screen: Some(false),
+    };
+    // 一个登录界面的客户端让「登录界面的客户端」一组也出现在截图里。
+    let clients = vec![
+        client(1, ClientIdentity::Character("Aria Voss".to_owned())),
+        client(2, ClientIdentity::Character("Kestrel Nine".to_owned())),
+        client(3, ClientIdentity::Login),
+    ];
+    (profile, clients)
 }
 
 /// 预乘的 RGBA → PNG。

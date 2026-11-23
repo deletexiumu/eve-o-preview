@@ -9,14 +9,23 @@
 // 为什么读回整页而不是逐项回调：页上的值与配置字段一一对应，整页读回只有几十次属性读取，
 // 却省掉了几十个回调的接线；读回后与原配置比较，没变就不交给协调器，不会多出一次重算与写盘。
 // 这个模块不依赖 Windows，转换规则在 Linux 上用软件渲染平台做单元测试。
+//
+// 「客户端」页除了配置，还要协调器的在线客户端与「全部隐藏」状态，应用在每次处理完事件后刷新它。
+// 刷新很频繁（每秒的轮询都会触发），所以逐行比较、只改变了的行；颜色输入框只在配置里的值变了时才改写，
+// 用户输到一半的颜色不会被下一次轮询冲掉。角色的改动是单项的（某个角色的颜色或开关），
+// 由 ClientEdit 描述，应用把它作用到当前配置上再交给协调器。
 
 //! 设置窗口的各页与配置互相转换。
 
-use eveo_core::model::{Profile, ZoomAnchor};
-use eveo_core::support::hex_color;
-use slint::{Color, ComponentHandle, SharedString};
+use std::rc::Rc;
 
-use crate::{PreviewsModel, SettingsWindow};
+use eveo_core::clients::title::display_title;
+use eveo_core::hotkeys::{HotkeyScope, HotkeySpec};
+use eveo_core::model::{EveClient, Profile, ZoomAnchor};
+use eveo_core::support::hex_color;
+use slint::{Color, ComponentHandle, Model, ModelRc, SharedString, VecModel};
+
+use crate::{CharacterRow, ClientsModel, PreviewsModel, SettingsWindow};
 
 /// 锚点下拉框的顺序：与 previews.slint 里的选项一一对应。
 /// 按方位排成 3×3 的阅读顺序（先上排，再中排，最后下排），与配置的枚举顺序相同。
@@ -188,10 +197,185 @@ fn swatch(hex: &str) -> Option<Color> {
     Some(Color::from_rgb_u8(byte(r), byte(g), byte(b)))
 }
 
+// MARK: 客户端
+
+/// 「客户端」页上对某个角色的一次改动。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClientEdit {
+    /// 显示或隐藏该角色的缩略图（隐藏名单，持久化）。
+    Shown {
+        /// 角色名。
+        name: String,
+        /// 是否显示。
+        shown: bool,
+    },
+    /// 改了该角色颜色输入框里的文字。
+    Color {
+        /// 角色名。
+        name: String,
+        /// 输入框里的文字，可能还没输完。
+        text: String,
+    },
+    /// 「默认」：回到跟随全局高亮颜色。
+    ResetColor {
+        /// 角色名。
+        name: String,
+    },
+}
+
+/// 把一次改动作用到配置方案上。没有效果的改动（颜色还没输完、开关与现状相同）不改配置。
+pub fn apply_client_edit(profile: &mut Profile, edit: &ClientEdit) {
+    match edit {
+        // 隐藏名单是配置的一部分，关掉后重启、换机器（同步配置文件）都保持隐藏。
+        ClientEdit::Shown { name, shown } => {
+            // 先去掉再按需加回，名单里不会出现重复的名字。
+            profile.hidden_characters.retain(|n| n != name);
+            if !shown {
+                profile.hidden_characters.push(name.clone());
+            }
+        }
+        ClientEdit::Color { name, text } => {
+            // 清空输入框等于「默认」；完整的颜色才写回，输到一半的不动。
+            if text.trim().is_empty() {
+                profile.highlight_colors.remove(name);
+            } else if let Some(hex) = normalized_hex(text) {
+                profile.highlight_colors.insert(name.clone(), hex);
+            }
+        }
+        // 「默认」按钮：删掉按角色的颜色，样本与缩略图都回到全局高亮颜色。
+        ClientEdit::ResetColor { name } => {
+            profile.highlight_colors.remove(name);
+        }
+    }
+}
+
+/// 全部已知角色：在线的，加上配置方案里出现过的（布局、隐藏名单、颜色、直达热键、循环组），
+/// 按名称排序，不区分大小写；只差大小写的两个名字再按原样排，顺序稳定。
+pub fn character_names(profile: &Profile, clients: &[EveClient]) -> Vec<String> {
+    let mut names: Vec<String> = clients
+        .iter()
+        .filter_map(|c| c.character_name().map(str::to_owned))
+        .chain(profile.layouts.keys().cloned())
+        .chain(profile.hidden_characters.iter().cloned())
+        .chain(profile.highlight_colors.keys().cloned())
+        .chain(profile.character_hotkeys.keys().cloned())
+        .chain(
+            profile
+                .cycle_groups
+                .iter()
+                .flat_map(|g| g.members.iter().cloned()),
+        )
+        .collect();
+    names.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()).then_with(|| a.cmp(b)));
+    // 排序后相同的名字相邻，去重只去完全相同的；只差大小写的两个角色是不同的角色（EVE 角色名不区分大小写，
+    // 但配置是手改的也可能出现，两行都显示，用户能看出来）。
+    names.dedup();
+    names
+}
+
+/// 按协调器的状态填「客户端」页。`clients` 是当前在线的客户端，`hide_all` 是会话里的「全部隐藏」。
+pub fn show_clients(ui: &SettingsWindow, profile: &Profile, clients: &[EveClient], hide_all: bool) {
+    let model = ui.global::<ClientsModel>();
+    // 页首：「全部隐藏」与它的快捷键（只读，修改在「切换与热键」页）。
+    model.set_hide_all(hide_all);
+    model.set_hide_all_hotkeys(hotkey_text(profile, &profile.hotkeys.toggle_hide_all).into());
+    // 全局高亮颜色：跟随时作为输入框的提示文字，也是样本的颜色。
+    let global = normalized_hex(&profile.overlay.highlight_color)
+        .unwrap_or_else(|| profile.overlay.highlight_color.clone());
+    model.set_default_highlight(global.as_str().into());
+
+    // 角色卡片：每个已知角色一行，在线与否看当前的客户端列表。
+    let online: Vec<&str> = clients.iter().filter_map(EveClient::character_name).collect();
+    let rows: Vec<CharacterRow> = character_names(profile, clients)
+        .into_iter()
+        .map(|name| {
+            let applied = profile
+                .highlight_colors
+                .get(&name)
+                .map(|hex| normalized_hex(hex).unwrap_or_else(|| hex.clone()))
+                .unwrap_or_default();
+            // 样本：按角色的颜色，没有（或写坏了）时用全局颜色，再不行用灰色。
+            let swatch = swatch(&applied)
+                .or_else(|| swatch(&global))
+                .unwrap_or(Color::from_rgb_u8(0x80, 0x80, 0x80));
+            CharacterRow {
+                online: online.contains(&name.as_str()),
+                shown: !profile.hidden_characters.contains(&name),
+                color: applied.as_str().into(),
+                applied: applied.into(),
+                swatch,
+                name: name.into(),
+            }
+        })
+        .collect();
+    update_rows(&model, rows);
+
+    // 登录界面与未知的客户端：只列标题，与缩略图上的标题一致。
+    let logins: Vec<SharedString> = clients
+        .iter()
+        .filter(|c| c.character_name().is_none())
+        .map(|c| display_title(&c.identity, c.pid).into())
+        .collect();
+    // 登录客户端不常变；内容相同时不换模型，避免重建卡片。
+    let current = model.get_login_clients();
+    if current.iter().ne(logins.iter().cloned()) {
+        model.set_login_clients(ModelRc::new(VecModel::from(logins)));
+    }
+}
+
+/// 更新角色列表。角色名的顺序没变时逐行比较、只改变了的行（卡片不重建，输入框不丢焦点）；
+/// 颜色文字只在配置里的值变了时改写，保留用户正在输入的文字。顺序变了（有新角色）时整份换掉。
+fn update_rows(model: &ClientsModel<'_>, rows: Vec<CharacterRow>) {
+    let current = model.get_characters();
+    // 只比角色名的顺序：在线状态、颜色、开关的变化都能逐行更新。
+    let same_names =
+        current.row_count() == rows.len() && current.iter().zip(&rows).all(|(old, new)| old.name == new.name);
+    // 模型一直是这里建的 VecModel；取不到（第一次显示时是 Slint 的空模型）就整份建一个。
+    let vec = current.as_any().downcast_ref::<VecModel<CharacterRow>>();
+    match vec {
+        Some(vec) if same_names => {
+            for (index, mut row) in rows.into_iter().enumerate() {
+                let Some(old) = vec.row_data(index) else {
+                    continue;
+                };
+                // 配置里的颜色没变：保留输入框里的文字（可能正输到一半，或是小写的同一个颜色）。
+                if old.applied == row.applied {
+                    row.color = old.color.clone();
+                }
+                // 整行相同就不写，避免无谓的重绘。
+                if old != row {
+                    vec.set_row_data(index, row);
+                }
+            }
+        }
+        _ => model.set_characters(ModelRc::from(Rc::new(VecModel::from(rows)))),
+    }
+}
+
+/// 热键列表的界面写法：每条是「组合键（作用范围）」，多条用顿号隔开；解析不了的照原样显示。
+fn hotkey_text(profile: &Profile, list: &[String]) -> String {
+    list.iter()
+        .map(|raw| match HotkeySpec::parse(raw) {
+            // 没写作用范围的热键跟随配置方案的默认范围，显示解析后的范围，用户不必再去查默认值。
+            Some(spec) => {
+                let scope = match spec.resolved_scope(profile.hotkey_default_scope) {
+                    HotkeyScope::Global => "全局",
+                    HotkeyScope::Game => "仅游戏内",
+                };
+                format!("{}（{scope}）", spec.hotkey.display_string())
+            }
+            // 手改坏的热键照原样显示，用户能认出来去「切换与热键」页修正。
+            None => raw.clone(),
+        })
+        .collect::<Vec<_>>()
+        .join("、")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use eveo_core::model::ThumbnailLayout;
+    use eveo_core::geometry::ScreenRect;
+    use eveo_core::model::{ClientIdentity, Pid, ThumbnailLayout, WindowId};
 
     /// 一个改过若干默认值的配置方案，用来核对每个字段都能来回。
     fn sample() -> Profile {
@@ -258,6 +442,139 @@ mod tests {
         model.set_highlight_color("#aabbcc".into());
         show_previews(&ui, &original);
         assert_eq!(model.get_highlight_color(), "#aabbcc");
+
+        clients_page(&ui);
+    }
+
+    /// 「客户端」页：行的内容、刷新时保留输入到一半的颜色、配置变了才改写。
+    fn clients_page(ui: &SettingsWindow) {
+        let mut profile = Profile::make_new("p1", "Main");
+        profile.hidden_characters.push("Zed".to_owned());
+        profile
+            .highlight_colors
+            .insert("bravo".to_owned(), "#ff8c00".to_owned());
+        let clients = vec![client(1, "Alpha"), client(2, "bravo"), login(3)];
+        show_clients(ui, &profile, &clients, true);
+        let model = ui.global::<ClientsModel>();
+        assert!(model.get_hide_all());
+        let rows: Vec<CharacterRow> = model.get_characters().iter().collect();
+        let names: Vec<&str> = rows.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(names, ["Alpha", "bravo", "Zed"]);
+        assert!(rows[0].online && rows[0].shown && rows[0].color.is_empty());
+        assert_eq!(rows[1].color, "#FF8C00");
+        assert_eq!(rows[1].swatch, Color::from_rgb_u8(0xFF, 0x8C, 0x00));
+        assert!(!rows[2].online && !rows[2].shown);
+        let logins: Vec<SharedString> = model.get_login_clients().iter().collect();
+        assert_eq!(logins, ["EVE"]);
+
+        // 用户在 Alpha 的输入框里输到一半；下一次刷新（配置没变）保留输入。
+        // 这里直接改模型的行，相当于界面里双向绑定写回的效果。
+        let characters = model.get_characters();
+        let mut alpha = characters.row_data(0).unwrap();
+        alpha.color = "#12".into();
+        characters.set_row_data(0, alpha);
+        show_clients(ui, &profile, &clients, false);
+        assert_eq!(model.get_characters().row_data(0).unwrap().color, "#12");
+        assert!(!model.get_hide_all());
+        // 配置里 Alpha 的颜色变了（例如在别处设了）：改写成新值。
+        profile
+            .highlight_colors
+            .insert("Alpha".to_owned(), "#00FF00".to_owned());
+        show_clients(ui, &profile, &clients, false);
+        assert_eq!(model.get_characters().row_data(0).unwrap().color, "#00FF00");
+        // 新角色上线：列表整份换掉，顺序仍按名称。
+        let more = vec![client(1, "Alpha"), client(2, "bravo"), client(4, "Charlie")];
+        show_clients(ui, &profile, &more, false);
+        let names: Vec<SharedString> = model.get_characters().iter().map(|r| r.name).collect();
+        assert_eq!(names, ["Alpha", "bravo", "Charlie", "Zed"]);
+        assert_eq!(model.get_login_clients().row_count(), 0);
+    }
+
+    /// 在线的角色客户端。
+    fn client(id: u64, name: &str) -> EveClient {
+        EveClient {
+            id: WindowId(id),
+            pid: id as Pid,
+            identity: ClientIdentity::Character(name.to_owned()),
+            window_frame: ScreenRect::new(0.0, 0.0, 1280.0, 720.0),
+            is_on_screen: true,
+            is_minimized: Some(false),
+            is_full_screen: Some(false),
+        }
+    }
+
+    /// 在线的登录界面客户端。
+    fn login(id: u64) -> EveClient {
+        EveClient {
+            identity: ClientIdentity::Login,
+            ..client(id, "")
+        }
+    }
+
+    /// 角色的改动：开关改隐藏名单（不重复），颜色只在完整时写回，清空与「默认」都回到跟随。
+    #[test]
+    fn client_edits_change_profile() {
+        let mut profile = Profile::make_new("p1", "Main");
+        let shown = |name: &str, shown: bool| ClientEdit::Shown {
+            name: name.to_owned(),
+            shown,
+        };
+        // 关两次也只记一次。
+        apply_client_edit(&mut profile, &shown("Aria", false));
+        apply_client_edit(&mut profile, &shown("Aria", false));
+        assert_eq!(profile.hidden_characters, ["Aria"]);
+        apply_client_edit(&mut profile, &shown("Aria", true));
+        assert!(profile.hidden_characters.is_empty());
+
+        let color = |text: &str| ClientEdit::Color {
+            name: "Aria".to_owned(),
+            text: text.to_owned(),
+        };
+        // 输到一半不写；完整的写成大写；清空回到跟随；「默认」同样回到跟随。
+        apply_client_edit(&mut profile, &color("#ab"));
+        assert!(profile.highlight_colors.is_empty());
+        apply_client_edit(&mut profile, &color("#abcdef"));
+        assert_eq!(profile.highlight_colors["Aria"], "#ABCDEF");
+        apply_client_edit(&mut profile, &color("  "));
+        assert!(profile.highlight_colors.is_empty());
+        apply_client_edit(&mut profile, &color("#abcdef"));
+        apply_client_edit(
+            &mut profile,
+            &ClientEdit::ResetColor {
+                name: "Aria".to_owned(),
+            },
+        );
+        assert!(profile.highlight_colors.is_empty());
+    }
+
+    /// 角色名来自在线客户端与配置的各处，去重后不区分大小写排序；热键按界面写法显示作用范围。
+    #[test]
+    fn character_names_and_hotkey_text() {
+        let mut profile = Profile::make_new("p1", "Main");
+        profile
+            .layouts
+            .insert("delta".to_owned(), ThumbnailLayout::default());
+        profile.character_hotkeys.insert("Charlie".to_owned(), vec![]);
+        profile.cycle_groups.push(eveo_core::model::CycleGroup {
+            members: vec!["Bravo".to_owned(), "Alpha".to_owned()],
+            ..Default::default()
+        });
+        // Alpha 在线又在循环组里，只出现一次；登录客户端没有角色名，不出现。
+        let names = character_names(&profile, &[client(1, "Alpha"), login(2)]);
+        assert_eq!(names, ["Alpha", "Bravo", "Charlie", "delta"]);
+
+        // 默认范围设成仅游戏内：没写后缀的 F13 显示为仅游戏内。
+        profile.hotkey_default_scope = HotkeyScope::Game;
+        let list = vec![
+            "ctrl+alt+shift+H@global".to_owned(),
+            "F13".to_owned(),
+            "bogus+".to_owned(),
+        ];
+        assert_eq!(
+            hotkey_text(&profile, &list),
+            "Ctrl+Alt+Shift+H（全局）、F13（仅游戏内）、bogus+"
+        );
+        assert_eq!(hotkey_text(&profile, &[]), "");
     }
 
     /// 统一尺寸只清宽高，位置不动。

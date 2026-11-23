@@ -2,7 +2,7 @@
 //
 // 设置窗口（架构文档 2.3 节）：仿 Windows 11 设置的布局，左侧导航、右侧分组卡片。
 // 颜色跟随 Theme.dark 的明暗；Win11 上根窗口背景透明，由 Mica 透出来，纯色是降级用的。
-// 各页的值放在各自的全局模型里（如 PreviewsModel），由 Rust 的 bind 模块与配置互相转换。
+// 各页的值放在各自的全局模型里（如 PreviewsModel、ClientsModel），由 Rust 的 bind 模块与配置互相转换。
 // 还没做完的页显示「即将推出」，导航先占好位置。
 
 import { LineEdit, Palette, ScrollView } from "std-widgets.slint";
@@ -10,8 +10,9 @@ import { Icons } from "icons.slint";
 import { Theme } from "theme.slint";
 import { NavItem, PageHeader } from "components.slint";
 import { PreviewsModel, PreviewsPage } from "previews.slint";
+import { CharacterRow, ClientsModel, ClientsPage } from "clients.slint";
 
-export { PreviewsModel }
+export { CharacterRow, ClientsModel, PreviewsModel }
 
 // 还没做完的页：页标题加一句说明。导航项先全部列出，测试的人能看到完整的结构，
 // 也不必在每次加页时改导航；页做好后把对应的 ComingSoonPage 换成真正的页面。
@@ -113,7 +114,7 @@ export component SettingsWindow inherits Window {
                 // 按导航切换页面；条件元素只建当前页，其余页不占布局。
                 // 页的数据在全局模型里，切走再切回来时控件重建，但值不丢，也不用重新从配置读。
                 if page == 1: PreviewsPage { }
-                if page == 0: ComingSoonPage { title: "客户端"; }
+                if page == 0: ClientsPage { }
                 if page == 2: ComingSoonPage { title: "切换与热键"; }
                 if page == 3: ComingSoonPage { title: "提醒"; }
                 if page == 4: ComingSoonPage { title: "预警"; }
