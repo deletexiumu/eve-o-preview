@@ -2,10 +2,14 @@
 //
 // 通知区域图标（托盘）与应用的主消息窗口（架构文档 4.8 节、4.10 节）。
 // 一个隐藏的顶层窗口同时承担三件事：
-// - Shell_NotifyIconW 的回调窗口：左键单击、右键单击送给处理函数；
+// - Shell_NotifyIconW 的回调窗口：选中（左键单击或键盘回车）、上下文菜单（右键单击或键盘的菜单键）送给处理函数；
 // - 资源管理器重启后广播的 TaskbarCreated 消息：重新添加图标，否则图标会消失；
 // - 单实例的唤醒消息（`single_instance`）：第二个实例找到这个窗口，发消息让它打开设置。
 // 它必须是顶层窗口（不能是 HWND_MESSAGE 的子窗口），否则收不到 TaskbarCreated 这样的广播。
+//
+// 回调用 NOTIFYICON_VERSION_4 的格式（NIN_SELECT、WM_CONTEXTMENU），不用旧版的原始鼠标消息。这是微软
+// 推荐的格式，键盘操作托盘图标时也有反应。另一个原因：旧版回调下，图标在任务栏的溢出菜单里时，打开设置窗口后
+// 溢出菜单一直留在屏幕上（真机测试发现）；新格式下系统知道图标被「选中」了，按它的习惯处理溢出菜单。
 
 //! 托盘图标与主消息窗口。
 
@@ -16,12 +20,13 @@ use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::HBRUSH;
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Shell::{
-    NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY, NOTIFYICONDATAW, Shell_NotifyIconW,
+    NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY, NIM_SETVERSION, NIN_SELECT,
+    NOTIFYICON_VERSION_4, NOTIFYICONDATAW, Shell_NotifyIconW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics, HICON, IDI_APPLICATION, IMAGE_ICON,
     LR_DEFAULTCOLOR, LoadIconW, LoadImageW, RegisterWindowMessageW, SM_CXSMICON, SM_CYSMICON,
-    WINDOW_EX_STYLE, WM_APP, WM_LBUTTONUP, WM_RBUTTONUP, WS_OVERLAPPED,
+    WINDOW_EX_STYLE, WM_APP, WM_CONTEXTMENU, WS_OVERLAPPED,
 };
 use windows::core::{PCWSTR, Result};
 
@@ -36,13 +41,15 @@ pub const ACTIVATE_MESSAGE_NAME: &str = "EVEOPreview.ActivateExisting";
 const APP_ICON_ID: u16 = 1;
 /// 托盘图标的回调消息。
 const WM_TRAY: u32 = WM_APP + 0x40;
+/// 键盘选中图标（空格或回车）：NIN_SELECT 加上 NINF_KEY 标志。windows 包里没有单独的常量。
+const NIN_KEYSELECT: u32 = NIN_SELECT | 0x1;
 
 /// 主消息窗口收到的事件。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrayEvent {
-    /// 左键单击托盘图标。
+    /// 选中托盘图标：左键单击，或用键盘选中后按空格、回车。
     LeftClick,
-    /// 右键单击托盘图标：弹出托盘菜单。
+    /// 要托盘图标的上下文菜单：右键单击，或用键盘选中后按菜单键、Shift+F10。
     RightClick,
     /// 另一个实例启动后请求本实例打开设置窗口。
     ActivateRequested,
@@ -94,8 +101,7 @@ impl TrayIcon {
             ..Default::default()
         };
         copy_tip(&mut data, tooltip);
-        // SAFETY: data 的大小与字段已填好；失败（例如资源管理器还没起来）时等 TaskbarCreated 再加。
-        let _ = unsafe { Shell_NotifyIconW(NIM_ADD, &data) };
+        add_icon(&data);
         ICONS.with(|i| i.borrow_mut().insert(hwnd.0 as usize, data));
         Ok(Self { hwnd })
     }
@@ -161,6 +167,19 @@ fn default_icon() -> HICON {
     unsafe { LoadIconW(None, IDI_APPLICATION) }.unwrap_or_default()
 }
 
+/// 添加图标并声明用 NOTIFYICON_VERSION_4 的回调格式。版本不随图标保存：资源管理器重启后重新添加时也要再设。
+fn add_icon(data: &NOTIFYICONDATAW) {
+    // SAFETY: data 的大小与字段已填好；添加失败（例如资源管理器还没起来）时等 TaskbarCreated 再加。
+    if !unsafe { Shell_NotifyIconW(NIM_ADD, data) }.as_bool() {
+        return;
+    }
+    // 版本放在与超时共用的联合体里；只设这一项，其余字段沿用添加时的值。
+    let mut versioned = *data;
+    versioned.Anonymous.uVersion = NOTIFYICON_VERSION_4;
+    // SAFETY: 同上。设版本失败时回调仍是旧格式，左键与右键收不到；这种情况在 Vista 之后的系统上不会发生。
+    let _ = unsafe { Shell_NotifyIconW(NIM_SETVERSION, &versioned) };
+}
+
 /// 把提示文字复制进定长缓冲区，超长时截断，末尾补 0。
 fn copy_tip(data: &mut NOTIFYICONDATAW, tooltip: &str) {
     let units: Vec<u16> = tooltip.encode_utf16().take(data.szTip.len() - 1).collect();
@@ -178,10 +197,11 @@ fn registered_message(name: &str) -> u32 {
 /// 窗口过程：托盘回调与唤醒消息交给处理函数；资源管理器重启时重新添加图标。
 unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     let event = if msg == WM_TRAY {
-        // 旧版回调（没设 NOTIFYICON_VERSION_4）：lparam 就是鼠标消息。用松开而不是按下，与系统托盘的习惯一致。
-        match lparam.0 as u32 {
-            WM_LBUTTONUP => Some(TrayEvent::LeftClick),
-            WM_RBUTTONUP => Some(TrayEvent::RightClick),
+        // NOTIFYICON_VERSION_4：lparam 的低 16 位是事件，高 16 位是图标编号；wparam 是锚点坐标（不用，
+        // 托盘菜单按光标位置弹出）。鼠标移动、按下等其他事件不处理。
+        match (lparam.0 as u32) & 0xFFFF {
+            NIN_SELECT | NIN_KEYSELECT => Some(TrayEvent::LeftClick),
+            WM_CONTEXTMENU => Some(TrayEvent::RightClick),
             _ => None,
         }
     } else if msg == registered_message(ACTIVATE_MESSAGE_NAME) {
@@ -189,8 +209,7 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
     } else if msg == registered_message("TaskbarCreated") {
         ICONS.with(|icons| {
             if let Some(data) = icons.borrow().get(&(hwnd.0 as usize)) {
-                // SAFETY: data 有效。
-                let _ = unsafe { Shell_NotifyIconW(NIM_ADD, data) };
+                add_icon(data);
             }
         });
         None
