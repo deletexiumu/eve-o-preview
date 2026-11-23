@@ -14,12 +14,14 @@ mod generated {
 }
 
 pub use generated::*;
+pub use language::{language, set_language};
 
 pub mod alerts;
 pub mod bind;
 pub mod general;
 #[rustfmt::skip]
 pub mod l10n;
+pub mod language;
 pub mod profiles;
 pub mod screenshot;
 pub mod switching;

@@ -11,6 +11,7 @@
 import { Button, ComboBox, LineEdit, Slider, SpinBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { ColorField, Footnote, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+import { CombatText, SettingsText } from "generated/l10n.slint";
 
 // 本页的数据。
 export global AlertsModel {
@@ -41,15 +42,15 @@ export global AlertsModel {
 export component AlertsPage inherits VerticalLayout {
     alignment: start;
     PageHeader {
-        title: "提醒";
-        subtitle: "角色被攻击时闪烁它的缩略图。只读取游戏日志，不读游戏内存、不发送输入。";
+        title: SettingsText.page-alerts;
+        subtitle: CombatText.page-subtitle;
     }
 
     // 第 1 组：总开关与状态。
     SettingRow {
         // 总开关在配置方案里：不同方案可以分别开关（例如挖矿方案打开、PVP 方案关掉）。
-        title: "角色被攻击时闪烁缩略图";
-        description: "对当前配置方案生效";
+        title: CombatText.enable-toggle;
+        description: CombatText.enable-help;
         Switch {
             checked <=> AlertsModel.enabled;
             toggled => {
@@ -59,9 +60,9 @@ export component AlertsPage inherits VerticalLayout {
     }
     RowGap { }
     SettingRow {
-        title: "状态";
+        title: CombatText.status-label;
         Text {
-            text: "读游戏日志的功能在后续测试版加上，可以先用「测试闪烁」看效果";
+            text: CombatText.not-available-yet;
             color: Theme.text-secondary;
             vertical-alignment: center;
             wrap: word-wrap;
@@ -72,13 +73,17 @@ export component AlertsPage inherits VerticalLayout {
     }
 
     // 第 2 组：日志目录。空着时自动查找；可以填 logs 或 logs\Gamelogs。
-    SectionHeader { text: "游戏日志目录"; }
+    SectionHeader { text: CombatText.log-directory-header; }
     SettingRow {
-        title: "目录";
-        description: "留空时自动查找；填 EVE 的 logs 或 logs\\Gamelogs 文件夹均可";
+        title: CombatText.log-directory-label;
+        description: CombatText.log-directory-help;
+        // 右侧是两行控件（输入框与按钮），比默认行高，上下各留约 12px。
+        min-height: 92px;
         // 输入框只在回车或离开时提交：填到一半的路径不写进配置。
+        // 「使用自动位置」放在输入框下方：有的语言里按钮文字很长，与输入框并排会把左边的说明挤成窄条。
         VerticalLayout {
             alignment: center;
+            spacing: 6px;
             LineEdit {
                 text <=> AlertsModel.log-directory;
                 placeholder-text: AlertsModel.automatic-directory;
@@ -93,22 +98,25 @@ export component AlertsPage inherits VerticalLayout {
                     }
                 }
             }
-        }
-        // 「使用自动位置」：清空输入框，只在填了路径时可点。
-        Button {
-            text: "使用自动位置";
-            enabled: AlertsModel.log-directory != "";
-            clicked => {
-                AlertsModel.log-directory = "";
-                AlertsModel.edited();
+            // 「使用自动位置」：清空输入框，只在填了路径时可点。
+            HorizontalLayout {
+                alignment: end;
+                Button {
+                    text: CombatText.use-automatic-location;
+                    enabled: AlertsModel.log-directory != "";
+                    clicked => {
+                        AlertsModel.log-directory = "";
+                        AlertsModel.edited();
+                    }
+                }
             }
         }
     }
 
     // 第 3 组：闪烁的外观。颜色与样式改动后下一次重算即生效，正在闪的缩略图立即换色。
-    SectionHeader { text: "外观"; }
+    SectionHeader { text: CombatText.appearance-header; }
     SettingRow {
-        title: "闪烁颜色";
+        title: CombatText.flash-color;
         ColorField {
             swatch: AlertsModel.swatch;
             hex <=> AlertsModel.color;
@@ -117,8 +125,8 @@ export component AlertsPage inherits VerticalLayout {
     }
     RowGap { }
     SettingRow {
-        title: "持续时间";
-        description: "每次受击后闪烁多久；持续受击时一直延长";
+        title: CombatText.duration;
+        description: CombatText.duration-help;
         Slider {
             value <=> AlertsModel.duration;
             minimum: 1;
@@ -127,15 +135,15 @@ export component AlertsPage inherits VerticalLayout {
             width: 200px;
             changed(v) => { AlertsModel.edited(); }
         }
-        ValueLabel { text: (Math.round(AlertsModel.duration * 2) / 2) + " 秒"; }
+        ValueLabel { text: CombatText.seconds(Math.round(AlertsModel.duration * 2) / 2); }
     }
     RowGap { }
     SettingRow {
-        title: "样式";
-        description: "边框：缩略图外圈闪烁；底色：整个缩略图蒙上一层颜色";
+        title: CombatText.style;
+        description: CombatText.style-help;
         ComboBox {
             // 顺序同 CombatAlertStyle：border、wash、both。
-            model: ["边框", "底色", "两者"];
+            model: [CombatText.style-border, CombatText.style-wash, CombatText.style-both];
             current-index <=> AlertsModel.style;
             width: 140px;
             selected(v) => { AlertsModel.edited(); }
@@ -144,10 +152,10 @@ export component AlertsPage inherits VerticalLayout {
 
     // 第 4 组：触发条件。
     // 第 4 组：哪些受击会触发，规则见 Core 的战斗日志解析（M6 移植）。
-    SectionHeader { text: "触发条件"; }
+    SectionHeader { text: CombatText.triggers-header; }
     SettingRow {
-        title: "未命中的攻击也提醒";
-        description: "对方开火但没有打中时也闪烁";
+        title: CombatText.include-misses;
+        description: CombatText.include-misses-help;
         Switch {
             checked <=> AlertsModel.include-misses;
             toggled => {
@@ -157,8 +165,8 @@ export component AlertsPage inherits VerticalLayout {
     }
     RowGap { }
     SettingRow {
-        title: "最小伤害";
-        description: "低于这个伤害的命中不提醒";
+        title: CombatText.minimum-damage;
+        description: CombatText.minimum-damage-help;
         SpinBox {
             value <=> AlertsModel.minimum-damage;
             minimum: 1;
@@ -170,20 +178,20 @@ export component AlertsPage inherits VerticalLayout {
     }
 
     // 第 5 组：「测试闪烁」不要求开关已打开。
-    SectionHeader { text: "测试"; }
+    SectionHeader { text: CombatText.test-header; }
     SettingRow {
-        title: "测试闪烁";
-        description: "让全部客户端的缩略图按上面的设置闪一次";
+        title: CombatText.test-flash;
+        description: CombatText.test-flash-help;
         Button {
             // 按钮与行名相同，一眼能对上。
-            text: "测试闪烁";
+            text: CombatText.test-flash;
             clicked => {
                 AlertsModel.test-flash();
             }
         }
     }
     Footnote {
-        text: "提醒对全部客户端生效，包括当前在前台的客户端。";
+        text: CombatText.footnote;
     }
     // 页底留白。
     Rectangle { height: 24px; }

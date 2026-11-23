@@ -4,14 +4,18 @@
 switchingSubtitle = "Groupes de cycle et raccourcis. Chaque raccourci a une seule portée : Global (y compris dans EVE) ou Seulement dans EVE."
 cycleGroupsHeader = "Groupes de cycle"
 addGroup = "Nouveau groupe de cycle"
+addGroupHelp = "Fait défiler des personnages dans l'ordre, avec des raccourcis avant et arrière"
 noGroups = "Aucun groupe de cycle pour l'instant."
 groupName = "Nom"
 deleteGroup = "Supprimer le groupe"
 # 方向与设置域的 forward / backward（Suivant / Précédent）一致。
 forwardHotkeys = "Raccourcis « suivant »"
 backwardHotkeys = "Raccourcis « précédent »"
-noMembers = "Aucun membre pour l'instant."
+noMembers = { macos = "Aucun membre pour l'instant.", windows = "Aucun membre pour l'instant. Ajoutez des personnages depuis la liste en haut à droite." }
 addMember = "Ajouter un membre"
+membersHeader = "Membres (dans l'ordre du cycle)"
+moveUp = "Monter"
+moveDown = "Descendre"
 newGroupName = "Groupe {index}"
 
 characterHotkeysHeader = "Raccourcis des personnages"
@@ -20,7 +24,7 @@ globalHotkeysHeader = "Raccourcis généraux"
 hotkeyToggleHideAll = "Afficher ou masquer toutes les vignettes"
 hotkeyMinimizeAll = "Réduire tous les clients"
 hotkeyCycleLogin = "Parcourir les clients sur l'écran de connexion"
-hotkeyRulesHint = "Les raccourcis clavier nécessitent Control, Option ou Command, sauf F1–F20 et les chiffres du pavé numérique. Les boutons central et latéraux de la souris peuvent être utilisés seuls ; le clic n'est pas transmis au jeu."
+hotkeyRulesHint = { macos = "Les raccourcis clavier nécessitent Control, Option ou Command, sauf F1–F20 et les chiffres du pavé numérique. Les boutons central et latéraux de la souris peuvent être utilisés seuls ; le clic n'est pas transmis au jeu.", windows = "Les raccourcis clavier nécessitent Ctrl, Alt ou Win, sauf F1–F20 et les chiffres du pavé numérique ; les combinaisons système comme Alt+Tab ou Win+L sont exclues. Seuls le bouton central et les deux boutons latéraux de la souris sont pris en charge ; un raccourci souris enregistré vaut par défaut seulement dans EVE, pour ne pas priver les autres programmes de leurs boutons latéraux." }
 mouseHotkeyHint = "Les raccourcis souris nécessitent l'autorisation Accessibilité. Un bouton de souris réglé sur « Global » est intercepté dans toutes les apps. Supprimez d'abord les autres attributions de ce bouton dans le jeu ou dans le logiciel de votre souris."
 
 defaultScopeLabel = "Portée par défaut des raccourcis"
@@ -28,21 +32,25 @@ scopeGlobal = "Global"
 scopeGame = "Seulement dans EVE"
 scopeGlobalOption = "Global : fonctionne dans toutes les apps, y compris EVE"
 scopeGameOption = "Seulement dans EVE : fonctionne uniquement quand une fenêtre EVE est au premier plan"
-defaultScopeFooter = "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici."
+defaultScopeFooter = { macos = "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici.", windows = "Chaque raccourci a une seule portée. Ceux qui n'en ont pas suivent cette valeur ; modifiez-la pour un raccourci à côté de celui-ci." }
 scopeFollowDefault = "Par défaut ({current})"
 scopeMenuHelp = "Portée : {resolved}. Cliquez pour la modifier pour ce raccourci."
 menuHotkeysOnlyInEVE = "Raccourcis seulement dans EVE"
 
-addHotkey = "+ Ajouter"
-recordingPrompt = "Appuyez sur des touches ou un bouton latéral de souris (pointeur dans cette fenêtre)…"
+addHotkey = { macos = "+ Ajouter", windows = "Ajouter un raccourci" }
+recordingPrompt = { macos = "Appuyez sur des touches ou un bouton latéral de souris (pointeur dans cette fenêtre)…", windows = "Appuyez sur des touches…" }
+recordingPromptEsc = "Appuyez sur des touches… (Échap pour annuler)"
 recorderHelp = "Cliquez, puis appuyez sur une combinaison de touches ou sur le bouton central ou latéral de la souris. Esc annule, Delete efface."
 removeHotkey = "Supprimer ce raccourci"
 
 hotkeyUnparsable = "Non reconnu"
 hotkeyMissingModifier = "Modificateur requis"
 hotkeyReserved = "Réservé par macOS"
+hotkeyUnsupportedMouseButton = "Boutons central et latéraux seulement"
 hotkeyAccessibilityRequired = "Accessibilité requise"
 hotkeyEventTapUnavailable = "Souris non surveillable"
 hotkeyDuplicate = "Déjà utilisé par {other}"
 # status 是 Carbon 的错误码，原样显示。
 hotkeyRegistrationFailed = "Échec de l'enregistrement ({status})"
+hotkeyInUse = "Utilisé par un autre programme"
+hotkeyWithScope = "{hotkey} ({scope})"

@@ -24,6 +24,7 @@ embed-resource = "3"
 
 [target.'cfg(windows)'.dependencies]
 eveo-core.workspace = true
+eveo-l10n.workspace = true
 eveo-app-core.workspace = true
 eveo-platform-win.workspace = true
 eveo-ui = { path = "../eveo-ui" }

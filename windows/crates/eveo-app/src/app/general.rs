@@ -16,6 +16,7 @@ use eveo_ui::general;
 use slint::ComponentHandle;
 
 use super::{App, Input, Runtime, post, shell};
+use crate::menus;
 
 /// 「通用」与「关于」页发给应用的输入。
 #[derive(Debug, Clone)]
@@ -85,8 +86,14 @@ impl App {
             return;
         }
         self.language = language;
+        self.thumbnails.set_language(language);
+        self.tray
+            .set_tooltip(&menus::tray_tooltip(&self.coordinator.tray(), language));
+        // 设置窗口：Slint 全局里的文字由 set_language 换；由 Rust 拼的文字（热键的问题提示等）
+        // 要把各页重新填一次。
         if let Some(window) = &self.settings {
-            eveo_ui::l10n::apply(window, language);
+            eveo_ui::set_language(window, language);
+            self.show_settings_pages(window);
         }
     }
 

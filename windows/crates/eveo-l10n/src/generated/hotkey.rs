@@ -18,6 +18,8 @@ pub trait HotkeyStrings: Sync {
     fn cycle_groups_header(&self) -> &'static str;
     /// 「新建循环组」按钮。
     fn add_group(&self) -> &'static str;
+    /// Windows：「新建循环组」一行的说明。
+    fn add_group_help(&self) -> &'static str;
     /// 没有循环组时的说明。
     fn no_groups(&self) -> &'static str;
     /// 循环组名称一行的标签与占位文字。
@@ -32,6 +34,12 @@ pub trait HotkeyStrings: Sync {
     fn no_members(&self) -> &'static str;
     /// 「添加成员」菜单。
     fn add_member(&self) -> &'static str;
+    /// Windows：循环组卡片里成员列表的标题。
+    fn members_header(&self) -> &'static str;
+    /// Windows：成员上移一位的按钮。
+    fn move_up(&self) -> &'static str;
+    /// Windows：成员下移一位的按钮。
+    fn move_down(&self) -> &'static str;
     /// 新循环组的默认名称，参数是序号。
     fn new_group_name(&self, index: i64) -> String;
     // 切换与热键页：角色热键与通用热键
@@ -73,6 +81,8 @@ pub trait HotkeyStrings: Sync {
     fn add_hotkey(&self) -> &'static str;
     /// 录制中按钮上的提示。
     fn recording_prompt(&self) -> &'static str;
+    /// Windows：「添加热键」按钮录制中的文字，提示 Esc 取消。
+    fn recording_prompt_esc(&self) -> &'static str;
     /// 录制按钮的提示文字。
     fn recorder_help(&self) -> &'static str;
     /// 删除按钮的提示文字。
@@ -84,6 +94,8 @@ pub trait HotkeyStrings: Sync {
     fn hotkey_missing_modifier(&self) -> &'static str;
     /// 系统保留的组合。
     fn hotkey_reserved(&self) -> &'static str;
+    /// Windows：热键问题，鼠标按键不支持（只支持中键与两个侧键）。要短。
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str;
     /// 鼠标热键：没有辅助功能权限。
     fn hotkey_accessibility_required(&self) -> &'static str;
     /// 鼠标热键：有权限，但系统没有建出事件监听。
@@ -92,6 +104,10 @@ pub trait HotkeyStrings: Sync {
     fn hotkey_duplicate(&self, other: &str) -> String;
     /// Carbon 注册失败，参数是错误码。
     fn hotkey_registration_failed(&self, status: i32) -> String;
+    /// Windows：热键问题，注册失败（多半被别的程序占用）。要短。
+    fn hotkey_in_use(&self) -> &'static str;
+    /// Windows「客户端」页：一条热键与它的作用范围，如「F13（仅游戏内）」。
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String;
 }
 
 /// 热键域的全部文字（en）。
@@ -106,6 +122,9 @@ impl HotkeyStrings for HotkeyStringsEn {
     }
     fn add_group(&self) -> &'static str {
         "New Cycle Group"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "Cycles through a set of characters in order, with forward and backward hotkeys"
     }
     fn no_groups(&self) -> &'static str {
         "No cycle groups yet."
@@ -123,10 +142,19 @@ impl HotkeyStrings for HotkeyStringsEn {
         "Backward hotkeys"
     }
     fn no_members(&self) -> &'static str {
-        "No members yet."
+        "No members yet. Add characters from the list at the top right."
     }
     fn add_member(&self) -> &'static str {
         "Add Member"
+    }
+    fn members_header(&self) -> &'static str {
+        "Members (in cycle order)"
+    }
+    fn move_up(&self) -> &'static str {
+        "Move up"
+    }
+    fn move_down(&self) -> &'static str {
+        "Move down"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("Group {}", index)
@@ -147,7 +175,7 @@ impl HotkeyStrings for HotkeyStringsEn {
         "Cycle login-screen clients"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "Keyboard hotkeys need Control, Option or Command, except F1–F20 and keypad digits. Middle and side mouse buttons can be used alone; the click is not passed to the game."
+        "Keyboard hotkeys need Ctrl, Alt or Win, except F1–F20 and keypad digits; system shortcuts such as Alt+Tab and Win+L cannot be used. Only the middle and two side mouse buttons are supported; recorded mouse hotkeys default to Only in EVE so other programs keep their side buttons."
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "Mouse hotkeys need Accessibility permission. A mouse button set to Global is swallowed in every app. Remove other bindings of the button in the game or in your mouse software first."
@@ -168,7 +196,7 @@ impl HotkeyStrings for HotkeyStringsEn {
         "Only in EVE: works only while an EVE window is in front"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Each hotkey uses one scope, never both. The tag next to each hotkey shows the scope it actually uses. Click the tag to set that hotkey to Global, Only in EVE, or the default chosen here."
+        "Each hotkey uses one scope, never both. Hotkeys without their own scope follow this default; change one next to the hotkey."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Use Default ({})", current)
@@ -180,10 +208,13 @@ impl HotkeyStrings for HotkeyStringsEn {
         "Hotkeys Only in EVE"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ Add"
+        "Add hotkey"
     }
     fn recording_prompt(&self) -> &'static str {
-        "Press keys or a mouse side button (pointer in this window)…"
+        "Press keys…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "Press keys… (Esc to cancel)"
     }
     fn recorder_help(&self) -> &'static str {
         "Click, then press a key combination or a middle or side mouse button. Esc cancels, Delete clears."
@@ -200,6 +231,9 @@ impl HotkeyStrings for HotkeyStringsEn {
     fn hotkey_reserved(&self) -> &'static str {
         "Reserved by macOS"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "Middle and side buttons only"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "Needs Accessibility"
     }
@@ -211,6 +245,12 @@ impl HotkeyStrings for HotkeyStringsEn {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("Registration failed ({})", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "In use by another program"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{} ({})", hotkey, scope)
     }
 }
 
@@ -226,6 +266,9 @@ impl HotkeyStrings for HotkeyStringsZh {
     }
     fn add_group(&self) -> &'static str {
         "新建循环组"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "一组角色按顺序轮换，配前进与后退热键"
     }
     fn no_groups(&self) -> &'static str {
         "还没有循环组。"
@@ -243,10 +286,19 @@ impl HotkeyStrings for HotkeyStringsZh {
         "后退热键"
     }
     fn no_members(&self) -> &'static str {
-        "还没有成员。"
+        "还没有成员。从右上角的列表里添加角色。"
     }
     fn add_member(&self) -> &'static str {
         "添加成员"
+    }
+    fn members_header(&self) -> &'static str {
+        "成员（按循环顺序）"
+    }
+    fn move_up(&self) -> &'static str {
+        "上移"
+    }
+    fn move_down(&self) -> &'static str {
+        "下移"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("循环组 {}", index)
@@ -267,7 +319,7 @@ impl HotkeyStrings for HotkeyStringsZh {
         "登录客户端之间循环"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "键盘热键应包含 Ctrl、Option 或 Command 之一，F1～F20 与小键盘数字可以单独使用；鼠标的中键与侧键可以单独使用，触发时这次点击不会传给游戏。"
+        "键盘热键要带 Ctrl、Alt 或 Win 之一（F1～F20 与小键盘数字键可以单独用）；Alt+Tab、Win+L 这类系统组合不能用。鼠标只支持中键与两个侧键，录到的鼠标热键默认仅游戏内生效，免得在别的程序里吞掉侧键。"
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "鼠标热键需要辅助功能权限。作用范围是全局的鼠标热键会在所有应用里吞掉这个按键。请先在游戏或鼠标软件里取消这个按键的其他绑定。"
@@ -288,7 +340,7 @@ impl HotkeyStrings for HotkeyStringsZh {
         "仅游戏内：只在 EVE 窗口位于前台时生效"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "每个热键只按一种范围生效，不会两种同时生效。热键右侧的标记显示它实际的范围，点它可以把这一个热键单独改为全局、仅游戏内，或跟随这里的默认。"
+        "每个热键只有一种作用范围；没有单独设置的热键跟随这里，也可以在热键旁单独修改。"
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("跟随默认（当前：{}）", current)
@@ -300,10 +352,13 @@ impl HotkeyStrings for HotkeyStringsZh {
         "热键只在 EVE 内生效"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ 添加"
+        "添加热键"
     }
     fn recording_prompt(&self) -> &'static str {
-        "按下组合键或鼠标侧键（指针停在本窗口内）…"
+        "按下组合键…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "按下组合键…（Esc 取消）"
     }
     fn recorder_help(&self) -> &'static str {
         "点击后按下组合键，或鼠标的中键、侧键；Esc 取消，Delete 清除。"
@@ -320,6 +375,9 @@ impl HotkeyStrings for HotkeyStringsZh {
     fn hotkey_reserved(&self) -> &'static str {
         "系统保留"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "只支持中键与侧键"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "需要辅助功能权限"
     }
@@ -331,6 +389,12 @@ impl HotkeyStrings for HotkeyStringsZh {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("注册失败（{}）", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "被别的程序占用，暂时不能生效"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{}（{}）", hotkey, scope)
     }
 }
 
@@ -346,6 +410,9 @@ impl HotkeyStrings for HotkeyStringsRu {
     }
     fn add_group(&self) -> &'static str {
         "Новая группа переключения"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "Переключает набор персонажей по очереди клавишами «вперёд» и «назад»"
     }
     fn no_groups(&self) -> &'static str {
         "Групп переключения пока нет."
@@ -363,10 +430,19 @@ impl HotkeyStrings for HotkeyStringsRu {
         "Клавиши «назад»"
     }
     fn no_members(&self) -> &'static str {
-        "Участников пока нет."
+        "Участников пока нет. Добавьте персонажей из списка справа вверху."
     }
     fn add_member(&self) -> &'static str {
         "Добавить участника"
+    }
+    fn members_header(&self) -> &'static str {
+        "Участники (в порядке переключения)"
+    }
+    fn move_up(&self) -> &'static str {
+        "Выше"
+    }
+    fn move_down(&self) -> &'static str {
+        "Ниже"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("Группа {}", index)
@@ -387,7 +463,7 @@ impl HotkeyStrings for HotkeyStringsRu {
         "Переключение клиентов на экране входа"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "Клавиатурной горячей клавише нужен Control, Option или Command; F1–F20 и цифры цифрового блока можно использовать отдельно. Среднюю и боковые кнопки мыши можно использовать отдельно; нажатие не передаётся в игру."
+        "Клавиатурной горячей клавише нужен Ctrl, Alt или Win; F1–F20 и цифры цифрового блока можно использовать отдельно. Системные сочетания вроде Alt+Tab и Win+L недоступны. Из кнопок мыши поддерживаются средняя и две боковые; записанные клавиши мыши по умолчанию действуют только в EVE, чтобы не отнимать боковые кнопки у других программ."
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "Для кнопок мыши нужно разрешение «Универсальный доступ». Кнопка мыши с областью «Везде» перехватывается во всех приложениях. Сначала снимите другие назначения этой кнопки в игре или в программе мыши."
@@ -408,7 +484,7 @@ impl HotkeyStrings for HotkeyStringsRu {
         "Только в EVE: работает, только когда окно EVE на переднем плане"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "У каждой горячей клавиши одна область действия, а не обе сразу. Метка справа от клавиши показывает её действующую область. Нажмите на метку, чтобы выбрать для этой клавиши «Везде», «Только в EVE» или значение по умолчанию отсюда."
+        "У каждой горячей клавиши одна область действия. Клавиши без своей области следуют этому значению; изменить его для одной клавиши можно рядом с ней."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("По умолчанию (сейчас: {})", current)
@@ -420,10 +496,13 @@ impl HotkeyStrings for HotkeyStringsRu {
         "Горячие клавиши только в EVE"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ Добавить"
+        "Добавить клавишу"
     }
     fn recording_prompt(&self) -> &'static str {
-        "Нажмите клавиши или боковую кнопку мыши (указатель в этом окне)…"
+        "Нажмите клавиши…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "Нажмите клавиши… (Esc — отмена)"
     }
     fn recorder_help(&self) -> &'static str {
         "Нажмите, затем сочетание клавиш или среднюю либо боковую кнопку мыши. Esc — отмена, Delete — очистить."
@@ -440,6 +519,9 @@ impl HotkeyStrings for HotkeyStringsRu {
     fn hotkey_reserved(&self) -> &'static str {
         "Занято macOS"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "Только средняя и боковые"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "Нужен «Универсальный доступ»"
     }
@@ -451,6 +533,12 @@ impl HotkeyStrings for HotkeyStringsRu {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("Ошибка регистрации ({})", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "Занято другой программой"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{} ({})", hotkey, scope)
     }
 }
 
@@ -466,6 +554,9 @@ impl HotkeyStrings for HotkeyStringsJa {
     }
     fn add_group(&self) -> &'static str {
         "新規サイクルグループ"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "キャラクターを順番に切り替えます。前進と後退のホットキーを設定します"
     }
     fn no_groups(&self) -> &'static str {
         "サイクルグループはまだありません。"
@@ -483,10 +574,19 @@ impl HotkeyStrings for HotkeyStringsJa {
         "戻るホットキー"
     }
     fn no_members(&self) -> &'static str {
-        "メンバーはまだいません。"
+        "メンバーはまだいません。右上のリストからキャラクターを追加します。"
     }
     fn add_member(&self) -> &'static str {
         "メンバーを追加"
+    }
+    fn members_header(&self) -> &'static str {
+        "メンバー（切り替え順）"
+    }
+    fn move_up(&self) -> &'static str {
+        "上へ"
+    }
+    fn move_down(&self) -> &'static str {
+        "下へ"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("グループ {}", index)
@@ -507,7 +607,7 @@ impl HotkeyStrings for HotkeyStringsJa {
         "ログイン画面のクライアントを順に切り替え"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "キーボードのホットキーには Control、Option、Command のいずれかが必要です（F1〜F20 とテンキーの数字は単独で可）。マウスの中ボタンとサイドボタンは単独で使え、押してもクリックはゲームに渡りません。"
+        "キーボードのホットキーには Ctrl、Alt、Win のいずれかが必要です（F1〜F20 とテンキーの数字は単独で可）。Alt+Tab、Win+L などのシステムの組み合わせは使えません。マウスは中ボタンと 2 つのサイドボタンのみ対応し、記録したマウスのホットキーはほかのプログラムのサイドボタンを奪わないよう既定で EVE 内のみになります。"
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "マウスのホットキーにはアクセシビリティの許可が必要です。範囲が「グローバル」のマウスボタンはすべてのアプリで横取りされます。先にゲームやマウスのソフトウェアでこのボタンの割り当てを解除してください。"
@@ -528,7 +628,7 @@ impl HotkeyStrings for HotkeyStringsJa {
         "EVE 内のみ：EVE のウインドウが最前面のときだけ有効"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "各ホットキーの範囲は 1 つだけで、両方が同時に有効になることはありません。ホットキーの右のタグが実際の範囲を示します。タグをクリックすると、そのホットキーだけをグローバル、EVE 内のみ、またはここの既定に変更できます。"
+        "各ホットキーの範囲は 1 つだけです。個別に設定していないホットキーはここに従います。ホットキーの横で個別に変更できます。"
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("既定に従う（現在：{}）", current)
@@ -540,10 +640,13 @@ impl HotkeyStrings for HotkeyStringsJa {
         "ホットキーを EVE 内のみで有効にする"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ 追加"
+        "ホットキーを追加"
     }
     fn recording_prompt(&self) -> &'static str {
-        "キーかマウスのサイドボタンを押す（ポインタはこのウインドウ内）…"
+        "キーを押す…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "キーを押す…（Esc で取消）"
     }
     fn recorder_help(&self) -> &'static str {
         "クリックしてから、キーの組み合わせかマウスの中ボタン・サイドボタンを押します。Esc で取消、Delete で消去。"
@@ -560,6 +663,9 @@ impl HotkeyStrings for HotkeyStringsJa {
     fn hotkey_reserved(&self) -> &'static str {
         "macOS が使用中"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "中・サイドボタンのみ"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "アクセシビリティが必要"
     }
@@ -571,6 +677,12 @@ impl HotkeyStrings for HotkeyStringsJa {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("登録に失敗（{}）", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "ほかのプログラムが使用中"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{}（{}）", hotkey, scope)
     }
 }
 
@@ -586,6 +698,9 @@ impl HotkeyStrings for HotkeyStringsKo {
     }
     fn add_group(&self) -> &'static str {
         "새 순환 그룹"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "캐릭터를 순서대로 돌아가며 전환합니다. 앞으로·뒤로 단축키를 지정합니다"
     }
     fn no_groups(&self) -> &'static str {
         "아직 순환 그룹이 없습니다."
@@ -603,10 +718,19 @@ impl HotkeyStrings for HotkeyStringsKo {
         "뒤로 단축키"
     }
     fn no_members(&self) -> &'static str {
-        "아직 멤버가 없습니다."
+        "아직 멤버가 없습니다. 오른쪽 위 목록에서 캐릭터를 추가하세요."
     }
     fn add_member(&self) -> &'static str {
         "멤버 추가"
+    }
+    fn members_header(&self) -> &'static str {
+        "멤버(순환 순서)"
+    }
+    fn move_up(&self) -> &'static str {
+        "위로"
+    }
+    fn move_down(&self) -> &'static str {
+        "아래로"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("그룹 {}", index)
@@ -627,7 +751,7 @@ impl HotkeyStrings for HotkeyStringsKo {
         "로그인 화면 클라이언트 순환"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "키보드 단축키에는 Control, Option, Command 중 하나가 필요합니다. F1–F20과 숫자 키패드는 단독으로 쓸 수 있습니다. 마우스 가운데 버튼과 측면 버튼은 단독으로 쓸 수 있으며, 누른 클릭은 게임에 전달되지 않습니다."
+        "키보드 단축키에는 Ctrl, Alt, Win 중 하나가 필요합니다(F1–F20과 숫자 키패드는 단독 사용 가능). Alt+Tab, Win+L 같은 시스템 조합은 쓸 수 없습니다. 마우스는 가운데 버튼과 측면 버튼 두 개만 지원하며, 기록한 마우스 단축키는 다른 프로그램의 측면 버튼을 가로채지 않도록 기본으로 EVE 안에서만 적용됩니다."
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "마우스 단축키에는 손쉬운 사용 권한이 필요합니다. 범위가 전역인 마우스 버튼은 모든 앱에서 가로채집니다. 먼저 게임이나 마우스 소프트웨어에서 이 버튼의 다른 할당을 해제하세요."
@@ -648,7 +772,7 @@ impl HotkeyStrings for HotkeyStringsKo {
         "EVE 안에서만: EVE 창이 맨 앞에 있을 때만 작동"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "각 단축키는 범위를 하나만 가지며 두 범위가 동시에 적용되지 않습니다. 단축키 오른쪽의 표시가 실제 범위를 보여 줍니다. 표시를 클릭하면 그 단축키만 전역, EVE 안에서만 또는 여기의 기본값으로 바꿀 수 있습니다."
+        "각 단축키는 범위를 하나만 가집니다. 따로 정하지 않은 단축키는 여기를 따르며, 단축키 옆에서 하나씩 바꿀 수 있습니다."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("기본값 따르기(현재: {})", current)
@@ -660,10 +784,13 @@ impl HotkeyStrings for HotkeyStringsKo {
         "단축키를 EVE 안에서만 사용"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ 추가"
+        "단축키 추가"
     }
     fn recording_prompt(&self) -> &'static str {
-        "키나 마우스 측면 버튼을 누르세요(포인터는 이 창 안에)…"
+        "키를 누르세요…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "키를 누르세요…(Esc로 취소)"
     }
     fn recorder_help(&self) -> &'static str {
         "클릭한 뒤 키 조합이나 마우스 가운데·측면 버튼을 누르세요. Esc는 취소, Delete는 지우기입니다."
@@ -680,6 +807,9 @@ impl HotkeyStrings for HotkeyStringsKo {
     fn hotkey_reserved(&self) -> &'static str {
         "macOS 예약"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "가운데·측면 버튼만"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "손쉬운 사용 필요"
     }
@@ -691,6 +821,12 @@ impl HotkeyStrings for HotkeyStringsKo {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("등록 실패({})", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "다른 프로그램이 사용 중"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{}({})", hotkey, scope)
     }
 }
 
@@ -706,6 +842,9 @@ impl HotkeyStrings for HotkeyStringsFr {
     }
     fn add_group(&self) -> &'static str {
         "Nouveau groupe de cycle"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "Fait défiler des personnages dans l'ordre, avec des raccourcis avant et arrière"
     }
     fn no_groups(&self) -> &'static str {
         "Aucun groupe de cycle pour l'instant."
@@ -723,10 +862,19 @@ impl HotkeyStrings for HotkeyStringsFr {
         "Raccourcis « précédent »"
     }
     fn no_members(&self) -> &'static str {
-        "Aucun membre pour l'instant."
+        "Aucun membre pour l'instant. Ajoutez des personnages depuis la liste en haut à droite."
     }
     fn add_member(&self) -> &'static str {
         "Ajouter un membre"
+    }
+    fn members_header(&self) -> &'static str {
+        "Membres (dans l'ordre du cycle)"
+    }
+    fn move_up(&self) -> &'static str {
+        "Monter"
+    }
+    fn move_down(&self) -> &'static str {
+        "Descendre"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("Groupe {}", index)
@@ -747,7 +895,7 @@ impl HotkeyStrings for HotkeyStringsFr {
         "Parcourir les clients sur l'écran de connexion"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "Les raccourcis clavier nécessitent Control, Option ou Command, sauf F1–F20 et les chiffres du pavé numérique. Les boutons central et latéraux de la souris peuvent être utilisés seuls ; le clic n'est pas transmis au jeu."
+        "Les raccourcis clavier nécessitent Ctrl, Alt ou Win, sauf F1–F20 et les chiffres du pavé numérique ; les combinaisons système comme Alt+Tab ou Win+L sont exclues. Seuls le bouton central et les deux boutons latéraux de la souris sont pris en charge ; un raccourci souris enregistré vaut par défaut seulement dans EVE, pour ne pas priver les autres programmes de leurs boutons latéraux."
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "Les raccourcis souris nécessitent l'autorisation Accessibilité. Un bouton de souris réglé sur « Global » est intercepté dans toutes les apps. Supprimez d'abord les autres attributions de ce bouton dans le jeu ou dans le logiciel de votre souris."
@@ -768,7 +916,7 @@ impl HotkeyStrings for HotkeyStringsFr {
         "Seulement dans EVE : fonctionne uniquement quand une fenêtre EVE est au premier plan"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici."
+        "Chaque raccourci a une seule portée. Ceux qui n'en ont pas suivent cette valeur ; modifiez-la pour un raccourci à côté de celui-ci."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Par défaut ({})", current)
@@ -780,10 +928,13 @@ impl HotkeyStrings for HotkeyStringsFr {
         "Raccourcis seulement dans EVE"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ Ajouter"
+        "Ajouter un raccourci"
     }
     fn recording_prompt(&self) -> &'static str {
-        "Appuyez sur des touches ou un bouton latéral de souris (pointeur dans cette fenêtre)…"
+        "Appuyez sur des touches…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "Appuyez sur des touches… (Échap pour annuler)"
     }
     fn recorder_help(&self) -> &'static str {
         "Cliquez, puis appuyez sur une combinaison de touches ou sur le bouton central ou latéral de la souris. Esc annule, Delete efface."
@@ -800,6 +951,9 @@ impl HotkeyStrings for HotkeyStringsFr {
     fn hotkey_reserved(&self) -> &'static str {
         "Réservé par macOS"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "Boutons central et latéraux seulement"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "Accessibilité requise"
     }
@@ -811,6 +965,12 @@ impl HotkeyStrings for HotkeyStringsFr {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("Échec de l'enregistrement ({})", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "Utilisé par un autre programme"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{} ({})", hotkey, scope)
     }
 }
 
@@ -826,6 +986,9 @@ impl HotkeyStrings for HotkeyStringsDe {
     }
     fn add_group(&self) -> &'static str {
         "Neue Wechselgruppe"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "Wechselt der Reihe nach zwischen Charakteren, mit Hotkeys für vor und zurück"
     }
     fn no_groups(&self) -> &'static str {
         "Noch keine Wechselgruppen."
@@ -843,10 +1006,19 @@ impl HotkeyStrings for HotkeyStringsDe {
         "Hotkeys rückwärts"
     }
     fn no_members(&self) -> &'static str {
-        "Noch keine Mitglieder."
+        "Noch keine Mitglieder. Charaktere über die Liste oben rechts hinzufügen."
     }
     fn add_member(&self) -> &'static str {
         "Mitglied hinzufügen"
+    }
+    fn members_header(&self) -> &'static str {
+        "Mitglieder (in Wechselreihenfolge)"
+    }
+    fn move_up(&self) -> &'static str {
+        "Nach oben"
+    }
+    fn move_down(&self) -> &'static str {
+        "Nach unten"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("Gruppe {}", index)
@@ -867,7 +1039,7 @@ impl HotkeyStrings for HotkeyStringsDe {
         "Clients am Anmeldebildschirm durchschalten"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "Tastatur-Hotkeys brauchen Control (⌃), Wahltaste (⌥) oder Befehlstaste (⌘), außer F1–F20 und Ziffern des Ziffernblocks. Mittlere und seitliche Maustasten gehen auch allein; der Klick wird nicht an das Spiel weitergegeben."
+        "Tastatur-Hotkeys brauchen Strg, Alt oder Win, außer F1–F20 und Ziffern des Ziffernblocks; Systemkombinationen wie Alt+Tab oder Win+L gehen nicht. Unterstützt werden nur die mittlere und die zwei seitlichen Maustasten; aufgenommene Maus-Hotkeys gelten standardmäßig nur in EVE, damit andere Programme ihre Seitentasten behalten."
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "Maus-Hotkeys brauchen die Berechtigung „Bedienungshilfen“. Eine Maustaste mit Bereich „Überall“ wird in jeder App abgefangen. Andere Belegungen der Taste im Spiel oder in der Maussoftware vorher entfernen."
@@ -888,7 +1060,7 @@ impl HotkeyStrings for HotkeyStringsDe {
         "Nur in EVE: wirkt nur, solange ein EVE-Fenster im Vordergrund ist"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Jeder Hotkey hat genau einen Bereich, nie beide zugleich. Die Markierung rechts neben jedem Hotkey zeigt den tatsächlich verwendeten Bereich. Ein Klick darauf stellt diesen einen Hotkey auf Überall, Nur in EVE oder den hier gewählten Standard."
+        "Jeder Hotkey hat genau einen Bereich. Hotkeys ohne eigenen Bereich folgen diesem Standard; einzeln änderbar neben dem Hotkey."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Standard ({})", current)
@@ -900,10 +1072,13 @@ impl HotkeyStrings for HotkeyStringsDe {
         "Hotkeys nur in EVE"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ Hinzufügen"
+        "Hotkey hinzufügen"
     }
     fn recording_prompt(&self) -> &'static str {
-        "Tasten oder seitliche Maustaste drücken (Zeiger in diesem Fenster) …"
+        "Tasten drücken …"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "Tasten drücken … (Esc bricht ab)"
     }
     fn recorder_help(&self) -> &'static str {
         "Klicken, dann eine Tastenkombination oder die mittlere bzw. eine seitliche Maustaste drücken. Esc bricht ab, ⌫ löscht."
@@ -920,6 +1095,9 @@ impl HotkeyStrings for HotkeyStringsDe {
     fn hotkey_reserved(&self) -> &'static str {
         "Von macOS reserviert"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "Nur Mittel- und Seitentasten"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "Bedienungshilfen nötig"
     }
@@ -931,6 +1109,12 @@ impl HotkeyStrings for HotkeyStringsDe {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("Registrierung fehlgeschlagen ({})", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "Von anderem Programm belegt"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{} ({})", hotkey, scope)
     }
 }
 
@@ -946,6 +1130,9 @@ impl HotkeyStrings for HotkeyStringsEs {
     }
     fn add_group(&self) -> &'static str {
         "Nuevo grupo de ciclo"
+    }
+    fn add_group_help(&self) -> &'static str {
+        "Recorre un grupo de personajes en orden, con atajos para avanzar y retroceder"
     }
     fn no_groups(&self) -> &'static str {
         "Aún no hay grupos de ciclo."
@@ -963,10 +1150,19 @@ impl HotkeyStrings for HotkeyStringsEs {
         "Atajos hacia atrás"
     }
     fn no_members(&self) -> &'static str {
-        "Aún no hay miembros."
+        "Aún no hay miembros. Añade personajes desde la lista de arriba a la derecha."
     }
     fn add_member(&self) -> &'static str {
         "Añadir miembro"
+    }
+    fn members_header(&self) -> &'static str {
+        "Miembros (en orden de ciclo)"
+    }
+    fn move_up(&self) -> &'static str {
+        "Subir"
+    }
+    fn move_down(&self) -> &'static str {
+        "Bajar"
     }
     fn new_group_name(&self, index: i64) -> String {
         format!("Grupo {}", index)
@@ -987,7 +1183,7 @@ impl HotkeyStrings for HotkeyStringsEs {
         "Recorrer clientes en inicio de sesión"
     }
     fn hotkey_rules_hint(&self) -> &'static str {
-        "Los atajos de teclado necesitan Control, Opción o Comando, salvo F1–F20 y los números del teclado numérico. Los botones central y laterales del ratón pueden usarse solos; el clic no llega al juego."
+        "Los atajos de teclado necesitan Ctrl, Alt o Win, salvo F1–F20 y los números del teclado numérico; no se pueden usar combinaciones del sistema como Alt+Tab o Win+L. Solo se admiten el botón central y los dos laterales del ratón; los atajos de ratón grabados son por defecto Solo en EVE, para que otros programas conserven sus botones laterales."
     }
     fn mouse_hotkey_hint(&self) -> &'static str {
         "Los atajos de ratón necesitan el permiso “Accesibilidad”. Un botón del ratón con ámbito “Global” se intercepta en todas las apps. Quita antes otras asignaciones del botón en el juego o en el software del ratón."
@@ -1008,7 +1204,7 @@ impl HotkeyStrings for HotkeyStringsEs {
         "Solo en EVE: funciona solo mientras una ventana de EVE está al frente"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Cada atajo tiene un solo ámbito, nunca los dos. La etiqueta a la derecha de cada atajo muestra el ámbito que usa de verdad. Haz clic en ella para poner ese atajo en Global, Solo en EVE o el predeterminado elegido aquí."
+        "Cada atajo tiene un solo ámbito. Los que no tienen uno propio siguen este valor; puedes cambiarlo junto a cada atajo."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Usar predeterminado ({})", current)
@@ -1020,10 +1216,13 @@ impl HotkeyStrings for HotkeyStringsEs {
         "Atajos solo en EVE"
     }
     fn add_hotkey(&self) -> &'static str {
-        "+ Añadir"
+        "Añadir atajo"
     }
     fn recording_prompt(&self) -> &'static str {
-        "Pulsa teclas o un botón lateral del ratón (puntero en esta ventana)…"
+        "Pulsa teclas…"
+    }
+    fn recording_prompt_esc(&self) -> &'static str {
+        "Pulsa teclas… (Esc para cancelar)"
     }
     fn recorder_help(&self) -> &'static str {
         "Haz clic y pulsa una combinación de teclas o el botón central o uno lateral del ratón. Esc cancela y Eliminar borra."
@@ -1040,6 +1239,9 @@ impl HotkeyStrings for HotkeyStringsEs {
     fn hotkey_reserved(&self) -> &'static str {
         "Reservado por macOS"
     }
+    fn hotkey_unsupported_mouse_button(&self) -> &'static str {
+        "Solo botón central y laterales"
+    }
     fn hotkey_accessibility_required(&self) -> &'static str {
         "Requiere Accesibilidad"
     }
@@ -1051,6 +1253,12 @@ impl HotkeyStrings for HotkeyStringsEs {
     }
     fn hotkey_registration_failed(&self, status: i32) -> String {
         format!("Error de registro ({})", status)
+    }
+    fn hotkey_in_use(&self) -> &'static str {
+        "En uso por otro programa"
+    }
+    fn hotkey_with_scope(&self, hotkey: &str, scope: &str) -> String {
+        format!("{} ({})", hotkey, scope)
     }
 }
 

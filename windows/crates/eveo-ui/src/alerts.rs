@@ -23,7 +23,11 @@ pub fn show_alerts(ui: &SettingsWindow, profile: &Profile, general: &GeneralSett
     if model.get_log_directory() != directory.as_str() {
         model.set_log_directory(directory.into());
     }
-    model.set_automatic_directory(format!("自动：{automatic}").into());
+    model.set_automatic_directory(
+        eveo_l10n::combat(crate::language())
+            .automatic_path(automatic)
+            .into(),
+    );
     // 颜色：输入框里大小写不同视为相同，不改用户正在输入的文字。
     let text = normalized_hex(&alert.color).unwrap_or_else(|| alert.color.clone());
     if !model.get_color().eq_ignore_ascii_case(&text) {

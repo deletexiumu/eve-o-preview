@@ -15,10 +15,14 @@ pub trait CombatStrings: Sync {
     // 开关与状态行
     /// 总开关。
     fn enable_toggle(&self) -> &'static str;
+    /// Windows「提醒」页：总开关的说明。
+    fn enable_help(&self) -> &'static str;
     /// 状态行的标签。
     fn status_label(&self) -> &'static str;
     /// 状态：未启用。
     fn status_stopped(&self) -> &'static str;
+    /// Windows 测试版：读游戏日志还没做，状态行的说明。
+    fn not_available_yet(&self) -> &'static str;
     /// 状态：监视中，附目录与跟踪的文件数。
     fn status_watching(&self, directory: &str, files: i64) -> String;
     /// 状态：找不到日志目录，附查找的路径。
@@ -34,8 +38,12 @@ pub trait CombatStrings: Sync {
     fn log_directory_header(&self) -> &'static str;
     /// 日志目录一行的标签。
     fn log_directory_label(&self) -> &'static str;
+    /// Windows「提醒」页：日志目录一行的说明。
+    fn log_directory_help(&self) -> &'static str;
     /// 没有指定目录时，路径后面的「自动」标注。
     fn automatic_suffix(&self) -> &'static str;
+    /// Windows「提醒」页：目录输入框为空时的占位文字，参数是自动找到的位置。
+    fn automatic_path(&self, path: &str) -> String;
     /// 「选择…」按钮。
     fn choose_directory(&self) -> &'static str;
     /// 「使用自动位置」按钮。
@@ -49,10 +57,14 @@ pub trait CombatStrings: Sync {
     fn flash_color(&self) -> &'static str;
     /// 持续时间。
     fn duration(&self) -> &'static str;
+    /// Windows「提醒」页：持续时间一行的说明。
+    fn duration_help(&self) -> &'static str;
     /// 秒数的显示，如「3.5 秒」。
     fn seconds(&self, value: f64) -> String;
     /// 样式。
     fn style(&self) -> &'static str;
+    /// Windows「提醒」页：样式一行的说明。
+    fn style_help(&self) -> &'static str;
     /// 样式：边框。
     fn style_border(&self) -> &'static str;
     /// 样式：底色。
@@ -64,10 +76,14 @@ pub trait CombatStrings: Sync {
     fn triggers_header(&self) -> &'static str;
     /// 「未命中的攻击也提醒」开关。
     fn include_misses(&self) -> &'static str;
+    /// Windows「提醒」页：未命中也提醒一行的说明。
+    fn include_misses_help(&self) -> &'static str;
     /// 最小伤害。
     fn minimum_damage(&self) -> &'static str;
     /// 最小伤害的说明。
     fn minimum_damage_help(&self) -> &'static str;
+    /// Windows「提醒」页：测试一组的标题。
+    fn test_header(&self) -> &'static str;
     // 测试与说明
     /// 「测试闪烁」按钮。
     fn test_flash(&self) -> &'static str;
@@ -87,11 +103,17 @@ impl CombatStrings for CombatStringsEn {
     fn enable_toggle(&self) -> &'static str {
         "Flash thumbnail when a character is attacked"
     }
+    fn enable_help(&self) -> &'static str {
+        "Applies to the current profile"
+    }
     fn status_label(&self) -> &'static str {
         "Status"
     }
     fn status_stopped(&self) -> &'static str {
         "Off"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Reading game logs arrives in a later test build; use Test Flash to preview the effect"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         match plural::en(files) {
@@ -117,8 +139,14 @@ impl CombatStrings for CombatStringsEn {
     fn log_directory_label(&self) -> &'static str {
         "Folder"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "Leave blank to find it automatically; EVE's logs or logs\\Gamelogs folder both work"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "(automatic)"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("Automatic: {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "Choose…"
@@ -138,11 +166,17 @@ impl CombatStrings for CombatStringsEn {
     fn duration(&self) -> &'static str {
         "Duration"
     }
+    fn duration_help(&self) -> &'static str {
+        "How long to flash after each hit; keeps going while hits continue"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} s", seconds_number(value))
     }
     fn style(&self) -> &'static str {
         "Style"
+    }
+    fn style_help(&self) -> &'static str {
+        "Border flashes the outline; Tint colors the whole thumbnail"
     }
     fn style_border(&self) -> &'static str {
         "Border"
@@ -159,11 +193,17 @@ impl CombatStrings for CombatStringsEn {
     fn include_misses(&self) -> &'static str {
         "Also alert on attacks that miss"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "Also flash when an attack misses"
+    }
     fn minimum_damage(&self) -> &'static str {
         "Minimum damage"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "Hits below this amount are ignored. Misses follow the switch above."
+    }
+    fn test_header(&self) -> &'static str {
+        "Test"
     }
     fn test_flash(&self) -> &'static str {
         "Test Flash"
@@ -172,7 +212,7 @@ impl CombatStrings for CombatStringsEn {
         "Flashes every thumbnail once, even when the alert is off."
     }
     fn footnote(&self) -> &'static str {
-        "The EVE client must be set to write game messages to log files. This feature only reads the game logs and never sends any input to the game."
+        "Alerts apply to every client, including the one in front. This feature only reads the game logs and never sends any input to the game."
     }
 }
 
@@ -186,11 +226,17 @@ impl CombatStrings for CombatStringsZh {
     fn enable_toggle(&self) -> &'static str {
         "角色被攻击时闪烁缩略图"
     }
+    fn enable_help(&self) -> &'static str {
+        "对当前配置方案生效"
+    }
     fn status_label(&self) -> &'static str {
         "状态"
     }
     fn status_stopped(&self) -> &'static str {
         "未启用"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "读游戏日志的功能在后续测试版加上，可以先用「测试闪烁」看效果"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         format!("监视中：{}，跟踪 {} 个日志文件", directory, files)
@@ -213,8 +259,14 @@ impl CombatStrings for CombatStringsZh {
     fn log_directory_label(&self) -> &'static str {
         "目录"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "留空时自动查找；填 EVE 的 logs 或 logs\\Gamelogs 文件夹均可"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "（自动）"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("自动：{}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "选择…"
@@ -234,11 +286,17 @@ impl CombatStrings for CombatStringsZh {
     fn duration(&self) -> &'static str {
         "持续时间"
     }
+    fn duration_help(&self) -> &'static str {
+        "每次受击后闪烁多久；持续受击时一直延长"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} 秒", seconds_number(value))
     }
     fn style(&self) -> &'static str {
         "样式"
+    }
+    fn style_help(&self) -> &'static str {
+        "边框：缩略图外圈闪烁；底色：整个缩略图蒙上一层颜色"
     }
     fn style_border(&self) -> &'static str {
         "边框"
@@ -255,11 +313,17 @@ impl CombatStrings for CombatStringsZh {
     fn include_misses(&self) -> &'static str {
         "未命中的攻击也提醒"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "对方开火但没有打中时也闪烁"
+    }
     fn minimum_damage(&self) -> &'static str {
         "最小伤害"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "低于这个数值的伤害不提醒。未命中按上面的开关处理。"
+    }
+    fn test_header(&self) -> &'static str {
+        "测试"
     }
     fn test_flash(&self) -> &'static str {
         "测试闪烁"
@@ -268,7 +332,7 @@ impl CombatStrings for CombatStringsZh {
         "让全部缩略图闪烁一次，功能关闭时也可以用。"
     }
     fn footnote(&self) -> &'static str {
-        "EVE 客户端应开启把游戏消息写入日志文件的设置。本功能只读游戏日志，不向游戏发送任何输入。"
+        "提醒对全部客户端生效，包括当前在前台的客户端。本功能只读游戏日志，不向游戏发送任何输入。"
     }
 }
 
@@ -282,11 +346,17 @@ impl CombatStrings for CombatStringsRu {
     fn enable_toggle(&self) -> &'static str {
         "Мигать миниатюрой при атаке на персонажа"
     }
+    fn enable_help(&self) -> &'static str {
+        "Действует для текущего профиля"
+    }
     fn status_label(&self) -> &'static str {
         "Состояние"
     }
     fn status_stopped(&self) -> &'static str {
         "Выключено"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Чтение игровых журналов появится в следующих тестовых сборках; эффект можно посмотреть кнопкой «Проверить мигание»"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         match plural::ru(files) {
@@ -313,8 +383,14 @@ impl CombatStrings for CombatStringsRu {
     fn log_directory_label(&self) -> &'static str {
         "Папка"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "Оставьте пустым для автопоиска; подойдёт папка logs или logs\\Gamelogs из EVE"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "(автоматически)"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("Автоматически: {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "Выбрать…"
@@ -334,11 +410,17 @@ impl CombatStrings for CombatStringsRu {
     fn duration(&self) -> &'static str {
         "Длительность"
     }
+    fn duration_help(&self) -> &'static str {
+        "Сколько длится вспышка после каждого попадания; при новых попаданиях продлевается"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} с", seconds_number(value))
     }
     fn style(&self) -> &'static str {
         "Стиль"
+    }
+    fn style_help(&self) -> &'static str {
+        "Рамка мигает по контуру; заливка окрашивает всю миниатюру"
     }
     fn style_border(&self) -> &'static str {
         "Рамка"
@@ -355,11 +437,17 @@ impl CombatStrings for CombatStringsRu {
     fn include_misses(&self) -> &'static str {
         "Оповещать и о промахах противника"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "Мигать и при промахах противника"
+    }
     fn minimum_damage(&self) -> &'static str {
         "Минимальный урон"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "Урон меньше этого значения не вызывает оповещения. Промахи — по переключателю выше."
+    }
+    fn test_header(&self) -> &'static str {
+        "Проверка"
     }
     fn test_flash(&self) -> &'static str {
         "Проверить мигание"
@@ -368,7 +456,7 @@ impl CombatStrings for CombatStringsRu {
         "Все миниатюры мигнут один раз, даже если оповещение выключено."
     }
     fn footnote(&self) -> &'static str {
-        "В клиенте EVE должна быть включена запись игровых сообщений в файлы журналов. Эта функция только читает игровые журналы и ничего не отправляет в игру."
+        "Оповещения работают для всех клиентов, включая клиент на переднем плане. Эта функция только читает игровые журналы и ничего не отправляет в игру."
     }
 }
 
@@ -382,11 +470,17 @@ impl CombatStrings for CombatStringsJa {
     fn enable_toggle(&self) -> &'static str {
         "キャラクターが攻撃されたらサムネイルを点滅"
     }
+    fn enable_help(&self) -> &'static str {
+        "現在のプロファイルに適用されます"
+    }
     fn status_label(&self) -> &'static str {
         "状態"
     }
     fn status_stopped(&self) -> &'static str {
         "オフ"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "ゲームログの読み取りは今後のテスト版で追加されます。「点滅をテスト」で効果を確認できます"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         format!("監視中：{}（ログファイル {} 件）", directory, files)
@@ -409,8 +503,14 @@ impl CombatStrings for CombatStringsJa {
     fn log_directory_label(&self) -> &'static str {
         "フォルダ"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "空欄なら自動で探します。EVE の logs と logs\\Gamelogs のどちらのフォルダーでも構いません"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "（自動）"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("自動: {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "選択…"
@@ -430,11 +530,17 @@ impl CombatStrings for CombatStringsJa {
     fn duration(&self) -> &'static str {
         "持続時間"
     }
+    fn duration_help(&self) -> &'static str {
+        "被弾のたびに点滅する時間。攻撃が続く間は延長されます"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} 秒", seconds_number(value))
     }
     fn style(&self) -> &'static str {
         "スタイル"
+    }
+    fn style_help(&self) -> &'static str {
+        "枠線は外周が点滅し、塗りはサムネイル全体に色が重なります"
     }
     fn style_border(&self) -> &'static str {
         "枠線"
@@ -451,11 +557,17 @@ impl CombatStrings for CombatStringsJa {
     fn include_misses(&self) -> &'static str {
         "外れた攻撃でも通知する"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "攻撃が外れたときも点滅します"
+    }
     fn minimum_damage(&self) -> &'static str {
         "最小ダメージ"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "この値未満のダメージでは通知しません。外れた攻撃は上のスイッチに従います。"
+    }
+    fn test_header(&self) -> &'static str {
+        "テスト"
     }
     fn test_flash(&self) -> &'static str {
         "点滅をテスト"
@@ -464,7 +576,7 @@ impl CombatStrings for CombatStringsJa {
         "機能がオフでも、すべてのサムネイルを一度点滅させます。"
     }
     fn footnote(&self) -> &'static str {
-        "EVE クライアントでゲームメッセージをログファイルに書き出す設定を有効にしてください。この機能はゲームログを読むだけで、ゲームに入力を送ることはありません。"
+        "アラートは前面にあるクライアントを含むすべてのクライアントに適用されます。この機能はゲームログを読むだけで、ゲームに入力を送ることはありません。"
     }
 }
 
@@ -478,11 +590,17 @@ impl CombatStrings for CombatStringsKo {
     fn enable_toggle(&self) -> &'static str {
         "캐릭터가 공격받으면 썸네일 깜박이기"
     }
+    fn enable_help(&self) -> &'static str {
+        "현재 프로필에 적용됩니다"
+    }
     fn status_label(&self) -> &'static str {
         "상태"
     }
     fn status_stopped(&self) -> &'static str {
         "꺼짐"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "게임 로그 읽기는 이후 테스트 빌드에서 추가됩니다. 「깜박임 테스트」로 효과를 미리 볼 수 있습니다"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         format!("감시 중: {} (로그 파일 {}개)", directory, files)
@@ -505,8 +623,14 @@ impl CombatStrings for CombatStringsKo {
     fn log_directory_label(&self) -> &'static str {
         "폴더"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "비워 두면 자동으로 찾습니다. EVE의 logs 또는 logs\\Gamelogs 폴더 모두 됩니다"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "(자동)"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("자동: {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "선택…"
@@ -526,11 +650,17 @@ impl CombatStrings for CombatStringsKo {
     fn duration(&self) -> &'static str {
         "지속 시간"
     }
+    fn duration_help(&self) -> &'static str {
+        "피격될 때마다 깜박이는 시간입니다. 계속 공격받으면 연장됩니다"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{}초", seconds_number(value))
     }
     fn style(&self) -> &'static str {
         "스타일"
+    }
+    fn style_help(&self) -> &'static str {
+        "테두리는 바깥쪽이 깜박이고, 채우기는 썸네일 전체에 색을 입힙니다"
     }
     fn style_border(&self) -> &'static str {
         "테두리"
@@ -547,11 +677,17 @@ impl CombatStrings for CombatStringsKo {
     fn include_misses(&self) -> &'static str {
         "빗나간 공격도 알림"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "공격이 빗나가도 깜박입니다"
+    }
     fn minimum_damage(&self) -> &'static str {
         "최소 피해량"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "이 값보다 작은 피해는 알리지 않습니다. 빗나간 공격은 위의 스위치를 따릅니다."
+    }
+    fn test_header(&self) -> &'static str {
+        "테스트"
     }
     fn test_flash(&self) -> &'static str {
         "깜박임 테스트"
@@ -560,7 +696,7 @@ impl CombatStrings for CombatStringsKo {
         "기능이 꺼져 있어도 모든 썸네일을 한 번 깜박입니다."
     }
     fn footnote(&self) -> &'static str {
-        "EVE 클라이언트에서 게임 메시지를 로그 파일에 기록하도록 설정해야 합니다. 이 기능은 게임 로그를 읽기만 하며 게임에 어떤 입력도 보내지 않습니다."
+        "알림은 앞에 있는 클라이언트를 포함한 모든 클라이언트에 적용됩니다. 이 기능은 게임 로그를 읽기만 하며 게임에 어떤 입력도 보내지 않습니다."
     }
 }
 
@@ -574,11 +710,17 @@ impl CombatStrings for CombatStringsFr {
     fn enable_toggle(&self) -> &'static str {
         "Faire clignoter la vignette quand un personnage est attaqué"
     }
+    fn enable_help(&self) -> &'static str {
+        "S'applique au profil actuel"
+    }
     fn status_label(&self) -> &'static str {
         "État"
     }
     fn status_stopped(&self) -> &'static str {
         "Désactivé"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "La lecture des journaux de jeu arrivera dans une prochaine version de test ; « Tester le clignotement » montre déjà l'effet"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         match plural::fr(files) {
@@ -604,8 +746,14 @@ impl CombatStrings for CombatStringsFr {
     fn log_directory_label(&self) -> &'static str {
         "Dossier"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "Laissez vide pour la recherche automatique ; le dossier logs ou logs\\Gamelogs d'EVE convient"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "(automatique)"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("Automatique : {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "Choisir…"
@@ -625,11 +773,17 @@ impl CombatStrings for CombatStringsFr {
     fn duration(&self) -> &'static str {
         "Durée"
     }
+    fn duration_help(&self) -> &'static str {
+        "Durée du clignotement après chaque coup ; prolongée tant que les coups continuent"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} s", seconds_number(value).replace('.', ","))
     }
     fn style(&self) -> &'static str {
         "Style"
+    }
+    fn style_help(&self) -> &'static str {
+        "Bordure : le contour clignote ; Teinte : toute la vignette se colore"
     }
     fn style_border(&self) -> &'static str {
         "Bordure"
@@ -646,11 +800,17 @@ impl CombatStrings for CombatStringsFr {
     fn include_misses(&self) -> &'static str {
         "Alerter aussi pour les attaques manquées"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "Clignoter aussi quand une attaque rate"
+    }
     fn minimum_damage(&self) -> &'static str {
         "Dégâts minimum"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "Les coups en dessous de cette valeur sont ignorés. Les attaques manquées suivent l'option ci-dessus."
+    }
+    fn test_header(&self) -> &'static str {
+        "Test"
     }
     fn test_flash(&self) -> &'static str {
         "Tester le clignotement"
@@ -659,7 +819,7 @@ impl CombatStrings for CombatStringsFr {
         "Fait clignoter chaque vignette une fois, même si l'alerte est désactivée."
     }
     fn footnote(&self) -> &'static str {
-        "Le client EVE doit être réglé pour enregistrer les messages du jeu dans des fichiers journaux. Cette fonction lit uniquement les journaux de jeu et n'envoie jamais aucune entrée au jeu."
+        "Les alertes s'appliquent à tous les clients, y compris celui au premier plan. Cette fonction lit uniquement les journaux de jeu et n'envoie jamais aucune entrée au jeu."
     }
 }
 
@@ -673,11 +833,17 @@ impl CombatStrings for CombatStringsDe {
     fn enable_toggle(&self) -> &'static str {
         "Miniatur bei Angriff auf einen Charakter blinken lassen"
     }
+    fn enable_help(&self) -> &'static str {
+        "Gilt für das aktuelle Profil"
+    }
     fn status_label(&self) -> &'static str {
         "Status"
     }
     fn status_stopped(&self) -> &'static str {
         "Aus"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "Das Lesen der Spielprotokolle kommt in einem späteren Testbuild; „Blinken testen“ zeigt die Wirkung schon jetzt"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         match plural::de(files) {
@@ -703,8 +869,14 @@ impl CombatStrings for CombatStringsDe {
     fn log_directory_label(&self) -> &'static str {
         "Ordner"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "Leer lassen für die automatische Suche; der EVE-Ordner logs oder logs\\Gamelogs geht beides"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "(automatisch)"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("Automatisch: {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "Auswählen …"
@@ -724,11 +896,17 @@ impl CombatStrings for CombatStringsDe {
     fn duration(&self) -> &'static str {
         "Dauer"
     }
+    fn duration_help(&self) -> &'static str {
+        "Wie lange nach jedem Treffer geblinkt wird; verlängert sich, solange Treffer folgen"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} s", seconds_number(value).replace('.', ","))
     }
     fn style(&self) -> &'static str {
         "Stil"
+    }
+    fn style_help(&self) -> &'static str {
+        "Rahmen lässt den Rand blinken; Tönung färbt die ganze Miniatur"
     }
     fn style_border(&self) -> &'static str {
         "Rahmen"
@@ -745,11 +923,17 @@ impl CombatStrings for CombatStringsDe {
     fn include_misses(&self) -> &'static str {
         "Auch bei verfehlten Angriffen warnen"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "Auch bei verfehlten Angriffen blinken"
+    }
     fn minimum_damage(&self) -> &'static str {
         "Mindestschaden"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "Treffer unter diesem Wert werden ignoriert. Für Fehlschüsse gilt der Schalter oben."
+    }
+    fn test_header(&self) -> &'static str {
+        "Test"
     }
     fn test_flash(&self) -> &'static str {
         "Blinken testen"
@@ -758,7 +942,7 @@ impl CombatStrings for CombatStringsDe {
         "Lässt jede Miniatur einmal blinken, auch wenn die Warnung aus ist."
     }
     fn footnote(&self) -> &'static str {
-        "Der EVE-Client muss Spielnachrichten in Protokolldateien schreiben. Diese Funktion liest nur die Spielprotokolle und sendet nie Eingaben an das Spiel."
+        "Warnungen gelten für alle Clients, auch für den im Vordergrund. Diese Funktion liest nur die Spielprotokolle und sendet nie Eingaben an das Spiel."
     }
 }
 
@@ -772,11 +956,17 @@ impl CombatStrings for CombatStringsEs {
     fn enable_toggle(&self) -> &'static str {
         "Hacer parpadear la miniatura al atacar a un personaje"
     }
+    fn enable_help(&self) -> &'static str {
+        "Se aplica al perfil actual"
+    }
     fn status_label(&self) -> &'static str {
         "Estado"
     }
     fn status_stopped(&self) -> &'static str {
         "Desactivado"
+    }
+    fn not_available_yet(&self) -> &'static str {
+        "La lectura de los registros del juego llegará en una próxima versión de prueba; usa «Probar parpadeo» para ver el efecto"
     }
     fn status_watching(&self, directory: &str, files: i64) -> String {
         match plural::es(files) {
@@ -802,8 +992,14 @@ impl CombatStrings for CombatStringsEs {
     fn log_directory_label(&self) -> &'static str {
         "Carpeta"
     }
+    fn log_directory_help(&self) -> &'static str {
+        "Déjalo vacío para buscarla automáticamente; sirve la carpeta logs o logs\\Gamelogs de EVE"
+    }
     fn automatic_suffix(&self) -> &'static str {
         "(automático)"
+    }
+    fn automatic_path(&self, path: &str) -> String {
+        format!("Automático: {}", path)
     }
     fn choose_directory(&self) -> &'static str {
         "Elegir…"
@@ -823,11 +1019,17 @@ impl CombatStrings for CombatStringsEs {
     fn duration(&self) -> &'static str {
         "Duración"
     }
+    fn duration_help(&self) -> &'static str {
+        "Cuánto parpadea tras cada impacto; se alarga mientras sigan los impactos"
+    }
     fn seconds(&self, value: f64) -> String {
         format!("{} s", seconds_number(value).replace('.', ","))
     }
     fn style(&self) -> &'static str {
         "Estilo"
+    }
+    fn style_help(&self) -> &'static str {
+        "Borde hace parpadear el contorno; Tinte colorea toda la miniatura"
     }
     fn style_border(&self) -> &'static str {
         "Borde"
@@ -844,11 +1046,17 @@ impl CombatStrings for CombatStringsEs {
     fn include_misses(&self) -> &'static str {
         "Avisar también de los ataques fallidos"
     }
+    fn include_misses_help(&self) -> &'static str {
+        "Parpadear también cuando un ataque falla"
+    }
     fn minimum_damage(&self) -> &'static str {
         "Daño mínimo"
     }
     fn minimum_damage_help(&self) -> &'static str {
         "Se ignoran los impactos por debajo de esta cantidad. Los fallos dependen de la opción anterior."
+    }
+    fn test_header(&self) -> &'static str {
+        "Prueba"
     }
     fn test_flash(&self) -> &'static str {
         "Probar parpadeo"
@@ -857,7 +1065,7 @@ impl CombatStrings for CombatStringsEs {
         "Hace parpadear todas las miniaturas una vez, aunque la alerta esté desactivada."
     }
     fn footnote(&self) -> &'static str {
-        "El cliente de EVE debe estar configurado para guardar los mensajes del juego en archivos de registro. Esta función solo lee los registros del juego y nunca envía ninguna entrada al juego."
+        "Las alertas se aplican a todos los clientes, incluido el que está en primer plano. Esta función solo lee los registros del juego y nunca envía ninguna entrada al juego."
     }
 }
 

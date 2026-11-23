@@ -17,6 +17,7 @@
 import { Button, ComboBox, LineEdit } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { HotkeyText, SettingsText } from "generated/l10n.slint";
 
 // 一条热键。
 export struct HotkeyRow {
@@ -70,7 +71,7 @@ export global SwitchingModel {
     // 默认作用范围：0 全局，1 仅游戏内。
     in-out property <int> default-scope;
     // 跟随默认时的范围名称，用在每行的范围下拉框里。
-    out property <string> default-scope-name: default-scope == 0 ? "全局" : "仅游戏内";
+    out property <string> default-scope-name: default-scope == 0 ? HotkeyText.scope-global : HotkeyText.scope-game;
     // 循环组。
     in-out property <[CycleGroupData]> groups;
     // 每个角色的直达热键，按角色名排序。
@@ -124,7 +125,7 @@ component HotkeyLine inherits HorizontalLayout {
     // 显示组合键；点了开始重录，录制中显示提示。
     Button {
         // 录制中按钮用强调色，提醒按键会被录下而不是传给别处。
-        text: recording ? "按下组合键…" : entry.label;
+        text: recording ? HotkeyText.recording-prompt : entry.label;
         primary: recording;
         min-width: 150px;
         clicked => {
@@ -134,7 +135,7 @@ component HotkeyLine inherits HorizontalLayout {
     // 作用范围；解析不了的一条没有范围可改，只能重录或移除。
     if entry.scope >= 0: ComboBox {
         // 第一项写出默认范围此刻是什么，不用回到页首查看。
-        model: ["跟随默认（" + SwitchingModel.default-scope-name + "）", "全局", "仅游戏内"];
+        model: [HotkeyText.scope-follow-default(SwitchingModel.default-scope-name), HotkeyText.scope-global, HotkeyText.scope-game];
         current-index: entry.scope;
         width: 170px;
         selected(value) => {
@@ -142,7 +143,7 @@ component HotkeyLine inherits HorizontalLayout {
         }
     }
     Button {
-        text: "移除";
+        text: SettingsText.remove;
         clicked => {
             // 移除不再确认：录错了可以马上重录。
             SwitchingModel.remove-hotkey(slot, entry.text);
@@ -188,7 +189,7 @@ component HotkeySlotCard inherits Rectangle {
             HorizontalLayout {
                 alignment: end;
                 Button {
-                    text: adding ? "按下组合键…（Esc 取消）" : "添加热键";
+                    text: adding ? HotkeyText.recording-prompt-esc : HotkeyText.add-hotkey;
                     primary: adding;
                     clicked => {
                         SwitchingModel.record(data.slot, "");
@@ -263,7 +264,7 @@ component CycleGroupCard inherits VerticalLayout {
             padding-right: 18px;
             spacing: 12px;
             Text {
-                text: "名称";
+                text: HotkeyText.group-name;
                 color: Theme.text;
                 vertical-alignment: center;
             }
@@ -287,7 +288,7 @@ component CycleGroupCard inherits VerticalLayout {
             VerticalLayout {
                 alignment: center;
                 Button {
-                    text: "删除循环组";
+                    text: HotkeyText.delete-group;
                     clicked => {
                         SwitchingModel.delete-group(group.id);
                     }
@@ -312,7 +313,7 @@ component CycleGroupCard inherits VerticalLayout {
             HorizontalLayout {
                 spacing: 12px;
                 Text {
-                    text: "成员（按循环顺序）";
+                    text: HotkeyText.members-header;
                     color: Theme.text;
                     vertical-alignment: center;
                     horizontal-stretch: 1;
@@ -333,7 +334,7 @@ component CycleGroupCard inherits VerticalLayout {
                 }
             }
             if group.members.length == 0: Text {
-                text: "还没有成员。从右上角的列表里添加角色。";
+                text: HotkeyText.no-members;
                 color: Theme.text-secondary;
             }
             // 每个成员一行：序号、在线点、名称、上移、下移、移除。
@@ -362,7 +363,7 @@ component CycleGroupCard inherits VerticalLayout {
                     horizontal-stretch: 1;
                 }
                 Button {
-                    text: "上移";
+                    text: HotkeyText.move-up;
                     // 第一个成员不能再上移，最后一个不能再下移。
                     enabled: index > 0;
                     clicked => {
@@ -370,14 +371,14 @@ component CycleGroupCard inherits VerticalLayout {
                     }
                 }
                 Button {
-                    text: "下移";
+                    text: HotkeyText.move-down;
                     enabled: index < group.members.length - 1;
                     clicked => {
                         SwitchingModel.move-member(group.id, index, 1);
                     }
                 }
                 Button {
-                    text: "移除";
+                    text: SettingsText.remove;
                     clicked => {
                         SwitchingModel.remove-member(group.id, index);
                     }
@@ -391,8 +392,8 @@ component CycleGroupCard inherits VerticalLayout {
 export component SwitchingPage inherits VerticalLayout {
     alignment: start;
     PageHeader {
-        title: "切换与热键";
-        subtitle: "用热键在角色之间切换：循环组按顺序轮换，直达热键直接切到某个角色";
+        title: SettingsText.page-switching;
+        subtitle: HotkeyText.switching-subtitle;
     }
 
     // 默认作用范围。
@@ -407,11 +408,11 @@ export component SwitchingPage inherits VerticalLayout {
             spacing: 10px;
             Text {
                 // 单选：只能选一种，选项文字讲清「全局」也包括游戏内。
-                text: "热键的默认作用范围";
+                text: HotkeyText.default-scope-label;
                 color: Theme.text;
             }
             RadioOption {
-                text: "全局：在任何程序里都生效（包括游戏内）";
+                text: HotkeyText.scope-global-option;
                 checked: SwitchingModel.default-scope == 0;
                 clicked => {
                     SwitchingModel.default-scope = 0;
@@ -419,7 +420,7 @@ export component SwitchingPage inherits VerticalLayout {
                 }
             }
             RadioOption {
-                text: "仅游戏内：只在 EVE 窗口位于前台时生效";
+                text: HotkeyText.scope-game-option;
                 checked: SwitchingModel.default-scope == 1;
                 clicked => {
                     SwitchingModel.default-scope = 1;
@@ -429,16 +430,16 @@ export component SwitchingPage inherits VerticalLayout {
         }
     }
     Hint {
-        text: "每个热键只有一种作用范围；没有单独设置的热键跟随这里，也可以在热键旁单独修改。";
+        text: HotkeyText.default-scope-footer;
     }
 
-    SectionHeader { text: "循环组"; }
+    SectionHeader { text: HotkeyText.cycle-groups-header; }
     SettingRow {
         // 新建的循环组排在最后，名称带序号，随后可以改名。
-        title: "新建循环组";
-        description: "一组角色按顺序轮换，配前进与后退热键";
+        title: HotkeyText.add-group;
+        description: HotkeyText.add-group-help;
         Button {
-            text: "新建";
+            text: SettingsText.create;
             clicked => {
                 SwitchingModel.add-group();
             }
@@ -450,10 +451,9 @@ export component SwitchingPage inherits VerticalLayout {
         CycleGroupCard { group <=> group; }
     }
 
-    SectionHeader { text: "角色直达热键"; }
+    SectionHeader { text: HotkeyText.character-hotkeys-header; }
     if SwitchingModel.characters.length == 0: SettingRow {
-        title: "还没有角色";
-        description: "登录游戏后，角色会出现在这里";
+        title: SettingsText.no-characters;
     }
     // 每个已知角色一张卡片，按名称排序，与「客户端」页一致。
     for slot in SwitchingModel.characters: VerticalLayout {
@@ -461,14 +461,14 @@ export component SwitchingPage inherits VerticalLayout {
         HotkeySlotCard { data: slot; }
     }
 
-    SectionHeader { text: "通用热键"; }
+    SectionHeader { text: HotkeyText.global-hotkeys-header; }
     // 全部隐藏、全部最小化、登录客户端循环。
     for slot in SwitchingModel.general: VerticalLayout {
         padding-bottom: 4px;
         HotkeySlotCard { data: slot; }
     }
     Hint {
-        text: "键盘热键要带 Ctrl、Alt 或 Win 之一（F1～F20 与小键盘数字键可以单独用）；Alt+Tab、Win+L 这类系统组合不能用。鼠标只支持中键与两个侧键，录到的鼠标热键默认仅游戏内生效，免得在别的程序里吞掉侧键。";
+        text: HotkeyText.hotkey-rules-hint;
     }
     Rectangle { height: 24px; }
 }

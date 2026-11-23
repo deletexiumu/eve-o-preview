@@ -352,23 +352,24 @@ fn update_rows(model: &ClientsModel<'_>, rows: Vec<CharacterRow>) {
     }
 }
 
-/// 热键列表的界面写法：每条是「组合键（作用范围）」，多条用顿号隔开；解析不了的照原样显示。
+/// 热键列表的界面写法：每条是「组合键（作用范围）」，多条用当前语言的分隔符隔开；解析不了的照原样显示。
 fn hotkey_text(profile: &Profile, list: &[String]) -> String {
+    let hotkeys = eveo_l10n::hotkeys(crate::language());
     list.iter()
         .map(|raw| match HotkeySpec::parse(raw) {
             // 没写作用范围的热键跟随配置方案的默认范围，显示解析后的范围，用户不必再去查默认值。
             Some(spec) => {
                 let scope = match spec.resolved_scope(profile.hotkey_default_scope) {
-                    HotkeyScope::Global => "全局",
-                    HotkeyScope::Game => "仅游戏内",
+                    HotkeyScope::Global => hotkeys.scope_global(),
+                    HotkeyScope::Game => hotkeys.scope_game(),
                 };
-                format!("{}（{scope}）", spec.hotkey.display_string())
+                hotkeys.hotkey_with_scope(&spec.hotkey.display_string(), scope)
             }
             // 手改坏的热键照原样显示，用户能认出来去「切换与热键」页修正。
             None => raw.clone(),
         })
         .collect::<Vec<_>>()
-        .join("、")
+        .join(eveo_l10n::settings(crate::language()).list_separator())
 }
 
 #[cfg(test)]
@@ -574,9 +575,16 @@ mod tests {
             "F13".to_owned(),
             "bogus+".to_owned(),
         ];
+        // 范围的写法与分隔符随界面语言。
+        crate::language::set_for_test(eveo_core::model::AppLanguage::Zh);
         assert_eq!(
             hotkey_text(&profile, &list),
             "Ctrl+Alt+Shift+H（全局）、F13（仅游戏内）、bogus+"
+        );
+        crate::language::set_for_test(eveo_core::model::AppLanguage::En);
+        assert_eq!(
+            hotkey_text(&profile, &list),
+            "Ctrl+Alt+Shift+H (Global), F13 (Only in EVE), bogus+"
         );
         assert_eq!(hotkey_text(&profile, &[]), "");
     }

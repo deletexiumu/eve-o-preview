@@ -21,6 +21,7 @@ use eveo_core::switching::CycleDirection;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 
 use crate::bind::character_names;
+use crate::language;
 use crate::{CycleGroupData, HotkeyRow, HotkeySlotData, MemberRow, SettingsWindow, SwitchingModel};
 
 /// 热键在配置里的位置。
@@ -214,7 +215,8 @@ pub fn apply_switching_edit(profile: &mut Profile, edit: &SwitchingEdit) {
         SwitchingEdit::DefaultScope(scope) => profile.hotkey_default_scope = *scope,
         SwitchingEdit::AddGroup(id) => {
             // 默认名称带序号，新建几个也分得清；用户随后可以改名。
-            let name = format!("循环组 {}", profile.cycle_groups.len() + 1);
+            let index = profile.cycle_groups.len() as i64 + 1;
+            let name = eveo_l10n::hotkeys(language()).new_group_name(index);
             profile.cycle_groups.push(CycleGroup {
                 id: id.clone(),
                 name,
@@ -342,6 +344,7 @@ pub fn show_switching(ui: &SettingsWindow, profile: &Profile, state: &SwitchingS
         .collect();
     // 下面三处都要建热键卡片的数据，参数相同的部分先绑定好。
     let slot_data = |slot: Slot, title: &str| slot_data(profile, state, slot, title);
+    let (hotkeys, settings) = (eveo_l10n::hotkeys(language()), eveo_l10n::settings(language()));
 
     // 循环组：每组的名称、两组热键、成员与可添加的角色。
     let groups: Vec<CycleGroupData> = profile
@@ -361,7 +364,7 @@ pub fn show_switching(ui: &SettingsWindow, profile: &Profile, state: &SwitchingS
             // 排序是稳定的：在线与离线两部分内部仍按名称排序。
             let mut candidates: Vec<&String> = names.iter().filter(|n| !group.members.contains(n)).collect();
             candidates.sort_by_key(|n| !online.contains(&n.as_str()));
-            let candidates: Vec<SharedString> = std::iter::once(SharedString::from("添加成员…"))
+            let candidates: Vec<SharedString> = std::iter::once(SharedString::from(hotkeys.add_member()))
                 .chain(candidates.into_iter().map(|n| {
                     if online.contains(&n.as_str()) {
                         format!("{n} ●").into()
@@ -374,8 +377,14 @@ pub fn show_switching(ui: &SettingsWindow, profile: &Profile, state: &SwitchingS
                 id: group.id.as_str().into(),
                 name: group.name.as_str().into(),
                 saved_name: group.name.as_str().into(),
-                forward: slot_data(Slot::Cycle(group.id.clone(), CycleDirection::Forward), "前进"),
-                backward: slot_data(Slot::Cycle(group.id.clone(), CycleDirection::Backward), "后退"),
+                forward: slot_data(
+                    Slot::Cycle(group.id.clone(), CycleDirection::Forward),
+                    settings.forward(),
+                ),
+                backward: slot_data(
+                    Slot::Cycle(group.id.clone(), CycleDirection::Backward),
+                    settings.backward(),
+                ),
                 members: model_of(members),
                 candidates: model_of(candidates),
             }
@@ -410,9 +419,9 @@ pub fn show_switching(ui: &SettingsWindow, profile: &Profile, state: &SwitchingS
 
     // 通用热键固定三项，顺序与 macOS 相同。
     let general = vec![
-        slot_data(Slot::ToggleHideAll, "隐藏全部缩略图"),
-        slot_data(Slot::MinimizeAll, "最小化全部客户端"),
-        slot_data(Slot::CycleLoginClients, "在登录界面的客户端之间循环"),
+        slot_data(Slot::ToggleHideAll, hotkeys.hotkey_toggle_hide_all()),
+        slot_data(Slot::MinimizeAll, hotkeys.hotkey_minimize_all()),
+        slot_data(Slot::CycleLoginClients, hotkeys.hotkey_cycle_login()),
     ];
     sync_rows(&model.get_general(), general, same_slot, |rows| {
         model.set_general(rows)
@@ -462,8 +471,9 @@ fn problem(
     text: &str,
 ) -> Option<String> {
     // 先看能不能解析：解析不了的一条不会进规划，也就没有别的问题可报。
+    let strings = eveo_l10n::hotkeys(language());
     let Some(hotkey) = HotkeySpec::parse(text).map(|s| s.hotkey) else {
-        return Some("无法识别这个热键".to_owned());
+        return Some(strings.hotkey_unparsable().to_owned());
     };
     // 规划里的问题按遍历顺序排列；同一条热键只报第一个相关的问题。
     for issue in &state.plan.issues {
@@ -473,7 +483,7 @@ fn problem(
                 kept,
                 dropped,
             } if *duplicated == hotkey && dropped == action => {
-                return Some(format!("与「{}」重复，这一条不生效", describe(profile, kept)));
+                return Some(strings.hotkey_duplicate(&describe(profile, kept)));
             }
             HotkeyIssue::Rejected {
                 hotkey: rejected,
@@ -482,9 +492,9 @@ fn problem(
             } if *rejected == hotkey && owner == action => {
                 return Some(
                     match reason {
-                        HotkeyRejection::MissingModifier => "要带 Ctrl、Alt 或 Win",
-                        HotkeyRejection::SystemReserved => "系统保留的组合，不能用",
-                        HotkeyRejection::UnsupportedMouseButton => "Windows 只支持中键与两个侧键",
+                        HotkeyRejection::MissingModifier => strings.hotkey_missing_modifier(),
+                        HotkeyRejection::SystemReserved => strings.hotkey_reserved(),
+                        HotkeyRejection::UnsupportedMouseButton => strings.hotkey_unsupported_mouse_button(),
                     }
                     .to_owned(),
                 );
@@ -497,16 +507,17 @@ fn problem(
         .failed
         .iter()
         .any(|(a, h)| a == action && *h == hotkey)
-        .then(|| "被别的程序占用，暂时不能生效".to_owned())
+        .then(|| strings.hotkey_in_use().to_owned())
 }
 
 /// 动作的界面名称，用在「与某某重复」里。
 /// 循环组的动作写成「组名 · 方向」，组已删时退回组 id。
 fn describe(profile: &Profile, action: &HotkeyAction) -> String {
+    let (hotkeys, settings) = (eveo_l10n::hotkeys(language()), eveo_l10n::settings(language()));
     match action {
-        HotkeyAction::ToggleHideAll => "隐藏全部缩略图".to_owned(),
-        HotkeyAction::MinimizeAll => "最小化全部客户端".to_owned(),
-        HotkeyAction::CycleLoginClients => "登录客户端循环".to_owned(),
+        HotkeyAction::ToggleHideAll => hotkeys.hotkey_toggle_hide_all().to_owned(),
+        HotkeyAction::MinimizeAll => hotkeys.hotkey_minimize_all().to_owned(),
+        HotkeyAction::CycleLoginClients => hotkeys.hotkey_cycle_login().to_owned(),
         HotkeyAction::ActivateCharacter(name) => name.clone(),
         HotkeyAction::Cycle { group_id, direction } => {
             let name = profile
@@ -515,8 +526,8 @@ fn describe(profile: &Profile, action: &HotkeyAction) -> String {
                 .find(|g| &g.id == group_id)
                 .map_or(group_id.as_str(), |g| g.name.as_str());
             let direction = match direction {
-                CycleDirection::Forward => "前进",
-                CycleDirection::Backward => "后退",
+                CycleDirection::Forward => settings.forward(),
+                CycleDirection::Backward => settings.backward(),
             };
             format!("{name} · {direction}")
         }
@@ -615,7 +626,8 @@ pub(crate) mod tests {
     #[test]
     fn group_edits() {
         let mut profile = sample();
-        // 已有一个组，新建的名称序号是 2。
+        // 已有一个组，新建的名称序号是 2；名称按界面语言。
+        crate::language::set_for_test(eveo_core::model::AppLanguage::Zh);
         apply_switching_edit(&mut profile, &SwitchingEdit::AddGroup("G2".to_owned()));
         assert_eq!(profile.cycle_groups[1].name, "循环组 2");
         let rename = |name: &str| SwitchingEdit::RenameGroup {
@@ -739,9 +751,10 @@ pub(crate) mod tests {
         let alpha = characters.iter().find(|c| c.title == "Alpha").unwrap();
         let rows: Vec<HotkeyRow> = alpha.rows.iter().collect();
         // Alpha 的 Ctrl+F13 与循环组的前进重复（循环组先出现，先生效）。
-        assert!(rows[0].problem.contains("Fleet · 前进"), "{}", rows[0].problem);
+        // 界面语言是默认的英文。
+        assert!(rows[0].problem.contains("Fleet · Forward"), "{}", rows[0].problem);
         // 单独的 K 缺修饰键，被拒绝；拒绝的提示优先于注册失败。
-        assert!(rows[1].problem.contains("Ctrl"), "{}", rows[1].problem);
+        assert!(rows[1].problem.contains("modifier"), "{}", rows[1].problem);
         assert_eq!(model.get_general().row_count(), 3);
 
         // 改名中的输入框：配置里的名称没变时，刷新保留输入。

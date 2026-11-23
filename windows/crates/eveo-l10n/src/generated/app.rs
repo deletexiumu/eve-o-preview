@@ -46,6 +46,12 @@ pub trait SettingsStrings: Sync {
     fn confirm(&self) -> &'static str;
     /// 删除按钮。
     fn delete(&self) -> &'static str;
+    /// Windows：从列表里移除一项的按钮（热键、循环组成员）。
+    fn remove(&self) -> &'static str;
+    /// Windows：新建按钮（循环组、配置方案），宜短。
+    fn create(&self) -> &'static str;
+    /// Windows：把几项连成一行时的分隔符（如几条热键）。
+    fn list_separator(&self) -> &'static str;
     /// 角色在线的标记。
     fn online(&self) -> &'static str;
     /// 角色离线的标记。
@@ -98,8 +104,14 @@ pub trait SettingsStrings: Sync {
     fn clients_subtitle(&self) -> &'static str;
     /// 「全部隐藏」开关。
     fn hide_all_thumbnails(&self) -> &'static str;
+    /// Windows「客户端」页：隐藏全部缩略图一行的说明（不写进配置）。
+    fn hide_all_help(&self) -> &'static str;
     /// 「全部隐藏」的快捷键一行的标题。
     fn hide_all_hotkey_label(&self) -> &'static str;
+    /// Windows「客户端」页：快捷键一行的说明，指向「切换与热键」页。
+    fn hide_all_hotkey_help(&self) -> &'static str;
+    /// Windows「客户端」页：没有设置快捷键时显示的文字。
+    fn hotkey_not_set(&self) -> &'static str;
     /// 「全部隐藏」快捷键的生效范围（全局或仅游戏内）一行的标题。
     fn hide_all_scope_label(&self) -> &'static str;
     /// 「全部隐藏」一组下方的说明：快捷键可以是键盘组合或修饰键加鼠标按键，范围作用于这一组全部快捷键。
@@ -116,35 +128,53 @@ pub trait SettingsStrings: Sync {
     fn show_thumbnail(&self) -> &'static str;
     /// 角色颜色按钮的悬停说明。
     fn highlight_color_help(&self) -> &'static str;
+    /// Windows「客户端」页：颜色输入框为空时的占位文字，参数是跟随的全局高亮颜色（#RRGGBB）。
+    fn follow_color(&self, color: &str) -> String;
     // 预览与布局页
     /// 页标题下的说明。
     fn previews_subtitle(&self) -> &'static str;
+    /// Windows「预览与布局」页：尺寸一组的标题。
+    fn size_header(&self) -> &'static str;
     /// 缩略图的默认尺寸（宽 × 高）。
     fn default_size(&self) -> &'static str;
+    /// Windows「预览与布局」页：默认尺寸一行的说明。
+    fn default_size_help(&self) -> &'static str;
     /// 缩略图的最小尺寸。
     fn minimum_size(&self) -> &'static str;
     /// 缩略图的最大尺寸。
     fn maximum_size(&self) -> &'static str;
     /// 清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。
     fn unify_sizes(&self) -> &'static str;
+    /// Windows「预览与布局」页：统一尺寸一行的说明。
+    fn unify_sizes_help(&self) -> &'static str;
+    /// Windows「预览与布局」页：统一尺寸一行的按钮，宜短。
+    fn unify_sizes_button(&self) -> &'static str;
     /// 「外观」组的标题。
     fn appearance_header(&self) -> &'static str;
     /// 未悬停时缩略图的不透明度。
     fn opacity(&self) -> &'static str;
+    /// Windows「预览与布局」页：透明度一行的说明。
+    fn opacity_help(&self) -> &'static str;
     /// 是否在缩略图左上角显示角色名。
     fn show_title(&self) -> &'static str;
+    /// Windows「预览与布局」页：显示角色名一行的说明。
+    fn show_title_help(&self) -> &'static str;
     /// 角色名的字号。
     fn title_font_size(&self) -> &'static str;
     /// 角色名的颜色。
     fn title_color(&self) -> &'static str;
     /// 每个缩略图都有的中性色边框的开关（第一轮反馈 F1）。
     fn border_enabled(&self) -> &'static str;
+    /// Windows「预览与布局」页：边框一行的说明。
+    fn border_help(&self) -> &'static str;
     /// 边框的颜色。
     fn border_color(&self) -> &'static str;
     /// 边框的粗细，单位是点。
     fn border_thickness(&self) -> &'static str;
     /// 活动客户端高亮边框的开关。
     fn highlight_enabled(&self) -> &'static str;
+    /// Windows「预览与布局」页：高亮一行的说明，行内有颜色与粗细两个控件。
+    fn highlight_help(&self) -> &'static str;
     /// 高亮边框的颜色（全局，客户端页可以按角色覆盖）。
     fn highlight_color(&self) -> &'static str;
     /// 高亮边框的粗细。
@@ -157,24 +187,36 @@ pub trait SettingsStrings: Sync {
     fn zoom_factor(&self) -> &'static str;
     /// 放大时保持不动的那个点（锚点）。
     fn zoom_anchor(&self) -> &'static str;
+    /// Windows「预览与布局」页：放大倍数与锚点一行的说明。
+    fn zoom_anchor_help(&self) -> &'static str;
     /// 「行为」组的标题。
     fn behavior_header(&self) -> &'static str;
     /// 缩略图置于其他窗口之上。
     fn always_on_top(&self) -> &'static str;
+    /// Windows「预览与布局」页：缩略图置顶一行的说明。
+    fn always_on_top_help(&self) -> &'static str;
     /// 隐藏当前活动客户端自己的缩略图。
     fn hide_active_client(&self) -> &'static str;
+    /// Windows「预览与布局」页：隐藏活动客户端一行的说明。
+    fn hide_active_client_help(&self) -> &'static str;
     /// 前台应用不是 EVE 时隐藏全部缩略图。
     fn hide_when_not_eve(&self) -> &'static str;
+    /// Windows「预览与布局」页：离开 EVE 时隐藏一行的说明，行内是隐藏延迟的滑块。
+    fn hide_when_not_eve_help(&self) -> &'static str;
     /// 上一条的隐藏延迟。
     fn hide_delay(&self) -> &'static str;
     /// 「布局」组的标题。
     fn layout_header(&self) -> &'static str;
     /// 拖动时吸附到屏幕边缘与其他缩略图。
     fn snap_enabled(&self) -> &'static str;
+    /// Windows「预览与布局」页：拖动时吸附一行的说明。
+    fn snap_help(&self) -> &'static str;
     /// 缩放时保持宽高比。
     fn lock_aspect_ratio(&self) -> &'static str;
     /// 锁定布局：禁止移动与缩放。
     fn lock_layout(&self) -> &'static str;
+    /// Windows「预览与布局」页：锁定布局一行的说明。
+    fn lock_layout_help(&self) -> &'static str;
     /// 鼠标手势的说明（小字）。
     fn gesture_hint(&self) -> &'static str;
     /// 「捕获与位置」组的标题。
@@ -204,6 +246,10 @@ pub trait SettingsStrings: Sync {
     fn clone(&self) -> &'static str;
     /// 新建配置方案的按钮。
     fn new_profile(&self) -> &'static str;
+    /// Windows「配置方案」页：新建一行的说明，指向方案旁的复制按钮。
+    fn new_profile_help(&self) -> &'static str;
+    /// Windows「配置方案」页：方案列表的标题。
+    fn all_profiles_header(&self) -> &'static str;
     /// 配置文件路径一行的标签。
     fn config_file(&self) -> &'static str;
     /// 在访达中显示配置文件的按钮（「访达」即 Finder，用该语言下 macOS 的叫法）。
@@ -331,6 +377,15 @@ impl SettingsStrings for SettingsStringsEn {
     fn delete(&self) -> &'static str {
         "Delete"
     }
+    fn remove(&self) -> &'static str {
+        "Remove"
+    }
+    fn create(&self) -> &'static str {
+        "New"
+    }
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
     fn online(&self) -> &'static str {
         "Online"
     }
@@ -411,8 +466,17 @@ impl SettingsStrings for SettingsStringsEn {
     fn hide_all_thumbnails(&self) -> &'static str {
         "Hide all thumbnails"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "Lasts until the app restarts"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "Hotkey"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "Change it on Switching & Hotkeys"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "Not set"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "Scope"
@@ -424,7 +488,7 @@ impl SettingsStrings for SettingsStringsEn {
         "Characters"
     }
     fn characters_footer(&self) -> &'static str {
-        "The color is used for the highlight border when this character is active."
+        "Characters with Show thumbnail turned off stay hidden in later sessions too. A blank color uses the highlight color from Previews & Layout."
     }
     fn no_characters(&self) -> &'static str {
         "No characters yet. Start EVE and log in a character."
@@ -438,11 +502,20 @@ impl SettingsStrings for SettingsStringsEn {
     fn highlight_color_help(&self) -> &'static str {
         "Highlight color when active"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("Default {}", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "Thumbnail size, appearance and behavior. Changes apply immediately."
     }
+    fn size_header(&self) -> &'static str {
+        "Size"
+    }
     fn default_size(&self) -> &'static str {
         "Default size"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "Used by thumbnails you have not resized individually, in pixels"
     }
     fn minimum_size(&self) -> &'static str {
         "Minimum size"
@@ -453,14 +526,26 @@ impl SettingsStrings for SettingsStringsEn {
     fn unify_sizes(&self) -> &'static str {
         "Reset all thumbnails to default size"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "Thumbnails you resized go back to the default size; positions stay the same"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "Reset sizes"
+    }
     fn appearance_header(&self) -> &'static str {
         "Appearance"
     }
     fn opacity(&self) -> &'static str {
         "Opacity"
     }
+    fn opacity_help(&self) -> &'static str {
+        "Opacity while the pointer is elsewhere; thumbnails are fully opaque on hover"
+    }
     fn show_title(&self) -> &'static str {
         "Show character name"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "Shows the character name in the top-left corner of the thumbnail"
     }
     fn title_font_size(&self) -> &'static str {
         "Title font size"
@@ -471,6 +556,9 @@ impl SettingsStrings for SettingsStringsEn {
     fn border_enabled(&self) -> &'static str {
         "Show border"
     }
+    fn border_help(&self) -> &'static str {
+        "Draws a neutral border around every thumbnail; the active client uses the highlight instead"
+    }
     fn border_color(&self) -> &'static str {
         "Border color"
     }
@@ -479,6 +567,9 @@ impl SettingsStrings for SettingsStringsEn {
     }
     fn highlight_enabled(&self) -> &'static str {
         "Highlight active client"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "Draws a highlight around the thumbnail of the client in front (color and thickness)"
     }
     fn highlight_color(&self) -> &'static str {
         "Highlight color"
@@ -498,17 +589,29 @@ impl SettingsStrings for SettingsStringsEn {
     fn zoom_anchor(&self) -> &'static str {
         "Anchor"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "The anchor is the point that stays put while the thumbnail grows"
+    }
     fn behavior_header(&self) -> &'static str {
         "Behavior"
     }
     fn always_on_top(&self) -> &'static str {
         "Keep thumbnails on top"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "Thumbnails stay above other windows"
+    }
     fn hide_active_client(&self) -> &'static str {
         "Hide the active client's thumbnail"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "You do not need a preview of the client you are using"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "Hide thumbnails when EVE is not in front"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "After you switch to another program, waits the set number of seconds before hiding"
     }
     fn hide_delay(&self) -> &'static str {
         "Hide delay"
@@ -519,11 +622,17 @@ impl SettingsStrings for SettingsStringsEn {
     fn snap_enabled(&self) -> &'static str {
         "Snap while dragging"
     }
+    fn snap_help(&self) -> &'static str {
+        "Aligns to nearby thumbnails and screen edges; hold Shift while dragging to bypass"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "Keep aspect ratio when resizing"
     }
     fn lock_layout(&self) -> &'static str {
         "Lock layout"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "Ignores move and resize gestures so thumbnails are not dragged by accident"
     }
     fn gesture_hint(&self) -> &'static str {
         "Right-drag or Option-drag to move; move the pointer to an edge and left-drag to resize; hold Shift to bypass snapping."
@@ -577,11 +686,17 @@ impl SettingsStrings for SettingsStringsEn {
     fn new_profile(&self) -> &'static str {
         "New Profile"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "Starts with default settings; to keep your current settings, use Duplicate next to a profile"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "All profiles"
+    }
     fn config_file(&self) -> &'static str {
         "Config file"
     }
     fn reveal_config(&self) -> &'static str {
-        "Show in Finder"
+        "Show in File Explorer"
     }
     fn profile_name(&self) -> &'static str {
         "Profile name"
@@ -745,6 +860,15 @@ impl SettingsStrings for SettingsStringsZh {
     fn delete(&self) -> &'static str {
         "删除"
     }
+    fn remove(&self) -> &'static str {
+        "移除"
+    }
+    fn create(&self) -> &'static str {
+        "新建"
+    }
+    fn list_separator(&self) -> &'static str {
+        "、"
+    }
     fn online(&self) -> &'static str {
         "在线"
     }
@@ -825,8 +949,17 @@ impl SettingsStrings for SettingsStringsZh {
     fn hide_all_thumbnails(&self) -> &'static str {
         "隐藏全部缩略图"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "只在本次运行中有效，重新启动后恢复显示"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "快捷键"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "在「切换与热键」页修改"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "未设置"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "生效范围"
@@ -838,7 +971,7 @@ impl SettingsStrings for SettingsStringsZh {
         "角色"
     }
     fn characters_footer(&self) -> &'static str {
-        "颜色是该角色作为活动客户端时的高亮边框颜色；「默认」表示使用全局高亮颜色。"
+        "关掉「显示缩略图」的角色记在配置里，以后上线也不显示；颜色留空时用「预览与布局」页的高亮颜色。"
     }
     fn no_characters(&self) -> &'static str {
         "还没有发现任何角色。启动 EVE 并选择角色后会出现在这里。"
@@ -852,11 +985,20 @@ impl SettingsStrings for SettingsStringsZh {
     fn highlight_color_help(&self) -> &'static str {
         "活动时的高亮颜色"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("跟随 {}", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "缩略图的尺寸、外观与行为。改动立即生效。"
     }
+    fn size_header(&self) -> &'static str {
+        "尺寸"
+    }
     fn default_size(&self) -> &'static str {
         "默认尺寸"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "没有单独调过大小的缩略图用这个尺寸，单位是像素"
     }
     fn minimum_size(&self) -> &'static str {
         "最小尺寸"
@@ -867,14 +1009,26 @@ impl SettingsStrings for SettingsStringsZh {
     fn unify_sizes(&self) -> &'static str {
         "统一全部缩略图尺寸"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "把单独调过大小的缩略图都改回默认尺寸，位置不变"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "统一尺寸"
+    }
     fn appearance_header(&self) -> &'static str {
         "外观"
     }
     fn opacity(&self) -> &'static str {
         "透明度"
     }
+    fn opacity_help(&self) -> &'static str {
+        "鼠标不在缩略图上时的不透明度；悬停时总是完全不透明"
+    }
     fn show_title(&self) -> &'static str {
         "显示角色名"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "在缩略图左上角显示角色名"
     }
     fn title_font_size(&self) -> &'static str {
         "标题字号"
@@ -885,6 +1039,9 @@ impl SettingsStrings for SettingsStringsZh {
     fn border_enabled(&self) -> &'static str {
         "显示边框"
     }
+    fn border_help(&self) -> &'static str {
+        "每个缩略图都画一圈中性边框；活动客户端改用高亮"
+    }
     fn border_color(&self) -> &'static str {
         "边框颜色"
     }
@@ -893,6 +1050,9 @@ impl SettingsStrings for SettingsStringsZh {
     }
     fn highlight_enabled(&self) -> &'static str {
         "高亮活动客户端"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "前台的客户端，缩略图加一圈高亮（颜色与粗细）"
     }
     fn highlight_color(&self) -> &'static str {
         "高亮颜色"
@@ -912,17 +1072,29 @@ impl SettingsStrings for SettingsStringsZh {
     fn zoom_anchor(&self) -> &'static str {
         "锚点"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "锚点是放大时保持不动的位置"
+    }
     fn behavior_header(&self) -> &'static str {
         "行为"
     }
     fn always_on_top(&self) -> &'static str {
         "缩略图置顶"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "缩略图显示在其他窗口之上"
+    }
     fn hide_active_client(&self) -> &'static str {
         "隐藏活动客户端的缩略图"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "正在操作的客户端不需要看预览"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "离开 EVE 时隐藏缩略图"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "切到别的程序后，等待设定的秒数再隐藏"
     }
     fn hide_delay(&self) -> &'static str {
         "隐藏延迟"
@@ -933,11 +1105,17 @@ impl SettingsStrings for SettingsStringsZh {
     fn snap_enabled(&self) -> &'static str {
         "拖动时吸附"
     }
+    fn snap_help(&self) -> &'static str {
+        "靠近其他缩略图或屏幕边缘时自动对齐；拖动时按住 Shift 暂时不吸附"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "缩放时保持宽高比"
     }
     fn lock_layout(&self) -> &'static str {
         "锁定布局"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "忽略移动与缩放手势，防止误拖"
     }
     fn gesture_hint(&self) -> &'static str {
         "右键拖动或 Option+左键拖动可移动缩略图；鼠标移到边缘（光标变为双向箭头）后直接用左键拖动即可缩放；拖动时按住 Shift 不吸附。"
@@ -991,11 +1169,17 @@ impl SettingsStrings for SettingsStringsZh {
     fn new_profile(&self) -> &'static str {
         "新建配置方案"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "所有设置取默认值；想沿用现有的设置，用方案旁的「复制」"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "全部方案"
+    }
     fn config_file(&self) -> &'static str {
         "配置文件"
     }
     fn reveal_config(&self) -> &'static str {
-        "在访达中显示"
+        "在资源管理器中显示"
     }
     fn profile_name(&self) -> &'static str {
         "配置方案名称"
@@ -1156,6 +1340,15 @@ impl SettingsStrings for SettingsStringsRu {
     fn delete(&self) -> &'static str {
         "Удалить"
     }
+    fn remove(&self) -> &'static str {
+        "Убрать"
+    }
+    fn create(&self) -> &'static str {
+        "Создать"
+    }
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
     fn online(&self) -> &'static str {
         "В сети"
     }
@@ -1236,8 +1429,17 @@ impl SettingsStrings for SettingsStringsRu {
     fn hide_all_thumbnails(&self) -> &'static str {
         "Скрыть все миниатюры"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "Действует до перезапуска приложения"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "Сочетание клавиш"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "Меняется на странице «Переключение»"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "Не задано"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "Действует"
@@ -1249,7 +1451,7 @@ impl SettingsStrings for SettingsStringsRu {
         "Персонажи"
     }
     fn characters_footer(&self) -> &'static str {
-        "Этим цветом рисуется рамка подсветки, когда персонаж активен."
+        "Персонажи с выключенной миниатюрой остаются скрытыми и в следующих сеансах. Пустой цвет — цвет подсветки со страницы «Миниатюры»."
     }
     fn no_characters(&self) -> &'static str {
         "Персонажей пока нет. Запустите EVE и войдите персонажем."
@@ -1263,11 +1465,20 @@ impl SettingsStrings for SettingsStringsRu {
     fn highlight_color_help(&self) -> &'static str {
         "Цвет подсветки, когда персонаж активен"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("Как {}", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "Размер, внешний вид и поведение миниатюр. Изменения применяются сразу."
     }
+    fn size_header(&self) -> &'static str {
+        "Размер"
+    }
     fn default_size(&self) -> &'static str {
         "Размер по умолчанию"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "Для миниатюр, размер которых не меняли отдельно, в пикселях"
     }
     fn minimum_size(&self) -> &'static str {
         "Минимальный размер"
@@ -1278,14 +1489,26 @@ impl SettingsStrings for SettingsStringsRu {
     fn unify_sizes(&self) -> &'static str {
         "Вернуть всем миниатюрам размер по умолчанию"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "Миниатюры с изменённым размером вернутся к размеру по умолчанию; положение не изменится"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "Сбросить"
+    }
     fn appearance_header(&self) -> &'static str {
         "Внешний вид"
     }
     fn opacity(&self) -> &'static str {
         "Непрозрачность"
     }
+    fn opacity_help(&self) -> &'static str {
+        "Непрозрачность, пока указатель не над миниатюрой; при наведении она всегда непрозрачна"
+    }
     fn show_title(&self) -> &'static str {
         "Показывать имя персонажа"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "Имя персонажа в левом верхнем углу миниатюры"
     }
     fn title_font_size(&self) -> &'static str {
         "Размер шрифта имени"
@@ -1296,6 +1519,9 @@ impl SettingsStrings for SettingsStringsRu {
     fn border_enabled(&self) -> &'static str {
         "Показывать рамку"
     }
+    fn border_help(&self) -> &'static str {
+        "Нейтральная рамка вокруг каждой миниатюры; у активного клиента вместо неё подсветка"
+    }
     fn border_color(&self) -> &'static str {
         "Цвет рамки"
     }
@@ -1304,6 +1530,9 @@ impl SettingsStrings for SettingsStringsRu {
     }
     fn highlight_enabled(&self) -> &'static str {
         "Подсвечивать активный клиент"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "Подсветка вокруг миниатюры клиента на переднем плане (цвет и толщина)"
     }
     fn highlight_color(&self) -> &'static str {
         "Цвет подсветки"
@@ -1323,17 +1552,29 @@ impl SettingsStrings for SettingsStringsRu {
     fn zoom_anchor(&self) -> &'static str {
         "Точка привязки"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "Точка привязки остаётся на месте при увеличении"
+    }
     fn behavior_header(&self) -> &'static str {
         "Поведение"
     }
     fn always_on_top(&self) -> &'static str {
         "Миниатюры поверх других окон"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "Миниатюры отображаются поверх других окон"
+    }
     fn hide_active_client(&self) -> &'static str {
         "Скрывать миниатюру активного клиента"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "Клиенту, с которым вы работаете, миниатюра не нужна"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "Скрывать миниатюры, когда EVE не на переднем плане"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "После переключения на другую программу миниатюры скрываются через заданное число секунд"
     }
     fn hide_delay(&self) -> &'static str {
         "Задержка скрытия"
@@ -1344,11 +1585,17 @@ impl SettingsStrings for SettingsStringsRu {
     fn snap_enabled(&self) -> &'static str {
         "Прилипание при перетаскивании"
     }
+    fn snap_help(&self) -> &'static str {
+        "Выравнивание по соседним миниатюрам и краям экрана; удерживайте Shift при перетаскивании, чтобы отключить"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "Сохранять пропорции при изменении размера"
     }
     fn lock_layout(&self) -> &'static str {
         "Закрепить расположение"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "Жесты перемещения и изменения размера игнорируются, чтобы не сдвинуть миниатюры случайно"
     }
     fn gesture_hint(&self) -> &'static str {
         "Перетаскивайте правой кнопкой или с Option, чтобы переместить; наведите указатель на край и тяните левой кнопкой, чтобы изменить размер; удерживайте Shift, чтобы отключить прилипание."
@@ -1402,11 +1649,17 @@ impl SettingsStrings for SettingsStringsRu {
     fn new_profile(&self) -> &'static str {
         "Новый профиль"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "Все настройки по умолчанию; чтобы сохранить текущие, используйте «Дублировать» рядом с профилем"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "Все профили"
+    }
     fn config_file(&self) -> &'static str {
         "Файл конфигурации"
     }
     fn reveal_config(&self) -> &'static str {
-        "Показать в Finder"
+        "Показать в Проводнике"
     }
     fn profile_name(&self) -> &'static str {
         "Имя профиля"
@@ -1571,6 +1824,15 @@ impl SettingsStrings for SettingsStringsJa {
     fn delete(&self) -> &'static str {
         "削除"
     }
+    fn remove(&self) -> &'static str {
+        "削除"
+    }
+    fn create(&self) -> &'static str {
+        "新規"
+    }
+    fn list_separator(&self) -> &'static str {
+        "、"
+    }
     fn online(&self) -> &'static str {
         "オンライン"
     }
@@ -1651,8 +1913,17 @@ impl SettingsStrings for SettingsStringsJa {
     fn hide_all_thumbnails(&self) -> &'static str {
         "すべてのサムネイルを隠す"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "アプリを再起動するまで有効です"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "ショートカット"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "「切り替えとホットキー」で変更します"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "未設定"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "有効範囲"
@@ -1664,7 +1935,7 @@ impl SettingsStrings for SettingsStringsJa {
         "キャラクター"
     }
     fn characters_footer(&self) -> &'static str {
-        "このキャラクターがアクティブなときのハイライト枠線の色です。"
+        "「サムネイルを表示」をオフにしたキャラクターは設定に記録され、次回以降も表示されません。色が空欄のときは「プレビューとレイアウト」のハイライト色を使います。"
     }
     fn no_characters(&self) -> &'static str {
         "キャラクターはまだありません。EVEを起動してキャラクターでログインしてください。"
@@ -1678,11 +1949,20 @@ impl SettingsStrings for SettingsStringsJa {
     fn highlight_color_help(&self) -> &'static str {
         "アクティブなときのハイライトの色"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("{} に従う", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "サムネイルのサイズ、外観、動作。変更はすぐに反映されます。"
     }
+    fn size_header(&self) -> &'static str {
+        "サイズ"
+    }
     fn default_size(&self) -> &'static str {
         "デフォルトのサイズ"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "個別にサイズを変えていないサムネイルに使うサイズ（ピクセル）"
     }
     fn minimum_size(&self) -> &'static str {
         "最小サイズ"
@@ -1693,14 +1973,26 @@ impl SettingsStrings for SettingsStringsJa {
     fn unify_sizes(&self) -> &'static str {
         "すべてのサムネイルをデフォルトのサイズに戻す"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "個別にサイズを変えたサムネイルをデフォルトのサイズに戻します。位置は変わりません"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "サイズを揃える"
+    }
     fn appearance_header(&self) -> &'static str {
         "外観"
     }
     fn opacity(&self) -> &'static str {
         "不透明度"
     }
+    fn opacity_help(&self) -> &'static str {
+        "ポインタがサムネイルの上にないときの不透明度。ポインタを合わせると常に不透明になります"
+    }
     fn show_title(&self) -> &'static str {
         "キャラクター名を表示"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "サムネイルの左上にキャラクター名を表示します"
     }
     fn title_font_size(&self) -> &'static str {
         "名前のフォントサイズ"
@@ -1711,6 +2003,9 @@ impl SettingsStrings for SettingsStringsJa {
     fn border_enabled(&self) -> &'static str {
         "枠線を表示"
     }
+    fn border_help(&self) -> &'static str {
+        "すべてのサムネイルに控えめな枠線を描きます。アクティブなクライアントはハイライトになります"
+    }
     fn border_color(&self) -> &'static str {
         "枠線の色"
     }
@@ -1719,6 +2014,9 @@ impl SettingsStrings for SettingsStringsJa {
     }
     fn highlight_enabled(&self) -> &'static str {
         "アクティブなクライアントをハイライト"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "前面にあるクライアントのサムネイルをハイライトで囲みます（色と太さ）"
     }
     fn highlight_color(&self) -> &'static str {
         "ハイライトの色"
@@ -1738,17 +2036,29 @@ impl SettingsStrings for SettingsStringsJa {
     fn zoom_anchor(&self) -> &'static str {
         "基準点"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "基準点は拡大しても動かない位置です"
+    }
     fn behavior_header(&self) -> &'static str {
         "動作"
     }
     fn always_on_top(&self) -> &'static str {
         "サムネイルを常に手前に表示"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "サムネイルをほかのウインドウより手前に表示します"
+    }
     fn hide_active_client(&self) -> &'static str {
         "アクティブなクライアントのサムネイルを隠す"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "操作中のクライアントにはプレビューが要りません"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "EVEが前面にないときはサムネイルを隠す"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "ほかのプログラムに切り替えてから、設定した秒数が過ぎると隠します"
     }
     fn hide_delay(&self) -> &'static str {
         "隠すまでの時間"
@@ -1759,11 +2069,17 @@ impl SettingsStrings for SettingsStringsJa {
     fn snap_enabled(&self) -> &'static str {
         "ドラッグ時にスナップ"
     }
+    fn snap_help(&self) -> &'static str {
+        "近くのサムネイルや画面の端にそろえます。ドラッグ中に Shift を押すとスナップしません"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "サイズ変更時に縦横比を保持"
     }
     fn lock_layout(&self) -> &'static str {
         "レイアウトをロック"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "移動とサイズ変更の操作を無視し、誤ってドラッグするのを防ぎます"
     }
     fn gesture_hint(&self) -> &'static str {
         "右ドラッグまたはOption+ドラッグで移動。端にポインタを合わせて左ドラッグでサイズ変更。Shiftを押しながらドラッグするとスナップしません。"
@@ -1817,11 +2133,17 @@ impl SettingsStrings for SettingsStringsJa {
     fn new_profile(&self) -> &'static str {
         "新規プロファイル"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "すべての設定がデフォルトになります。今の設定を引き継ぐときはプロファイル横の「複製」を使います"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "すべてのプロファイル"
+    }
     fn config_file(&self) -> &'static str {
         "設定ファイル"
     }
     fn reveal_config(&self) -> &'static str {
-        "Finderに表示"
+        "エクスプローラーで表示"
     }
     fn profile_name(&self) -> &'static str {
         "プロファイル名"
@@ -1982,6 +2304,15 @@ impl SettingsStrings for SettingsStringsKo {
     fn delete(&self) -> &'static str {
         "삭제"
     }
+    fn remove(&self) -> &'static str {
+        "제거"
+    }
+    fn create(&self) -> &'static str {
+        "새로 만들기"
+    }
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
     fn online(&self) -> &'static str {
         "온라인"
     }
@@ -2062,8 +2393,17 @@ impl SettingsStrings for SettingsStringsKo {
     fn hide_all_thumbnails(&self) -> &'static str {
         "모든 썸네일 가리기"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "앱을 다시 시작할 때까지만 적용됩니다"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "단축키"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "「전환 및 단축키」에서 바꿉니다"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "설정 안 됨"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "적용 범위"
@@ -2075,7 +2415,7 @@ impl SettingsStrings for SettingsStringsKo {
         "캐릭터"
     }
     fn characters_footer(&self) -> &'static str {
-        "이 캐릭터가 활성 상태일 때 강조 표시 테두리에 쓰이는 색상입니다."
+        "「썸네일 보기」를 끈 캐릭터는 설정에 기록되어 다음에 접속해도 표시되지 않습니다. 색이 비어 있으면 「썸네일 및 레이아웃」의 강조 색을 씁니다."
     }
     fn no_characters(&self) -> &'static str {
         "아직 캐릭터가 없습니다. EVE를 실행하고 캐릭터로 로그인하십시오."
@@ -2089,11 +2429,20 @@ impl SettingsStrings for SettingsStringsKo {
     fn highlight_color_help(&self) -> &'static str {
         "활성 상태일 때의 강조 표시 색상"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("{} 따름", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "썸네일의 크기, 모양, 동작입니다. 변경 사항은 즉시 적용됩니다."
     }
+    fn size_header(&self) -> &'static str {
+        "크기"
+    }
     fn default_size(&self) -> &'static str {
         "기본 크기"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "따로 크기를 바꾸지 않은 썸네일에 쓰는 크기(픽셀)"
     }
     fn minimum_size(&self) -> &'static str {
         "최소 크기"
@@ -2104,14 +2453,26 @@ impl SettingsStrings for SettingsStringsKo {
     fn unify_sizes(&self) -> &'static str {
         "모든 썸네일을 기본 크기로 되돌리기"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "따로 크기를 바꾼 썸네일을 기본 크기로 되돌립니다. 위치는 그대로입니다"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "크기 맞추기"
+    }
     fn appearance_header(&self) -> &'static str {
         "모양"
     }
     fn opacity(&self) -> &'static str {
         "불투명도"
     }
+    fn opacity_help(&self) -> &'static str {
+        "포인터가 썸네일 위에 없을 때의 불투명도입니다. 포인터를 올리면 항상 불투명해집니다"
+    }
     fn show_title(&self) -> &'static str {
         "캐릭터 이름 보기"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "썸네일 왼쪽 위에 캐릭터 이름을 표시합니다"
     }
     fn title_font_size(&self) -> &'static str {
         "이름 글꼴 크기"
@@ -2122,6 +2483,9 @@ impl SettingsStrings for SettingsStringsKo {
     fn border_enabled(&self) -> &'static str {
         "테두리 보기"
     }
+    fn border_help(&self) -> &'static str {
+        "모든 썸네일에 무채색 테두리를 그립니다. 활성 클라이언트는 강조 테두리를 씁니다"
+    }
     fn border_color(&self) -> &'static str {
         "테두리 색상"
     }
@@ -2130,6 +2494,9 @@ impl SettingsStrings for SettingsStringsKo {
     }
     fn highlight_enabled(&self) -> &'static str {
         "활성 클라이언트 강조 표시"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "앞에 있는 클라이언트의 썸네일에 강조 테두리를 그립니다(색과 두께)"
     }
     fn highlight_color(&self) -> &'static str {
         "강조 표시 색상"
@@ -2149,17 +2516,29 @@ impl SettingsStrings for SettingsStringsKo {
     fn zoom_anchor(&self) -> &'static str {
         "기준점"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "기준점은 확대할 때 움직이지 않는 위치입니다"
+    }
     fn behavior_header(&self) -> &'static str {
         "동작"
     }
     fn always_on_top(&self) -> &'static str {
         "썸네일을 항상 위에 표시"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "썸네일을 다른 창보다 위에 표시합니다"
+    }
     fn hide_active_client(&self) -> &'static str {
         "활성 클라이언트의 썸네일 가리기"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "지금 조작 중인 클라이언트는 미리 볼 필요가 없습니다"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "EVE가 앞에 있지 않으면 썸네일 가리기"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "다른 프로그램으로 전환한 뒤 설정한 시간(초)이 지나면 가립니다"
     }
     fn hide_delay(&self) -> &'static str {
         "가리기 지연 시간"
@@ -2170,11 +2549,17 @@ impl SettingsStrings for SettingsStringsKo {
     fn snap_enabled(&self) -> &'static str {
         "드래그할 때 자석 맞춤"
     }
+    fn snap_help(&self) -> &'static str {
+        "가까운 썸네일이나 화면 가장자리에 맞춥니다. 드래그 중 Shift를 누르면 맞추지 않습니다"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "크기 조절 시 가로세로 비율 유지"
     }
     fn lock_layout(&self) -> &'static str {
         "레이아웃 잠금"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "이동과 크기 조절 동작을 무시해 실수로 끌어 옮기는 것을 막습니다"
     }
     fn gesture_hint(&self) -> &'static str {
         "오른쪽 드래그 또는 Option-드래그로 이동하고, 포인터를 가장자리에 놓고 왼쪽 드래그하여 크기를 조절합니다. Shift를 누른 채 드래그하면 자석 맞춤을 하지 않습니다."
@@ -2228,11 +2613,17 @@ impl SettingsStrings for SettingsStringsKo {
     fn new_profile(&self) -> &'static str {
         "새 프로필"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "모든 설정이 기본값으로 시작합니다. 지금 설정을 이어 쓰려면 프로필 옆의 「복제」를 사용하세요"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "모든 프로필"
+    }
     fn config_file(&self) -> &'static str {
         "설정 파일"
     }
     fn reveal_config(&self) -> &'static str {
-        "Finder에서 보기"
+        "파일 탐색기에서 보기"
     }
     fn profile_name(&self) -> &'static str {
         "프로필 이름"
@@ -2393,6 +2784,15 @@ impl SettingsStrings for SettingsStringsFr {
     fn delete(&self) -> &'static str {
         "Supprimer"
     }
+    fn remove(&self) -> &'static str {
+        "Retirer"
+    }
+    fn create(&self) -> &'static str {
+        "Nouveau"
+    }
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
     fn online(&self) -> &'static str {
         "En ligne"
     }
@@ -2473,8 +2873,17 @@ impl SettingsStrings for SettingsStringsFr {
     fn hide_all_thumbnails(&self) -> &'static str {
         "Masquer toutes les vignettes"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "Jusqu'au redémarrage de l'app"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "Raccourci"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "Se modifie dans Raccourcis"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "Aucun"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "Portée"
@@ -2486,7 +2895,7 @@ impl SettingsStrings for SettingsStringsFr {
         "Personnages"
     }
     fn characters_footer(&self) -> &'static str {
-        "Cette couleur sert à la bordure de surbrillance quand le personnage est actif."
+        "Les personnages dont la vignette est désactivée restent masqués aux sessions suivantes. Une couleur vide reprend la couleur de surbrillance de la page Vignettes."
     }
     fn no_characters(&self) -> &'static str {
         "Aucun personnage pour l'instant. Lancez EVE et connectez un personnage."
@@ -2500,11 +2909,20 @@ impl SettingsStrings for SettingsStringsFr {
     fn highlight_color_help(&self) -> &'static str {
         "Couleur de surbrillance quand le personnage est actif"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("Par défaut {}", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "Taille, apparence et comportement des vignettes. Les modifications s'appliquent immédiatement."
     }
+    fn size_header(&self) -> &'static str {
+        "Taille"
+    }
     fn default_size(&self) -> &'static str {
         "Taille par défaut"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "Taille des vignettes que vous n'avez pas redimensionnées une à une, en pixels"
     }
     fn minimum_size(&self) -> &'static str {
         "Taille minimale"
@@ -2515,14 +2933,26 @@ impl SettingsStrings for SettingsStringsFr {
     fn unify_sizes(&self) -> &'static str {
         "Remettre toutes les vignettes à la taille par défaut"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "Les vignettes redimensionnées reprennent la taille par défaut ; leur position ne change pas"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "Réinitialiser"
+    }
     fn appearance_header(&self) -> &'static str {
         "Apparence"
     }
     fn opacity(&self) -> &'static str {
         "Opacité"
     }
+    fn opacity_help(&self) -> &'static str {
+        "Opacité quand le pointeur est ailleurs ; une vignette survolée est toujours opaque"
+    }
     fn show_title(&self) -> &'static str {
         "Afficher le nom du personnage"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "Affiche le nom du personnage en haut à gauche de la vignette"
     }
     fn title_font_size(&self) -> &'static str {
         "Taille de police du nom"
@@ -2533,6 +2963,9 @@ impl SettingsStrings for SettingsStringsFr {
     fn border_enabled(&self) -> &'static str {
         "Afficher la bordure"
     }
+    fn border_help(&self) -> &'static str {
+        "Dessine une bordure neutre autour de chaque vignette ; le client actif utilise la surbrillance"
+    }
     fn border_color(&self) -> &'static str {
         "Couleur de la bordure"
     }
@@ -2541,6 +2974,9 @@ impl SettingsStrings for SettingsStringsFr {
     }
     fn highlight_enabled(&self) -> &'static str {
         "Mettre en surbrillance le client actif"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "Entoure d'une surbrillance la vignette du client au premier plan (couleur et épaisseur)"
     }
     fn highlight_color(&self) -> &'static str {
         "Couleur de surbrillance"
@@ -2560,17 +2996,29 @@ impl SettingsStrings for SettingsStringsFr {
     fn zoom_anchor(&self) -> &'static str {
         "Point d'ancrage"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "Le point d'ancrage reste fixe pendant l'agrandissement"
+    }
     fn behavior_header(&self) -> &'static str {
         "Comportement"
     }
     fn always_on_top(&self) -> &'static str {
         "Garder les vignettes au premier plan"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "Les vignettes restent au-dessus des autres fenêtres"
+    }
     fn hide_active_client(&self) -> &'static str {
         "Masquer la vignette du client actif"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "Inutile de prévisualiser le client que vous utilisez"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "Masquer les vignettes quand EVE n'est pas au premier plan"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "Après le passage à un autre programme, attend le nombre de secondes choisi avant de masquer"
     }
     fn hide_delay(&self) -> &'static str {
         "Délai de masquage"
@@ -2581,11 +3029,17 @@ impl SettingsStrings for SettingsStringsFr {
     fn snap_enabled(&self) -> &'static str {
         "Aimanter pendant le déplacement"
     }
+    fn snap_help(&self) -> &'static str {
+        "Aligne sur les vignettes voisines et les bords de l'écran ; maintenez Shift pendant le déplacement pour l'éviter"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "Conserver les proportions au redimensionnement"
     }
     fn lock_layout(&self) -> &'static str {
         "Verrouiller la disposition"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "Ignore les gestes de déplacement et de redimensionnement pour éviter les erreurs"
     }
     fn gesture_hint(&self) -> &'static str {
         "Faites glisser avec le bouton droit ou avec Option pour déplacer ; placez le pointeur sur un bord et faites glisser avec le bouton gauche pour redimensionner ; maintenez Shift pour désactiver l'aimantation."
@@ -2639,11 +3093,17 @@ impl SettingsStrings for SettingsStringsFr {
     fn new_profile(&self) -> &'static str {
         "Nouveau profil"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "Tous les réglages par défaut ; pour garder les réglages actuels, utilisez Dupliquer à côté d'un profil"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "Tous les profils"
+    }
     fn config_file(&self) -> &'static str {
         "Fichier de configuration"
     }
     fn reveal_config(&self) -> &'static str {
-        "Afficher dans le Finder"
+        "Afficher dans l'Explorateur de fichiers"
     }
     fn profile_name(&self) -> &'static str {
         "Nom du profil"
@@ -2807,6 +3267,15 @@ impl SettingsStrings for SettingsStringsDe {
     fn delete(&self) -> &'static str {
         "Löschen"
     }
+    fn remove(&self) -> &'static str {
+        "Entfernen"
+    }
+    fn create(&self) -> &'static str {
+        "Neu"
+    }
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
     fn online(&self) -> &'static str {
         "Online"
     }
@@ -2887,8 +3356,17 @@ impl SettingsStrings for SettingsStringsDe {
     fn hide_all_thumbnails(&self) -> &'static str {
         "Alle Miniaturen ausblenden"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "Gilt bis zum Neustart der App"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "Hotkey"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "Änderbar unter „Umschalten“"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "Nicht festgelegt"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "Bereich"
@@ -2900,7 +3378,7 @@ impl SettingsStrings for SettingsStringsDe {
         "Charaktere"
     }
     fn characters_footer(&self) -> &'static str {
-        "Diese Farbe hat der Hervorhebungsrahmen, wenn der Charakter aktiv ist."
+        "Charaktere mit ausgeschalteter Miniatur bleiben auch künftig ausgeblendet. Ohne eigene Farbe gilt die Hervorhebungsfarbe von der Seite „Miniaturen“."
     }
     fn no_characters(&self) -> &'static str {
         "Noch keine Charaktere. EVE starten und mit einem Charakter einloggen."
@@ -2914,11 +3392,20 @@ impl SettingsStrings for SettingsStringsDe {
     fn highlight_color_help(&self) -> &'static str {
         "Hervorhebungsfarbe, wenn aktiv"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("Standard {}", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "Größe, Darstellung und Verhalten der Miniaturen. Änderungen gelten sofort."
     }
+    fn size_header(&self) -> &'static str {
+        "Größe"
+    }
     fn default_size(&self) -> &'static str {
         "Standardgröße"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "Gilt für Miniaturen, deren Größe nicht einzeln geändert wurde, in Pixeln"
     }
     fn minimum_size(&self) -> &'static str {
         "Mindestgröße"
@@ -2929,14 +3416,26 @@ impl SettingsStrings for SettingsStringsDe {
     fn unify_sizes(&self) -> &'static str {
         "Alle Miniaturen auf Standardgröße zurücksetzen"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "Einzeln skalierte Miniaturen erhalten wieder die Standardgröße; die Position bleibt"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "Zurücksetzen"
+    }
     fn appearance_header(&self) -> &'static str {
         "Darstellung"
     }
     fn opacity(&self) -> &'static str {
         "Deckkraft"
     }
+    fn opacity_help(&self) -> &'static str {
+        "Deckkraft, solange der Zeiger nicht darüber ist; beim Überfahren immer voll deckend"
+    }
     fn show_title(&self) -> &'static str {
         "Charaktername anzeigen"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "Zeigt den Charakternamen oben links in der Miniatur"
     }
     fn title_font_size(&self) -> &'static str {
         "Schriftgröße des Namens"
@@ -2947,6 +3446,9 @@ impl SettingsStrings for SettingsStringsDe {
     fn border_enabled(&self) -> &'static str {
         "Rahmen anzeigen"
     }
+    fn border_help(&self) -> &'static str {
+        "Zeichnet um jede Miniatur einen neutralen Rahmen; der aktive Client wird stattdessen hervorgehoben"
+    }
     fn border_color(&self) -> &'static str {
         "Rahmenfarbe"
     }
@@ -2955,6 +3457,9 @@ impl SettingsStrings for SettingsStringsDe {
     }
     fn highlight_enabled(&self) -> &'static str {
         "Aktiven Client hervorheben"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "Rahmt die Miniatur des Clients im Vordergrund farbig ein (Farbe und Stärke)"
     }
     fn highlight_color(&self) -> &'static str {
         "Hervorhebungsfarbe"
@@ -2974,17 +3479,29 @@ impl SettingsStrings for SettingsStringsDe {
     fn zoom_anchor(&self) -> &'static str {
         "Ankerpunkt"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "Der Ankerpunkt bleibt beim Vergrößern an seinem Platz"
+    }
     fn behavior_header(&self) -> &'static str {
         "Verhalten"
     }
     fn always_on_top(&self) -> &'static str {
         "Miniaturen im Vordergrund halten"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "Miniaturen bleiben über anderen Fenstern"
+    }
     fn hide_active_client(&self) -> &'static str {
         "Miniatur des aktiven Clients ausblenden"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "Den Client, den Sie gerade bedienen, brauchen Sie nicht in der Vorschau"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "Miniaturen ausblenden, wenn EVE nicht aktiv ist"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "Nach dem Wechsel zu einem anderen Programm wird nach der eingestellten Zeit ausgeblendet"
     }
     fn hide_delay(&self) -> &'static str {
         "Ausblendverzögerung"
@@ -2995,11 +3512,17 @@ impl SettingsStrings for SettingsStringsDe {
     fn snap_enabled(&self) -> &'static str {
         "Beim Ziehen einrasten"
     }
+    fn snap_help(&self) -> &'static str {
+        "Richtet an benachbarten Miniaturen und Bildschirmrändern aus; beim Ziehen Umschalt halten, um das zu umgehen"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "Seitenverhältnis beim Skalieren beibehalten"
     }
     fn lock_layout(&self) -> &'static str {
         "Layout sperren"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "Ignoriert Verschiebe- und Größengesten, damit nichts versehentlich verschoben wird"
     }
     fn gesture_hint(&self) -> &'static str {
         "Zum Bewegen mit der rechten Maustaste oder mit gedrückter Wahltaste (⌥) ziehen; zum Skalieren den Zeiger an den Rand bewegen und mit der linken Maustaste ziehen. Mit gedrückter Umschalttaste (⇧) wird nicht eingerastet."
@@ -3053,11 +3576,17 @@ impl SettingsStrings for SettingsStringsDe {
     fn new_profile(&self) -> &'static str {
         "Neues Profil"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "Beginnt mit Standardeinstellungen; um die aktuellen zu behalten, „Duplizieren“ neben einem Profil verwenden"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "Alle Profile"
+    }
     fn config_file(&self) -> &'static str {
         "Konfigurationsdatei"
     }
     fn reveal_config(&self) -> &'static str {
-        "Im Finder zeigen"
+        "Im Explorer zeigen"
     }
     fn profile_name(&self) -> &'static str {
         "Profilname"
@@ -3221,6 +3750,15 @@ impl SettingsStrings for SettingsStringsEs {
     fn delete(&self) -> &'static str {
         "Eliminar"
     }
+    fn remove(&self) -> &'static str {
+        "Quitar"
+    }
+    fn create(&self) -> &'static str {
+        "Nuevo"
+    }
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
     fn online(&self) -> &'static str {
         "Conectado"
     }
@@ -3301,8 +3839,17 @@ impl SettingsStrings for SettingsStringsEs {
     fn hide_all_thumbnails(&self) -> &'static str {
         "Ocultar todas las miniaturas"
     }
+    fn hide_all_help(&self) -> &'static str {
+        "Dura hasta que se reinicie la app"
+    }
     fn hide_all_hotkey_label(&self) -> &'static str {
         "Atajo"
+    }
+    fn hide_all_hotkey_help(&self) -> &'static str {
+        "Se cambia en Cambio y atajos"
+    }
+    fn hotkey_not_set(&self) -> &'static str {
+        "Sin asignar"
     }
     fn hide_all_scope_label(&self) -> &'static str {
         "Ámbito"
@@ -3314,7 +3861,7 @@ impl SettingsStrings for SettingsStringsEs {
         "Personajes"
     }
     fn characters_footer(&self) -> &'static str {
-        "El color se usa para el borde de resaltado cuando este personaje está activo."
+        "Los personajes con la miniatura desactivada siguen ocultos en las próximas sesiones. Un color vacío usa el color de resaltado de la página Miniaturas."
     }
     fn no_characters(&self) -> &'static str {
         "Aún no hay personajes. Abre EVE e inicia sesión con un personaje."
@@ -3328,11 +3875,20 @@ impl SettingsStrings for SettingsStringsEs {
     fn highlight_color_help(&self) -> &'static str {
         "Color de resaltado cuando está activo"
     }
+    fn follow_color(&self, color: &str) -> String {
+        format!("Por defecto {}", color)
+    }
     fn previews_subtitle(&self) -> &'static str {
         "Tamaño, aspecto y comportamiento de las miniaturas. Los cambios se aplican al instante."
     }
+    fn size_header(&self) -> &'static str {
+        "Tamaño"
+    }
     fn default_size(&self) -> &'static str {
         "Tamaño predeterminado"
+    }
+    fn default_size_help(&self) -> &'static str {
+        "Tamaño de las miniaturas que no has redimensionado una a una, en píxeles"
     }
     fn minimum_size(&self) -> &'static str {
         "Tamaño mínimo"
@@ -3343,14 +3899,26 @@ impl SettingsStrings for SettingsStringsEs {
     fn unify_sizes(&self) -> &'static str {
         "Restablecer todas las miniaturas al tamaño predeterminado"
     }
+    fn unify_sizes_help(&self) -> &'static str {
+        "Las miniaturas redimensionadas vuelven al tamaño predeterminado; la posición no cambia"
+    }
+    fn unify_sizes_button(&self) -> &'static str {
+        "Restablecer"
+    }
     fn appearance_header(&self) -> &'static str {
         "Aspecto"
     }
     fn opacity(&self) -> &'static str {
         "Opacidad"
     }
+    fn opacity_help(&self) -> &'static str {
+        "Opacidad cuando el puntero no está encima; al pasar el puntero siempre es opaca"
+    }
     fn show_title(&self) -> &'static str {
         "Mostrar nombre del personaje"
+    }
+    fn show_title_help(&self) -> &'static str {
+        "Muestra el nombre del personaje en la esquina superior izquierda de la miniatura"
     }
     fn title_font_size(&self) -> &'static str {
         "Tamaño de letra del nombre"
@@ -3361,6 +3929,9 @@ impl SettingsStrings for SettingsStringsEs {
     fn border_enabled(&self) -> &'static str {
         "Mostrar borde"
     }
+    fn border_help(&self) -> &'static str {
+        "Dibuja un borde neutro alrededor de cada miniatura; el cliente activo usa el resaltado"
+    }
     fn border_color(&self) -> &'static str {
         "Color del borde"
     }
@@ -3369,6 +3940,9 @@ impl SettingsStrings for SettingsStringsEs {
     }
     fn highlight_enabled(&self) -> &'static str {
         "Resaltar el cliente activo"
+    }
+    fn highlight_help(&self) -> &'static str {
+        "Rodea con un resaltado la miniatura del cliente en primer plano (color y grosor)"
     }
     fn highlight_color(&self) -> &'static str {
         "Color de resaltado"
@@ -3388,17 +3962,29 @@ impl SettingsStrings for SettingsStringsEs {
     fn zoom_anchor(&self) -> &'static str {
         "Punto de anclaje"
     }
+    fn zoom_anchor_help(&self) -> &'static str {
+        "El punto de anclaje no se mueve al ampliar"
+    }
     fn behavior_header(&self) -> &'static str {
         "Comportamiento"
     }
     fn always_on_top(&self) -> &'static str {
         "Mantener las miniaturas en primer plano"
     }
+    fn always_on_top_help(&self) -> &'static str {
+        "Las miniaturas quedan por encima de las demás ventanas"
+    }
     fn hide_active_client(&self) -> &'static str {
         "Ocultar la miniatura del cliente activo"
     }
+    fn hide_active_client_help(&self) -> &'static str {
+        "No necesitas la vista previa del cliente que estás usando"
+    }
     fn hide_when_not_eve(&self) -> &'static str {
         "Ocultar las miniaturas si EVE no está en primer plano"
+    }
+    fn hide_when_not_eve_help(&self) -> &'static str {
+        "Al cambiar a otro programa, espera los segundos indicados antes de ocultar"
     }
     fn hide_delay(&self) -> &'static str {
         "Retardo al ocultar"
@@ -3409,11 +3995,17 @@ impl SettingsStrings for SettingsStringsEs {
     fn snap_enabled(&self) -> &'static str {
         "Ajustar al arrastrar"
     }
+    fn snap_help(&self) -> &'static str {
+        "Alinea con las miniaturas cercanas y los bordes de la pantalla; mantén Mayús al arrastrar para evitarlo"
+    }
     fn lock_aspect_ratio(&self) -> &'static str {
         "Mantener la proporción al redimensionar"
     }
     fn lock_layout(&self) -> &'static str {
         "Bloquear disposición"
+    }
+    fn lock_layout_help(&self) -> &'static str {
+        "Ignora los gestos de mover y redimensionar para no arrastrar por accidente"
     }
     fn gesture_hint(&self) -> &'static str {
         "Arrastra con el botón derecho o con Opción para mover; coloca el puntero en un borde y arrastra con el botón izquierdo para redimensionar; mantén pulsada la tecla Mayúsculas para no ajustar."
@@ -3467,11 +4059,17 @@ impl SettingsStrings for SettingsStringsEs {
     fn new_profile(&self) -> &'static str {
         "Nuevo perfil"
     }
+    fn new_profile_help(&self) -> &'static str {
+        "Empieza con los ajustes predeterminados; para conservar los actuales, usa Duplicar junto a un perfil"
+    }
+    fn all_profiles_header(&self) -> &'static str {
+        "Todos los perfiles"
+    }
     fn config_file(&self) -> &'static str {
         "Archivo de configuración"
     }
     fn reveal_config(&self) -> &'static str {
-        "Mostrar en Finder"
+        "Mostrar en el Explorador de archivos"
     }
     fn profile_name(&self) -> &'static str {
         "Nombre del perfil"
@@ -4066,6 +4664,8 @@ pub trait ThumbnailStrings: Sync {
     fn capture_stopped(&self) -> &'static str;
     /// 客户端窗口已最小化。
     fn minimized(&self) -> &'static str;
+    /// Windows：缩略图上的占位文字，系统给不出这个窗口的画面（DWM 缩略图注册失败）。
+    fn preview_unavailable(&self) -> &'static str;
 }
 
 /// 缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置（en）。
@@ -4110,6 +4710,9 @@ impl ThumbnailStrings for ThumbnailStringsEn {
     }
     fn minimized(&self) -> &'static str {
         "Minimized"
+    }
+    fn preview_unavailable(&self) -> &'static str {
+        "Preview unavailable"
     }
 }
 
@@ -4156,6 +4759,9 @@ impl ThumbnailStrings for ThumbnailStringsZh {
     fn minimized(&self) -> &'static str {
         "已最小化"
     }
+    fn preview_unavailable(&self) -> &'static str {
+        "画面不可用"
+    }
 }
 
 /// 缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置（ru）。
@@ -4200,6 +4806,9 @@ impl ThumbnailStrings for ThumbnailStringsRu {
     }
     fn minimized(&self) -> &'static str {
         "Свернуто"
+    }
+    fn preview_unavailable(&self) -> &'static str {
+        "Изображение недоступно"
     }
 }
 
@@ -4246,6 +4855,9 @@ impl ThumbnailStrings for ThumbnailStringsJa {
     fn minimized(&self) -> &'static str {
         "最小化中"
     }
+    fn preview_unavailable(&self) -> &'static str {
+        "画面を表示できません"
+    }
 }
 
 /// 缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置（ko）。
@@ -4290,6 +4902,9 @@ impl ThumbnailStrings for ThumbnailStringsKo {
     }
     fn minimized(&self) -> &'static str {
         "최소화됨"
+    }
+    fn preview_unavailable(&self) -> &'static str {
+        "화면을 표시할 수 없음"
     }
 }
 
@@ -4336,6 +4951,9 @@ impl ThumbnailStrings for ThumbnailStringsFr {
     fn minimized(&self) -> &'static str {
         "Réduit"
     }
+    fn preview_unavailable(&self) -> &'static str {
+        "Aperçu indisponible"
+    }
 }
 
 /// 缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置（de）。
@@ -4381,6 +4999,9 @@ impl ThumbnailStrings for ThumbnailStringsDe {
     fn minimized(&self) -> &'static str {
         "Minimiert"
     }
+    fn preview_unavailable(&self) -> &'static str {
+        "Vorschau nicht verfügbar"
+    }
 }
 
 /// 缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置（es）。
@@ -4425,6 +5046,9 @@ impl ThumbnailStrings for ThumbnailStringsEs {
     }
     fn minimized(&self) -> &'static str {
         "Minimizado"
+    }
+    fn preview_unavailable(&self) -> &'static str {
+        "Vista previa no disponible"
     }
 }
 

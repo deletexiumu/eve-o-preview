@@ -5,8 +5,10 @@ pageSubtitle = "Die Miniatur eines Charakters blinkt, wenn er angegriffen wird."
 
 # 状态行显示目录全路径，文字保持短。
 enableToggle = "Miniatur bei Angriff auf einen Charakter blinken lassen"
+enableHelp = "Gilt für das aktuelle Profil"
 statusLabel = "Status"
 statusStopped = "Aus"
+notAvailableYet = "Das Lesen der Spielprotokolle kommt in einem späteren Testbuild; „Blinken testen“ zeigt die Wirkung schon jetzt"
 statusWatching = { one = "Überwacht {files} Protokolldatei in {directory}", other = "Überwacht {files} Protokolldateien in {directory}" }
 statusDirectoryNotFound = "Ordner der Spielprotokolle nicht gefunden: {path}"
 statusAccessDenied = "Keine Leseberechtigung für {path}"
@@ -16,7 +18,9 @@ openSystemSettings = "Systemeinstellungen öffnen …"
 
 logDirectoryHeader = "Spielprotokolle"
 logDirectoryLabel = "Ordner"
+logDirectoryHelp = "Leer lassen für die automatische Suche; der EVE-Ordner logs oder logs\\Gamelogs geht beides"
 automaticSuffix = "(automatisch)"
+automaticPath = "Automatisch: {path}"
 chooseDirectory = "Auswählen …"
 useAutomaticLocation = "Automatischen Ort verwenden"
 # 文件夹名 logs、Gamelogs 是 EVE 客户端写死的目录名，不翻译。
@@ -25,8 +29,10 @@ chooseDirectoryMessage = "Den EVE-Ordner „logs“ oder „Gamelogs“ auswähl
 appearanceHeader = "Blinken"
 flashColor = "Blinkfarbe"
 duration = "Dauer"
+durationHelp = "Wie lange nach jedem Treffer geblinkt wird; verlängert sich, solange Treffer folgen"
 seconds = "{value:secs_comma} s"
 style = "Stil"
+styleHelp = "Rahmen lässt den Rand blinken; Tönung färbt die ganze Miniatur"
 styleBorder = "Rahmen"
 # 「底色」指整张缩略图罩一层颜色，德文用 Tönung（着色）。
 styleWash = "Tönung"
@@ -34,9 +40,11 @@ styleBoth = "Beides"
 
 triggersHeader = "Auslöser"
 includeMisses = "Auch bei verfehlten Angriffen warnen"
+includeMissesHelp = "Auch bei verfehlten Angriffen blinken"
 minimumDamage = "Mindestschaden"
 minimumDamageHelp = "Treffer unter diesem Wert werden ignoriert. Für Fehlschüsse gilt der Schalter oben."
+testHeader = "Test"
 
 testFlash = "Blinken testen"
 testFlashHelp = "Lässt jede Miniatur einmal blinken, auch wenn die Warnung aus ist."
-footnote = "Der EVE-Client muss Spielnachrichten in Protokolldateien schreiben. Diese Funktion liest nur die Spielprotokolle und sendet nie Eingaben an das Spiel."
+footnote = { macos = "Der EVE-Client muss Spielnachrichten in Protokolldateien schreiben. Diese Funktion liest nur die Spielprotokolle und sendet nie Eingaben an das Spiel.", windows = "Warnungen gelten für alle Clients, auch für den im Vordergrund. Diese Funktion liest nur die Spielprotokolle und sendet nie Eingaben an das Spiel." }

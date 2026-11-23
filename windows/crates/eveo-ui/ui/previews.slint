@@ -12,6 +12,7 @@
 import { Button, ComboBox, Slider, SpinBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { ColorField, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+import { SettingsText } from "generated/l10n.slint";
 
 // 本页的数据。字段名对应配置里当前方案的 thumbnail、overlay 与 behavior。
 export global PreviewsModel {
@@ -133,17 +134,17 @@ export component PreviewsPage inherits VerticalLayout {
     alignment: start;
 
     PageHeader {
-        title: "预览与布局";
-        subtitle: "缩略图的尺寸、外观与行为。改动立即生效，保存在当前配置方案里。";
+        title: SettingsText.page-previews;
+        subtitle: SettingsText.previews-subtitle;
     }
     // 预览区放在页首：改外观时一眼看到效果。
     PreviewStrip { }
 
-    SectionHeader { text: "尺寸"; }
+    SectionHeader { text: SettingsText.size-header; }
     // thumbnail.defaultSize，宽与高分开调。
     SettingRow {
-        title: "默认尺寸";
-        description: "没有单独调过大小的缩略图用这个尺寸，单位是像素";
+        title: SettingsText.default-size;
+        description: SettingsText.default-size-help;
         SpinBox {
             value <=> PreviewsModel.default-width;
             minimum: 64;
@@ -164,20 +165,20 @@ export component PreviewsPage inherits VerticalLayout {
     // 清掉 layouts 里各角色的宽高，回到默认尺寸，对应 macOS 的 unifyThumbnailSizes。
     // 按钮不改本页的值，由 Rust 直接改配置；不需要确认框：位置不变，改回去只要再拖一下边缘。
     SettingRow {
-        title: "统一全部缩略图尺寸";
-        description: "把单独调过大小的缩略图都改回默认尺寸，位置不变";
+        title: SettingsText.unify-sizes;
+        description: SettingsText.unify-sizes-help;
         Button {
-            text: "统一尺寸";
+            text: SettingsText.unify-sizes-button;
             clicked => { PreviewsModel.unify-sizes(); }
         }
     }
 
-    SectionHeader { text: "外观"; }
+    SectionHeader { text: SettingsText.appearance-header; }
     // thumbnail.opacity：配置里是 0.2～1.0，界面显示百分比。悬停时总是不透明。
     // 拖动滑块时每一步都触发 edited，缩略图跟着实时变淡；写盘由应用合并成一次。
     SettingRow {
-        title: "不透明度";
-        description: "鼠标不在缩略图上时的不透明度；悬停时总是完全不透明";
+        title: SettingsText.opacity;
+        description: SettingsText.opacity-help;
         Slider {
             value <=> PreviewsModel.opacity;
             minimum: 0.2;
@@ -190,8 +191,8 @@ export component PreviewsPage inherits VerticalLayout {
     RowGap { }
     // overlay.showTitle 与 titleFontSize。字号放在开关旁边，关掉标题时一并变灰。
     SettingRow {
-        title: "显示角色名";
-        description: "在缩略图左上角显示角色名";
+        title: SettingsText.show-title;
+        description: SettingsText.show-title-help;
         SpinBox {
             value <=> PreviewsModel.title-font-size;
             minimum: 8;
@@ -208,7 +209,7 @@ export component PreviewsPage inherits VerticalLayout {
     RowGap { }
     // overlay.titleColor。只接受完整的 #RRGGBB，输入到一半时样本保持原来的颜色。
     SettingRow {
-        title: "角色名颜色";
+        title: SettingsText.title-color;
         enabled: PreviewsModel.show-title;
         ColorField {
             swatch: PreviewsModel.title-swatch;
@@ -221,8 +222,8 @@ export component PreviewsPage inherits VerticalLayout {
     // overlay.highlightEnabled、highlightColor 与 highlightThickness。
     // 粗细按显示器缩放放大（1 是 100% 缩放下的 1 像素），与 macOS 的点数一致。
     SettingRow {
-        title: "高亮活动客户端";
-        description: "前台的客户端，缩略图加一圈高亮（颜色与粗细）";
+        title: SettingsText.highlight-enabled;
+        description: SettingsText.highlight-help;
         ColorField {
             swatch: PreviewsModel.highlight-swatch;
             hex <=> PreviewsModel.highlight-color;
@@ -246,8 +247,8 @@ export component PreviewsPage inherits VerticalLayout {
     // overlay.borderEnabled、borderColor 与 borderThickness。
     // 边框与高亮共用缩略图的一圈底色：活动客户端只画高亮，其余画边框，两者不会叠在一起。
     SettingRow {
-        title: "边框";
-        description: "每个缩略图都画一圈中性边框；活动客户端改用高亮";
+        title: SettingsText.border-enabled;
+        description: SettingsText.border-help;
         ColorField {
             swatch: PreviewsModel.border-swatch;
             hex <=> PreviewsModel.border-color;
@@ -268,10 +269,10 @@ export component PreviewsPage inherits VerticalLayout {
         }
     }
 
-    SectionHeader { text: "悬停放大"; }
+    SectionHeader { text: SettingsText.zoom-header; }
     // thumbnail.zoomEnabled。放大只在悬停时生效，拖动中不放大，避免与手势移动窗口打架。
     SettingRow {
-        title: "鼠标悬停时放大";
+        title: SettingsText.zoom-enabled;
         Switch {
             checked <=> PreviewsModel.zoom-enabled;
             toggled => { PreviewsModel.edited(); }
@@ -280,8 +281,8 @@ export component PreviewsPage inherits VerticalLayout {
     RowGap { }
     // thumbnail.zoomFactor（2～10）与 zoomAnchor。锚点是放大时保持不动的那个点。
     SettingRow {
-        title: "放大倍数与锚点";
-        description: "锚点是放大时保持不动的位置";
+        title: SettingsText.zoom-factor;
+        description: SettingsText.zoom-anchor-help;
         enabled: PreviewsModel.zoom-enabled;
         SpinBox {
             value <=> PreviewsModel.zoom-factor;
@@ -292,7 +293,9 @@ export component PreviewsPage inherits VerticalLayout {
             edited(v) => { PreviewsModel.edited(); }
         }
         ComboBox {
-            model: ["左上角", "上边中点", "右上角", "左边中点", "中心", "右边中点", "左下角", "下边中点", "右下角"];
+            model: [SettingsText.anchor-name-nw, SettingsText.anchor-name-n, SettingsText.anchor-name-ne,
+                SettingsText.anchor-name-w, SettingsText.anchor-name-center, SettingsText.anchor-name-e,
+                SettingsText.anchor-name-sw, SettingsText.anchor-name-s, SettingsText.anchor-name-se];
             current-index <=> PreviewsModel.zoom-anchor;
             enabled: PreviewsModel.zoom-enabled;
             width: 140px;
@@ -300,11 +303,11 @@ export component PreviewsPage inherits VerticalLayout {
         }
     }
 
-    SectionHeader { text: "行为"; }
+    SectionHeader { text: SettingsText.behavior-header; }
     // behavior.alwaysOnTop。关掉后缩略图是普通窗口，会被游戏窗口盖住，适合多屏时放在副屏。
     SettingRow {
-        title: "缩略图置顶";
-        description: "缩略图显示在其他窗口之上";
+        title: SettingsText.always-on-top;
+        description: SettingsText.always-on-top-help;
         Switch {
             checked <=> PreviewsModel.always-on-top;
             toggled => { PreviewsModel.edited(); }
@@ -313,8 +316,8 @@ export component PreviewsPage inherits VerticalLayout {
     RowGap { }
     // behavior.hideActiveClientThumbnail。前台客户端的缩略图隐藏，切走后立即重新出现。
     SettingRow {
-        title: "隐藏活动客户端的缩略图";
-        description: "正在操作的客户端不需要看预览";
+        title: SettingsText.hide-active-client;
+        description: SettingsText.hide-active-client-help;
         Switch {
             checked <=> PreviewsModel.hide-active;
             toggled => { PreviewsModel.edited(); }
@@ -324,8 +327,8 @@ export component PreviewsPage inherits VerticalLayout {
     // behavior.hideWhenEVENotFrontmost 与 hideDelaySeconds（0～10 秒，步长 0.5）。
     // 本应用自己（设置窗口、菜单）在前台时不算离开 EVE，调设置时缩略图不会消失。
     SettingRow {
-        title: "离开 EVE 时隐藏缩略图";
-        description: "切到别的程序后，等待设定的秒数再隐藏";
+        title: SettingsText.hide-when-not-eve;
+        description: SettingsText.hide-when-not-eve-help;
         Slider {
             value <=> PreviewsModel.hide-delay;
             minimum: 0;
@@ -335,18 +338,18 @@ export component PreviewsPage inherits VerticalLayout {
             enabled: PreviewsModel.hide-when-not-eve;
             changed(v) => { PreviewsModel.edited(); }
         }
-        ValueLabel { text: (Math.round(PreviewsModel.hide-delay * 2) / 2) + " 秒"; }
+        ValueLabel { text: SettingsText.seconds(Math.round(PreviewsModel.hide-delay * 2) / 2); }
         Switch {
             checked <=> PreviewsModel.hide-when-not-eve;
             toggled => { PreviewsModel.edited(); }
         }
     }
 
-    SectionHeader { text: "布局"; }
+    SectionHeader { text: SettingsText.layout-header; }
     // thumbnail.snapEnabled。吸附的距离按显示器缩放放大，高分屏上手感与 100% 时相同。
     SettingRow {
-        title: "拖动时吸附";
-        description: "靠近其他缩略图或屏幕边缘时自动对齐；拖动时按住 Shift 暂时不吸附";
+        title: SettingsText.snap-enabled;
+        description: SettingsText.snap-help;
         Switch {
             checked <=> PreviewsModel.snap-enabled;
             toggled => { PreviewsModel.edited(); }
@@ -355,7 +358,7 @@ export component PreviewsPage inherits VerticalLayout {
     RowGap { }
     // thumbnail.lockAspectRatio。拖动边缘缩放时按住 Shift 也能临时保持宽高比。
     SettingRow {
-        title: "缩放时保持宽高比";
+        title: SettingsText.lock-aspect-ratio;
         Switch {
             checked <=> PreviewsModel.lock-aspect;
             toggled => { PreviewsModel.edited(); }
@@ -364,8 +367,8 @@ export component PreviewsPage inherits VerticalLayout {
     RowGap { }
     // behavior.lockLayout。锁定后点击切换、右键菜单照常可用，只是不能移动和缩放。
     SettingRow {
-        title: "锁定布局";
-        description: "忽略移动与缩放手势，防止误拖";
+        title: SettingsText.lock-layout;
+        description: SettingsText.lock-layout-help;
         Switch {
             checked <=> PreviewsModel.lock-layout;
             toggled => { PreviewsModel.edited(); }
