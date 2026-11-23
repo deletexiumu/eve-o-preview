@@ -3,6 +3,9 @@
 // DWM 缩略图窗口（架构文档 4.2 节）：一个不抢焦点、不进任务栏与 Alt+Tab 的弹出窗口，
 // 用 DwmRegisterThumbnail 让系统把客户端窗口的画面直接合成到它上面。只取客户区（去掉标题栏与边框）。
 // 目标矩形向内缩进边框的粗细，露出的窗口底色就是边框；底色按窗口单独设（高亮色或中性边框色）。
+// 不透明度作用于整个窗口（分层窗口的 alpha），与 macOS 的面板 alphaValue 相同：画面、边框与叠加层一起变淡，
+// 透出的是窗口后面的桌面或游戏。不用 DWM 缩略图自己的 opacity：那样半透明的画面叠在不透明的底色上，
+// 未悬停时整块缩略图会蒙上一层边框色（真机测试发现，高亮色时几乎看不出画面）。
 // 鼠标输入（按下、移动、松开、离开、失去捕获）交给 `set_input_handler` 设的处理函数，手势由应用层的状态机判断。
 // 处理函数与窗口状态放在线程局部的表里，以窗口句柄为键；窗口与处理函数都在主线程上。
 // 标题、占位、跳过标记与提醒画在它拥有的叠加层窗口上（overlay 模块），位置与显隐随本窗口同步。
@@ -30,10 +33,10 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, GetClientRect, GetCursorPos, HCURSOR, HTCLIENT,
     HWND_NOTOPMOST, HWND_TOPMOST, IDC_ARROW, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS, IDC_SIZENWSE, IDC_SIZEWE,
-    LoadCursorW, MA_NOACTIVATE, SW_HIDE, SW_SHOWNOACTIVATE, SWP_NOACTIVATE, SetCursor, SetWindowPos,
-    ShowWindow, WM_CAPTURECHANGED, WM_ERASEBKGND, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEACTIVATE,
-    WM_MOUSEMOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-    WS_EX_TOPMOST, WS_POPUP,
+    LWA_ALPHA, LoadCursorW, MA_NOACTIVATE, SW_HIDE, SW_SHOWNOACTIVATE, SWP_NOACTIVATE, SetCursor,
+    SetLayeredWindowAttributes, SetWindowPos, ShowWindow, WM_CAPTURECHANGED, WM_ERASEBKGND, WM_LBUTTONDOWN,
+    WM_LBUTTONUP, WM_MOUSEACTIVATE, WM_MOUSEMOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WS_EX_LAYERED,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 use windows::core::{PCWSTR, Result};
 
@@ -160,7 +163,9 @@ impl ThumbnailWindow {
     pub fn create(frame: ScreenRect, topmost: bool) -> Result<Self> {
         let class = window_class::ensure("EVEOPreview.Thumbnail", Some(window_proc), background_brush())?;
         let title = wide("EVE-O Preview thumbnail");
-        let mut ex_style = WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
+        // 分层窗口只用 SetLayeredWindowAttributes 设整体 alpha，内容仍按普通窗口绘制（WM_ERASEBKGND），
+        // DWM 缩略图也照常合成在上面，并跟着窗口一起变淡。
+        let mut ex_style = WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED;
         if topmost {
             ex_style |= WS_EX_TOPMOST;
         }
@@ -193,8 +198,12 @@ impl ThumbnailWindow {
                 },
             )
         });
+        // 分层窗口在设属性之前不显示任何内容；先设成不透明再显示。
         // SAFETY: 窗口刚建好，属于本线程。
-        let _ = unsafe { ShowWindow(hwnd, SW_SHOWNOACTIVATE) };
+        unsafe {
+            let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
+            let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+        }
         let overlay = OverlayWindow::create(hwnd).ok().map(|mut overlay| {
             overlay.set_frame((x, y, w, h));
             overlay
@@ -301,11 +310,19 @@ impl ThumbnailWindow {
         Some((size.cx, size.cy))
     }
 
-    /// 设置目标矩形的缩进（边框粗细，物理像素）、可见性与不透明度（0～255）。
+    /// 设置目标矩形的缩进（边框粗细，物理像素）、可见性与整个窗口的不透明度（0～255）。
+    /// 不透明度同时交给叠加层：它是另一个窗口，要单独变淡才与缩略图一致。
     pub fn set_appearance(&mut self, inset: i32, visible: bool, opacity: u8) -> Result<()> {
         self.inset = inset.max(0);
         self.visible = visible;
-        self.opacity = opacity;
+        if opacity != self.opacity {
+            self.opacity = opacity;
+            // SAFETY: 窗口属于本线程，建窗口时已设为分层窗口。
+            unsafe { SetLayeredWindowAttributes(self.hwnd, COLORREF(0), opacity, LWA_ALPHA)? };
+            if let Some(overlay) = &mut self.overlay {
+                overlay.set_alpha(opacity);
+            }
+        }
         self.apply()
     }
 
@@ -323,9 +340,9 @@ impl ThumbnailWindow {
         self.apply()
     }
 
-    /// 把属性写给 DWM：目标矩形、可见性与不透明度都取最近一次设的值。
+    /// 把属性写给 DWM：目标矩形与可见性取最近一次设的值。画面本身总是不透明，变淡靠窗口的 alpha。
     fn apply(&self) -> Result<()> {
-        let (visible, opacity) = (self.visible, self.opacity);
+        let visible = self.visible;
         let Some(thumbnail) = self.thumbnail else {
             return Ok(());
         };
@@ -341,7 +358,7 @@ impl ThumbnailWindow {
                 right: (w - self.inset).max(self.inset),
                 bottom: (h - self.inset).max(self.inset),
             },
-            opacity,
+            opacity: 255,
             fVisible: visible.into(),
             fSourceClientAreaOnly: true.into(),
             ..Default::default()

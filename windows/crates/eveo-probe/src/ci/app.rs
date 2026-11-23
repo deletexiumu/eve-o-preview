@@ -4,9 +4,11 @@
 // - 配置写到探针输出目录下的临时 APPDATA，不碰运行机器上的真实配置；
 // - 每个客户端一个缩略图窗口（按类名与 PID 找），第一次运行写出 config.json，自动排位的布局已保存；
 // - 每个缩略图上有一个与它重合的叠加层窗口，左上角画着标题的深色半透明底（截图取色）；
+// - 未悬停的缩略图整体半透明（默认不透明度 0.5）：画面与窗口后面的内容各占一半，而不是蒙上一层边框色；
 // - 第二个实例发现已有实例后立即退出（单实例）；
 // - 用 SendInput 左键点一个角色的缩略图，前台切到那个客户端（手势 → 协调器 → 激活）；
-// - 右键拖动这个缩略图，松开后 config.json 里它的位置跟着变（手势 → 拖动提交 → 延迟写盘）。
+// - 右键拖动这个缩略图，松开后 config.json 里它的位置跟着变（手势 → 拖动提交 → 延迟写盘）；
+// - 右键单击弹出菜单，按 Esc 关掉后前台回到原来的客户端，不停在应用看不见的窗口上。
 // 结束时强制结束应用进程。
 
 //! `eveo-probe ci --app` 的应用冒烟检查。
@@ -15,7 +17,7 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::time::{Duration, Instant};
 
-use eveo_core::geometry::{ScreenRect, screen_containing};
+use eveo_core::geometry::{ScreenRect, main_screen, screen_containing};
 use eveo_core::model::EveClient;
 use eveo_platform_win::activation;
 use eveo_platform_win::discovery::top_level_windows;
@@ -27,7 +29,7 @@ use eveo_platform_win::screenshot::Screenshot;
 use serde_json::{Value, json};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSE_EVENT_FLAGS, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
-    SendInput,
+    SendInput, VK_ESCAPE,
 };
 use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
 
@@ -44,6 +46,10 @@ pub(super) fn check(app: &Path, clients: &[EveClient], out: &Path, report: &mut 
     let data = out.join("appdata");
     let _ = std::fs::remove_dir_all(&data);
     let config_path = data.join("EVE-O Preview").join("config.json");
+    // 启动前把光标移开（缩略图自动排在主屏左上角），再截一张图：缩略图半透明时透出的就是这些像素。
+    park_cursor();
+    pump_for(Duration::from_millis(200));
+    let before = Screenshot::capture().ok();
     let mut child = match launch(app, &data) {
         Ok(child) => child,
         Err(error) => {
@@ -83,6 +89,9 @@ pub(super) fn check(app: &Path, clients: &[EveClient], out: &Path, report: &mut 
         json!({"path": config_path.display().to_string(), "exists": config_path.exists()}),
     );
 
+    if let (Some(frames), Some(config), Some(before)) = (&thumbnails, &config, &before) {
+        check_opacity(clients, frames, config, before, report);
+    }
     if let Some(frames) = &thumbnails {
         check_overlays(pid, frames, report);
     }
@@ -96,6 +105,56 @@ pub(super) fn check(app: &Path, clients: &[EveClient], out: &Path, report: &mut 
     // 强制结束：正常退出走托盘菜单，探针没法点托盘；配置已在拖动后写盘，不依赖退出时的写盘。
     let _ = child.kill();
     let _ = child.wait();
+}
+
+/// 未悬停时整个缩略图半透明：中心像素应接近「客户端颜色 × 0.5 + 启动前同一点的像素 × 0.5」。
+///
+/// 只把 DWM 画面设成半透明时，透出的是窗口底色（边框色或高亮色），结果偏向那个颜色，这项检查会失败。
+fn check_opacity(
+    clients: &[EveClient],
+    frames: &[ScreenRect],
+    config: &Value,
+    before: &Screenshot,
+    report: &mut Report,
+) {
+    // 取第一个有角色名的客户端；它的颜色按 FAKES 的顺序对应（clients 与 FAKES 同序）。
+    let Some((index, name)) = clients
+        .iter()
+        .enumerate()
+        .find_map(|(i, c)| c.character_name().map(|n| (i, n)))
+    else {
+        return;
+    };
+    let Some(frame) = frame_for(config, frames, name) else {
+        return;
+    };
+    let color = super::FAKES[index].color;
+    let point = (frame.mid_x().round() as i32, frame.mid_y().round() as i32);
+    let Some(behind) = before.pixel(point.0, point.1) else {
+        return;
+    };
+    // 默认不透明度 0.5：每个通道是两者的平均。允许 ±40，容下系统合成的取整与伽马差异。
+    let channel = |shift: u32| ((color >> shift) & 0xFF) as i32;
+    let expected = (
+        (channel(16) + i32::from(behind.0)) / 2,
+        (channel(8) + i32::from(behind.1)) / 2,
+        (channel(0) + i32::from(behind.2)) / 2,
+    );
+    let mut seen = None;
+    let blended = wait_for(Duration::from_secs(5), || {
+        let pixel = Screenshot::capture().ok()?.pixel(point.0, point.1)?;
+        seen = Some(pixel);
+        let near = |a: u8, b: i32| (i32::from(a) - b).abs() <= 40;
+        (near(pixel.0, expected.0) && near(pixel.1, expected.1) && near(pixel.2, expected.2)).then_some(())
+    });
+    let hex = |(r, g, b): (u8, u8, u8)| format!("{r:02X}{g:02X}{b:02X}");
+    report.check(
+        "未悬停的缩略图整体半透明（截图取色）",
+        blended.is_some(),
+        true,
+        json!({"point": [point.0, point.1], "client": format!("{color:06X}"), "behind": hex(behind),
+            "expected": format!("{:02X}{:02X}{:02X}", expected.0, expected.1, expected.2), "seen": seen.map(hex)}),
+    );
 }
 
 /// 叠加层：每个缩略图一个、位置与它重合；默认配置显示标题，标题底把画面压暗一半。
@@ -123,6 +182,8 @@ fn check_overlays(pid: u32, frames: &[ScreenRect], report: &mut Report) {
     let Some(frame) = frames.first() else {
         return;
     };
+    // 光标停在缩略图中心：悬停时不透明度是 1，取色不受窗口后面内容的影响。
+    move_cursor((frame.mid_x().round() as i32, frame.mid_y().round() as i32));
     let scale = screen_containing(&screens(), frame.center()).map_or(1.0, |s| s.scale);
     // 标题底从 (4, 4) 起，12 点的字高约 16，加 4 的上下空白；取底的竖直中点与它下方 40 点处。
     let x = (frame.x + 6.0 * scale).round() as i32;
@@ -195,10 +256,7 @@ fn check_click_and_drag(
     let Some((x, y)) = layout(config, name) else {
         return;
     };
-    let Some(frame) = frames
-        .iter()
-        .find(|f| (f.x - x).abs() < 1.0 && (f.y - y).abs() < 1.0)
-    else {
+    let Some(frame) = frame_for(config, frames, name) else {
         report.check(
             "按布局找到缩略图",
             false,
@@ -247,6 +305,48 @@ fn check_click_and_drag(
         json!({"before": [x, y], "after": read_json(config_path).and_then(|c| layout(&c, name))
             .map(|(a, b)| vec![a, b]), "drag": [DRAG.0, DRAG.1]}),
     );
+
+    // 右键单击（不拖动）弹出菜单，按 Esc 关掉；前台应回到拖动前的客户端（左键点过的目标）。
+    // 弹菜单时应用要把自己的隐藏窗口设成前台，菜单关闭后必须还回去，否则游戏收不到键盘。
+    let dropped = (center.0 + DRAG.0, center.1 + DRAG.1);
+    click(dropped, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
+    pump_for(Duration::from_millis(500));
+    let during = foreground_window();
+    let escape = [
+        super::key_input(VK_ESCAPE.0, false),
+        super::key_input(VK_ESCAPE.0, true),
+    ];
+    // SAFETY: input 在调用期间有效，结构大小如实给出。
+    unsafe { SendInput(&escape, size_of_val(&escape[0]) as i32) };
+    let restored = wait_for(Duration::from_secs(3), || {
+        (foreground_window() == Some(target.id)).then_some(())
+    });
+    report.check(
+        "右键菜单按 Esc 关掉后前台回到客户端",
+        restored.is_some(),
+        true,
+        json!({"target": target.id.0, "duringMenu": during.map(|w| w.0), "after": foreground_window().map(|w| w.0)}),
+    );
+}
+
+/// 按保存的布局找到某个角色的缩略图：布局的左上角就是缩略图窗口的左上角。
+fn frame_for(config: &Value, frames: &[ScreenRect], name: &str) -> Option<ScreenRect> {
+    let (x, y) = layout(config, name)?;
+    frames
+        .iter()
+        .find(|f| (f.x - x).abs() < 1.0 && (f.y - y).abs() < 1.0)
+        .copied()
+}
+
+/// 把光标移到主屏右下角附近，离自动排位的缩略图（主屏左上角起）最远。
+fn park_cursor() {
+    if let Some(main) = main_screen(&screens()) {
+        let frame = main.frame;
+        move_cursor((
+            (frame.max_x() - 8.0).round() as i32,
+            (frame.max_y() - 8.0).round() as i32,
+        ));
+    }
 }
 
 /// 启动应用：后台模式，APPDATA 与 LOCALAPPDATA 指到 `data`。
