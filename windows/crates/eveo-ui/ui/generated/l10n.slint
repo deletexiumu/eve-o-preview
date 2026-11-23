@@ -69,6 +69,8 @@ export global SettingsText {
     in property <string> page-general: "General";
     // 权限页。
     in property <string> page-permissions: "Permissions";
+    // Windows：导航里「环境检查」页的名字（相当于 macOS 的「权限」页）。
+    in property <string> page-environment: "Environment";
     // 关于页。
     in property <string> page-about: "About";
     // 页标题下的说明。
@@ -315,6 +317,40 @@ export global SettingsText {
     pure callback chat-log-status-access-denied(path: string) -> string;
     // 说明：EVE 客户端要开启把聊天写入文件的设置；日志目录在「提醒」页设置（用该语言的提醒页页名）。
     in property <string> chat-log-help: "The EVE client must be set to log chat to file. The log folder is set on the Alerts page.";
+    // Windows「环境检查」页：页头的说明。
+    in property <string> environment-subtitle: "Checks privileges, window mode and log folders to find out why thumbnails or hotkeys misbehave.";
+    // Windows「环境检查」页：权限一组的标题。
+    in property <string> privilege-header: "Privileges";
+    // Windows「环境检查」页：本工具以什么权限运行的一行。
+    in property <string> self-privilege: "EVE-O Preview runs as";
+    // Windows「环境检查」页：以管理员权限运行。
+    in property <string> privilege-admin: "Administrator";
+    // Windows「环境检查」页：以普通权限运行。
+    in property <string> privilege-standard: "Standard user";
+    // Windows「环境检查」页：以管理员权限运行的客户端一行的名字。
+    in property <string> elevated-clients: "Clients running as administrator";
+    // Windows「环境检查」页：没有以管理员权限运行的客户端。
+    in property <string> elevated-none: "None";
+    // Windows「环境检查」页：有客户端以管理员权限运行、本工具不是时的说明。
+    in property <string> elevated-warning: "These clients run as administrator but EVE-O Preview does not: Windows won't let it switch to them, and hotkeys don't work while they are in front. Run both with the same privileges, preferably without administrator rights.";
+    // Windows「环境检查」页：窗口模式一组的标题。
+    in property <string> window-mode-header: "Window mode";
+    // Windows「环境检查」页：EVE 显示模式的建议一行的名字。
+    in property <string> window-mode-label: "Use Fixed Window or Windowed mode";
+    // Windows「环境检查」页：窗口模式的说明。
+    in property <string> window-mode-help: "Choose it in EVE's display settings. In exclusive fullscreen, thumbnails may not show and switching clients flickers the screen.";
+    // Windows「环境检查」页：文件夹存在。
+    in property <string> folder-found: "Found";
+    // Windows「环境检查」页：文件夹不存在。
+    in property <string> folder-missing: "Not found";
+    // Windows「环境检查」页：聊天日志文件夹一行的名字；括号里的文件夹名不翻译。
+    in property <string> chatlogs-folder: "Chat logs (Chatlogs)";
+    // Windows「环境检查」页：游戏日志文件夹一行的名字；括号里的文件夹名不翻译。
+    in property <string> gamelogs-folder: "Game logs (Gamelogs)";
+    // Windows「环境检查」页：日志目录一组的说明。
+    in property <string> logs-help: "Intel and translation read Chatlogs; combat alerts read Gamelogs. If they are missing, make sure EVE logs chat to file, or set the log folder on the Alerts page.";
+    // Windows「环境检查」页：重新检查的按钮。
+    in property <string> recheck: "Check again";
 }
 
 // 「提醒」页的文字。

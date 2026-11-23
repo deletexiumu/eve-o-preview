@@ -130,6 +130,15 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
         ChannelRef::new("Rookie Help", None),
     ];
     crate::chat::show_translation(&ui, &translation, &config.general.translation_endpoint);
+    // 「环境检查」页：一个以管理员运行的客户端（示意警示色与说明），日志目录在、Gamelogs 不在。
+    crate::environment::show_privileges(&ui, false, &["Pilot One".to_owned()]);
+    let folders = crate::environment::LogFolders {
+        root: automatic.to_owned(),
+        root_found: true,
+        chatlogs_found: true,
+        gamelogs_found: false,
+    };
+    crate::environment::show_logs(&ui, &folders);
     ui.set_page(options.page);
     let width = (options.size.0 as f32 * options.scale).round() as u32;
     let height = (options.size.1 as f32 * options.scale).round() as u32;

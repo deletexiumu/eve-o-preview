@@ -1,0 +1,125 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「环境检查」页（架构文档 1 节的功能表与 4.1、4.2 节），代替 macOS 的「权限」页。Windows 上没有要用户授予的权限，
+// 常见的问题是这三类，页上逐项列出：
+// 1. 权限：客户端以管理员运行而本工具不是时，系统不允许激活它，钩子也收不到它前台时的输入。
+// 2. 窗口模式：独占全屏下置顶的缩略图可能不显示，切换时闪屏；建议「固定窗口」或「窗口」模式。
+//    独占全屏与铺满屏幕的固定窗口从窗口本身分辨不出来，所以这一项只是建议，不做检测。
+// 3. 日志目录：预警与翻译读 Chatlogs，受击提醒读 Gamelogs；列出目录与两个子文件夹在不在。
+// 检查结果由 Rust 算好填进来；「重新检查」请应用再算一次（日志目录的检查读磁盘，不随每个事件刷新）。
+
+import { Button } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { CombatText, SettingsText } from "generated/l10n.slint";
+
+// 本页的数据。
+export global EnvironmentModel {
+    // 本工具是否以管理员权限运行。
+    in property <bool> self-elevated;
+    // 以管理员权限运行的客户端个数，与它们的名字（Rust 用界面语言的列表分隔符连好，登录界面的客户端显示「EVE」）。
+    in property <int> elevated-count;
+    in property <string> elevated-names;
+    // 用到的日志目录（设置的或自动查找的位置）与它在不在。
+    in property <string> log-directory;
+    in property <bool> log-found;
+    // 两个子文件夹在不在。
+    in property <bool> chatlogs-found;
+    in property <bool> gamelogs-found;
+    // 「重新检查」。
+    callback recheck();
+    // 在资源管理器里打开日志目录（不在时打开最近的上一级）。
+    callback reveal-logs();
+}
+
+// 检查结果的文字：正常时用次要文字色，有问题时用警示色，一眼能看出哪一项要处理。
+component StatusText inherits Text {
+    // 这一项是否正常。
+    in property <bool> ok: true;
+    color: ok ? Theme.text-secondary : #d83b01;
+    vertical-alignment: center;
+    horizontal-alignment: right;
+    wrap: word-wrap;
+    max-width: 380px;
+}
+
+// 「环境检查」页。
+export component EnvironmentPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: SettingsText.page-environment;
+        subtitle: SettingsText.environment-subtitle;
+    }
+
+    // 第 1 组：权限。只有客户端是管理员而本工具不是时才有问题；反过来（本工具是管理员）不影响切换与热键。
+    SectionHeader { text: SettingsText.privilege-header; }
+    SettingRow {
+        title: SettingsText.self-privilege;
+        StatusText {
+            text: EnvironmentModel.self-elevated ? SettingsText.privilege-admin : SettingsText.privilege-standard;
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: SettingsText.elevated-clients;
+        // 有问题时说明在下面，这里只列名字。
+        StatusText {
+            ok: EnvironmentModel.elevated-count == 0 || EnvironmentModel.self-elevated;
+            text: EnvironmentModel.elevated-count == 0 ? SettingsText.elevated-none : EnvironmentModel.elevated-names;
+        }
+    }
+    if EnvironmentModel.elevated-count > 0 && !EnvironmentModel.self-elevated: Footnote {
+        text: SettingsText.elevated-warning;
+    }
+
+    // 第 2 组：窗口模式，只给建议。
+    SectionHeader { text: SettingsText.window-mode-header; }
+    SettingRow {
+        title: SettingsText.window-mode-label;
+        description: SettingsText.window-mode-help;
+    }
+
+    // 第 3 组：日志目录。目录可以在「提醒」页改；这里只看结果。
+    SectionHeader { text: CombatText.log-directory-header; }
+    SettingRow {
+        title: CombatText.log-directory-label;
+        description: EnvironmentModel.log-directory;
+        StatusText {
+            ok: EnvironmentModel.log-found;
+            text: EnvironmentModel.log-found ? SettingsText.folder-found : SettingsText.folder-missing;
+        }
+        Button {
+            text: SettingsText.reveal-config;
+            clicked => { EnvironmentModel.reveal-logs(); }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: SettingsText.chatlogs-folder;
+        StatusText {
+            ok: EnvironmentModel.chatlogs-found;
+            text: EnvironmentModel.chatlogs-found ? SettingsText.folder-found : SettingsText.folder-missing;
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: SettingsText.gamelogs-folder;
+        StatusText {
+            ok: EnvironmentModel.gamelogs-found;
+            text: EnvironmentModel.gamelogs-found ? SettingsText.folder-found : SettingsText.folder-missing;
+        }
+    }
+    Footnote { text: SettingsText.logs-help; }
+
+    // 「重新检查」：例如改了 EVE 的设置、以别的权限重启了客户端之后。
+    HorizontalLayout {
+        alignment: start;
+        padding-top: 16px;
+        Button {
+            text: SettingsText.recheck;
+            clicked => { EnvironmentModel.recheck(); }
+        }
+    }
+    // 页底留白。
+    Rectangle { height: 24px; }
+}

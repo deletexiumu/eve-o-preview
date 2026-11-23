@@ -34,7 +34,7 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
 
 /// 自动查找时的日志目录，只用作输入框的提示：EVE 默认写在「文档\EVE\logs」。
 /// 真正的查找（文档文件夹被移到别处、OneDrive 等）随读日志的功能在 M6 做。
-fn automatic_directory() -> String {
+pub(super) fn automatic_directory() -> String {
     std::env::var_os("USERPROFILE")
         .map(PathBuf::from)
         .map(|home| home.join("Documents").join("EVE").join("logs"))

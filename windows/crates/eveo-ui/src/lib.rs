@@ -19,6 +19,7 @@ pub use language::{language, set_language};
 pub mod alerts;
 pub mod bind;
 pub mod chat;
+pub mod environment;
 pub mod general;
 #[rustfmt::skip]
 pub mod l10n;

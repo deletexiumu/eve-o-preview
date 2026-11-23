@@ -91,6 +91,7 @@ impl App {
         self.show_general(window);
         self.show_alerts(window);
         self.show_chat(window);
+        self.show_environment(window);
     }
 
     /// 配置变化后重新求界面语言；变了就把设置窗口的文字换成新语言。

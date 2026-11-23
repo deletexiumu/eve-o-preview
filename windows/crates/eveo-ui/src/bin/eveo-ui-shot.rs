@@ -61,6 +61,8 @@ fn main() {
         ("settings-translation-dark.png", true, 5, (1040, 760)),
         ("settings-general-light.png", false, 7, (1040, 760)),
         ("settings-general-dark.png", true, 7, (1040, 760)),
+        ("settings-environment-light.png", false, 9, (1040, 900)),
+        ("settings-environment-dark.png", true, 9, (1040, 760)),
         ("settings-about-light.png", false, 8, (1040, 900)),
         ("settings-about-dark.png", true, 8, (1040, 760)),
     ];

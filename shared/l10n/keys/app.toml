@@ -144,6 +144,10 @@ doc = "通用页：界面语言。"
 [SettingsStrings.pagePermissions]
 doc = "权限页。"
 
+[SettingsStrings.pageEnvironment]
+doc = "Windows：导航里「环境检查」页的名字（相当于 macOS 的「权限」页）。"
+platforms = ["windows"]
+
 [SettingsStrings.pageAbout]
 doc = "关于页。"
 
@@ -539,6 +543,74 @@ params = ["_ path: String"]
 
 [SettingsStrings.chatLogHelp]
 doc = "说明：EVE 客户端要开启把聊天写入文件的设置；日志目录在「提醒」页设置（用该语言的提醒页页名）。"
+
+[SettingsStrings.environmentSubtitle]
+doc = "Windows「环境检查」页：页头的说明。"
+platforms = ["windows"]
+
+[SettingsStrings.privilegeHeader]
+doc = "Windows「环境检查」页：权限一组的标题。"
+platforms = ["windows"]
+
+[SettingsStrings.selfPrivilege]
+doc = "Windows「环境检查」页：本工具以什么权限运行的一行。"
+platforms = ["windows"]
+
+[SettingsStrings.privilegeAdmin]
+doc = "Windows「环境检查」页：以管理员权限运行。"
+platforms = ["windows"]
+
+[SettingsStrings.privilegeStandard]
+doc = "Windows「环境检查」页：以普通权限运行。"
+platforms = ["windows"]
+
+[SettingsStrings.elevatedClients]
+doc = "Windows「环境检查」页：以管理员权限运行的客户端一行的名字。"
+platforms = ["windows"]
+
+[SettingsStrings.elevatedNone]
+doc = "Windows「环境检查」页：没有以管理员权限运行的客户端。"
+platforms = ["windows"]
+
+[SettingsStrings.elevatedWarning]
+doc = "Windows「环境检查」页：有客户端以管理员权限运行、本工具不是时的说明。"
+platforms = ["windows"]
+
+[SettingsStrings.windowModeHeader]
+doc = "Windows「环境检查」页：窗口模式一组的标题。"
+platforms = ["windows"]
+
+[SettingsStrings.windowModeLabel]
+doc = "Windows「环境检查」页：EVE 显示模式的建议一行的名字。"
+platforms = ["windows"]
+
+[SettingsStrings.windowModeHelp]
+doc = "Windows「环境检查」页：窗口模式的说明。"
+platforms = ["windows"]
+
+[SettingsStrings.folderFound]
+doc = "Windows「环境检查」页：文件夹存在。"
+platforms = ["windows"]
+
+[SettingsStrings.folderMissing]
+doc = "Windows「环境检查」页：文件夹不存在。"
+platforms = ["windows"]
+
+[SettingsStrings.chatlogsFolder]
+doc = "Windows「环境检查」页：聊天日志文件夹一行的名字；括号里的文件夹名不翻译。"
+platforms = ["windows"]
+
+[SettingsStrings.gamelogsFolder]
+doc = "Windows「环境检查」页：游戏日志文件夹一行的名字；括号里的文件夹名不翻译。"
+platforms = ["windows"]
+
+[SettingsStrings.logsHelp]
+doc = "Windows「环境检查」页：日志目录一组的说明。"
+platforms = ["windows"]
+
+[SettingsStrings.recheck]
+doc = "Windows「环境检查」页：重新检查的按钮。"
+platforms = ["windows"]
 
 [MenuStrings.showAll]
 doc = "「全部隐藏」打开时显示的菜单项：显示全部缩略图。"

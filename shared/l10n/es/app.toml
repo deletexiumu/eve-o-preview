@@ -42,6 +42,7 @@ pageTranslation = "Traducción"
 pageProfiles = "Perfiles"
 pageGeneral = "General"
 pagePermissions = "Permisos"
+pageEnvironment = "Entorno"
 # 「关于」页按 macOS 的说法写 Acerca de。
 pageAbout = "Acerca de"
 
@@ -193,6 +194,23 @@ chatLogStatusWatching = { one = "Vigilando {files} archivo de registro en {direc
 chatLogStatusDirectoryNotFound = "Carpeta de registros de chat no encontrada: {path}"
 chatLogStatusAccessDenied = "Sin permiso para leer {path}"
 chatLogHelp = "El cliente de EVE debe tener activada la opción de guardar el chat en un archivo. La carpeta de registros se configura en la página «Alertas»."
+environmentSubtitle = "Comprueba los permisos, el modo de ventana y las carpetas de registros para averiguar por qué las miniaturas o los atajos no funcionan bien."
+privilegeHeader = "Permisos"
+selfPrivilege = "EVE-O Preview se ejecuta como"
+privilegeAdmin = "Administrador"
+privilegeStandard = "Usuario estándar"
+elevatedClients = "Clientes ejecutados como administrador"
+elevatedNone = "Ninguno"
+elevatedWarning = "Estos clientes se ejecutan como administrador y EVE-O Preview no: Windows no le deja cambiar a ellos y los atajos no funcionan mientras están en primer plano. Ejecuta ambos con los mismos permisos, preferiblemente sin permisos de administrador."
+windowModeHeader = "Modo de ventana"
+windowModeLabel = "Usa el modo Ventana fija o Ventana"
+windowModeHelp = "Elígelo en los ajustes de pantalla de EVE. En pantalla completa exclusiva, las miniaturas pueden no mostrarse y la pantalla parpadea al cambiar de cliente."
+folderFound = "Encontrada"
+folderMissing = "No encontrada"
+chatlogsFolder = "Registros de chat (Chatlogs)"
+gamelogsFolder = "Registros de juego (Gamelogs)"
+logsHelp = "La inteligencia y la traducción leen Chatlogs; las alertas de combate leen Gamelogs. Si no aparecen, comprueba que EVE guarda el chat en un archivo o indica la carpeta de registros en la página Alertas."
+recheck = "Volver a comprobar"
 
 [MenuStrings]
 # 菜单项用不定式（Mostrar、Ocultar、Minimizar），与 macOS 西班牙文菜单一致。

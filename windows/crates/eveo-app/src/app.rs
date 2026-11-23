@@ -20,15 +20,15 @@ use eveo_app_core::gesture::{Button, GestureOutput, Modifiers};
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::{Coordinator, Effect, Event, ForegroundOwner, SettingsPage};
 use eveo_core::geometry::ScreenInfo;
-use eveo_core::hotkeys::HotkeyScope;
 use eveo_core::layout::ResizeEdges;
-use eveo_core::model::{AppLanguage, WindowId};
+use eveo_core::model::{AppLanguage, Pid, WindowId};
 use eveo_platform_win::discovery::{ClientFilter, candidate_windows};
 use eveo_platform_win::events::{
     WindowEvent, WindowEventHooks, foreground_window, local_timestamp, window_pid,
 };
 use eveo_platform_win::hotkey::{HotkeyMessage, HotkeyWindow};
-use eveo_platform_win::recorder::{HotkeyRecorder, RecordOutcome};
+use eveo_platform_win::process::current_process_elevated;
+use eveo_platform_win::recorder::HotkeyRecorder;
 use eveo_platform_win::thumbnail::{CursorShape, MouseButton, ThumbnailInput};
 use eveo_platform_win::tray::{TrayEvent, TrayIcon};
 use eveo_platform_win::{activation, appearance, menu, screens, single_instance};
@@ -43,9 +43,11 @@ use crate::thumbnails::ThumbnailManager;
 
 mod alerts;
 mod chat;
+mod environment;
 mod general;
 mod profiles;
 mod shell;
+mod switching_page;
 
 /// 定时器的周期：取窗口事件、检查轮询、唤醒与写盘。
 const TICK: Duration = Duration::from_millis(50);
@@ -90,6 +92,8 @@ enum Input {
     Alerts(alerts::AlertsInput),
     /// 「预警」与「翻译」页的输入。
     Chat(chat::ChatInput),
+    /// 「环境检查」页的按钮。
+    Environment(environment::EnvironmentInput),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -163,6 +167,10 @@ struct App {
     settings_focus_pending: bool,
     /// 界面语言：配置的选项求出的实际语言，配置变化时重新求（见 general::resolve_language）。
     language: AppLanguage,
+    /// 本工具是否以管理员运行；启动时读一次，读不到按否处理（「环境检查」页）。
+    self_elevated: bool,
+    /// 上次轮询时以管理员运行的客户端进程（「环境检查」页）。
+    elevated_pids: Vec<Pid>,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -221,6 +229,8 @@ pub fn run() -> ExitCode {
         settings_placed: false,
         settings_focus_pending: false,
         language,
+        self_elevated: current_process_elevated().unwrap_or(false),
+        elevated_pids: Vec::new(),
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -307,6 +317,7 @@ impl App {
             Input::General(input) => self.general_input(input, runtime),
             Input::Alerts(input) => self.alerts_input(input, runtime),
             Input::Chat(input) => self.chat_input(input, runtime),
+            Input::Environment(input) => self.environment_input(input),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -344,6 +355,7 @@ impl App {
             self.show_switching(window, profile);
         }
         self.show_profiles(window);
+        self.show_privileges(window);
     }
 
     /// 填「配置方案」页：方案列表来自整份配置，路径是配置文件的位置。
@@ -406,11 +418,12 @@ impl App {
                 }
                 // 界面语言可能变了（「通用」页的选项）：设置窗口的文字立即换成新语言。
                 self.update_language();
-                // 「通用」「提醒」「预警」「翻译」页同样只随配置变化。
+                // 「通用」「提醒」「预警」「翻译」页同样只随配置变化；「环境检查」页的日志目录可能改了。
                 if let Some(window) = &self.settings {
                     self.show_general(window);
                     self.show_alerts(window);
                     self.show_chat(window);
+                    self.show_environment(window);
                 }
             }
             Effect::ScheduleWake(at) => self.wake_at = at,
@@ -481,10 +494,14 @@ impl App {
             self.send(Event::ScreensChanged(screens), runtime);
         }
         // 候选窗口交给协调器，主窗口的挑选与客户端登记在 Core 里做。
-        let windows = candidate_windows(&self.filter)
-            .into_iter()
-            .map(|c| c.window)
+        // 顺带记下以管理员运行的进程，「环境检查」页列出它们（读不到令牌的不算）。
+        let candidates = candidate_windows(&self.filter);
+        self.elevated_pids = candidates
+            .iter()
+            .filter(|c| c.process.elevated == Some(true))
+            .map(|c| c.window.pid)
             .collect();
+        let windows = candidates.into_iter().map(|c| c.window).collect();
         self.send(Event::WindowsPolled(windows), runtime);
         // 前台事件可能丢（例如锁屏期间），轮询时再核对一次；没变时 report_foreground 什么也不做。
         let owner = self.owner_of(foreground_window());
@@ -670,11 +687,12 @@ impl App {
                 let name = name.to_string();
                 post(&weak, Input::ClientEdit(bind::ClientEdit::ResetColor { name }));
             });
-            connect_switching(&window, runtime);
+            switching_page::connect(&window, runtime);
             profiles::connect(&window, runtime);
             general::connect(&window, runtime);
             alerts::connect(&window, runtime);
             chat::connect(&window, runtime);
+            environment::connect(&window, runtime);
             self.settings = Some(window);
         }
         let Some(window) = &self.settings else {
@@ -748,173 +766,6 @@ impl App {
         // 没有变化（例如输入框里的颜色还没输完）就不打扰协调器：省一次重算，也不排一次写盘。
         if &config != self.coordinator.config() {
             self.send(Event::ConfigEdited(config), runtime);
-        }
-    }
-}
-
-/// 接上「切换与热键」页的回调：每个回调都转成输入排队，不在 Slint 的事件处理中途借用应用。
-fn connect_switching(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
-    use switching::SwitchingEdit as Edit;
-    let model = window.global::<eveo_ui::SwitchingModel>();
-    // 每个回调持有自己的弱引用；回调里只做参数换算，位置标识解析不了（不应出现）时丢弃这次操作。
-    let sender = |runtime: &Rc<Runtime>| {
-        let weak = Rc::downgrade(runtime);
-        move |edit: Edit| post(&weak, Input::SwitchingEdit(edit))
-    };
-    let send = sender(runtime);
-    // 默认作用范围：单选的下标 0 是全局，1 是仅游戏内。
-    model.on_default_scope_changed(move |index| {
-        let scope = if index == 1 {
-            HotkeyScope::Game
-        } else {
-            HotkeyScope::Global
-        };
-        send(Edit::DefaultScope(scope));
-    });
-    let send = sender(runtime);
-    // 新建循环组：id 在这里生成，绑定层只负责写进配置，测试里可以用固定的 id。
-    model.on_add_group(move || send(Edit::AddGroup(switching::new_group_id())));
-    let send = sender(runtime);
-    // 改名在回车或离开输入框时提交；空白名称由绑定层拒绝。
-    model.on_rename_group(move |id, name| {
-        send(Edit::RenameGroup {
-            id: id.into(),
-            name: name.into(),
-        });
-    });
-    let send = sender(runtime);
-    // 删除不再确认，与 macOS 一致。
-    model.on_delete_group(move |id| send(Edit::DeleteGroup(id.into())));
-    let send = sender(runtime);
-    model.on_add_member(move |id, name| {
-        // 下拉框里在线的角色带「 ●」后缀，去掉后才是角色名。
-        let name = name.strip_suffix(" ●").unwrap_or(&name).to_owned();
-        send(Edit::AddMember { id: id.into(), name });
-    });
-    let send = sender(runtime);
-    // Slint 的整数是 i32；负的位置不应出现，出现时丢弃。
-    model.on_move_member(move |id, index, delta| {
-        if let Ok(index) = usize::try_from(index) {
-            send(Edit::MoveMember {
-                id: id.into(),
-                index,
-                delta,
-            });
-        }
-    });
-    let send = sender(runtime);
-    model.on_remove_member(move |id, index| {
-        if let Ok(index) = usize::try_from(index) {
-            send(Edit::RemoveMember { id: id.into(), index });
-        }
-    });
-    let send = sender(runtime);
-    // 移除与改范围都按「位置 + 原文」定位，原文已不在列表里时绑定层什么也不做。
-    model.on_remove_hotkey(move |slot, text| {
-        if let Some(slot) = switching::Slot::parse(&slot) {
-            send(Edit::RemoveHotkey {
-                slot,
-                text: text.into(),
-            });
-        }
-    });
-    let send = sender(runtime);
-    model.on_set_scope(move |slot, text, index| {
-        // 下拉框的顺序：跟随默认、全局、仅游戏内。
-        let scope = match index {
-            1 => Some(HotkeyScope::Global),
-            2 => Some(HotkeyScope::Game),
-            _ => None,
-        };
-        if let Some(slot) = switching::Slot::parse(&slot) {
-            send(Edit::SetScope {
-                slot,
-                text: text.into(),
-                scope,
-            });
-        }
-    });
-    let weak = Rc::downgrade(runtime);
-    // 录制按钮不改配置，只切换录制状态，单独走一个输入。
-    model.on_record(move |slot, text| post(&weak, Input::Record(slot.into(), text.into())));
-}
-
-impl App {
-    /// 「切换与热键」页上的改动：与其他页一样从协调器手里的配置出发，有变化才交给协调器。
-    fn switching_edited(&mut self, edit: &switching::SwitchingEdit, runtime: &Rc<Runtime>) {
-        let mut config = self.coordinator.config().clone();
-        let Some(profile) = config.active_profile_mut() else {
-            return;
-        };
-        switching::apply_switching_edit(profile, edit);
-        if &config != self.coordinator.config() {
-            self.send(Event::ConfigEdited(config), runtime);
-        }
-    }
-
-    /// 点了录制按钮：正在录这一行时取消；否则结束别的录制，开始录这一行。录制期间暂停全部热键。
-    fn toggle_recording(&mut self, slot: &str, text: String) {
-        let Some(slot) = switching::Slot::parse(slot) else {
-            return;
-        };
-        // 再点正在录制的那个按钮等于取消，与 macOS 的录制按钮相同。
-        let same = self
-            .recording
-            .as_ref()
-            .is_some_and(|(s, t, _)| *s == slot && *t == text);
-        self.stop_recording();
-        // 钩子装不上（极少见）时不进入录制状态，按钮保持原样。
-        if !same && let Ok(recorder) = HotkeyRecorder::start() {
-            self.hotkeys.set_suspended(true);
-            self.recording = Some((slot, text, recorder));
-        }
-        self.refresh_settings_pages();
-    }
-
-    /// 结束录制：摘掉钩子，恢复热键。
-    fn stop_recording(&mut self) {
-        if self.recording.take().is_some() {
-            self.hotkeys.set_suspended(false);
-        }
-    }
-
-    /// 定时器里检查录制：有结果时写进配置；设置窗口不在前台（切到了别的程序）时取消，
-    /// 否则热键会一直暂停（同 macOS 在设置窗口失去焦点时取消录制）。
-    fn check_recording(&mut self, runtime: &Rc<Runtime>) {
-        let Some((slot, text, recorder)) = &self.recording else {
-            return;
-        };
-        // 先取结果再看前台：按下组合键的同时切走了窗口，录到的结果仍然有效。
-        let outcome = recorder.take_outcome();
-        // 设置窗口的句柄在显示后才有；取不到时按不在前台处理，录制随即取消。
-        let settings_foreground = self
-            .settings
-            .as_ref()
-            .and_then(settings_hwnd)
-            .is_some_and(|hwnd| foreground_window() == Some(eveo_platform_win::window_id(hwnd)));
-        if outcome.is_none() && settings_foreground {
-            return;
-        }
-        let edit = match outcome {
-            Some(RecordOutcome::Recorded(hotkey)) => Some(switching::SwitchingEdit::Recorded {
-                slot: slot.clone(),
-                text: text.clone(),
-                hotkey,
-            }),
-            // 清除只对已有的一行有意义；新增时按 Backspace 等于取消。
-            Some(RecordOutcome::Cleared) if !text.is_empty() => {
-                Some(switching::SwitchingEdit::RemoveHotkey {
-                    slot: slot.clone(),
-                    text: text.clone(),
-                })
-            }
-            _ => None,
-        };
-        self.stop_recording();
-        match edit {
-            Some(edit) => self.switching_edited(&edit, runtime),
-            // 没有改动时也要刷新一次，按钮从「按下组合键…」恢复原样。
-            None => self.refresh_settings_pages(),
         }
     }
 }

@@ -40,6 +40,7 @@ pageTranslation = "Traduction"
 pageProfiles = "Profils"
 pageGeneral = "Général"
 pagePermissions = "Autorisations"
+pageEnvironment = "Environnement"
 pageAbout = "À propos"
 
 # 客户端页。
@@ -187,6 +188,23 @@ chatLogStatusWatching = { one = "Surveillance de {files} journal dans {directory
 chatLogStatusDirectoryNotFound = "Dossier des journaux de discussion introuvable : {path}"
 chatLogStatusAccessDenied = "Lecture non autorisée : {path}"
 chatLogHelp = "Le client EVE doit être réglé pour enregistrer les discussions dans un fichier. Le dossier des journaux se règle sur la page « Alertes »."
+environmentSubtitle = "Vérifie les privilèges, le mode d'affichage et les dossiers de journaux pour comprendre pourquoi les vignettes ou les raccourcis fonctionnent mal."
+privilegeHeader = "Privilèges"
+selfPrivilege = "EVE-O Preview s'exécute en tant que"
+privilegeAdmin = "Administrateur"
+privilegeStandard = "Utilisateur standard"
+elevatedClients = "Clients exécutés en administrateur"
+elevatedNone = "Aucun"
+elevatedWarning = "Ces clients s'exécutent en administrateur, mais pas EVE-O Preview : Windows l'empêche de basculer vers eux, et les raccourcis ne fonctionnent pas quand ils sont au premier plan. Lancez les deux avec les mêmes privilèges, de préférence sans droits d'administrateur."
+windowModeHeader = "Mode d'affichage"
+windowModeLabel = "Utilisez le mode Fenêtre fixe ou Fenêtré"
+windowModeHelp = "Choisissez-le dans les réglages d'affichage d'EVE. En plein écran exclusif, les vignettes peuvent ne pas s'afficher et l'écran clignote lors du changement de client."
+folderFound = "Trouvé"
+folderMissing = "Introuvable"
+chatlogsFolder = "Journaux de chat (Chatlogs)"
+gamelogsFolder = "Journaux de jeu (Gamelogs)"
+logsHelp = "Le renseignement et la traduction lisent Chatlogs ; les alertes de combat lisent Gamelogs. S'ils sont introuvables, vérifiez qu'EVE enregistre le chat dans un fichier, ou indiquez le dossier des journaux dans la page Alertes."
+recheck = "Vérifier à nouveau"
 
 [MenuStrings]
 # 菜单项以动词不定式开头（Afficher、Masquer、Réduire），符合 macOS 法文菜单的写法。

@@ -18,9 +18,10 @@ import { AboutModel, AboutPage } from "about.slint";
 import { AlertsModel, AlertsPage } from "alerts.slint";
 import { IntelModel, IntelPage } from "intel.slint";
 import { TranslationModel, TranslationPage } from "translation.slint";
+import { EnvironmentModel, EnvironmentPage } from "environment.slint";
 import { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText } from "generated/l10n.slint";
 
-export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, GeneralModel, HotkeyRow, HotkeySlotData, IntelModel, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel, TranslationModel }
+export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, EnvironmentModel, GeneralModel, HotkeyRow, HotkeySlotData, IntelModel, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel, TranslationModel }
 // 界面文字的全局，由 Rust 的 l10n::apply 按界面语言填值。
 export { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText }
 
@@ -30,7 +31,7 @@ export component SettingsWindow inherits Window {
     in-out property <bool> dark <=> Theme.dark;
     // 已设 Mica 背景，见 Theme.mica。
     in-out property <bool> mica <=> Theme.mica;
-    // 当前页：0 客户端，1 预览与布局，2 切换与热键，3 提醒，4 预警，5 翻译，6 配置方案，7 通用，8 关于。
+    // 当前页：0 客户端，1 预览与布局，2 切换与热键，3 提醒，4 预警，5 翻译，6 配置方案，7 通用，8 关于，9 环境检查（导航里排在「通用」之后，编号放在最后，已有的编号不变）。
     in-out property <int> page: 1;
     // 界面字体。Windows 上是 Segoe UI Variable，中日韩文字由系统字体回退补上（微软雅黑等）。
     in property <string> ui-font: "Segoe UI Variable Text";
@@ -94,6 +95,7 @@ export component SettingsWindow inherits Window {
             NavItem { icon: Icons.translation; text: SettingsText.page-translation; selected: page == 5; clicked => { page = 5; } }
             NavItem { icon: Icons.profiles; text: SettingsText.page-profiles; selected: page == 6; clicked => { page = 6; } }
             NavItem { icon: Icons.general; text: SettingsText.page-general; selected: page == 7; clicked => { page = 7; } }
+            NavItem { icon: Icons.environment; text: SettingsText.page-environment; selected: page == 9; clicked => { page = 9; } }
             // 弹性空白，把「关于」推到底部。
             Rectangle { }
             NavItem { icon: Icons.about; text: SettingsText.page-about; selected: page == 8; clicked => { page = 8; } }
@@ -116,6 +118,7 @@ export component SettingsWindow inherits Window {
                 if page == 6: ProfilesPage { }
                 if page == 7: GeneralPage { }
                 if page == 8: AboutPage { }
+                if page == 9: EnvironmentPage { }
             }
         }
     }
