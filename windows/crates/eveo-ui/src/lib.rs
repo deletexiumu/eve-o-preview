@@ -13,6 +13,7 @@ mod generated {
 
 pub use generated::*;
 
+pub mod alerts;
 pub mod bind;
 pub mod general;
 pub mod profiles;

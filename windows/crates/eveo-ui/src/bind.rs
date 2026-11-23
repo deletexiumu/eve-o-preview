@@ -181,7 +181,7 @@ fn read_color(text: &str, target: &mut String) {
 }
 
 /// `#rrggbb`（可带首尾空白，`#` 可省略，同 Core 的解析）规范成大写的 `#RRGGBB`；其他写法返回 `None`。
-fn normalized_hex(text: &str) -> Option<String> {
+pub(crate) fn normalized_hex(text: &str) -> Option<String> {
     let trimmed = text.trim();
     // 合法性交给 Core 判断，与配置校验用同一套规则；这里只负责统一写法。
     hex_color::components(trimmed)?;
@@ -190,7 +190,7 @@ fn normalized_hex(text: &str) -> Option<String> {
 }
 
 /// 颜色字符串换成样本颜色。
-fn swatch(hex: &str) -> Option<Color> {
+pub(crate) fn swatch(hex: &str) -> Option<Color> {
     let (r, g, b) = hex_color::components(hex.trim())?;
     // Core 给出 0～1 的分量，换回 0～255 的字节。
     let byte = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
@@ -447,6 +447,7 @@ mod tests {
         crate::switching::tests::check_page(&ui);
         crate::profiles::tests::check_page(&ui);
         crate::general::tests::check_page(&ui);
+        crate::alerts::tests::check_page(&ui);
     }
 
     /// 「客户端」页：行的内容、刷新时保留输入到一半的颜色、配置变了才改写。

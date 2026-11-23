@@ -1,0 +1,190 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 「提醒」页，对应 macOS 的 AlertsPage（反馈文档 7.11 节）：角色被攻击时闪烁缩略图。依次是
+// 总开关与状态、游戏日志目录、闪烁的外观（颜色、持续时间、样式）、触发条件（未命中也提醒、最小伤害）、「测试闪烁」。
+// 战斗提醒的设置在当前配置方案的 combatAlert 里；日志目录在 general.eveLogDirectory，对全部方案生效。
+//
+// 读游戏日志在 M6 接上，现在状态行写明这一点；「测试闪烁」已经可用，用来看闪烁的样子。
+// macOS 用系统的文件夹选择框；这里先用输入框填路径（回车或离开输入框时提交），空着就是自动查找。
+// 与「预览与布局」页的约定相同：控件只在用户操作时触发 edited，Rust 读回整页。
+
+import { Button, ComboBox, LineEdit, Slider, SpinBox, Switch } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { ColorField, Footnote, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+
+// 本页的数据。
+export global AlertsModel {
+    // combatAlert.enabled。
+    in-out property <bool> enabled;
+    // general.eveLogDirectory；空串表示自动查找。
+    in-out property <string> log-directory;
+    // 自动查找时的位置，作为输入框的提示。
+    in property <string> automatic-directory;
+    // combatAlert.color 的输入框文字与样本。
+    in-out property <string> color: "#FF3B30";
+    in property <color> swatch: #ff3b30;
+    // combatAlert.durationSeconds，1～10 秒，步长 0.5。
+    in-out property <float> duration: 3;
+    // combatAlert.style：0 边框，1 底色，2 两者。
+    in-out property <int> style: 2;
+    // combatAlert.includeMisses。
+    in-out property <bool> include-misses: true;
+    // combatAlert.minimumDamage，1～100,000。
+    in-out property <int> minimum-damage: 1;
+    // 用户改了某个值：Rust 读回整页。
+    callback edited();
+    // 「测试闪烁」。
+    callback test-flash();
+}
+
+// 「提醒」页。
+export component AlertsPage inherits VerticalLayout {
+    alignment: start;
+    PageHeader {
+        title: "提醒";
+        subtitle: "角色被攻击时闪烁它的缩略图。只读取游戏日志，不读游戏内存、不发送输入。";
+    }
+
+    // 第 1 组：总开关与状态。
+    SettingRow {
+        // 总开关在配置方案里：不同方案可以分别开关（例如挖矿方案打开、PVP 方案关掉）。
+        title: "角色被攻击时闪烁缩略图";
+        description: "对当前配置方案生效";
+        Switch {
+            checked <=> AlertsModel.enabled;
+            toggled => {
+                AlertsModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: "状态";
+        Text {
+            text: "读游戏日志的功能在后续测试版加上，可以先用「测试闪烁」看效果";
+            color: Theme.text-secondary;
+            vertical-alignment: center;
+            wrap: word-wrap;
+            horizontal-alignment: right;
+            // 状态文字可能较长，限制宽度并换行，不把左边的名字挤没。
+            max-width: 380px;
+        }
+    }
+
+    // 第 2 组：日志目录。空着时自动查找；可以填 logs 或 logs\Gamelogs。
+    SectionHeader { text: "游戏日志目录"; }
+    SettingRow {
+        title: "目录";
+        description: "留空时自动查找；填 EVE 的 logs 或 logs\\Gamelogs 文件夹均可";
+        // 输入框只在回车或离开时提交：填到一半的路径不写进配置。
+        VerticalLayout {
+            alignment: center;
+            LineEdit {
+                text <=> AlertsModel.log-directory;
+                placeholder-text: AlertsModel.automatic-directory;
+                // 路径通常较长，输入框比颜色框宽。
+                width: 320px;
+                accepted(text) => {
+                    AlertsModel.edited();
+                }
+                changed has-focus => {
+                    if !self.has-focus {
+                        AlertsModel.edited();
+                    }
+                }
+            }
+        }
+        // 「使用自动位置」：清空输入框，只在填了路径时可点。
+        Button {
+            text: "使用自动位置";
+            enabled: AlertsModel.log-directory != "";
+            clicked => {
+                AlertsModel.log-directory = "";
+                AlertsModel.edited();
+            }
+        }
+    }
+
+    // 第 3 组：闪烁的外观。颜色与样式改动后下一次重算即生效，正在闪的缩略图立即换色。
+    SectionHeader { text: "外观"; }
+    SettingRow {
+        title: "闪烁颜色";
+        ColorField {
+            swatch: AlertsModel.swatch;
+            hex <=> AlertsModel.color;
+            edited => { AlertsModel.edited(); }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: "持续时间";
+        description: "每次受击后闪烁多久；持续受击时一直延长";
+        Slider {
+            value <=> AlertsModel.duration;
+            minimum: 1;
+            maximum: 10;
+            step: 0.5;
+            width: 200px;
+            changed(v) => { AlertsModel.edited(); }
+        }
+        ValueLabel { text: (Math.round(AlertsModel.duration * 2) / 2) + " 秒"; }
+    }
+    RowGap { }
+    SettingRow {
+        title: "样式";
+        description: "边框：缩略图外圈闪烁；底色：整个缩略图蒙上一层颜色";
+        ComboBox {
+            // 顺序同 CombatAlertStyle：border、wash、both。
+            model: ["边框", "底色", "两者"];
+            current-index <=> AlertsModel.style;
+            width: 140px;
+            selected(v) => { AlertsModel.edited(); }
+        }
+    }
+
+    // 第 4 组：触发条件。
+    // 第 4 组：哪些受击会触发，规则见 Core 的战斗日志解析（M6 移植）。
+    SectionHeader { text: "触发条件"; }
+    SettingRow {
+        title: "未命中的攻击也提醒";
+        description: "对方开火但没有打中时也闪烁";
+        Switch {
+            checked <=> AlertsModel.include-misses;
+            toggled => {
+                AlertsModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    SettingRow {
+        title: "最小伤害";
+        description: "低于这个伤害的命中不提醒";
+        SpinBox {
+            value <=> AlertsModel.minimum-damage;
+            minimum: 1;
+            // 范围同配置校验（1～100,000）；输入框里打的数超出范围时由 SpinBox 夹回。
+            maximum: 100000;
+            width: 140px;
+            edited(v) => { AlertsModel.edited(); }
+        }
+    }
+
+    // 第 5 组：「测试闪烁」不要求开关已打开。
+    SectionHeader { text: "测试"; }
+    SettingRow {
+        title: "测试闪烁";
+        description: "让全部客户端的缩略图按上面的设置闪一次";
+        Button {
+            // 按钮与行名相同，一眼能对上。
+            text: "测试闪烁";
+            clicked => {
+                AlertsModel.test-flash();
+            }
+        }
+    }
+    Footnote {
+        text: "提醒对全部客户端生效，包括当前在前台的客户端。";
+    }
+    // 页底留白。
+    Rectangle { height: 24px; }
+}
