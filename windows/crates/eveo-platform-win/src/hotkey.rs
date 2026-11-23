@@ -2,8 +2,13 @@
 //
 // 键盘热键（架构文档 4.4 节）：RegisterHotKey 绑定到本线程的一个消息窗口，带 MOD_NOREPEAT。
 // 编号用 Core 的 hotkey_id 编码（含代数），热键消息里的编号交回 Core 解码。不装键盘钩子。
+// 应用里主循环是 Slint（winit）的，消息由它分发，我们看不到分发前的消息，所以热键与鼠标热键的消息
+// 在窗口过程里交给 `set_handler` 设的处理函数。探针自己跑消息泵时也可以在分发前用 `hotkey_id` 取。
 
 //! 键盘热键的注册与注销。
+
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 use eveo_core::hotkeys::HotkeyModifiers;
 use windows::Win32::Foundation::{ERROR_HOTKEY_ALREADY_REGISTERED, HWND, LPARAM, LRESULT, WPARAM};
@@ -17,7 +22,25 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::core::{PCWSTR, Result};
 
+use crate::mouse_hook::WM_MOUSE_HOTKEY;
 use crate::window_class;
+
+/// 热键窗口收到的一条触发。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HotkeyMessage {
+    /// 键盘热键，附注册时的编号。
+    Keyboard(i32),
+    /// 鼠标热键，附绑定编号（见 `mouse_hook`）。
+    Mouse(u32),
+}
+
+/// 处理函数的类型。
+type Handler = Box<dyn FnMut(HotkeyMessage)>;
+
+thread_local! {
+    /// 各热键窗口的处理函数，以窗口句柄的数值为键。窗口与处理函数都在主线程上。
+    static HANDLERS: RefCell<HashMap<usize, Handler>> = RefCell::new(HashMap::new());
+}
 
 /// 注册失败的原因。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,6 +122,11 @@ impl HotkeyWindow {
         }
     }
 
+    /// 设置处理函数：窗口过程收到键盘热键或鼠标热键的消息时调用。替换已有的处理函数。
+    pub fn set_handler(&self, handler: impl FnMut(HotkeyMessage) + 'static) {
+        HANDLERS.with(|h| h.borrow_mut().insert(self.hwnd.0 as usize, Box::new(handler)));
+    }
+
     /// 窗口句柄。鼠标热键（`mouse_hook`）也把触发消息投递到这里。
     pub fn hwnd(&self) -> HWND {
         self.hwnd
@@ -113,13 +141,35 @@ impl HotkeyWindow {
 impl Drop for HotkeyWindow {
     fn drop(&mut self) {
         self.unregister_all();
+        HANDLERS.with(|h| h.borrow_mut().remove(&(self.hwnd.0 as usize)));
         // SAFETY: 窗口由 create 建立，属于本线程，只销毁一次。
         let _ = unsafe { DestroyWindow(self.hwnd) };
     }
 }
 
-/// 窗口过程：热键消息由消息泵在分发前取走，这里全部交给默认处理。
+/// 窗口过程：热键与鼠标热键的消息交给处理函数，其余交给默认处理。
 unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    let message = match msg {
+        WM_HOTKEY => Some(HotkeyMessage::Keyboard(wparam.0 as i32)),
+        WM_MOUSE_HOTKEY => Some(HotkeyMessage::Mouse(wparam.0 as u32)),
+        _ => None,
+    };
+    if let Some(message) = message {
+        dispatch(hwnd, message);
+        return LRESULT(0);
+    }
     // SAFETY: 参数原样转交。
     unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
+}
+
+/// 调用窗口的处理函数。调用期间先把它从表里取出，处理函数里再设或删处理函数也不会重复借用。
+fn dispatch(hwnd: HWND, message: HotkeyMessage) {
+    let key = hwnd.0 as usize;
+    let Some(mut handler) = HANDLERS.with(|h| h.borrow_mut().remove(&key)) else {
+        return;
+    };
+    handler(message);
+    HANDLERS.with(|h| {
+        h.borrow_mut().entry(key).or_insert(handler);
+    });
 }
