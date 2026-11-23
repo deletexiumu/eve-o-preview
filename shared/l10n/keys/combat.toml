@@ -1,9 +1,11 @@
 # combat 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/combat.toml。
 
 swift_file = "CombatStrings"
+notes = "战斗提醒域的文字（反馈文档 5.3 节）：设置窗口「提醒」页的全部文字。"
 
 [protocols.CombatStrings]
 doc = "「提醒」页的文字。"
+accessor = "combat"
 
 [CombatStrings.pageSubtitle]
 section = "页头"

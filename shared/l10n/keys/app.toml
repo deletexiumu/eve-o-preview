@@ -1,18 +1,32 @@
 # app 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/app.toml。
 
 swift_file = "Strings"
+notes = """
+菜单与设置窗口的文字（反馈文档 5.3 节）：菜单栏菜单、主菜单的「编辑」菜单、缩略图的右键菜单与占位文字、设置窗口。
+「切换与热键」页的文字在热键域（hotkey），「提醒」页的文字在战斗提醒域（combat），都不在这里。
+每条文字的说明写明它出现在界面的哪里，供翻译时判断长度与语气。设置窗口的文字按页分组，组内顺序与页面上从上到下一致。翻译时注意：
+- 侧栏只有 200 点宽，放图标后约剩 140 点，页名称宜短（俄文尤其）。
+- 表单行的标签在左、控件在右，标签过长会把控件挤到下一行。
+- 系统权限与系统设置里的名称，用 macOS 在该语言下的官方叫法。"""
 
 [protocols.SettingsStrings]
 doc = "设置窗口的文字。"
+accessor = "settings"
 
 [protocols.MenuStrings]
 doc = "菜单栏菜单的文字。菜单每次打开时重建，语言切换后不用另外刷新。"
+accessor = "menu"
 
 [protocols.EditMenuStrings]
-doc = "主菜单「编辑」菜单的文字。应用没有 Dock 图标，菜单栏上看不到这个菜单， 但设置窗口的文本框要靠它响应 Cmd+C、Cmd+V 等快捷键。语言切换后由 AppDelegate 重建。 译文取 macOS 自己在该语言下的菜单名（AppKit 的 MenuCommands.loctable）。"
+doc = """
+主菜单「编辑」菜单的文字。应用没有 Dock 图标，菜单栏上看不到这个菜单，
+但设置窗口的文本框要靠它响应 Cmd+C、Cmd+V 等快捷键。语言切换后由 AppDelegate 重建。
+译文取 macOS 自己在该语言下的菜单名（AppKit 的 MenuCommands.loctable）。"""
+accessor = "editMenu"
 
 [protocols.ThumbnailStrings]
 doc = "缩略图的右键菜单与占位文字。右键菜单每次打开时新建；占位文字在每次重算时重新设置。"
+accessor = "thumbnail"
 
 [SettingsStrings.windowTitle]
 section = "窗口与通用"

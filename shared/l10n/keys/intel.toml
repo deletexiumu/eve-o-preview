@@ -1,9 +1,15 @@
 # intel 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/intel.toml。
 
 swift_file = "IntelStrings"
+notes = """
+预警域的文字（docs/macos/design-intel-translate.md 第 11 节）：设置窗口「预警」页、预警浮窗的标题与状态行、
+浮窗每一行里的时间、跳数、数量与用语。
+用词按第 11 节的词表：浮窗、预警、频道、跳、敌对、聊天日志、星图数据、人名核对；ESI 不翻译。
+第 11 节列了 53 条；另加 pilotCacheCount 一条，给「预警」页的人名缓存一行显示条数。"""
 
 [protocols.IntelStrings]
 doc = "预警域的全部文字。"
+accessor = "intel"
 
 [IntelStrings.pageSubtitle]
 section = "页头、开关与频道"

@@ -98,6 +98,12 @@ jobs:
           swift --version
           xcodebuild -version
 
+      # 文案的 TOML 校验不过，或改了 TOML 没重新生成 Swift 时，在这里拦下（架构文档 5.2 节）。要 Python 3.11+（tomllib）。
+      - name: 文案生成结果
+        run: |
+          python3 --version
+          python3 shared/tools/gen_l10n.py --check
+
       # 只查 macOS 的 Swift 代码；windows/ 的 Rust 与 Slint 由 windows.yml 查。
       - name: 质量门禁
         run: python3 scripts/check_quality.py macos/Sources macos/Tests

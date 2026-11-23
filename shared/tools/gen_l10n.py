@@ -3,9 +3,15 @@
 """界面文案的校验与代码生成（docs/windows/architecture.md 5.2 节）。只用 Python 3.11+ 的标准库。
 
 数据在 shared/l10n/：
-- keys/<域>.toml：每个协议（[protocols.<协议>]）与每条文案（[<协议>.<键>]）的说明、参数、所在分节；
-  按数量变化的文案写 plural = "<参数>"，按参数取值分支的写 select = "<参数>" 与 cases。
+- keys/<域>.toml：域的说明（notes）；每个协议（[protocols.<协议>]）的说明与 L10n 上的访问器名（accessor）；
+  每条文案（[<协议>.<键>]）的说明、参数、所在分节。按数量变化的文案写 plural = "<参数>"，
+  按参数取值分支的写 select = "<参数>" 与 cases。
 - <语言>/<域>.toml：每种语言一份，[<协议>] 下每个键一条文字。
+
+生成的 Swift（macos/Sources/EVEOPreview/Localization/Generated/）：
+- <域的 swift_file>.swift：协议与 L10n 上的访问器。
+- <语言>/<域的 swift_file>+<语言>.swift：每种语言每个协议一个结构体，类型名是「协议名 + 大写语言代码」。
+- L10nPlural.swift：复数规则。
 
 文字里的占位符：
 - {名字}：参数原样插入。
@@ -26,7 +32,6 @@
 from __future__ import annotations
 
 import argparse
-import itertools
 import re
 import sys
 import tomllib
@@ -36,7 +41,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 L10N = ROOT / "shared/l10n"
 SWIFT_OUT = ROOT / "macos/Sources/EVEOPreview/Localization/Generated"
-SWIFT_TEST_OUT = ROOT / "macos/Tests/EVEOPreviewL10nTests"
 
 # 语言的顺序与 macOS 的 AppLanguage 一致。
 LANGS = ["en", "zh", "ru", "ja", "ko", "fr", "de", "es"]
@@ -108,12 +112,21 @@ class Key:
 
 
 @dataclass
+class Protocol:
+    """一个协议：说明与 L10n 上的访问器名。"""
+
+    doc: str
+    accessor: str
+
+
+@dataclass
 class Domain:
     """一个域：一个 keys 文件，对应 macOS 的一组 Swift 文件。"""
 
     name: str
     swift_file: str
-    protocols: dict[str, str]
+    notes: str
+    protocols: dict[str, Protocol]
     keys: list[Key]
     texts: dict[str, dict[str, dict[str, object]]] = field(default_factory=dict)
 
@@ -131,15 +144,17 @@ def load() -> list[Domain]:
     domains = []
     for path in sorted((L10N / "keys").glob("*.toml")):
         data = tomllib.loads(path.read_text(encoding="utf-8"))
-        protocols = {name: info["doc"] for name, info in data.pop("protocols").items()}
+        protocols = {name: Protocol(info["doc"].strip(), info["accessor"])
+                     for name, info in data.pop("protocols").items()}
         swift_file = data.pop("swift_file")
+        notes = data.pop("notes").strip()
         keys = []
         for proto in protocols:
             for name, info in data.get(proto, {}).items():
                 keys.append(Key(proto, name, info.get("doc", ""), info.get("section"),
                                 [parse_param(p) for p in info.get("params", [])],
                                 info.get("plural"), info.get("select"), info.get("cases", [])))
-        domain = Domain(path.stem, swift_file, protocols, keys)
+        domain = Domain(path.stem, swift_file, notes, protocols, keys)
         for lang in LANGS:
             lang_path = L10N / lang / path.name
             domain.texts[lang] = tomllib.loads(lang_path.read_text(encoding="utf-8")) if lang_path.exists() else {}
@@ -326,19 +341,66 @@ def swift_member(key: Key, lang: str, value: object, indent: str) -> list[str]:
     return [f"{sig} {{", *body, f"{indent}}}"]
 
 
-def swift_lang_file(domain: Domain, lang: str, suffix: str) -> str:
+def swift_doc(text: str, indent: str = "") -> list[str]:
+    """说明文字 → 每行一条 /// 注释。"""
+    return [f"{indent}/// {line}".rstrip() for line in text.splitlines()]
+
+
+def swift_lang_file(domain: Domain, lang: str) -> str:
     """一个域一种语言的 Swift 文件。"""
-    lines = [f"// {GENERATED}", "//", f"// {domain.swift_file} 域的文字（{lang}）。", "",
+    lines = [f"// {GENERATED}", "//", f"// {domain.name} 域的文字（{lang}），来自 shared/l10n/{lang}/{domain.name}.toml。", "",
              "import Foundation", "import EVEOPreviewCore", ""]
-    for proto, doc in domain.protocols.items():
-        lines.append(f"/// {doc}（{lang}）")
-        lines.append(f"struct {proto}{lang.upper()}{suffix}: {proto} {{")
+    for proto, info in domain.protocols.items():
+        lines.append(f"/// {info.doc.splitlines()[0].rstrip('。')}（{lang}）。")
+        lines.append(f"struct {proto}{lang.upper()}: {proto} {{")
         for key in (k for k in domain.keys if k.proto == proto):
             if key.section:
                 lines.append(f"    // MARK: {key.section}")
             lines.extend(swift_member(key, lang, domain.texts[lang][proto][key.name], "    "))
         lines.append("}")
         lines.append("")
+    return "\n".join(lines)
+
+
+def swift_protocol_file(domain: Domain) -> str:
+    """一个域的协议与 L10n 上的访问器。"""
+    lines = [f"// {GENERATED}", "//"]
+    lines += [f"// {line}".rstrip() for line in domain.notes.splitlines()]
+    lines += ["//",
+              "// 每种语言对每个协议各有一个不含存储属性的结构体（<语言>/ 下的文件）。带参数的文字是函数。",
+              "// 访问器按 L10n.language 每次访问时取，切换语言后下次访问即是新语言；switch 不写 default，",
+              "// 加语言时编译器会指出要补的地方。",
+              "", "import Foundation", "import EVEOPreviewCore", ""]
+    for proto, info in domain.protocols.items():
+        lines += swift_doc(info.doc)
+        lines.append(f"protocol {proto}: Sendable {{")
+        first = True
+        for key in (k for k in domain.keys if k.proto == proto):
+            if key.section:
+                if not first:
+                    lines.append("")
+                lines.append(f"    // MARK: {key.section}")
+            first = False
+            lines += swift_doc(key.doc, "    ")
+            if key.is_func:
+                lines.append(f"    func {key.name}({', '.join(p.swift for p in key.params)}) -> String")
+            else:
+                lines.append(f"    var {key.name}: String {{ get }}")
+        lines.append("}")
+        lines.append("")
+    lines.append("extension L10n {")
+    for i, (proto, info) in enumerate(domain.protocols.items()):
+        if i:
+            lines.append("")
+        lines.append(f"    /// {info.doc.splitlines()[0]}")
+        lines.append(f"    static var {info.accessor}: any {proto} {{")
+        lines.append("        switch L10n.language {")
+        for lang in LANGS:
+            lines.append(f"        case .{lang}: return {proto}{lang.upper()}()")
+        lines.append("        }")
+        lines.append("    }")
+    lines.append("}")
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -372,83 +434,28 @@ enum L10nPlural {{
 """
 
 
-# ---------------------------------------------------------------- Swift 双跑测试
-
-SAMPLES = {
-    "String": ['"«X»"', '"/Users/pilot/Documents/EVE/logs"'],
-    "Int": ["0", "1", "2", "3", "4", "5", "11", "12", "14", "21", "22", "25", "101", "111", "1234"],
-    "Int32": ["-25300", "0", "42"],
-    "Int64": ["0", "1536"],
-    "Double": ["0.5", "1", "1.5", "2", "2.25", "10", "29.97", "60"],
-    "[String]": ['["Local"]', '["Local", "Corp"]', '["Fleet", "Alliance", "Intel"]'],
-    "String?": ["nil", '"12 MB"'],
-}
-
-
-def swift_samples(key: Key, param: Param) -> list[str]:
-    if key.select == param.name and param.type == "String":
-        return ['""', '"quota exceeded"']
-    if param.type in SAMPLES:
-        return SAMPLES[param.type]
-    return [f".{c}" for c in key.cases] if key.select == param.name else []
-
-
-def swift_double_run_test(domains: list[Domain]) -> str:
-    """临时的双跑测试：每种语言每条文案，旧的手写实现与生成的实现结果逐字相同。
-
-    每个协议一个比较函数，逐条把不同的结果记下来；每种语言调用一次。不用逐条的 #expect，
-    几千个宏展开会让编译很慢。
-    """
-    lines = [f"// {GENERATED}", "//",
-             "// 临时测试（架构文档 5.2 节）：手写的文案与生成的文案逐字相同。切换到生成的代码后删除。", "",
-             "import Testing", "import Foundation", "import EVEOPreviewCore", "@testable import EVEOPreview", ""]
-    for domain in domains:
-        for proto in domain.protocols:
-            keys = [k for k in domain.keys if k.proto == proto]
-            lines.append(f"/// 比较 {proto} 的两个实现，返回不同的条目。")
-            lines.append(f"private func diff(_ old: any {proto}, _ new: any {proto}) -> [String] {{")
-            lines.append("    var out: [String] = []")
-            lines.append("    func check(_ label: String, _ a: String, _ b: String) {")
-            lines.append('        if a != b { out.append("\\(label): \\(a) ≠ \\(b)") }')
-            lines.append("    }")
-            for key in keys:
-                if not key.is_func:
-                    lines.append(f'    check("{key.name}", old.{key.name}, new.{key.name})')
-                    continue
-                samples = [swift_samples(key, p) for p in key.params]
-                for i in range(max(len(x) for x in samples)):
-                    args = ", ".join((f"{p.label}: " if p.label != "_" else "") + x[i % len(x)]
-                                     for p, x in zip(key.params, samples))
-                    lines.append(f'    check("{key.name} #{i}", old.{key.name}({args}), new.{key.name}({args}))')
-            lines.append("    return out")
-            lines.append("}")
-            lines.append("")
-            lines.append(f"@Test func {proto[0].lower() + proto[1:]}MatchesGenerated() {{")
-            for lang in LANGS:
-                lines.append(f'    #expect(diff({proto}{lang.upper()}(), {proto}{lang.upper()}Gen()) == [], "{lang}")')
-            lines.append("}")
-            lines.append("")
-    return "\n".join(lines)
-
-
 # ---------------------------------------------------------------- 入口
 
-def outputs(domains: list[Domain], suffix: str, double_run: bool) -> dict[Path, str]:
+def outputs(domains: list[Domain]) -> dict[Path, str]:
     """全部生成文件：路径 → 内容。"""
     files = {SWIFT_OUT / "L10nPlural.swift": SWIFT_SUPPORT}
     for domain in domains:
+        files[SWIFT_OUT / f"{domain.swift_file}.swift"] = swift_protocol_file(domain)
         for lang in LANGS:
-            files[SWIFT_OUT / lang / f"{domain.swift_file}+{lang}.swift"] = swift_lang_file(domain, lang, suffix)
-    if double_run:
-        files[SWIFT_TEST_OUT / "L10nDoubleRunTests.swift"] = swift_double_run_test(domains)
+            files[SWIFT_OUT / lang / f"{domain.swift_file}+{lang}.swift"] = swift_lang_file(domain, lang)
     return files
+
+
+def stale_files(files: dict[Path, str]) -> list[Path]:
+    """内容过期的生成文件，以及生成目录里不该有的多余文件。"""
+    stale = [p for p, text in files.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
+    extra = [p for p in SWIFT_OUT.rglob("*.swift") if p not in files]
+    return stale + sorted(extra)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--check", action="store_true", help="只校验，并核对生成结果没有过期")
-    parser.add_argument("--swift-suffix", default="", help="生成的 Swift 类型名后缀（双跑期间用 Gen）")
-    parser.add_argument("--double-run", action="store_true", help="同时生成新旧实现的对照测试")
     args = parser.parse_args()
 
     domains = load()
@@ -457,15 +464,18 @@ def main() -> int:
         print("\n".join(problems), file=sys.stderr)
         print(f"文案校验失败：{len(problems)} 个问题", file=sys.stderr)
         return 1
-    files = outputs(domains, args.swift_suffix, args.double_run)
+    files = outputs(domains)
     if args.check:
-        stale = [p for p, text in files.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
+        stale = stale_files(files)
         if stale:
             print("生成结果过期，运行 python3 shared/tools/gen_l10n.py 后提交：", file=sys.stderr)
             print("\n".join(str(p.relative_to(ROOT)) for p in stale), file=sys.stderr)
             return 1
         print(f"文案校验通过，生成结果是最新的（{len(files)} 个文件）")
         return 0
+    for path in SWIFT_OUT.rglob("*.swift"):
+        if path not in files:
+            path.unlink()
     for path, text in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")

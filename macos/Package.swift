@@ -18,8 +18,6 @@ let package = Package(
         .executableTarget(name: "EVEOProbe", dependencies: ["EVEOPreviewCore", "EVEOPreviewPlatform"]),
         // Core 的 swift-testing 用例（本机没有 XCTest）。
         .testTarget(name: "EVEOPreviewCoreTests", dependencies: ["EVEOPreviewCore"]),
-        // 临时：手写文案与 shared/l10n 生成的文案逐字对照（架构文档 5.2 节），切换完成后删除。
-        .testTarget(name: "EVEOPreviewL10nTests", dependencies: ["EVEOPreview"]),
     ],
     // 全部目标使用 Swift 6 语言模式（严格并发检查）。
     swiftLanguageModes: [.v6]

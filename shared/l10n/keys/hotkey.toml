@@ -1,9 +1,14 @@
 # hotkey 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/hotkey.toml。
 
 swift_file = "HotkeyStrings"
+notes = """
+热键域的文字（反馈文档 5.3 节）：「切换与热键」页、录制器、热键问题提示、作用范围，
+以及菜单栏菜单里「热键只在 EVE 内生效」一项。
+用词按反馈文档 5.5 节的词表；「作用范围」「全局」「仅游戏内」按第 13 节的术语。"""
 
 [protocols.HotkeyStrings]
 doc = "热键域的全部文字。"
+accessor = "hotkeys"
 
 [HotkeyStrings.switchingSubtitle]
 section = "切换与热键页：页首与循环组"

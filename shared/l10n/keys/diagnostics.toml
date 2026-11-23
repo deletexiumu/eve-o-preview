@@ -1,9 +1,13 @@
 # diagnostics 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/diagnostics.toml。
 
 swift_file = "DiagnosticsStrings"
+notes = """
+诊断域的文字（v1.1 设计 11.4 节）：菜单栏的「报告问题…」与崩溃提示项、「通用」页的诊断一组、报告窗口与完成页。
+Issue 的标题与正文、压缩包里的文件一律用英文，不在这里（v1.1 设计 7.5 节）。"""
 
 [protocols.DiagnosticsStrings]
 doc = "诊断域的文字。"
+accessor = "diagnostics"
 
 [DiagnosticsStrings.menuReportProblem]
 section = "菜单栏菜单"

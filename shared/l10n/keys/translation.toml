@@ -1,9 +1,14 @@
 # translation 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/translation.toml。
 
 swift_file = "TranslationStrings"
+notes = """
+翻译域的文字（docs/macos/design-intel-translate.md 第 11 节）：「翻译」页、翻译浮窗的标题与状态行、失败的原因。
+第 11 节的 55 条之外另有 2 条：keyOptional（自定义接口的 Key 可不填）与 keychainError（钥匙串写入或删除失败）。
+把失败、接口问题与队列状态换成文字的对应写在 macOS 的 TranslationStrings+Status.swift，各语言共用。"""
 
 [protocols.TranslationStrings]
 doc = "翻译域的文字。"
+accessor = "translation"
 
 [TranslationStrings.pageSubtitle]
 section = "页头与状态"

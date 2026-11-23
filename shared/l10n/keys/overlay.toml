@@ -1,9 +1,13 @@
 # overlay 域的键：每条的用途、参数与所在分节。各语言的文字在 ../<语言>/overlay.toml。
 
 swift_file = "OverlayStrings"
+notes = """
+浮窗域的文字（docs/macos/design-intel-translate.md 第 11 节）：两个浮窗的列表说明与右键菜单，
+以及「预警」「翻译」两页共用的浮窗设置与频道列表。"""
 
 [protocols.OverlayStrings]
 doc = "浮窗与两页共用设置控件的文字。"
+accessor = "overlay"
 
 [OverlayStrings.newMessages]
 section = "浮窗的列表"
