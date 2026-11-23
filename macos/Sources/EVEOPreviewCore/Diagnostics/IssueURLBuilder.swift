@@ -2,7 +2,7 @@
 //
 // 预填的 GitHub Issue 地址（v1.1 设计 7.5 节）。
 //
-// - 形式：`https://github.com/deletexiumu/eve-o-preview-macos/issues/new?title=<标题>&body=<正文>`，
+// - 形式：`https://github.com/deletexiumu/eve-o-preview/issues/new?title=<标题>&body=<正文>`，
 //   不带 `template` 与 `labels` 参数（V19）。
 // - 标题与正文一律用英文。标题超过 120 个字符时截短。正文由小节拼成，每节是 `### <标题>`、空行、内容、空行。
 // - 编码用 `URLComponents.queryItems`，再把查询串里的 `+` 换成 `%2B`（GitHub 把 `+` 当空格）。
@@ -50,7 +50,7 @@ public struct IssueDraft: Sendable, Equatable {
 /// 生成预填的 Issue 地址。
 public enum IssueURLBuilder {
     /// 仓库。
-    public static let repository = "deletexiumu/eve-o-preview-macos"
+    public static let repository = "deletexiumu/eve-o-preview"
     /// 地址的字节上限（百分号编码后）。
     public static let maxURLBytes = 6000
     /// 标题的字符上限。

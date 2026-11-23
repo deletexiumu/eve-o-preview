@@ -39,7 +39,7 @@ struct IssueURLBuilderTests {
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
         #expect(components.scheme == "https")
         #expect(components.host == "github.com")
-        #expect(components.path == "/deletexiumu/eve-o-preview-macos/issues/new")
+        #expect(components.path == "/deletexiumu/eve-o-preview/issues/new")
         #expect(Set(components.queryItems?.map(\.name) ?? []) == ["title", "body"])
     }
 

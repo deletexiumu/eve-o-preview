@@ -43,7 +43,7 @@ Ce dépôt a commencé comme un fork GitHub d'EveOPlus/eve-o-preview et a été 
 
 ### Télécharger une version
 
-1. Téléchargez `EVE-O-Preview-<version>.dmg` depuis la page [Releases](https://github.com/deletexiumu/eve-o-preview-macos/releases).
+1. Téléchargez `EVE-O-Preview-<version>.dmg` depuis la page [Releases](https://github.com/deletexiumu/eve-o-preview/releases).
 2. Ouvrez le dmg et faites glisser `EVE-O Preview.app` dans le dossier Applications.
 3. Ouvrez l'app. Son icône apparaît dans la barre des menus et, au premier lancement, la fenêtre de réglages s'ouvre sur la page « Autorisations ».
 
@@ -213,8 +213,8 @@ L'app conserve jusqu'à 5 fichiers journaux de 1 Mio chacun dans `~/Library/Logs
 
 L'app se connecte à GitHub pour les mises à jour et n'établit aucune autre connexion, sauf si vous activez l'une des fonctionnalités facultatives décrites après cette liste :
 
-- La recherche de mises à jour interroge `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases/latest` au lancement et une fois par jour tant que « Rechercher automatiquement les mises à jour » est activé, ainsi qu'à chaque fois que vous choisissez « Rechercher les mises à jour… ».
-- Lorsqu'une nouvelle version est proposée, l'app interroge aussi une fois la liste des versions `api.github.com/repos/deletexiumu/eve-o-preview-macos/releases`, avec les mêmes en-têtes, pour afficher les notes des versions que vous avez sautées.
+- La recherche de mises à jour interroge `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` au lancement et une fois par jour tant que « Rechercher automatiquement les mises à jour » est activé, ainsi qu'à chaque fois que vous choisissez « Rechercher les mises à jour… ».
+- Lorsqu'une nouvelle version est proposée, l'app interroge aussi une fois la liste des versions `api.github.com/repos/deletexiumu/eve-o-preview/releases`, avec les mêmes en-têtes, pour afficher les notes des versions que vous avez sautées.
 - L'installation d'une mise à jour télécharge `SHA256SUMS.txt` et le dmg de la version.
 
 Les requêtes ne transmettent que la version de l'app dans l'en-tête `User-Agent`, un `Accept-Language: en` fixe et une étiquette de cache ; aucun nom de personnage, réglage, journal, détail matériel, version du système ni identifiant n'est envoyé, et aucun cookie n'est utilisé. GitHub voit votre adresse IP et l'heure de la requête. Il n'y a ni télémétrie ni envoi automatique des plantages : « Signaler un problème… » crée seulement un zip sur votre Mac et ouvre une page web que vous choisissez d'envoyer ou non.

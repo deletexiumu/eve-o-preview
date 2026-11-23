@@ -27,7 +27,7 @@ If `macos/packaging/AppIcon.png` exists, the script uses it to generate the app 
 
 `macos/scripts/package-release.sh` runs `build-app.sh`, then writes the dmg, the source archives and `SHA256SUMS.txt` to `dist/release/`. The CI uses this script.
 
-A build you make yourself cannot update itself from GitHub releases, because it is not signed with the release certificate. Use a release from the [Releases](https://github.com/deletexiumu/eve-o-preview-macos/releases) page if you want in-app updates.
+A build you make yourself cannot update itself from GitHub releases, because it is not signed with the release certificate. Use a release from the [Releases](https://github.com/deletexiumu/eve-o-preview/releases) page if you want in-app updates.
 
 ### Sign with a self-signed certificate
 

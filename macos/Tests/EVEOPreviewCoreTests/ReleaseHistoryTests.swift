@@ -155,7 +155,7 @@ struct ReleaseHistoryTests {
     @Test func productionHistoryURL() {
         let feed = UpdateFeed.resolve(override: nil)
         #expect(feed.historyURL?.absoluteString
-            == "https://api.github.com/repos/deletexiumu/eve-o-preview-macos/releases?per_page=\(ReleaseHistory.pageSize)")
+            == "https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=\(ReleaseHistory.pageSize)")
     }
 
     /// 测试地址：最后一段换成 releases.json，同源；没有 .json 文件名或带查询串时不取。
