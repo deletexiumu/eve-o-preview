@@ -95,6 +95,8 @@ pub trait SettingsStrings: Sync {
     fn page_general(&self) -> &'static str;
     /// 权限页。
     fn page_permissions(&self) -> &'static str;
+    /// Windows：导航里「环境检查」页的名字（相当于 macOS 的「权限」页）。
+    fn page_environment(&self) -> &'static str;
     /// 关于页。
     fn page_about(&self) -> &'static str;
     // 客户端页
@@ -342,6 +344,40 @@ pub trait SettingsStrings: Sync {
     fn chat_log_status_access_denied(&self, path: &str) -> String;
     /// 说明：EVE 客户端要开启把聊天写入文件的设置；日志目录在「提醒」页设置（用该语言的提醒页页名）。
     fn chat_log_help(&self) -> &'static str;
+    /// Windows「环境检查」页：页头的说明。
+    fn environment_subtitle(&self) -> &'static str;
+    /// Windows「环境检查」页：权限一组的标题。
+    fn privilege_header(&self) -> &'static str;
+    /// Windows「环境检查」页：本工具以什么权限运行的一行。
+    fn self_privilege(&self) -> &'static str;
+    /// Windows「环境检查」页：以管理员权限运行。
+    fn privilege_admin(&self) -> &'static str;
+    /// Windows「环境检查」页：以普通权限运行。
+    fn privilege_standard(&self) -> &'static str;
+    /// Windows「环境检查」页：以管理员权限运行的客户端一行的名字。
+    fn elevated_clients(&self) -> &'static str;
+    /// Windows「环境检查」页：没有以管理员权限运行的客户端。
+    fn elevated_none(&self) -> &'static str;
+    /// Windows「环境检查」页：有客户端以管理员权限运行、本工具不是时的说明。
+    fn elevated_warning(&self) -> &'static str;
+    /// Windows「环境检查」页：窗口模式一组的标题。
+    fn window_mode_header(&self) -> &'static str;
+    /// Windows「环境检查」页：EVE 显示模式的建议一行的名字。
+    fn window_mode_label(&self) -> &'static str;
+    /// Windows「环境检查」页：窗口模式的说明。
+    fn window_mode_help(&self) -> &'static str;
+    /// Windows「环境检查」页：文件夹存在。
+    fn folder_found(&self) -> &'static str;
+    /// Windows「环境检查」页：文件夹不存在。
+    fn folder_missing(&self) -> &'static str;
+    /// Windows「环境检查」页：聊天日志文件夹一行的名字；括号里的文件夹名不翻译。
+    fn chatlogs_folder(&self) -> &'static str;
+    /// Windows「环境检查」页：游戏日志文件夹一行的名字；括号里的文件夹名不翻译。
+    fn gamelogs_folder(&self) -> &'static str;
+    /// Windows「环境检查」页：日志目录一组的说明。
+    fn logs_help(&self) -> &'static str;
+    /// Windows「环境检查」页：重新检查的按钮。
+    fn recheck(&self) -> &'static str;
 }
 
 /// 设置窗口的文字（en）。
@@ -451,6 +487,9 @@ impl SettingsStrings for SettingsStringsEn {
     }
     fn page_permissions(&self) -> &'static str {
         "Permissions"
+    }
+    fn page_environment(&self) -> &'static str {
+        "Environment"
     }
     fn page_about(&self) -> &'static str {
         "About"
@@ -822,6 +861,57 @@ impl SettingsStrings for SettingsStringsEn {
     fn chat_log_help(&self) -> &'static str {
         "The EVE client must be set to log chat to file. The log folder is set on the Alerts page."
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "Checks privileges, window mode and log folders to find out why thumbnails or hotkeys misbehave."
+    }
+    fn privilege_header(&self) -> &'static str {
+        "Privileges"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview runs as"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "Administrator"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "Standard user"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "Clients running as administrator"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "None"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "These clients run as administrator but EVE-O Preview does not: Windows won't let it switch to them, and hotkeys don't work while they are in front. Run both with the same privileges, preferably without administrator rights."
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "Window mode"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "Use Fixed Window or Windowed mode"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "Choose it in EVE's display settings. In exclusive fullscreen, thumbnails may not show and switching clients flickers the screen."
+    }
+    fn folder_found(&self) -> &'static str {
+        "Found"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "Not found"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "Chat logs (Chatlogs)"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "Game logs (Gamelogs)"
+    }
+    fn logs_help(&self) -> &'static str {
+        "Intel and translation read Chatlogs; combat alerts read Gamelogs. If they are missing, make sure EVE logs chat to file, or set the log folder on the Alerts page."
+    }
+    fn recheck(&self) -> &'static str {
+        "Check again"
+    }
 }
 
 /// 设置窗口的文字（zh）。
@@ -931,6 +1021,9 @@ impl SettingsStrings for SettingsStringsZh {
     }
     fn page_permissions(&self) -> &'static str {
         "权限"
+    }
+    fn page_environment(&self) -> &'static str {
+        "环境检查"
     }
     fn page_about(&self) -> &'static str {
         "关于"
@@ -1299,6 +1392,57 @@ impl SettingsStrings for SettingsStringsZh {
     fn chat_log_help(&self) -> &'static str {
         "EVE 客户端应开启把聊天记录写入文件的设置。日志目录在「提醒」页里设置。"
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "检查权限、窗口模式与日志目录，找出缩略图或热键不正常的原因。"
+    }
+    fn privilege_header(&self) -> &'static str {
+        "权限"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview 的权限"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "管理员"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "普通用户"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "以管理员权限运行的客户端"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "没有"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "这些客户端以管理员权限运行，而 EVE-O Preview 不是：系统不允许切换到它们，它们在前台时热键也不起作用。请让两者用相同的权限运行，最好都不用管理员权限。"
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "窗口模式"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "建议用「固定窗口」或「窗口」模式"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "在 EVE 的显示设置里选择。独占全屏时缩略图可能不显示，切换客户端时还会闪屏。"
+    }
+    fn folder_found(&self) -> &'static str {
+        "找到"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "找不到"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "聊天日志（Chatlogs）"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "游戏日志（Gamelogs）"
+    }
+    fn logs_help(&self) -> &'static str {
+        "预警与翻译读 Chatlogs，受击提醒读 Gamelogs。找不到时，确认 EVE 已开启把聊天记录写入文件，或在「提醒」页填写日志目录。"
+    }
+    fn recheck(&self) -> &'static str {
+        "重新检查"
+    }
 }
 
 /// 设置窗口的文字（ru）。
@@ -1408,6 +1552,9 @@ impl SettingsStrings for SettingsStringsRu {
     }
     fn page_permissions(&self) -> &'static str {
         "Разрешения"
+    }
+    fn page_environment(&self) -> &'static str {
+        "Окружение"
     }
     fn page_about(&self) -> &'static str {
         "О программе"
@@ -1780,6 +1927,57 @@ impl SettingsStrings for SettingsStringsRu {
     fn chat_log_help(&self) -> &'static str {
         "В клиенте EVE должна быть включена запись чата в файл. Папка журналов задаётся на странице «Оповещения»."
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "Проверка прав, режима окна и папок журналов, чтобы найти, почему миниатюры или горячие клавиши работают неправильно."
+    }
+    fn privilege_header(&self) -> &'static str {
+        "Права"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview запущен"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "Администратор"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "Обычный пользователь"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "Клиенты, запущенные от администратора"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "Нет"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "Эти клиенты запущены от администратора, а EVE-O Preview — нет: Windows не даёт переключаться на них, а горячие клавиши не работают, пока они на переднем плане. Запускайте оба с одинаковыми правами, лучше без прав администратора."
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "Режим окна"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "Используйте режим «Фиксированное окно» или «В окне»"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "Выберите его в настройках экрана EVE. В эксклюзивном полноэкранном режиме миниатюры могут не отображаться, а при переключении клиентов экран мерцает."
+    }
+    fn folder_found(&self) -> &'static str {
+        "Найдена"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "Не найдена"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "Журналы чата (Chatlogs)"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "Игровые журналы (Gamelogs)"
+    }
+    fn logs_help(&self) -> &'static str {
+        "Разведка и перевод читают Chatlogs, оповещения о бое — Gamelogs. Если папок нет, убедитесь, что EVE записывает чат в файл, или укажите папку журналов на странице «Оповещения»."
+    }
+    fn recheck(&self) -> &'static str {
+        "Проверить снова"
+    }
 }
 
 /// 设置窗口的文字（ja）。
@@ -1889,6 +2087,9 @@ impl SettingsStrings for SettingsStringsJa {
     }
     fn page_permissions(&self) -> &'static str {
         "権限"
+    }
+    fn page_environment(&self) -> &'static str {
+        "環境チェック"
     }
     fn page_about(&self) -> &'static str {
         "情報"
@@ -2257,6 +2458,57 @@ impl SettingsStrings for SettingsStringsJa {
     fn chat_log_help(&self) -> &'static str {
         "EVE クライアントでチャットをファイルに記録する設定を有効にしてください。ログのフォルダは「アラート」ページで設定します。"
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "権限、ウィンドウモード、ログフォルダーを確認し、サムネイルやホットキーが正しく動かない原因を探します。"
+    }
+    fn privilege_header(&self) -> &'static str {
+        "権限"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview の権限"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "管理者"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "標準ユーザー"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "管理者として実行中のクライアント"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "なし"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "これらのクライアントは管理者として実行されていますが、EVE-O Preview はそうではありません。Windows はそれらへの切り替えを許可せず、前面にある間はホットキーも効きません。両方を同じ権限で実行してください。管理者権限なしが最適です。"
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "ウィンドウモード"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "「固定ウィンドウ」または「ウィンドウ」モードを推奨"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "EVE の表示設定で選びます。排他的フルスクリーンではサムネイルが表示されないことがあり、クライアントの切り替え時に画面がちらつきます。"
+    }
+    fn folder_found(&self) -> &'static str {
+        "あり"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "見つかりません"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "チャットログ（Chatlogs）"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "ゲームログ（Gamelogs）"
+    }
+    fn logs_help(&self) -> &'static str {
+        "インテルと翻訳は Chatlogs を、被弾アラートは Gamelogs を読みます。見つからない場合は、EVE でチャットをファイルに記録する設定を確認するか、「アラート」ページでログフォルダーを指定してください。"
+    }
+    fn recheck(&self) -> &'static str {
+        "再チェック"
+    }
 }
 
 /// 设置窗口的文字（ko）。
@@ -2366,6 +2618,9 @@ impl SettingsStrings for SettingsStringsKo {
     }
     fn page_permissions(&self) -> &'static str {
         "권한"
+    }
+    fn page_environment(&self) -> &'static str {
+        "환경 점검"
     }
     fn page_about(&self) -> &'static str {
         "정보"
@@ -2734,6 +2989,57 @@ impl SettingsStrings for SettingsStringsKo {
     fn chat_log_help(&self) -> &'static str {
         "EVE 클라이언트에서 채팅을 파일로 기록하는 설정을 켜야 합니다. 로그 폴더는 「알림」 페이지에서 설정합니다."
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "권한, 창 모드, 로그 폴더를 확인해 썸네일이나 단축키가 제대로 동작하지 않는 원인을 찾습니다."
+    }
+    fn privilege_header(&self) -> &'static str {
+        "권한"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview 권한"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "관리자"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "표준 사용자"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "관리자 권한으로 실행 중인 클라이언트"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "없음"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "이 클라이언트들은 관리자 권한으로 실행 중이지만 EVE-O Preview는 그렇지 않습니다. Windows가 이 클라이언트로 전환하는 것을 허용하지 않고, 앞에 있는 동안 단축키도 동작하지 않습니다. 두 프로그램을 같은 권한으로 실행하세요. 관리자 권한 없이 실행하는 것이 가장 좋습니다."
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "창 모드"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "「고정 창」 또는 「창」 모드 권장"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "EVE의 디스플레이 설정에서 선택하세요. 독점 전체 화면에서는 썸네일이 보이지 않을 수 있고 클라이언트를 전환할 때 화면이 깜박입니다."
+    }
+    fn folder_found(&self) -> &'static str {
+        "있음"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "찾을 수 없음"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "채팅 로그(Chatlogs)"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "게임 로그(Gamelogs)"
+    }
+    fn logs_help(&self) -> &'static str {
+        "정보와 번역은 Chatlogs를, 피격 알림은 Gamelogs를 읽습니다. 찾을 수 없으면 EVE에서 채팅을 파일로 기록하는 설정을 확인하거나 「알림」 페이지에서 로그 폴더를 지정하세요."
+    }
+    fn recheck(&self) -> &'static str {
+        "다시 점검"
+    }
 }
 
 /// 设置窗口的文字（fr）。
@@ -2843,6 +3149,9 @@ impl SettingsStrings for SettingsStringsFr {
     }
     fn page_permissions(&self) -> &'static str {
         "Autorisations"
+    }
+    fn page_environment(&self) -> &'static str {
+        "Environnement"
     }
     fn page_about(&self) -> &'static str {
         "À propos"
@@ -3214,6 +3523,57 @@ impl SettingsStrings for SettingsStringsFr {
     fn chat_log_help(&self) -> &'static str {
         "Le client EVE doit être réglé pour enregistrer les discussions dans un fichier. Le dossier des journaux se règle sur la page « Alertes »."
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "Vérifie les privilèges, le mode d'affichage et les dossiers de journaux pour comprendre pourquoi les vignettes ou les raccourcis fonctionnent mal."
+    }
+    fn privilege_header(&self) -> &'static str {
+        "Privilèges"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview s'exécute en tant que"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "Administrateur"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "Utilisateur standard"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "Clients exécutés en administrateur"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "Aucun"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "Ces clients s'exécutent en administrateur, mais pas EVE-O Preview : Windows l'empêche de basculer vers eux, et les raccourcis ne fonctionnent pas quand ils sont au premier plan. Lancez les deux avec les mêmes privilèges, de préférence sans droits d'administrateur."
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "Mode d'affichage"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "Utilisez le mode Fenêtre fixe ou Fenêtré"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "Choisissez-le dans les réglages d'affichage d'EVE. En plein écran exclusif, les vignettes peuvent ne pas s'afficher et l'écran clignote lors du changement de client."
+    }
+    fn folder_found(&self) -> &'static str {
+        "Trouvé"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "Introuvable"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "Journaux de chat (Chatlogs)"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "Journaux de jeu (Gamelogs)"
+    }
+    fn logs_help(&self) -> &'static str {
+        "Le renseignement et la traduction lisent Chatlogs ; les alertes de combat lisent Gamelogs. S'ils sont introuvables, vérifiez qu'EVE enregistre le chat dans un fichier, ou indiquez le dossier des journaux dans la page Alertes."
+    }
+    fn recheck(&self) -> &'static str {
+        "Vérifier à nouveau"
+    }
 }
 
 /// 设置窗口的文字（de）。
@@ -3323,6 +3683,9 @@ impl SettingsStrings for SettingsStringsDe {
     }
     fn page_permissions(&self) -> &'static str {
         "Berechtigungen"
+    }
+    fn page_environment(&self) -> &'static str {
+        "Umgebung"
     }
     fn page_about(&self) -> &'static str {
         "Info"
@@ -3694,6 +4057,57 @@ impl SettingsStrings for SettingsStringsDe {
     fn chat_log_help(&self) -> &'static str {
         "Im EVE-Client muss das Protokollieren des Chats in eine Datei aktiviert sein. Der Protokollordner wird auf der Seite „Warnungen“ festgelegt."
     }
+    fn environment_subtitle(&self) -> &'static str {
+        "Prüft Rechte, Fenstermodus und Protokollordner, um herauszufinden, warum Miniaturen oder Hotkeys nicht richtig funktionieren."
+    }
+    fn privilege_header(&self) -> &'static str {
+        "Rechte"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview läuft als"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "Administrator"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "Standardbenutzer"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "Als Administrator laufende Clients"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "Keine"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "Diese Clients laufen als Administrator, EVE-O Preview aber nicht: Windows erlaubt kein Umschalten zu ihnen, und Hotkeys wirken nicht, solange sie im Vordergrund sind. Starten Sie beide mit denselben Rechten, am besten ohne Administratorrechte."
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "Fenstermodus"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "Modus „Festes Fenster“ oder „Fenster“ verwenden"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "Wählen Sie ihn in den Anzeigeeinstellungen von EVE. Im exklusiven Vollbild werden Miniaturen eventuell nicht angezeigt, und beim Umschalten flackert der Bildschirm."
+    }
+    fn folder_found(&self) -> &'static str {
+        "Gefunden"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "Nicht gefunden"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "Chatprotokolle (Chatlogs)"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "Spielprotokolle (Gamelogs)"
+    }
+    fn logs_help(&self) -> &'static str {
+        "Aufklärung und Übersetzung lesen Chatlogs, Kampfwarnungen lesen Gamelogs. Fehlen sie, prüfen Sie, ob EVE den Chat in eine Datei protokolliert, oder legen Sie den Protokollordner auf der Seite „Warnungen“ fest."
+    }
+    fn recheck(&self) -> &'static str {
+        "Erneut prüfen"
+    }
 }
 
 /// 设置窗口的文字（es）。
@@ -3803,6 +4217,9 @@ impl SettingsStrings for SettingsStringsEs {
     }
     fn page_permissions(&self) -> &'static str {
         "Permisos"
+    }
+    fn page_environment(&self) -> &'static str {
+        "Entorno"
     }
     fn page_about(&self) -> &'static str {
         "Acerca de"
@@ -4173,6 +4590,57 @@ impl SettingsStrings for SettingsStringsEs {
     }
     fn chat_log_help(&self) -> &'static str {
         "El cliente de EVE debe tener activada la opción de guardar el chat en un archivo. La carpeta de registros se configura en la página «Alertas»."
+    }
+    fn environment_subtitle(&self) -> &'static str {
+        "Comprueba los permisos, el modo de ventana y las carpetas de registros para averiguar por qué las miniaturas o los atajos no funcionan bien."
+    }
+    fn privilege_header(&self) -> &'static str {
+        "Permisos"
+    }
+    fn self_privilege(&self) -> &'static str {
+        "EVE-O Preview se ejecuta como"
+    }
+    fn privilege_admin(&self) -> &'static str {
+        "Administrador"
+    }
+    fn privilege_standard(&self) -> &'static str {
+        "Usuario estándar"
+    }
+    fn elevated_clients(&self) -> &'static str {
+        "Clientes ejecutados como administrador"
+    }
+    fn elevated_none(&self) -> &'static str {
+        "Ninguno"
+    }
+    fn elevated_warning(&self) -> &'static str {
+        "Estos clientes se ejecutan como administrador y EVE-O Preview no: Windows no le deja cambiar a ellos y los atajos no funcionan mientras están en primer plano. Ejecuta ambos con los mismos permisos, preferiblemente sin permisos de administrador."
+    }
+    fn window_mode_header(&self) -> &'static str {
+        "Modo de ventana"
+    }
+    fn window_mode_label(&self) -> &'static str {
+        "Usa el modo Ventana fija o Ventana"
+    }
+    fn window_mode_help(&self) -> &'static str {
+        "Elígelo en los ajustes de pantalla de EVE. En pantalla completa exclusiva, las miniaturas pueden no mostrarse y la pantalla parpadea al cambiar de cliente."
+    }
+    fn folder_found(&self) -> &'static str {
+        "Encontrada"
+    }
+    fn folder_missing(&self) -> &'static str {
+        "No encontrada"
+    }
+    fn chatlogs_folder(&self) -> &'static str {
+        "Registros de chat (Chatlogs)"
+    }
+    fn gamelogs_folder(&self) -> &'static str {
+        "Registros de juego (Gamelogs)"
+    }
+    fn logs_help(&self) -> &'static str {
+        "La inteligencia y la traducción leen Chatlogs; las alertas de combate leen Gamelogs. Si no aparecen, comprueba que EVE guarda el chat en un archivo o indica la carpeta de registros en la página Alertas."
+    }
+    fn recheck(&self) -> &'static str {
+        "Volver a comprobar"
     }
 }
 
