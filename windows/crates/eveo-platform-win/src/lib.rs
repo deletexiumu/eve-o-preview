@@ -16,6 +16,7 @@ pub mod discovery;
 pub mod events;
 pub mod hotkey;
 pub mod message_loop;
+pub mod mouse_hook;
 pub mod process;
 pub mod screens;
 pub mod screenshot;
