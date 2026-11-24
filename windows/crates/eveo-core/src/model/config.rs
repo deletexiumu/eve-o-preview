@@ -4,6 +4,7 @@
 // 一个 config.json 装下全部配置方案。两端用同一份格式：键名、默认值与 schemaVersion 序列相同。
 
 use crate::config::CURRENT_SCHEMA_VERSION;
+use crate::frame_cap::FrameCapSettings;
 use crate::logging::LogLevel;
 use crate::model::{DEFAULT_PROFILE_NAME, LanguagePreference, Profile, TranslationEndpointSettings};
 
@@ -79,5 +80,8 @@ config_struct! {
         req show_dock_icon: bool = true, "showDockIcon";
         /// 聊天翻译的模型服务：预设、地址与模型名。
         req translation_endpoint: TranslationEndpointSettings = TranslationEndpointSettings::default(), "translationEndpoint";
+        /// 用 NVIDIA 驱动给 EVE 客户端限帧（Windows 独有）；`None` 表示从没设置过，等同于关闭。
+        /// 为 `None` 时不写这个键，两端共用的配置用例（shared/fixtures/config）不受影响。
+        opt frame_cap: FrameCapSettings = None, "frameCap";
     }
 }

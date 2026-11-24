@@ -25,6 +25,7 @@ pub mod known_folders;
 pub mod menu;
 pub mod message_loop;
 pub mod mouse_hook;
+pub mod nvidia;
 pub mod overlay;
 pub mod panel;
 pub mod process;
