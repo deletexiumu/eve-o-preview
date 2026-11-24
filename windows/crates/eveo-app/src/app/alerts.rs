@@ -113,6 +113,7 @@ impl App {
 
     /// 记下跟踪服务的状态；设置窗口开着时刷新状态行。
     fn set_combat_status(&mut self, status: CombatLogStatus) {
+        super::logging::combat_status_changed(&self.combat_status, &status);
         self.combat_status = status;
         if let Some(window) = &self.settings {
             alerts::show_status(window, &self.combat_status);

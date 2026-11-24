@@ -6,7 +6,7 @@
 // - 页上的状态：在线角色的位置、参考星系查不到、人名核对状态与缓存条数、星图数据。每次定时器都算一份，
 //   与上一次不同才交给界面（位置的「多久以前」与核对的等待秒数随时间变）。
 // - 手动位置：预警控制器在手动位置变了时（手动设置、清除、或被新的线索覆盖）标记，这里取走写进 state.json。
-//   写盘失败只影响重启后的恢复，不提示用户（与 macOS 相同，写盘失败只记日志；诊断日志接上前直接丢掉）。
+//   写盘失败只影响重启后的恢复，不提示用户（与 macOS 相同，写盘失败只记日志）。
 // 隐私：角色名只进 state.json（留在本机，不进问题报告），不写日志。
 
 //! 「预警」页的位置、人名核对与星图数据。
@@ -16,12 +16,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
 
 use eveo_app_core::chat::intel_page::IntelPageState;
+use eveo_app_core::log::Logger;
 use eveo_core::overlay::OverlayKind;
 use eveo_ui::intel::{IntelView, LocationView, show_intel_view};
 use slint::ComponentHandle;
 
 use super::intel::wall_clock;
 use super::{App, Input, Runtime, post};
+
+/// state.json 的日志。
+const STATE_LOG: Logger = Logger::new("State");
 
 /// 「预警」页的按钮。
 #[derive(Debug, Clone)]
@@ -102,8 +106,10 @@ impl App {
         let Some(manual) = self.chat.features.intel_mut().take_manual_locations() else {
             return;
         };
-        // 写盘失败时内存里的记录照常用，下次变化时再写（诊断日志接上之前不记）。
-        let _ = self.chat.state.set_manual_locations(manual);
+        // 写盘失败时内存里的记录照常用，下次变化时再写；日志只记错误的种类，不记路径与角色名。
+        if let Err(error) = self.chat.state.set_manual_locations(manual) {
+            STATE_LOG.error(format_args!("写 state.json 失败：{:?}", error.kind()));
+        }
     }
 
     /// 设置窗口开着时算一份「预警」页的运行时状态，与上一次不同才交给界面。

@@ -18,6 +18,7 @@ use std::time::{Duration, Instant};
 use eveo_app_core::config_store::{ConfigWarning, JsonFileConfigStore, default_config};
 use eveo_app_core::game_log::GameLogTailer;
 use eveo_app_core::gesture::{Button, GestureOutput, Modifiers};
+use eveo_app_core::log;
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::{Coordinator, Effect, Event, ForegroundOwner, SettingsPage};
 use eveo_core::combat_log::CombatLogStatus;
@@ -49,6 +50,7 @@ mod environment;
 mod general;
 mod intel;
 mod intel_page;
+mod logging;
 mod profiles;
 mod shell;
 mod switching_page;
@@ -186,6 +188,8 @@ struct App {
     combat_status: CombatLogStatus,
     /// 预警浮窗与聊天日志。
     chat: intel::ChatRuntime,
+    /// 退出的计时：收到退出时开始，run() 的收尾里逐步记下耗时。
+    quit_timer: Option<logging::QuitTimer>,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -203,19 +207,32 @@ pub fn run() -> ExitCode {
     let background = std::env::args().any(|a| a == "--background");
     // 极少数环境没有 APPDATA（例如以服务账户运行）时退回当前目录，至少能运行。
     let paths = DataPaths::from_env().unwrap_or_else(|| DataPaths::new(".", None));
+    // 先装上文件日志，读配置的错误才能写进去。
+    let logs_dir = logging::log_directory(paths.logs_dir());
+    logging::start(&logs_dir);
     let store = JsonFileConfigStore::new(paths.config_file());
     let (config, writable, first_run) = match store.load(&local_timestamp()) {
         Ok(result) => {
+            result.warnings.iter().for_each(logging::config_warning);
             let first_run = result.warnings.contains(&ConfigWarning::CreatedDefault);
             (result.config, true, first_run)
         }
         // 新版本的配置或读文件失败：用默认配置运行，本次会话不写盘，避免覆盖用户的文件。
-        Err(_) => (default_config(), false, false),
+        Err(error) => {
+            logging::LOG.error(format_args!(
+                "读配置失败，用默认配置运行，本次不写盘：{}",
+                log::redact(&error.to_string())
+            ));
+            (default_config(), false, false)
+        }
     };
+    logging::apply_level(&config);
 
     let screens = screens::screens();
     // 热键窗口与托盘窗口是应用能运行的前提；建不了（系统资源耗尽）时直接退出。
     let (Ok(hotkey_window), Ok(tray)) = (HotkeyWindow::create(), TrayIcon::create("EVE-O Preview")) else {
+        logging::LOG.fault("建不了热键窗口或托盘窗口，退出");
+        log::flush();
         return ExitCode::FAILURE;
     };
     let now = Instant::now();
@@ -242,7 +259,7 @@ pub fn run() -> ExitCode {
         tray,
         settings: None,
         recording: None,
-        logs_dir: paths.logs_dir(),
+        logs_dir,
         settings_placed: false,
         settings_focus_pending: false,
         language,
@@ -251,6 +268,7 @@ pub fn run() -> ExitCode {
         game_log: None,
         combat_status: CombatLogStatus::Stopped,
         chat: intel::ChatRuntime::new(&paths, language),
+        quit_timer: None,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -277,11 +295,21 @@ pub fn run() -> ExitCode {
     // 没有任何 Slint 窗口时也要一直跑：托盘应用，关掉设置窗口不退出。
     let result = slint::run_event_loop_until_quit();
     timer.stop();
-    // 退出：等待中的配置立即写盘，再销毁缩略图窗口（Drop 注销 DWM 缩略图）。热键与钩子随 App 释放。
+    // 退出：等待中的配置立即写盘，停掉后台服务，再销毁缩略图窗口（Drop 注销 DWM 缩略图）。
+    // 热键、钩子、托盘与设置窗口随 App 释放。每一步都记耗时。
     let mut app = runtime.app.borrow_mut();
-    app.flush();
-    app.chat_stop();
-    app.thumbnails.clear();
+    let mut quit = app
+        .quit_timer
+        .take()
+        .unwrap_or_else(|| logging::QuitTimer::start("主循环结束"));
+    quit.mark("主循环返回");
+    quit.step("写配置", || app.flush());
+    app.chat_stop(&mut quit);
+    quit.step("停止游戏日志", || app.stop_game_logs());
+    quit.step("销毁缩略图", || app.thumbnails.clear());
+    drop(app);
+    quit.step("释放热键、钩子、托盘与窗口", || drop(runtime));
+    quit.finish();
     if result.is_ok() {
         ExitCode::SUCCESS
     } else {
@@ -451,6 +479,8 @@ impl App {
                 self.update_language();
                 // 预警的开关、频道与「保留最近」可能变了：聊天日志的跟踪与浮窗的内容跟着变。
                 self.chat_config_changed();
+                // 「详细日志」可能变了：立即生效。
+                logging::apply_level(&config);
                 // 「通用」「提醒」「预警」「翻译」页同样只随配置变化；「环境检查」页的日志目录可能改了。
                 if let Some(window) = &self.settings {
                     self.show_general(window);
@@ -474,10 +504,9 @@ impl App {
             Effect::OpenSettings(page) => self.open_settings(page, runtime),
             Effect::WatchGameLogs(directory) => self.watch_game_logs(directory.as_deref()),
             Effect::StopGameLogs => self.stop_game_logs(),
-            // 退出：先写盘，再让主循环返回到 run() 的收尾。
+            // 退出：让主循环返回到 run() 的收尾，写盘与停止后台服务都在那里做（逐步记耗时）。
             Effect::Quit => {
-                self.flush();
-                self.chat_stop();
+                self.quit_timer = Some(logging::QuitTimer::start("托盘或菜单"));
                 let _ = slint::quit_event_loop();
             }
         }
@@ -574,8 +603,11 @@ impl App {
 
     /// 把配置写盘。失败时不重试：下一次改动会再写。
     fn flush(&mut self) {
-        if self.save_at.take().is_some() && self.writable {
-            let _ = self.store.save(self.coordinator.config());
+        if self.save_at.take().is_some()
+            && self.writable
+            && let Err(error) = self.store.save(self.coordinator.config())
+        {
+            logging::LOG.error(format_args!("写配置失败：{}", log::redact(&error.to_string())));
         }
     }
 
