@@ -1,17 +1,40 @@
 <p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="Icône d'EVE-O Preview for macOS"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | **Français** | [Deutsch](README.de.md) | [Español](README.es.md)
 
 Cette traduction a été produite automatiquement ; en cas de divergence avec le [README anglais](README.md), c'est la version anglaise qui fait foi.
 
-EVE-O Preview for macOS affiche une vignette en direct de chaque client EVE Online en cours d'exécution. Cliquez sur une vignette ou appuyez sur un raccourci global pour basculer vers ce client.
+EVE-O Preview affiche une vignette en direct de chaque client EVE Online en cours d'exécution. Cliquez sur une vignette ou appuyez sur un raccourci global pour basculer vers ce client.
 
-Il s'agit d'une réimplémentation native en Swift, pour macOS, des fonctionnalités d'[EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0). Elle ne porte pas le code C# du projet d'origine, et son interface comme son format de configuration diffèrent de ceux du projet d'origine.
-Elle est distribuée sous la GNU General Public License version 3 ou toute version ultérieure (GPL-3.0-or-later), conformément aux identifiants SPDX des fichiers source ; le projet d'origine est distribué sous GPL-3.0. Le texte complet figure dans [LICENSE](LICENSE).
+Ce dépôt contient deux applications natives : l'une pour macOS, écrite en Swift, l'autre pour Windows, écrite en Rust. Elles partagent le format de configuration, les textes de l'interface et les cas de test de `shared/`, et chacune s'appuie sur les API de sa plateforme.
 
-Ce dépôt a commencé comme un fork GitHub d'EveOPlus/eve-o-preview et a été déplacé vers un dépôt indépendant pour la v1.0. C'est un projet indépendant : il ne partage aucun code avec la version Windows et n'est pas maintenu par les auteurs du projet d'origine.
+Les deux réimplémentent les fonctionnalités d'[EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0). Elles ne portent pas le code C# du projet d'origine, et leur interface comme leur format de configuration diffèrent de ceux du projet d'origine.
+Le projet est distribué sous la GNU General Public License version 3 ou toute version ultérieure (GPL-3.0-or-later), conformément aux identifiants SPDX des fichiers source ; le projet d'origine est distribué sous GPL-3.0. Le texte complet figure dans [LICENSE](LICENSE).
+
+Ce dépôt a commencé comme un fork GitHub d'EveOPlus/eve-o-preview et a été déplacé vers un dépôt indépendant pour la v1.0. C'est un projet indépendant : il ne partage aucun code avec EveOPlus/eve-o-preview et n'est pas maintenu par les auteurs du projet d'origine.
+
+## Windows
+
+EVE-O Preview for Windows 1.0 est sorti le 2026-11-24. Il offre les mêmes fonctionnalités que l'application macOS : vignettes DWM en direct, basculement et raccourcis (boutons de la souris compris), disposition, règles de visibilité, alertes de combat, superpositions de renseignement et de traduction du chat, profils, mises à jour signées et signalement de problèmes. Différences avec l'application macOS :
+
+- **Fréquence d'images du jeu** (depuis la 1.1, désactivée par défaut) : le groupe « Fréquence d'images du jeu » de la page Général limite tous les clients EVE à la même fréquence d'images (60 par défaut) via le pilote graphique, ce qui rend le basculement entre clients plus fluide en multiboxing. Les clients du jeu ne sont jamais touchés. Avec NVIDIA, elle règle « Fréquence d'images max » pour exefile.exe ; avec Intel, une limite de fréquence d'images pour exefile.exe ; le pilote AMD ne peut limiter que tous les jeux du PC à la fois. La désactivation rétablit le réglage précédent du pilote. La prise en charge d'AMD et d'Intel n'a pas encore été testée sur du vrai matériel.
+- **Démarrer à l'ouverture de session Windows**, dans la page Général.
+- Une icône dans la zone de notification au lieu de la barre des menus : un clic gauche ouvre les Réglages, un clic droit ouvre le menu.
+- Les clés d'API sont stockées dans le Gestionnaire d'identification de Windows au lieu du trousseau macOS.
+
+### Installation sous Windows
+
+Nécessite Windows 10 22H2 ou Windows 11 en 64 bits.
+
+1. Téléchargez `EVE-O-Preview-<version>-windows-x64.zip` depuis la page [Releases](https://github.com/deletexiumu/eve-o-preview/releases). Les versions Windows portent le tag `win-v<version>` ; la version marquée « Latest » est celle de macOS.
+2. Extrayez le dossier à un endroit où vous pouvez écrire, par exemple Documents ou `D:\Games`. Évitez « Program Files » : les mises à jour remplacent l'exe sur place.
+3. Lancez `EVE-O Preview.exe`. L'exe n'est pas encore signé, Windows SmartScreen peut donc afficher un avertissement au premier lancement : choisissez « Informations complémentaires », puis « Exécuter quand même ».
+
+Les réglages sont enregistrés dans `%APPDATA%\EVE-O Preview\config.json` et les journaux dans `%LOCALAPPDATA%\EVE-O Preview\logs\`. Les réglages de l'EVE-O Preview original ne sont pas importés. Pour désinstaller, quittez l'application depuis le menu de la zone de notification, désactivez « Démarrer à l'ouverture de session Windows » si vous l'aviez activé, puis supprimez le dossier de l'application et les deux dossiers ci-dessus. Pour compiler depuis les sources, voir [windows/README.md](windows/README.md).
+
+La suite de ce document décrit l'application macOS.
 
 ## Fonctionnalités
 
@@ -252,7 +275,7 @@ La page « Profils » comporte un bouton « Afficher dans le Finder ».
 
 | Fonctionnalité du projet d'origine | Raison |
 | --- | --- |
-| Limitation de la fréquence d'images et coupure sélective du son (injection Robin) | Le projet d'origine injecte une DLL dans les processus Windows ; macOS n'a pas de mécanisme public équivalent |
+| Limitation de la fréquence d'images et coupure sélective du son (injection Robin) | Le projet d'origine injecte une DLL dans les processus Windows ; macOS n'a pas de mécanisme public équivalent. L'application Windows limite plutôt la fréquence d'images via le pilote graphique (voir [Windows](#windows)) |
 | Affinité processeur | Repose sur les CPU Sets de Windows ; Apple Silicon n'a pas d'API publique pour attacher un processus à des cœurs |
 | Augments du journal de combat : chiffres de dégâts, DPS, quantités de réparation, superposition du système, données statiques pour FC | Un vaste sous-système séparé, hors du périmètre « aperçu et bascule » ; seul le « clignotement en cas d'attaque » a été porté |
 | Thèmes, ancienne interface, styles personnalisés du menu contextuel | La version macOS suit l'apparence du système |

@@ -1,17 +1,40 @@
 <p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="Icono de EVE-O Preview for macOS"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | **Español**
 
 Esta traducción es automática; si difiere del [README en inglés](README.md), prevalece la versión en inglés.
 
-EVE-O Preview for macOS muestra una miniatura en directo de cada cliente de EVE Online en ejecución. Haz clic en una miniatura o pulsa un atajo global para cambiar a ese cliente.
+EVE-O Preview muestra una miniatura en directo de cada cliente de EVE Online en ejecución. Haz clic en una miniatura o pulsa un atajo global para cambiar a ese cliente.
 
-Es una reimplementación nativa en Swift, para macOS, de las funciones de [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0). No porta el código C# del proyecto original, y su interfaz y su formato de configuración difieren de los del proyecto original.
+Este repositorio contiene dos apps nativas: una para macOS, escrita en Swift, y otra para Windows, escrita en Rust. Comparten el formato de configuración, los textos de la interfaz y los casos de prueba de `shared/`, y cada una usa las API de su plataforma.
+
+Ambas reimplementan las funciones de [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0). No portan el código C# del proyecto original, y su interfaz y su formato de configuración difieren de los del proyecto original.
 Se distribuye bajo la GNU General Public License versión 3 o cualquier versión posterior (GPL-3.0-or-later), de acuerdo con los identificadores SPDX de los archivos fuente; el proyecto original se distribuye bajo la GPL-3.0. Consulta [LICENSE](LICENSE) para ver el texto completo.
 
-Este repositorio empezó como un fork en GitHub de EveOPlus/eve-o-preview y se trasladó a un repositorio independiente para la v1.0. Es un proyecto independiente: no comparte código con la versión para Windows y no lo mantienen los autores del proyecto original.
+Este repositorio empezó como un fork en GitHub de EveOPlus/eve-o-preview y se trasladó a un repositorio independiente para la v1.0. Es un proyecto independiente: no comparte código con EveOPlus/eve-o-preview y no lo mantienen los autores del proyecto original.
+
+## Windows
+
+EVE-O Preview for Windows 1.0 se publicó el 2026-11-24. Tiene las mismas funciones que la app para macOS: miniaturas DWM en directo, cambio de cliente y atajos (incluidos los botones del ratón), disposición, reglas de visibilidad, alertas de combate, superposiciones de inteligencia y de traducción del chat, perfiles, actualizaciones firmadas e informes de problemas. Diferencias con la app para macOS:
+
+- **Velocidad de fotogramas del juego** (desde la 1.1, desactivada de forma predeterminada): el grupo «Velocidad de fotogramas del juego» de la página General limita todos los clientes de EVE a los mismos FPS (60 de forma predeterminada) mediante el controlador gráfico, de modo que cambiar entre clientes es más fluido al usar varios. Nunca toca los clientes del juego. Con NVIDIA ajusta «Velocidad máxima de fotogramas» de exefile.exe y con Intel un límite de FPS para exefile.exe; el controlador de AMD solo puede limitar todos los juegos del PC a la vez. Al desactivarlo se restaura el ajuste anterior del controlador. La compatibilidad con AMD e Intel aún no se ha probado en hardware real.
+- **Iniciar al iniciar sesión en Windows**, en la página General.
+- Un icono en el área de notificación en lugar de la barra de menús: el clic izquierdo abre Ajustes y el derecho, el menú.
+- Las claves de API se guardan en el Administrador de credenciales de Windows en lugar del llavero de macOS.
+
+### Instalación en Windows
+
+Requiere Windows 10 22H2 o Windows 11 de 64 bits.
+
+1. Descarga `EVE-O-Preview-<versión>-windows-x64.zip` de la página [Releases](https://github.com/deletexiumu/eve-o-preview/releases). Las versiones para Windows llevan la etiqueta `win-v<versión>`; la marcada como «Latest» es la app para macOS.
+2. Extrae la carpeta en un lugar donde puedas escribir, como Documentos o `D:\Games`. No uses «Program Files»: las actualizaciones sustituyen el exe en su sitio.
+3. Ejecuta `EVE-O Preview.exe`. El exe aún no tiene firma de código, así que Windows SmartScreen puede mostrar un aviso la primera vez: elige «Más información» y luego «Ejecutar de todas formas».
+
+Los ajustes se guardan en `%APPDATA%\EVE-O Preview\config.json` y los registros en `%LOCALAPPDATA%\EVE-O Preview\logs\`. No se importan los ajustes del EVE-O Preview original. Para desinstalar, sal desde el menú del área de notificación, desactiva «Iniciar al iniciar sesión en Windows» si lo activaste y borra la carpeta de la app y las dos carpetas anteriores. Para compilar desde el código fuente, consulta [windows/README.md](windows/README.md).
+
+El resto de este documento describe la app para macOS.
 
 ## Funciones
 
@@ -252,7 +275,7 @@ La página Perfiles tiene un botón “Mostrar en Finder”.
 
 | Función del proyecto original | Motivo |
 | --- | --- |
-| Limitación de fotogramas y silenciado selectivo (inyección de Robin) | El proyecto original inyecta una DLL en procesos de Windows; macOS no tiene un mecanismo público equivalente |
+| Limitación de fotogramas y silenciado selectivo (inyección de Robin) | El proyecto original inyecta una DLL en procesos de Windows; macOS no tiene un mecanismo público equivalente. La app para Windows limita los FPS mediante el controlador gráfico (ver [Windows](#windows)) |
 | Afinidad de CPU | Depende de los CPU Sets de Windows; Apple Silicon no tiene una API pública para fijar un proceso a núcleos concretos |
 | Augments del registro de combate: cifras de daño, DPS, cantidades de reparación, superposición del sistema, datos estáticos de FC | Un subsistema grande e independiente, fuera de “previsualizar y cambiar”; solo se portó “parpadear al recibir un ataque” |
 | Temas, interfaz heredada, estilos personalizados del menú del clic derecho | La versión para macOS sigue el aspecto del sistema |

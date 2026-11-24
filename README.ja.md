@@ -1,17 +1,40 @@
 <p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS のアイコン"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 [English](README.md) | [简体中文](README.zh-CN.md) | **日本語** | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 この日本語訳は機械翻訳で作成したもので、英語版と内容が異なる場合は[英語版の README](README.md) が優先されます。
 
-EVE-O Preview for macOS は、実行中のすべての EVE Online クライアントのライブサムネイルを表示します。サムネイルをクリックするか、グローバルホットキーを押すと、そのクライアントに切り替わります。
+EVE-O Preview は、実行中のすべての EVE Online クライアントのライブサムネイルを表示します。サムネイルをクリックするか、グローバルホットキーを押すと、そのクライアントに切り替わります。
 
-[EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)（Windows、GPL-3.0）の機能を、macOS 向けに Swift でネイティブに再実装したものです。上流の C# コードを移植したものではなく、UI と設定ファイルの形式も上流とは異なります。
+このリポジトリには 2 つのネイティブアプリがあります。macOS 版は Swift、Windows 版は Rust で書かれています。設定ファイルの形式、UI の文言、テストケースは `shared/` で共有し、それぞれのプラットフォームの API を使います。
+
+どちらも [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)（Windows、GPL-3.0）の機能を再実装したものです。上流の C# コードを移植したものではなく、UI と設定ファイルの形式も上流とは異なります。
 ライセンスは GNU General Public License バージョン 3 またはそれ以降のバージョン（GPL-3.0-or-later）で、ソースファイルの SPDX 識別子と一致しています。上流のライセンスは GPL-3.0 です。全文は [LICENSE](LICENSE) を参照してください。
 
-このリポジトリは当初 EveOPlus/eve-o-preview の GitHub フォークとして作成され、v1.0 で独立したリポジトリに移行しました。本プロジェクトは独立したプロジェクトであり、Windows 版とコードを共有しておらず、上流の作者によってメンテナンスされているものでもありません。
+このリポジトリは当初 EveOPlus/eve-o-preview の GitHub フォークとして作成され、v1.0 で独立したリポジトリに移行しました。本プロジェクトは独立したプロジェクトであり、上流の EveOPlus/eve-o-preview とコードを共有しておらず、上流の作者によってメンテナンスされているものでもありません。
+
+## Windows
+
+EVE-O Preview for Windows 1.0 は 2026-11-24 にリリースされました。機能は macOS 版と同じです：DWM のライブサムネイル、切り替えとホットキー（マウスボタンを含む）、レイアウト、表示ルール、戦闘アラート、偵察オーバーレイとチャット翻訳オーバーレイ、プロファイル、署名を確認するアップデート、問題の報告。macOS 版との違い：
+
+- **ゲームのフレームレート**（1.1 から、既定はオフ）：「一般」ページの「ゲームのフレームレート」グループで、グラフィックスドライバーを通じてすべての EVE クライアントを同じフレームレート（既定は 60）に制限します。マルチボックス時のクライアントの切り替えがスムーズになります。ゲームクライアントには触れません。NVIDIA では exefile.exe の「最大フレームレート」を、Intel では exefile.exe のフレームレート上限を設定します。AMD ドライバーはこの PC のすべてのゲームをまとめてしか制限できません。オフにすると元のドライバー設定に戻します。AMD と Intel への対応はまだ実機で検証されていません。
+- 「一般」ページの **Windows へのサインイン時に起動**。
+- メニューバーアイコンの代わりに通知領域のアイコン：左クリックで設定、右クリックでメニューを開きます。
+- API キーは macOS のキーチェーンの代わりに Windows 資格情報マネージャーに保存します。
+
+### Windows へのインストール
+
+64 ビット版の Windows 10 22H2 または Windows 11 が必要です。
+
+1. [Releases](https://github.com/deletexiumu/eve-o-preview/releases) ページから `EVE-O-Preview-<バージョン>-windows-x64.zip` をダウンロードします。Windows 版のタグは `win-v<バージョン>` で、「Latest」と表示されているのは macOS 版です。
+2. 書き込みできる場所（「ドキュメント」や `D:\Games` など）にフォルダを展開します。「Program Files」は避けてください。アップデートは exe をその場で置き換えます。
+3. `EVE-O Preview.exe` を実行します。exe にはまだコード署名がないため、初回は Windows SmartScreen の警告が出ることがあります。「詳細情報」を選び、「実行」を選んでください。
+
+設定は `%APPDATA%\EVE-O Preview\config.json`、ログは `%LOCALAPPDATA%\EVE-O Preview\logs\` に保存されます。元の EVE-O Preview の設定は取り込みません。アンインストールするには、トレイのメニューから終了し、「Windows へのサインイン時に起動」をオンにしていた場合はオフにしてから、アプリのフォルダと上の 2 つのフォルダを削除します。ソースからのビルドは [windows/README.md](windows/README.md) を参照してください。
+
+以下は macOS 版の説明です。
 
 ## 機能
 
@@ -252,7 +275,7 @@ macOS のユーザー名、フルネーム、ホームフォルダのパス、�
 
 | 上流の機能 | 理由 |
 | --- | --- |
-| フレームレート制限と選択的ミュート（Robin インジェクション） | 上流は Windows のプロセスに DLL を注入しています。macOS には同等の公開された仕組みがありません |
+| フレームレート制限と選択的ミュート（Robin インジェクション） | 上流は Windows のプロセスに DLL を注入しています。macOS には同等の公開された仕組みがありません。Windows 版は代わりにグラフィックスドライバーでフレームレートを制限します（[Windows](#windows) を参照） |
 | CPU アフィニティ | Windows の CPU Sets に依存しています。Apple Silicon にはプロセスを特定のコアに固定する公開 API がありません |
 | 戦闘ログの Augments：ダメージの数値、DPS、リペア量、星系オーバーレイ、FC 用の静的データ | 「プレビューと切り替え」の範囲外にある、大規模な別のサブシステムです。移植したのは「攻撃されたら点滅」だけです |
 | テーマ、レガシー UI、右クリックメニューのカスタムスタイル | macOS 版はシステムの外観に従います |

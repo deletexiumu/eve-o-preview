@@ -1,17 +1,40 @@
 <p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="Symbol von EVE-O Preview for macOS"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | **Deutsch** | [Español](README.es.md)
 
 Diese Übersetzung wurde maschinell erstellt; bei Abweichungen vom [englischen README](README.md) gilt die englische Fassung.
 
-EVE-O Preview for macOS zeigt eine Live-Miniatur jedes laufenden EVE Online-Clients. Ein Klick auf eine Miniatur oder ein globaler Hotkey wechselt zu diesem Client.
+EVE-O Preview zeigt eine Live-Miniatur jedes laufenden EVE Online-Clients. Ein Klick auf eine Miniatur oder ein globaler Hotkey wechselt zu diesem Client.
 
-Es ist eine native Swift-Neuimplementierung der Funktionen von [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0) für macOS. Der C#-Code des Ursprungsprojekts wird nicht portiert, und Oberfläche sowie Konfigurationsformat unterscheiden sich vom Ursprungsprojekt.
+Dieses Repository enthält zwei native Apps: eine für macOS, geschrieben in Swift, und eine für Windows, geschrieben in Rust. Sie teilen das Konfigurationsformat, die Oberflächentexte und die Testfälle in `shared/` und nutzen jeweils die APIs ihrer Plattform.
+
+Beide implementieren die Funktionen von [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0) neu. Der C#-Code des Ursprungsprojekts wird nicht portiert, und Oberfläche sowie Konfigurationsformat unterscheiden sich vom Ursprungsprojekt.
 Es steht unter der GNU General Public License Version 3 oder einer späteren Version (GPL-3.0-or-later), entsprechend den SPDX-Kennungen in den Quelldateien; das Ursprungsprojekt steht unter GPL-3.0. Den vollständigen Text enthält [LICENSE](LICENSE).
 
-Dieses Repository begann als GitHub-Fork von EveOPlus/eve-o-preview und wurde für v1.0 in ein eigenständiges Repository verschoben. Es ist ein unabhängiges Projekt: Es teilt keinen Code mit der Windows-Version und wird nicht von den Autoren des Ursprungsprojekts gepflegt.
+Dieses Repository begann als GitHub-Fork von EveOPlus/eve-o-preview und wurde für v1.0 in ein eigenständiges Repository verschoben. Es ist ein unabhängiges Projekt: Es teilt keinen Code mit EveOPlus/eve-o-preview und wird nicht von den Autoren des Ursprungsprojekts gepflegt.
+
+## Windows
+
+EVE-O Preview for Windows 1.0 ist am 2026-11-24 erschienen. Es bietet dieselben Funktionen wie die macOS-App: DWM-Live-Miniaturen, Wechseln und Tastenkürzel (auch Maustasten), Anordnung, Sichtbarkeitsregeln, Kampfwarnungen, Aufklärungs- und Chat-Übersetzungs-Overlay, Profile, signierte Updates und Problemberichte. Unterschiede zur macOS-App:
+
+- **Bildrate im Spiel** (ab 1.1, standardmäßig aus): Die Gruppe „Bildrate im Spiel“ auf der Seite „Allgemein“ begrenzt alle EVE-Clients über den Grafiktreiber auf dieselbe Bildrate (standardmäßig 60), sodass das Wechseln zwischen Clients beim Multiboxing flüssiger wird. Die Spiel-Clients werden nicht angefasst. Bei NVIDIA wird „Max. Bildrate“ für exefile.exe gesetzt, bei Intel eine Bildratenbegrenzung für exefile.exe; der AMD-Treiber kann nur alle Spiele auf dem PC gemeinsam begrenzen. Beim Ausschalten wird die vorherige Treibereinstellung wiederhergestellt. Die Unterstützung für AMD und Intel wurde noch nicht auf echter Hardware getestet.
+- **Beim Anmelden bei Windows starten** auf der Seite „Allgemein“.
+- Ein Symbol im Infobereich statt in der Menüleiste: Linksklick öffnet die Einstellungen, Rechtsklick das Menü.
+- API-Schlüssel werden in der Windows-Anmeldeinformationsverwaltung statt im macOS-Schlüsselbund gespeichert.
+
+### Installation unter Windows
+
+Erfordert 64‑Bit‑Windows 10 22H2 oder Windows 11.
+
+1. Laden Sie `EVE-O-Preview-<Version>-windows-x64.zip` von der Seite [Releases](https://github.com/deletexiumu/eve-o-preview/releases) herunter. Windows-Versionen tragen das Tag `win-v<Version>`; die als „Latest“ markierte Version ist die macOS-App.
+2. Entpacken Sie den Ordner an einen Ort mit Schreibrechten, etwa „Dokumente“ oder `D:\Games`. Nicht unter „Program Files“: Updates ersetzen die exe an Ort und Stelle.
+3. Starten Sie `EVE-O Preview.exe`. Die exe ist noch nicht codesigniert, daher kann Windows SmartScreen beim ersten Start warnen: Wählen Sie „Weitere Informationen“ und dann „Trotzdem ausführen“.
+
+Die Einstellungen liegen in `%APPDATA%\EVE-O Preview\config.json`, die Protokolle in `%LOCALAPPDATA%\EVE-O Preview\logs\`. Einstellungen des ursprünglichen EVE-O Preview werden nicht übernommen. Zum Deinstallieren beenden Sie die App über das Menü im Infobereich, schalten „Beim Anmelden bei Windows starten“ aus, falls aktiviert, und löschen dann den App-Ordner und die beiden Ordner oben. Das Bauen aus dem Quellcode beschreibt [windows/README.md](windows/README.md).
+
+Der Rest dieses Dokuments beschreibt die macOS-App.
 
 ## Funktionen
 
@@ -252,7 +275,7 @@ Die Seite „Profile“ hat eine Schaltfläche „Im Finder zeigen“.
 
 | Funktion des Ursprungsprojekts | Grund |
 | --- | --- |
-| Bildratenbegrenzung und selektive Stummschaltung (Robin-Injektion) | Das Ursprungsprojekt injiziert eine DLL in Windows-Prozesse; macOS hat keinen vergleichbaren öffentlichen Mechanismus |
+| Bildratenbegrenzung und selektive Stummschaltung (Robin-Injektion) | Das Ursprungsprojekt injiziert eine DLL in Windows-Prozesse; macOS hat keinen vergleichbaren öffentlichen Mechanismus. Die Windows-App begrenzt die Bildrate stattdessen über den Grafiktreiber (siehe [Windows](#windows)) |
 | CPU-Affinität | Beruht auf Windows CPU Sets; Apple Silicon hat keine öffentliche API, um einen Prozess an Kerne zu binden |
 | Kampfprotokoll-Erweiterungen (Augments): Schadenszahlen, DPS, Reparaturmengen, System-Overlay, statische FC-Daten | Ein großes eigenständiges Subsystem außerhalb von „Vorschau und Wechseln“; übernommen wurde nur „Blinken bei Angriff“ |
 | Themes, alte Oberfläche, eigene Stile für das Kontextmenü | Die macOS-Version folgt dem Erscheinungsbild des Systems |

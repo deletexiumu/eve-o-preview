@@ -1,15 +1,38 @@
-<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS icon"></p>
+<p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview icon"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 **English** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
-EVE-O Preview for macOS shows a live thumbnail of every running EVE Online client. Click a thumbnail or press a global hotkey to switch to that client.
+EVE-O Preview shows a live thumbnail of every running EVE Online client. Click a thumbnail or press a global hotkey to switch to that client.
 
-It is a native Swift re-implementation, for macOS, of the features of [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0). It does not port the upstream C# code, and its UI and configuration format differ from upstream.
-It is licensed under the GNU General Public License version 3 or any later version (GPL-3.0-or-later), matching the SPDX identifiers in the source files; upstream is licensed under GPL-3.0. See [LICENSE](LICENSE) for the full text.
+This repository holds two native apps: one for macOS, written in Swift, and one for Windows, written in Rust. They share the configuration format, the interface text and the test cases in `shared/`, and each is built on its own platform's APIs.
 
-This repository started as a GitHub fork of EveOPlus/eve-o-preview and was moved to a standalone repository for v1.0. It is an independent project: it shares no code with the Windows version and is not maintained by the upstream authors.
+Both re-implement the features of [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview) (Windows, GPL-3.0). They do not port the upstream C# code, and their UI and configuration format differ from upstream.
+The project is licensed under the GNU General Public License version 3 or any later version (GPL-3.0-or-later), matching the SPDX identifiers in the source files; upstream is licensed under GPL-3.0. See [LICENSE](LICENSE) for the full text.
+
+This repository started as a GitHub fork of EveOPlus/eve-o-preview and was moved to a standalone repository for v1.0. It is an independent project: it shares no code with upstream EveOPlus/eve-o-preview and is not maintained by the upstream authors.
+
+## Windows
+
+EVE-O Preview for Windows 1.0 was released on 2026-11-24. It has the same features as the macOS app: live DWM thumbnails, switching and hotkeys (including mouse buttons), layout, visibility rules, combat alerts, the intel and chat translation overlays, profiles, signed updates and problem reports. Differences from the macOS app:
+
+- **Game frame rate** (from 1.1, off by default): the "Game frame rate" group on the General page caps every EVE client at the same frame rate (60 by default) through the graphics driver, which makes switching between clients smoother while multiboxing. It never touches the game clients. With NVIDIA it sets "Max Frame Rate" for exefile.exe, and with Intel a frame rate limit for exefile.exe; the AMD driver can only limit every game on the PC at once. Turning it off restores the previous driver setting. AMD and Intel support has not been tested on real hardware yet.
+- **Start when I sign in to Windows**, on the General page.
+- A notification-area icon in place of the menu bar icon: left-click opens Settings, right-click opens the menu.
+- API keys are stored in Windows Credential Manager instead of the macOS Keychain.
+
+### Installing on Windows
+
+Requires 64-bit Windows 10 22H2 or Windows 11.
+
+1. Download `EVE-O-Preview-<version>-windows-x64.zip` from the [Releases](https://github.com/deletexiumu/eve-o-preview/releases) page. Windows releases are tagged `win-v<version>`; the release marked "Latest" is the macOS app.
+2. Extract the folder somewhere you can write to, such as Documents or `D:\Games`. Do not use Program Files: updates replace the exe in place.
+3. Run `EVE-O Preview.exe`. The exe is not code-signed yet, so Windows SmartScreen may warn on first run: choose "More info", then "Run anyway".
+
+Settings are saved in `%APPDATA%\EVE-O Preview\config.json` and logs in `%LOCALAPPDATA%\EVE-O Preview\logs\`. Settings are not imported from the original EVE-O Preview. To uninstall, quit from the tray menu, turn off "Start when I sign in to Windows" if you turned it on, then delete the app folder and the two folders above. To build from source, see [windows/README.md](windows/README.md).
+
+The rest of this document describes the macOS app.
 
 ## Features
 
@@ -250,7 +273,7 @@ The Profiles page has a "Show in Finder" button.
 
 | Upstream feature | Reason |
 | --- | --- |
-| Frame-rate limiting and selective muting (Robin injection) | Upstream injects a DLL into Windows processes; macOS has no equivalent public mechanism |
+| Frame-rate limiting and selective muting (Robin injection) | Upstream injects a DLL into Windows processes; macOS has no equivalent public mechanism. The Windows app limits the frame rate through the graphics driver instead (see [Windows](#windows)) |
 | CPU affinity | Relies on Windows CPU Sets; Apple Silicon has no public API to pin a process to cores |
 | Combat log Augments: damage numbers, DPS, repair amounts, system overlay, FC static data | A large separate subsystem outside "preview and switch"; only "flash when attacked" was ported |
 | Themes, legacy UI, custom right-click menu styles | The macOS version follows the system appearance |

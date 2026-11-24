@@ -1,6 +1,6 @@
-# EVE-O Preview for Windows（开发中）
+# EVE-O Preview for Windows
 
-Windows 原生版，方案见 [架构文档](../docs/windows/architecture.md)。M2 已把 macOS 的纯逻辑 Core 移植成 Rust；M3 的平台层与集成探针已完成；现在处于 M4：协调器、设置窗口与应用骨架。
+Windows 原生版，用 Rust、windows-rs 与 Slint 编写。1.0.0 于 2026-11-24 发布，1.1.0 加入通过显卡驱动限帧的「游戏帧率」。下载、安装与功能说明见[仓库首页的 README](../README.zh-CN.md#windows)，设计见[架构文档](../docs/windows/architecture.md)。本文件只讲开发：crate 的划分与本地检查。打包与发布流程见 [docs/windows/packaging.md](../docs/windows/packaging.md)，tag 用 `win-v<版本>`。
 
 | crate | 对应 macOS | 状态 |
 | --- | --- | --- |
