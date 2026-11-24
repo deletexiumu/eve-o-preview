@@ -53,7 +53,12 @@ pub fn resolve(names: &[String], app_version: &str) -> EsiResult {
             elapsed_ms,
         },
         // 正文过大与网络错误都归为 Network：队列按「稍后重试」处理。
-        Err(error @ (HttpError::Network(_) | HttpError::TooLarge | HttpError::InvalidUrl)) => EsiResult {
+        Err(
+            error @ (HttpError::Network(_)
+            | HttpError::TooLarge
+            | HttpError::InvalidUrl
+            | HttpError::Cancelled),
+        ) => EsiResult {
             result: Err(PilotLookupFailure::Network(error.describe())),
             status: None,
             elapsed_ms,

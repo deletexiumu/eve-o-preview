@@ -76,6 +76,37 @@ impl UpdateFeed {
         }
     }
 
+    /// 下载时收到重定向：算出要跟过去的地址，不该跟时返回 None。
+    ///
+    /// GitHub 的附件地址会重定向到另一台存放文件的主机（如 `release-assets.githubusercontent.com`），
+    /// 所以正式地址下只要求目标是 https、没有用户信息与反斜杠：文件的真伪由 ed25519 签名与 SHA-256 保证，
+    /// 主机是谁不影响安全，但不能退回明文。测试地址下目标要与列表同源，测试不会意外连到外面。
+    /// location 可以是完整地址，也可以是以 `/` 开头的路径（相对 current 的源）；别的相对写法不跟。
+    pub fn redirect_target(&self, current: &str, location: &str) -> Option<String> {
+        let location = location.trim();
+        let target = if location.starts_with('/') && !location.starts_with("//") {
+            // 以 `/` 开头的路径：沿用当前地址的协议与主机部分。
+            let (scheme, rest) = current.split_once("://")?;
+            let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+            format!("{scheme}://{authority}{location}")
+        } else {
+            location.to_owned()
+        };
+        let origin = Origin::parse(&target)?;
+        // 反斜杠在有的实现里被当作 `/`，会让「主机」的边界与这里的理解不同，一律不跟。
+        if target.contains('\\') || target.chars().any(char::is_control) {
+            return None;
+        }
+        let acceptable = if self.is_test_feed {
+            self.accepts(&target)
+        } else {
+            // 用户信息（`user@host`）可能被用来伪装主机，正式地址下不跟。
+            let authority = target.split_once("://")?.1.split(['/', '?', '#']).next()?;
+            origin.scheme == "https" && !authority.contains('@')
+        };
+        acceptable.then_some(target)
+    }
+
     /// 附件与发布页的地址是否可用。规则见本文件开头。
     pub fn accepts(&self, url: &str) -> bool {
         if !self.is_test_feed {
@@ -255,5 +286,36 @@ mod tests {
         assert_eq!(version_text("v1.3.1"), None);
         assert_eq!(version_text("Win-v0.9.0"), None);
         assert!(PRODUCTION_LIST_URL.ends_with(&format!("per_page={}", crate::update::history::PAGE_SIZE)));
+    }
+
+    /// 重定向：正式地址下跟到任何 https 主机（不带用户信息）；测试地址下只跟同源；路径相对当前地址。
+    #[test]
+    fn redirects() {
+        let feed = UpdateFeed::production();
+        let asset = "https://github.com/deletexiumu/eve-o-preview/releases/download/win-v0.9.0/a.zip";
+        let storage = "https://release-assets.githubusercontent.com/x/y?sig=1";
+        assert_eq!(feed.redirect_target(asset, storage).as_deref(), Some(storage));
+        assert_eq!(
+            feed.redirect_target(asset, "/deletexiumu/b.zip").as_deref(),
+            Some("https://github.com/deletexiumu/b.zip")
+        );
+        // 明文、用户信息、反斜杠、协议相对与普通相对写法都不跟。
+        for bad in [
+            "http://release-assets.githubusercontent.com/x",
+            "https://user@evil.example/x",
+            "https://evil.example\\@github.com/x",
+            "//evil.example/x",
+            "b.zip",
+            "",
+        ] {
+            assert_eq!(feed.redirect_target(asset, bad), None, "{bad}");
+        }
+        let test = test_feed();
+        let local = "http://127.0.0.1:8123/a.zip";
+        assert_eq!(
+            test.redirect_target(local, "/b.zip").as_deref(),
+            Some("http://127.0.0.1:8123/b.zip")
+        );
+        assert_eq!(test.redirect_target(local, "https://example.com/b.zip"), None);
     }
 }

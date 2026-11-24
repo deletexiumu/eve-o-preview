@@ -44,6 +44,8 @@ unicode-normalization = "0.1"
 # 更新包的核对：校验和文件的 ed25519 签名（只用验签）与 SHA-256。
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "fast"] }
 sha2 = "0.10"
+# 更新包（zip）里 deflate 压缩的 exe 的解压。
+miniz_oxide = "0.8"
 unicode-segmentation = "1"
 uuid = { version = "1", features = ["v4"] }
 raw-window-handle = "0.6"
@@ -66,6 +68,7 @@ windows = { version = "0.62", features = [
     "Win32_Networking_WinHttp",
     "Win32_Security",
     "Win32_Security_Credentials",
+    "Win32_Storage_FileSystem",
     "Win32_System_Com",
     "Win32_System_DataExchange",
     "Win32_System_Diagnostics_Debug",

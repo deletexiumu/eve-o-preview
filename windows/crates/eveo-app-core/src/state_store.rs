@@ -9,6 +9,7 @@
 // - chat.manualLocations（docs/macos/design-intel-translate.md 6.2 节）：角色名 → 手动设置的位置。
 //   角色登录后一直停在同一个星系时，聊天日志与游戏日志都没有线索，靠它在重启后恢复位置。
 // - diagnostics（v1.1 设计 3.3、6.3 节）：待报告的崩溃 pendingCrash 与用户选过「不报告」的会话编号（最多 20 个）。
+// - updates：自动更新的记录（state_updates.rs），替换 exe 后等待确认的记录与最近一次安装的结果。
 //
 // 读取的规则与 macOS 相同：文件不存在、不是合法 JSON、顶层不是对象或 stateVersion 不是 1 时用默认状态，不报错、
 // 不隔离文件，下一次写入覆盖它；chat 或手动位置表的结构不符时只丢掉这一部分。
@@ -26,6 +27,8 @@ use eveo_core::chat_log::tracker::CharacterLocation;
 use eveo_core::support::time::{iso8601_seconds, parse_iso8601};
 use serde_json::{Map, Value};
 
+pub use crate::state_updates::UpdateState;
+
 /// 当前的状态文件版本。
 pub const STATE_VERSION: i64 = 1;
 
@@ -37,6 +40,8 @@ const CHAT_KEY: &str = "chat";
 const MANUAL_KEY: &str = "manualLocations";
 /// 诊断记录所在的键。
 const DIAGNOSTICS_KEY: &str = "diagnostics";
+/// 更新记录所在的键，与 macOS 相同。
+const UPDATES_KEY: &str = "updates";
 /// 最多记住几个「不报告」的会话编号。
 pub const MAX_DISMISSED_SESSIONS: usize = 20;
 
@@ -147,6 +152,8 @@ pub struct AppState {
     pub manual_locations: BTreeMap<String, CharacterLocation>,
     /// 诊断记录。
     pub diagnostics: DiagnosticsState,
+    /// 更新记录。
+    pub updates: UpdateState,
     /// 顶层不认识的键（更新、诊断等），写回时原样保留。
     other: Map<String, Value>,
     /// chat 里不认识的键，同样原样保留。
@@ -176,9 +183,11 @@ impl AppState {
             .and_then(|value| serde_json::from_value(value).ok())
             .unwrap_or_default();
         let diagnostics = DiagnosticsState::decode(root.remove(DIAGNOSTICS_KEY));
+        let updates = UpdateState::decode(root.remove(UPDATES_KEY));
         Self {
             manual_locations,
             diagnostics,
+            updates,
             other: root,
             chat_other,
         }
@@ -194,6 +203,7 @@ impl AppState {
         let mut root = self.other.clone();
         root.insert(CHAT_KEY.to_owned(), Value::Object(chat));
         root.insert(DIAGNOSTICS_KEY.to_owned(), self.diagnostics.encode());
+        root.insert(UPDATES_KEY.to_owned(), self.updates.encode());
         root.insert(VERSION_KEY.to_owned(), Value::from(STATE_VERSION));
         let mut bytes = serde_json::to_vec_pretty(&Value::Object(root)).unwrap_or_default();
         bytes.push(b'\n');
@@ -247,6 +257,17 @@ impl StateStore {
             return Ok(());
         }
         self.state.diagnostics = diagnostics;
+        self.save()
+    }
+
+    /// 改更新记录并写盘；改完与原来相同时不写。
+    pub fn update_updates(&mut self, change: impl FnOnce(&mut UpdateState)) -> io::Result<()> {
+        let mut updates = self.state.updates.clone();
+        change(&mut updates);
+        if updates == self.state.updates {
+            return Ok(());
+        }
+        self.state.updates = updates;
         self.save()
     }
 

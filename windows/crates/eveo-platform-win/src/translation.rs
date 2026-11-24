@@ -47,7 +47,7 @@ pub fn send(request: &WireRequest, app_version: &str) -> Result<WireResponse, Tr
             body: response.body,
         }),
         Err(HttpError::TooLarge) => Err(TransportError::TooLarge),
-        Err(error @ (HttpError::Network(_) | HttpError::InvalidUrl)) => {
+        Err(error @ (HttpError::Network(_) | HttpError::InvalidUrl | HttpError::Cancelled)) => {
             Err(TransportError::Network(error.describe()))
         }
     }

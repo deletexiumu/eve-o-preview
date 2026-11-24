@@ -513,8 +513,9 @@ exe 的版本资源里写入版本号、构建标签与提交号。CI 在发布�
 2. 附件地址必须在本仓库的 `/releases/` 路径下，校验规则移植 `UpdateFeed.accepts`。
 3. 下载 zip、`SHA256SUMS.txt` 与 `.sig`。先用内置的 ed25519 公钥验签校验和文件，再核对 zip 的 SHA-256。签名文件是对 `SHA256SUMS.txt` 原始字节的 ed25519 签名的 base64（一行）。
 4. exe 带 Authenticode 签名时，用 `WinVerifyTrust` 核对，并要求签名者与当前运行的 exe 相同。没有签名的阶段只靠第 3 步。
-5. 安装：把新 exe 解到同目录的临时文件名；把正在运行的 exe 改名为 `*.old`（Windows 允许给运行中的 exe 改名）；把新文件改成正式名字；启动新进程并退出。新进程启动后删除 `*.old`。
-6. 回滚：新版本启动后 30 秒内没有写入「启动成功」标记就退出的话，下次由 `*.old` 恢复。标记放在 `state.json`。
+5. 安装：把新 exe 解到同目录的临时文件名（`*.new`）；把正在运行的 exe 改名为 `*.old`（Windows 允许给运行中的 exe 改名）；把新文件改成正式名字；在 `state.json` 的 `updates.pendingSwap` 记下新旧版本，带 `--after-update <旧进程编号>` 启动新进程并退出。新进程先等旧进程退出再做单实例检查。
+   下载自己跟重定向（最多 5 次，WinHTTP 的自动重定向是关掉的）：GitHub 的附件会重定向到存放文件的主机，正式地址下只跟到 https，测试地址下只跟同源。解出 exe 后读它的版本资源（`ProductVersion` 与 `BuildLabel`，由 build.rs 写入）与 PE 头的机器类型，交给 Core 的 `validate` 核对。
+6. 回滚：新版本第一次启动时在 `pendingSwap` 写下启动时刻，运行满 30 秒或正常退出时确认（写 `updates.lastInstall`、删除 `*.old`）。下次启动时启动时刻还在，说明上一次没走到确认（崩溃或被结束）：把自己改名为 `*.failed`、`*.old` 改回正式名字，启动旧版后退出，记一条 `launchFailed` 的安装记录。回滚只做一次。
 7. 安装目录不可写（例如用户放在了 Program Files 下）时只提示有更新，给出下载页的链接。
 8. 安装时机与 macOS 相同：没有 EVE 客户端运行满一分钟时，或用户退出时。
 

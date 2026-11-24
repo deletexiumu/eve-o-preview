@@ -57,6 +57,7 @@ mod report;
 mod shell;
 mod switching_page;
 mod translation;
+mod update_launch;
 
 /// 定时器的周期：取窗口事件、检查轮询、唤醒与写盘。
 const TICK: Duration = Duration::from_millis(50);
@@ -196,6 +197,8 @@ struct App {
     diagnostics: diagnostics::Diagnostics,
     /// 退出的计时：收到退出时开始，run() 的收尾里逐步记下耗时。
     quit_timer: Option<logging::QuitTimer>,
+    /// 自动更新换上的新版：等待确认的状态。
+    update_launch: update_launch::UpdateLaunch,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -204,6 +207,8 @@ pub fn run() -> ExitCode {
     screens::enable_per_monitor_dpi();
     // 在第一次用 Slint 之前装好应用的平台（浮窗用离屏渲染）；装不上时 Slint 自己选默认后端，照常运行。
     let _ = crate::slint_platform::install();
+    // 自动更新后由旧版启动时，先等旧版退出，否则单实例检查会把本进程当成第二个实例。
+    update_launch::wait_for_previous_instance();
     // 已有实例在运行：让它打开设置窗口，本实例退出。
     let Some(_guard) = single_instance::acquire() else {
         single_instance::notify_primary();
@@ -235,6 +240,14 @@ pub fn run() -> ExitCode {
         }
     };
     logging::apply_level(&config);
+    // 上一次自动更新换上的 exe：确认或回滚。回滚时已经启动了旧版，本进程直接退出。
+    let update_launch = match update_launch::start(&paths) {
+        update_launch::Startup::Continue(launch) => launch,
+        update_launch::Startup::Exit => {
+            log::flush();
+            return ExitCode::SUCCESS;
+        }
+    };
 
     let screens = screens::screens();
     // 热键窗口与托盘窗口是应用能运行的前提；建不了（系统资源耗尽）时直接退出。
@@ -280,6 +293,7 @@ pub fn run() -> ExitCode {
         chat: intel::ChatRuntime::new(&paths, language),
         diagnostics,
         quit_timer: None,
+        update_launch,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -319,6 +333,7 @@ pub fn run() -> ExitCode {
     quit.step("停止游戏日志", || app.stop_game_logs());
     quit.step("销毁缩略图", || app.thumbnails.clear());
     quit.step("标记正常结束", || app.diagnostics.mark_ended_cleanly());
+    quit.step("确认更新", || app.confirm_update("正常退出"));
     drop(app);
     quit.step("释放热键、钩子、托盘与窗口", || drop(runtime));
     quit.finish();
@@ -540,6 +555,7 @@ impl App {
         }
         // 设置窗口第一次显示时，原生窗口在这之后才出现，切到前台留到这里做。
         self.focus_settings();
+        self.check_update_confirmation(Instant::now());
         // 热键录制的结果：钩子回调只记下结果，这里取走并写进配置。
         self.check_recording(runtime);
         // 游戏日志的受击事件与状态：后台线程只放进通道，这里取走。
