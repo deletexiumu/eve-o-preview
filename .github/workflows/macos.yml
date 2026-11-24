@@ -3,9 +3,10 @@
 # 构建、测试并打包 EVE-O Preview for macOS（docs/macos/architecture.md 9.5 节，docs/windows/architecture.md 7.3 节）。
 # - PR 不在 GitHub 上跑 macOS 构建：GitHub 托管的 macOS 运行器常要排队，PR 曾因排不上被取消。
 #   改为在维护者的 Mac 上运行 scripts/verify_macos.sh，结果以提交状态 local/macos 上报，分支保护把它设为必需检查。
-# - 推送 v* tag：构建、测试、打包，再把 dmg、源码包和校验和发布到 GitHub Release。
-# - 手动运行：同样构建，产物作为工作流制品上传；勾选「演练发布」时再建一个草稿 Release（不打 tag，不公开），
-#   用来在正式打 tag 前验证 release 任务。
+# - 发布：1.4.0 起 macOS 与 Windows 用同一个 v* tag 一起发布，由 release.yml 调用本工作流（workflow_call）
+#   构建、测试、打包，dmg、源码包与校验和作为制品交给 release.yml 合并发布。本工作流自己不再建 Release。
+# - 手动运行：同样构建，产物作为工作流制品上传。勾选「演练发布」时要求用固定证书签名；
+#   要演练整个发布流程，请手动运行 release.yml。
 # 仓库是公开仓库，用 GitHub 托管的 macOS 运行器（打包要用 hdiutil 与 codesign）。
 # 签名：有 secret 时用固定的自签名证书「EVE-O Preview Release」，升级后系统权限不丢；没有 secret 时（例如 fork 里手动运行）退回 ad-hoc。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
@@ -13,23 +14,34 @@
 name: macOS
 
 on:
-  push:
-    # macOS 永久用 v* 的 tag；Windows 用 win-v*，由 windows.yml 处理，不会匹配这里。
-    tags: ["v*"]
+  # 推送 v* tag 时由 release.yml 调用；github.ref 仍是那个 tag，下面按 tag 判断的条件照常生效。
+  workflow_call:
+    inputs:
+      rehearse_release:
+        description: 演练发布：要求用固定证书签名
+        type: boolean
+        default: false
+    outputs:
+      version:
+        description: macos/VERSION 的版本号
+        value: ${{ jobs.build.outputs.version }}
+      label:
+        description: 文件名里的标签（tag 上就是版本号）
+        value: ${{ jobs.build.outputs.label }}
   workflow_dispatch:
     inputs:
       rehearse_release:
-        description: 构建后建一个草稿 Release，演练发布流程
+        description: 按发布的要求构建（要求用固定证书签名）；演练整个发布请运行 release.yml
         type: boolean
         default: false
 
-# 默认只读；只有 release 任务单独提升为可写。
+# 只读：建 Release 在 release.yml 里做。
 permissions:
   contents: read
 
 # 同一个 ref 上不并行：tag 与手动运行都不取消正在跑的运行（同组里排队的旧运行仍会被新运行替换）。
 concurrency:
-  group: macos-${{ github.ref }}
+  group: macos-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -65,7 +77,7 @@ jobs:
 
       # 发布说明的语言标记写错时，应用内的更新提示会退回英文或显示全文，在这里提前拦下（架构文档 9.7 节）。
       - name: 发布说明标记
-        run: python3 scripts/check_release_notes.py docs/release-notes/macos/*.md
+        run: python3 scripts/check_release_notes.py
 
       # 目录重组后文档之间的相对链接容易失效，GitHub 不报错，在这里拦下。
       - name: 文档链接
@@ -76,7 +88,7 @@ jobs:
         run: swift test
 
       # 算版本号与文件名标签：
-      # - tag v1.2.3：标签为 1.2.3，且应与 macos/VERSION 文件一致；
+      # - tag v1.2.3：标签为 1.2.3，且应与 macos/VERSION 文件一致（两个平台版本号一致由 release.yml 先查过）；
       # - 手动运行：<VERSION>-dev.<提交的前 7 位>。
       - name: 版本号
         id: version
@@ -236,54 +248,3 @@ jobs:
           path: dist/release/
           if-no-files-found: error
           retention-days: 30
-
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release)
-    runs-on: macos-15
-    timeout-minutes: 15
-    permissions:
-      contents: write
-    steps:
-      # 只为读 docs/release-notes/macos/ 下的发布说明，不留写权限的凭据。
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: EVE-O-Preview-${{ needs.build.outputs.label }}
-          path: release-files
-
-      # 说明取 docs/release-notes/macos/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号带 - 时标为预发布。
-      # 演练：建草稿 Release，名字带 -rehearsal，不打 tag、不公开，看完后在 Releases 页面删掉。
-      # Release 已存在时不覆盖附件：已经发出去的文件和校验和不应被悄悄换掉，要重发按架构文档 9.5 节重打 tag。
-      - name: 发布 Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.build.outputs.version }}
-          REHEARSAL: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          NOTES="docs/release-notes/macos/v${VERSION}.md"
-          if [[ "$REHEARSAL" == "true" ]]; then
-            TAG="v${VERSION}-rehearsal.${GITHUB_RUN_NUMBER}"
-            args=(--draft --prerelease --target "$GITHUB_SHA")
-          else
-            TAG="$GITHUB_REF_NAME"
-            args=(--verify-tag)
-            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-              echo "::error::Release ${TAG} 已存在，不覆盖附件；要重发请按架构文档 9.5 节重打 tag"
-              exit 1
-            fi
-            if [[ "$TAG" == *-* ]]; then
-              args+=(--prerelease)
-            fi
-          fi
-          args+=(--repo "$GITHUB_REPOSITORY" --title "EVE-O Preview for macOS ${TAG}")
-          if [[ -f "$NOTES" ]]; then
-            args+=(--notes-file "$NOTES")
-          else
-            args+=(--generate-notes)
-          fi
-          gh release create "$TAG" release-files/* "${args[@]}"
-          echo "已建 Release：${TAG}"

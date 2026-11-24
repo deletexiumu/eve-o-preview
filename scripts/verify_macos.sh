@@ -23,8 +23,8 @@ set -euo pipefail
 
 PR="${1:?用法：scripts/verify_macos.sh <PR 编号>}"
 CONTEXT="local/macos"
-# 与 macos.yml 原来的路径过滤相同：这些路径有改动才需要构建 macOS 版。
-PATTERN='^(macos/|shared/|scripts/|docs/release-notes/macos/|\.github/workflows/macos\.yml$)'
+# 这些路径有改动才需要构建 macOS 版：macOS 代码、共用文件、脚本、发布说明与发布工作流。
+PATTERN='^(macos/|shared/|scripts/|docs/release-notes/macos/|docs/release-notes/[^/]+\.md$|\.github/workflows/(macos|release)\.yml$)'
 
 # 先确认在仓库里，否则后面的 gh 和 git 会给出难懂的报错。
 if ! REPO_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"; then
@@ -88,7 +88,7 @@ step() {
 step "工具链版本" swift --version
 step "文案生成检查" python3 shared/tools/gen_l10n.py --check
 step "质量门禁" python3 scripts/check_quality.py macos/Sources macos/Tests
-step "发布说明标记" bash -c 'python3 scripts/check_release_notes.py docs/release-notes/macos/*.md'
+step "发布说明标记" python3 scripts/check_release_notes.py
 step "文档链接" python3 scripts/check_links.py
 step "swift build" bash -c 'cd macos && swift build'
 

@@ -12,6 +12,6 @@ macOS 版与 Windows 版共用的数据与工具。目录规划见 [Windows 版�
 | [`fixtures/`](fixtures/README.md) | 两端共用的测试用例，各自的一致性测试逐个核对 | 标题、循环、主窗口挑选（M2a）与配置（M2b）已加入，其余随 M2 加入 |
 | `tools/` | 生成脚本，只用 Python 3 标准库 | 随 `l10n/` 加入 |
 
-改这里的文件会同时触发两个平台的 CI（`.github/workflows/macos.yml` 与 `windows.yml`）。
+改这里的文件会同时触发两个平台的检查（维护者 Mac 上的 `scripts/verify_macos.sh` 与 `.github/workflows/windows.yml`）。
 
 重新生成星图数据：在仓库根目录运行 `python3 shared/static/build-sde-data.py`，`--check` 只比较 SDE 版本。macOS 的打包脚本 `macos/scripts/build-app.sh` 把它复制进应用包。

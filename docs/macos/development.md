@@ -100,22 +100,22 @@ Code rules (section 8 of the architecture document): files stay under 1,000 line
 
 ## CI
 
-Pull requests are not built on GitHub's macOS runners, which often queue for a long time. Instead, the maintainer runs `scripts/verify_macos.sh <PR number>` on their own Mac. It checks out the PR's head commit in a temporary worktree, runs the l10n generation check, the quality gate, the release-notes check, the link check, `swift build` and `swift test`, and reports the result as the commit status `local/macos`. A PR that touches none of `macos/`, `shared/`, `scripts/`, `docs/release-notes/macos/` or the workflow is reported as passing without a build. Branch protection requires `local/macos`.
+Pull requests are not built on GitHub's macOS runners, which often queue for a long time. Instead, the maintainer runs `scripts/verify_macos.sh <PR number>` on their own Mac. It checks out the PR's head commit in a temporary worktree, runs the l10n generation check, the quality gate, the release-notes check, the link check, `swift build` and `swift test`, and reports the result as the commit status `local/macos`. A PR that touches none of `macos/`, `shared/`, `scripts/`, the release notes in `docs/release-notes/` or the workflows is reported as passing without a build. Branch protection requires `local/macos`.
 
 `.github/workflows/macos.yml` runs on GitHub-hosted macOS runners:
 
 - Running it manually runs the same checks and the unit tests, then builds a universal dmg and the source archives. They are uploaded as a workflow artifact named `EVE-O-Preview-<version>-dev.<commit>` and kept for 30 days.
-- Pushing a `v*` tag builds the same files and publishes them as a GitHub Release. The tag must match the `macos/VERSION` file. If `docs/release-notes/macos/<tag>.md` exists, it becomes the release notes.
+- Pushing a `v*` tag starts `.github/workflows/release.yml`, which calls `macos.yml` and `windows.yml` to build both platforms and then publishes one GitHub Release with the files of both. The tag must match `macos/VERSION`, `windows/VERSION` and the version in `windows/Cargo.toml`, which must all be equal (`scripts/check_versions.py`).
 
 Release builds are signed with the project's fixed self-signed certificate "EVE-O Preview Release", so macOS keeps the Screen Recording and Accessibility permissions across updates. Without the signing secret (for example, a manual run in a fork), the build falls back to an ad-hoc signature.
 
 ## Releasing a version
 
-1. In a pull request, change the `macos/VERSION` file and add `docs/release-notes/macos/v<version>.md`.
+1. In a pull request, change the version in `macos/VERSION`, `windows/VERSION` and `windows/Cargo.toml` (from 1.4.0 on, both platforms share one version number) and add `docs/release-notes/v<version>.md`.
 2. Merge the pull request into `main`.
 3. Tag `main` and push the tag: `git tag -a v<version> -m v<version> && git push origin v<version>`.
 
-The workflow then publishes the GitHub Release, and installed copies pick it up through the in-app updater.
+The release workflow then publishes the GitHub Release with the dmg and the Windows zip, and installed copies of both pick it up through their updaters. The Windows side of the process, including the merged checksum file and its signature, is described in [docs/windows/packaging.md](../windows/packaging.md).
 
 The asset names (`EVE-O-Preview-<version>.dmg`, `SHA256SUMS.txt`), the dmg layout, the signing certificate and the release-notes format are a contract with the in-app updater; CI checks them on every build. Details are in sections 9.5 to 9.7 of [architecture.md](architecture.md).
 
@@ -125,4 +125,5 @@ The release notes are shown both on the GitHub Release page and in the app's upd
 
 - Describe only the changes in this version.
 - Do not add an "Upgrading" section, installation steps or signing notes. Those are covered once in the README, and repeating them in every version clutters the update window. `scripts/check_release_notes.py` rejects such a section.
+- One file covers both platforms. Inside each language block, put changes that affect both first, then a "macOS" and a "Windows" subheading; leave out a platform with no changes.
 - Put English first between `<!-- lang:en -->` and `<!-- /lang:en -->`, followed by collapsible `zh`, `ja`, `ko`, `ru`, `fr`, `de` and `es` blocks marked the same way, each wrapped in `<details>`. The app picks the block for the interface language and falls back to English.

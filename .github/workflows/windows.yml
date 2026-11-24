@@ -4,10 +4,10 @@
 # - 向 main 发起或更新 PR、推送到 main、手动运行：质量门禁、发布说明与 Rust 工作区的检查。
 #   PR 上工作流总会触发，但 changes 任务看改动的路径：没有动 windows/、shared/、scripts/、docs/release-notes/windows/
 #   与本文件时，后面的任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
-# - 推送 win-v* tag：同样检查，然后打包（package）并发布（release）：Release 一律不标为 latest，
-#   并核对 /releases/latest 仍是 macOS 的 v* tag（已安装的 macOS 客户端靠它检查更新）。
-# - 手动运行时勾选「演练发布」：同样打包，再建一个草稿 Release（不打 tag、不公开），在正式打 tag 前验证发布流程。
-# 打包与签名的做法见 docs/windows/packaging.md：签名私钥只在 release 任务里用（Linux 运行器、Actions secret），
+# - 发布：1.4.0 起 macOS 与 Windows 用同一个 v* tag 一起发布，由 release.yml 调用本工作流（workflow_call）：
+#   同样检查，然后打包（package），zip、源码包与校验和作为制品交给 release.yml 合并、签名、发布。
+# - 手动运行时勾选「演练发布」：同样打包，制品留在这次运行里；要演练整个发布流程，请手动运行 release.yml。
+# 打包与签名的做法见 docs/windows/packaging.md：签名私钥只在 release.yml 的发布任务里用（Linux 运行器、Actions secret），
 # 不进 Windows 运行器；公钥提交在 windows/packaging/update-public-key.txt，打包时编进 exe。
 # Rust 工作区在 windows/Cargo.toml（M2 加入）；没有它时 Rust 的步骤自动跳过。
 # build 任务（M3 加入）在 Windows 运行器上构建整个工作区，启动假客户端跑集成探针，截图与报告作为制品上传。
@@ -25,22 +25,35 @@ on:
       - "shared/**"
       - "scripts/**"
       - "docs/release-notes/windows/**"
+      - "docs/release-notes/*.md"
+      - "macos/VERSION"
       - ".github/workflows/windows.yml"
-    tags: ["win-v*"]
+  # 推送 v* tag 时由 release.yml 调用；github.ref 仍是那个 tag，下面按 tag 判断的条件照常生效。
+  workflow_call:
+    inputs:
+      rehearse_release:
+        description: 演练发布：同样打包
+        type: boolean
+        default: false
+    outputs:
+      label:
+        description: 文件名里的标签（tag 上就是版本号）
+        value: ${{ jobs.package.outputs.label }}
   workflow_dispatch:
     inputs:
       rehearse_release:
-        description: 打包后建一个草稿 Release，演练发布流程
+        description: 打包，制品留在这次运行里；演练整个发布请运行 release.yml
         type: boolean
         default: false
 
-# 默认只读；只有 release 任务单独提升为可写。
+# 只读：建 Release 在 release.yml 里做。
 permissions:
   contents: read
 
-# 同一个 PR 推新提交时取消正在跑的旧运行；main 与 tag 不取消。
+# 同一个 PR 推新提交时取消正在跑的旧运行；main 与 tag 不取消。被 release.yml 调用时 github.workflow 是调用方的名字，
+# 分组里带上它，免得发布与推送到 main 的检查互相排队。
 concurrency:
-  group: windows-${{ github.ref }}
+  group: windows-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -69,7 +82,7 @@ jobs:
           fi
           CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
           echo "$CHANGED"
-          if grep -qE '^(windows/|shared/|scripts/|docs/release-notes/windows/|\.github/workflows/windows\.yml$)' <<< "$CHANGED"; then
+          if grep -qE '^(windows/|shared/|scripts/|docs/release-notes/windows/|docs/release-notes/[^/]+\.md$|macos/VERSION$|\.github/workflows/windows\.yml$)' <<< "$CHANGED"; then
             echo "windows=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::这个 PR 没有改动 Windows 相关的路径，跳过检查"
@@ -95,8 +108,7 @@ jobs:
         run: python3 scripts/check_quality.py windows
 
       - name: 发布说明标记
-        if: hashFiles('docs/release-notes/windows/*.md') != ''
-        run: python3 scripts/check_release_notes.py docs/release-notes/windows/*.md
+        run: python3 scripts/check_release_notes.py
 
       - name: 文档链接
         run: python3 scripts/check_links.py
@@ -116,15 +128,16 @@ jobs:
             exit 1
           fi
 
-      # tag 必须与 windows/VERSION 一致（Windows 的版本号与 macOS 独立）。
-      - name: tag 与版本号
-        if: startsWith(github.ref, 'refs/tags/win-v')
+      # 1.4.0 起两个平台用同一个版本号、同一个 v* tag 发布：macos/VERSION、windows/VERSION 与 Cargo 工作区版本必须相同，
+      # 推送 tag 时 tag 还必须是 v<版本号>。
+      - name: 两个平台的版本号
+        env:
+          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
         run: |
-          [[ -f windows/VERSION ]] || { echo "::error::缺少 windows/VERSION"; exit 1; }
-          BASE="$(tr -d '[:space:]' < windows/VERSION)"
-          if [[ "${GITHUB_REF_NAME#win-v}" != "$BASE" ]]; then
-            echo "::error::tag ${GITHUB_REF_NAME} 与 windows/VERSION 文件（${BASE}）不一致"
-            exit 1
+          if [[ -n "$TAG" ]]; then
+            python3 scripts/check_versions.py --tag "$TAG"
+          else
+            python3 scripts/check_versions.py
           fi
 
       - name: Rust 工具链
@@ -215,11 +228,11 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # 打包（docs/windows/packaging.md 第 2 节）：只在 win-v* tag 与演练发布时运行。发布构建带上构建标签与更新公钥，
+  # 打包（docs/windows/packaging.md 第 2 节）：只在 v* tag（由 release.yml 调用）与演练发布时运行。发布构建带上构建标签与更新公钥，
   # 打出 zip、源码包与校验和，再用应用自己的解包与版本核对检查一遍（eveo-probe package-check）。
   package:
     needs: [core, build]
-    if: startsWith(github.ref, 'refs/tags/win-v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release)
     runs-on: windows-latest
     timeout-minutes: 30
     outputs:
@@ -236,7 +249,7 @@ jobs:
         shell: bash
         run: |
           BASE="$(tr -d '[:space:]' < windows/VERSION)"
-          if [[ "$GITHUB_REF" == refs/tags/win-v* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             LABEL="$BASE"
           else
             LABEL="${BASE}-rehearsal.${GITHUB_RUN_NUMBER}"
@@ -292,95 +305,3 @@ jobs:
           name: windows-release-${{ steps.version.outputs.label }}
           path: windows/dist/
           if-no-files-found: error
-
-  # 签名并发布（docs/windows/packaging.md 第 3、4 节）。私钥种子在 secret WINDOWS_UPDATE_SIGNING_KEY 里（64 位十六进制），
-  # 只经环境变量传给 Python 写成临时的 PKCS#8 文件，签完即删；签名前核对它的公钥与提交的公钥一致，签完再用提交的公钥验一遍。
-  release:
-    needs: package
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: write
-    steps:
-      # 只为读发布说明与公钥，不留写权限的凭据。
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: windows-release-${{ needs.package.outputs.label }}
-          path: release-files
-
-      - name: 签名
-        env:
-          SIGNING_KEY: ${{ secrets.WINDOWS_UPDATE_SIGNING_KEY }}
-        run: |
-          [[ -n "$SIGNING_KEY" ]] || { echo "::error::缺少 secret WINDOWS_UPDATE_SIGNING_KEY"; exit 1; }
-          umask 077
-          WORK="$(mktemp -d)"
-          trap 'rm -rf "$WORK"' EXIT
-          # ed25519 私钥的 PKCS#8 DER = 固定前缀 + 32 字节种子；公钥的 SPKI DER = 固定前缀 + 32 字节公钥。
-          python3 -c 'import os,sys; seed=bytes.fromhex(os.environ["SIGNING_KEY"].strip()); assert len(seed)==32; sys.stdout.buffer.write(bytes.fromhex("302e020100300506032b657004220420")+seed)' > "$WORK/key.der"
-          PUBLIC="$(tr -d '[:space:]' < windows/packaging/update-public-key.txt)"
-          DERIVED="$(openssl pkey -inform DER -in "$WORK/key.der" -pubout -outform DER | tail -c 32 | python3 -c 'import sys; print(sys.stdin.buffer.read().hex())')"
-          if [[ "$DERIVED" != "$PUBLIC" ]]; then
-            echo "::error::secret 里的私钥与 windows/packaging/update-public-key.txt 的公钥不配对"
-            exit 1
-          fi
-          openssl pkeyutl -sign -keyform DER -inkey "$WORK/key.der" -rawin -in release-files/SHA256SUMS.txt -out "$WORK/sig.bin"
-          # 签名文件是一行 base64（架构文档 6.3 节第 3 条）。
-          base64 -w0 "$WORK/sig.bin" > release-files/SHA256SUMS.txt.sig
-          printf '\n' >> release-files/SHA256SUMS.txt.sig
-          python3 -c 'import sys; sys.stdout.buffer.write(bytes.fromhex("302a300506032b6570032100"+sys.argv[1]))' "$PUBLIC" > "$WORK/pub.der"
-          openssl pkeyutl -verify -pubin -keyform DER -inkey "$WORK/pub.der" -rawin -in release-files/SHA256SUMS.txt -sigfile "$WORK/sig.bin"
-          (cd release-files && sha256sum -c SHA256SUMS.txt)
-          [[ "$(ls release-files | wc -l | tr -d ' ')" == "4" ]] || { echo "::error::附件数不是 4"; ls release-files; exit 1; }
-
-      # 说明取 docs/release-notes/windows/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号（不含 win-v 前缀）带 - 时标为预发布。
-      # 一律 --latest=false：/releases/latest 要留给 macOS（架构文档 7.4 节）。
-      # 演练：建草稿 Release，tag 名带 -rehearsal，不打 tag、不公开，看完后在 Releases 页面删掉。
-      # Release 已存在时不覆盖附件：已经发出去的文件和校验和不应被悄悄换掉。
-      - name: 发布 Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          LABEL: ${{ needs.package.outputs.label }}
-          REHEARSAL: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          VERSION="$(tr -d '[:space:]' < windows/VERSION)"
-          NOTES="docs/release-notes/windows/v${VERSION}.md"
-          if [[ "$REHEARSAL" == "true" ]]; then
-            TAG="win-v${LABEL}"
-            args=(--draft --prerelease --target "$GITHUB_SHA")
-          else
-            TAG="$GITHUB_REF_NAME"
-            args=(--verify-tag)
-            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-              echo "::error::Release ${TAG} 已存在，不覆盖附件"
-              exit 1
-            fi
-            # 看的是去掉 win-v 前缀后的版本号：tag 本身总带「win-」里的 -，不能拿整个 tag 判断。
-            if [[ "${TAG#win-v}" == *-* ]]; then
-              args+=(--prerelease)
-            fi
-          fi
-          args+=(--repo "$GITHUB_REPOSITORY" --title "EVE-O Preview for Windows ${TAG#win-v}" --latest=false)
-          if [[ -f "$NOTES" ]]; then
-            args+=(--notes-file "$NOTES")
-          else
-            args+=(--generate-notes)
-          fi
-          gh release create "$TAG" release-files/* "${args[@]}"
-          echo "已建 Release：${TAG}"
-
-      # /releases/latest 必须仍是 macOS 的 v* tag；被 Windows 占了时失败，提醒在 Releases 页面把 macOS 的设回 latest。
-      - name: 核对 latest
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          LATEST="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
-          echo "latest：${LATEST}"
-          if [[ "$LATEST" != v* ]]; then
-            echo "::error::/releases/latest 是 ${LATEST}，不是 macOS 的 v* tag；请在 Releases 页面把最近的 macOS Release 设为 latest"
-            exit 1
-          fi
