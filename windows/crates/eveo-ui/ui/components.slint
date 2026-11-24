@@ -227,31 +227,41 @@ export component Notice inherits VerticalLayout {
 }
 
 // 单选按钮的一项：圆圈加文字，整行可点。std-widgets 没有单选按钮，这里按 Win11 的样子画。
-export component RadioOption inherits HorizontalLayout {
+export component RadioOption inherits Rectangle {
     // 选项文字。
     in property <string> text;
     // 是否选中。
     in property <bool> checked;
     // 被点了。
     callback clicked();
-    spacing: 10px;
-    VerticalLayout {
-        alignment: center;
-        Rectangle {
-            width: 18px;
-            height: 18px;
-            border-radius: 9px;
-            // 选中时用粗的强调色描边画出实心圆点，与 Win11 的单选按钮相同。
-            border-width: checked ? 5px : 1px;
-            border-color: checked ? Theme.accent : Theme.text-secondary;
-            background: Theme.card;
+    // 外层是 Rectangle，布局与 TouchArea 叠在一起：TouchArea 盖满整行，点圆点或文字都算点中。
+    // 之前组件本身是 HorizontalLayout，TouchArea 作为布局的一项只分到行尾一条几乎没有宽度的格子，
+    // 圆点与文字都点不中，单选框选不了。
+    // 尺寸跟着里面的布局走，在父布局里的表现与原来相同。
+    min-width: row.min-width;
+    preferred-width: row.preferred-width;
+    min-height: row.min-height;
+    preferred-height: row.preferred-height;
+    row := HorizontalLayout {
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                // 选中时用粗的强调色描边画出实心圆点，与 Win11 的单选按钮相同。
+                border-width: checked ? 5px : 1px;
+                border-color: checked ? Theme.accent : Theme.text-secondary;
+                background: Theme.card;
+            }
         }
-    }
-    Text {
-        text: root.text;
-        color: Theme.text;
-        vertical-alignment: center;
-        wrap: word-wrap;
+        Text {
+            text: root.text;
+            color: Theme.text;
+            vertical-alignment: center;
+            wrap: word-wrap;
+        }
     }
     TouchArea {
         clicked => {
