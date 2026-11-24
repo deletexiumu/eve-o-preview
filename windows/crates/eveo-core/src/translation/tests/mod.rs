@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 翻译规则的用例，对应 macOS 的 TranslationProvidersTests、TranslationRulesTests、TranslationPromptTests 与
-// TranslationWireTests。术语匹配与情报分段都手工构造，不依赖星图数据。人名、频道名与 Key 都是编造的。
+// TranslationWireTests，以及 TranslationCacheTests、TranslationQueueTests、TranslationPresenterTests。
+// 术语匹配与情报分段都手工构造，不依赖星图数据。人名、频道名与 Key 都是编造的。
 
+mod cache;
+mod presenter;
 mod prompt;
 mod providers;
+mod queue;
 mod rules;
 mod wire;
 
@@ -14,11 +18,16 @@ use crate::static_data::matcher::{TermKind, TermMatch};
 
 /// 建一条消息。收听者、频道与说话人都是虚构的。
 pub(super) fn message(text: &str) -> ChatMessage {
+    message_at(text, "Pilot Alpha", 1_000_000.0)
+}
+
+/// 建一条指定收听者与时间的消息。
+pub(super) fn message_at(text: &str, listener: &str, time: f64) -> ChatMessage {
     ChatMessage {
-        listener: "Pilot Alpha".to_owned(),
+        listener: listener.to_owned(),
         channel_id: "player_chat.Demo".to_owned(),
         channel_name: "chat.Demo".to_owned(),
-        time: 1_000_000.0,
+        time,
         speaker: "Vex Oran".to_owned(),
         text: text.to_owned(),
         is_backfill: false,
