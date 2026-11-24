@@ -203,17 +203,22 @@ impl Redactor {
 
     /// 脱敏一段文字，返回结果与按类别的替换次数。
     pub fn redact(&self, text: &str) -> (String, RedactionCounts) {
+        // source 是原文的字符，folded 是逐个折叠后的字符，两者下标一一对应：
+        // 在 folded 上比较，从 source 上照抄，原文的大小写与写法都保留。
         let source: Vec<char> = text.chars().collect();
         let folded: Vec<char> = source.iter().map(|&c| fold(c)).collect();
         let mut output = String::with_capacity(text.len());
         let mut counts = RedactionCounts::default();
+        // index 是正在试的位置；copied_from 之前的原文已写进 output。
         let mut index = 0;
         let mut copied_from = 0;
         while index < source.len() {
+            // 没有匹配就看下一个位置；没匹配的原文攒着，遇到匹配或到末尾时一次照抄。
             let Some(found) = self.find(index, &source, &folded) else {
                 index += 1;
                 continue;
             };
+            // 匹配前的原文照抄（设备标识还包括键与开头的引号），再写占位符。
             output.extend(&source[copied_from..found.keep_until]);
             output.push_str(&found.replacement);
             match found.category {
@@ -231,6 +236,7 @@ impl Redactor {
 
     /// 在 index 处找一个匹配：先试设备标识，再试最长的词。
     fn find(&self, index: usize, source: &[char], folded: &[char]) -> Option<Found> {
+        // 设备标识以键的引号开头；它只替换值，与词的匹配互不重叠。
         if source[index] == '"'
             && let Some(found) = identifier_match(index, source)
         {
@@ -300,6 +306,7 @@ fn append(
 
 /// 词 term 能否在 index 处匹配：折叠后的字符相同，并满足边界与路径规则。
 fn matches(term: &Term, index: usize, source: &[char], folded: &[char]) -> bool {
+    // 先比字符：桶只保证前两个字符相同，其余的在这里比。
     let end = index + term.folded.len();
     if end > folded.len() || folded[index..end] != term.folded[..] {
         return false;
@@ -312,6 +319,7 @@ fn matches(term: &Term, index: usize, source: &[char], folded: &[char]) -> bool 
             return false;
         }
     }
+    // 短的 ASCII 词（如两个字母的用户名）在正文里太容易误中，只认路径里用户目录那一段。
     if term.path_only {
         return PROFILE_PARENTS
             .iter()
@@ -392,6 +400,31 @@ fn fold(c: char) -> char {
 /// 整个字符串的折叠，用作去重与查找的键。
 fn folded_string(text: &str) -> String {
     text.chars().map(fold).collect()
+}
+
+/// 全部配置方案里出现过的角色名，加上在线客户端的角色名：去掉首尾空白、去掉空的、区分大小写地去重，按名字排序。
+/// 不区分大小写的合并由 [`Redactor`] 做。来源：每个配置方案的布局、隐藏名单、高亮颜色、角色热键的键与循环组成员。
+pub fn character_names(config: &crate::model::AppConfig, online: &[String]) -> Vec<String> {
+    let mut names: BTreeSet<String> = BTreeSet::new();
+    let mut add = |name: &String| {
+        let trimmed = name.trim();
+        if !trimmed.is_empty() {
+            names.insert(trimmed.to_owned());
+        }
+    };
+    for profile in &config.profiles {
+        profile.layouts.keys().for_each(&mut add);
+        profile.hidden_characters.iter().for_each(&mut add);
+        profile.highlight_colors.keys().for_each(&mut add);
+        profile.character_hotkeys.keys().for_each(&mut add);
+        profile
+            .cycle_groups
+            .iter()
+            .flat_map(|g| &g.members)
+            .for_each(&mut add);
+    }
+    online.iter().for_each(&mut add);
+    names.into_iter().collect()
 }
 
 #[cfg(test)]

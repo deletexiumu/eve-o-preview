@@ -30,6 +30,7 @@ fn home_directory_forms() {
         redactor.redact(r#"{"path":"C:\\Users\\cookie\\AppData"}"#).0,
         r#"{"path":"%USERPROFILE%\\AppData"}"#
     );
+    // 盘符与目录名的大小写都可能与环境变量不同（资源管理器、命令行给出的写法不一）。
     assert_eq!(redactor.redact("at c:/users/COOKIE/x").0, r"at %USERPROFILE%/x");
 }
 
@@ -55,6 +56,7 @@ fn user_name_boundaries() {
         redactor.redact("owner cookie logged in").0,
         "owner [user] logged in"
     );
+    // 前后紧挨着字母或数字时不算独立的词。
     assert_eq!(redactor.redact("HTTPCookieStorage").0, "HTTPCookieStorage");
     assert_eq!(redactor.redact("cookies and cookie2").0, "cookies and cookie2");
     assert_eq!(redactor.redact("user=cookie;").0, "user=[user];");
@@ -68,11 +70,13 @@ fn short_user_name_only_in_paths() {
         user_names: vec!["ab".into()],
         ..RedactionTerms::default()
     };
+    // 正文里的短词不动；路径里紧跟 Users 的那一段才换。
     assert_eq!(redacted(&terms, "ab is here"), "ab is here");
     assert_eq!(redacted(&terms, r"C:\Users\ab\x"), r"C:\Users\[user]\x");
     assert_eq!(redacted(&terms, r"C:\\Users\\AB\\x"), r"C:\\Users\\[user]\\x");
     assert_eq!(redacted(&terms, "C:/Users/ab/x"), "C:/Users/[user]/x");
     assert_eq!(redacted(&terms, r"C:\Users\abc\x"), r"C:\Users\abc\x");
+    // 单个字母的用户名同样只在路径里替换。
     let single = RedactionTerms {
         user_names: vec!["q".into()],
         ..RedactionTerms::default()
@@ -100,6 +104,7 @@ fn character_names() {
         redactor.redact("ALICE ZED and alice zed").0,
         "[character-1] and [character-1]"
     );
+    // 序号由排序决定，这里不写死，只要求两人的占位符各自对上。
     let jr = redactor.placeholder_for_character("Bob Jr").unwrap();
     let bob = redactor.placeholder_for_character("bob").unwrap();
     assert_eq!(redactor.redact("Bob Jr met Bob").0, format!("{jr} met {bob}"));
@@ -161,6 +166,7 @@ const NFD_NAME: &str = "Jose\u{301} Garci\u{301}a";
 /// 词与正文用不同的规范化写法时也能替换；两种写法得到同一个占位符、只占一个序号。
 #[test]
 fn normalization_forms() {
+    // 两种写法的字符数确实不同，否则下面的用例测不到东西。
     assert_ne!(NFC_NAME.chars().count(), NFD_NAME.chars().count());
     for (term, text) in [(NFC_NAME, NFD_NAME), (NFD_NAME, NFC_NAME), (NFC_NAME, NFC_NAME)] {
         let redactor = Redactor::new(&RedactionTerms {
@@ -176,6 +182,7 @@ fn normalization_forms() {
             Some("[character-1]")
         );
     }
+    // 同一个名字的两种写法只占一个序号。
     let both = Redactor::new(&RedactionTerms {
         character_names: vec![NFD_NAME.into(), "Alpha".into(), NFC_NAME.into()],
         ..RedactionTerms::default()
@@ -185,6 +192,7 @@ fn normalization_forms() {
         both.redact(&format!("{NFC_NAME}/{NFD_NAME}")).0,
         "[character-2]/[character-2]"
     );
+    // 用户名与用户目录也按两种写法匹配。
     let home = Redactor::new(&RedactionTerms {
         user_names: vec![NFC_NAME.into()],
         home_directory: Some(format!(r"C:\Users\{NFC_NAME}")),
@@ -236,6 +244,7 @@ fn counts_and_empty_terms() {
     assert_eq!(counts, expected);
     assert_eq!(counts.total(), 5);
     assert_eq!((counts + expected).user, 4);
+    // 空白的词若不忽略，会在每个位置都匹配上。
     let text = r"nothing to hide at C:\Users\someone";
     let blanks = RedactionTerms {
         user_names: vec![String::new(), "  ".into()],
