@@ -12,7 +12,7 @@
 //! 「预警」页的位置、人名核对与星图数据。
 
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
 
 use eveo_app_core::chat::intel_page::IntelPageState;
@@ -39,6 +39,8 @@ pub(super) enum IntelAction {
 pub(super) struct IntelPage {
     /// 上次输入的星系名查不到的角色，行下显示提示；设置成功或清除后去掉。
     not_found: BTreeSet<String>,
+    /// 各角色设置成功的次数：交给页面后，那一行的输入框随之清空（查不到时不清，留着输错的文字）。
+    cleared: BTreeMap<String, i32>,
     /// 上一次交给界面的状态，没变时不再交。填页面的方法只借用应用，所以放在 RefCell 里。
     shown: RefCell<Option<IntelView>>,
 }
@@ -77,6 +79,8 @@ impl App {
                 // 查不到（或星图数据还没读完）时只在行下提示，记录不变。
                 if intel.set_manual_location(&character, system, now) {
                     self.chat.intel_page.not_found.remove(&character);
+                    let cleared = self.chat.intel_page.cleared.entry(character).or_default();
+                    *cleared = cleared.wrapping_add(1);
                 } else {
                     self.chat.intel_page.not_found.insert(character);
                 }
@@ -129,12 +133,14 @@ impl App {
             .features
             .intel_page(&self.online_characters(), wall_clock());
         let not_found = &self.chat.intel_page.not_found;
+        let cleared = &self.chat.intel_page.cleared;
         IntelView {
             locations: state
                 .locations
                 .into_iter()
                 .map(|row| LocationView {
                     not_found: not_found.contains(&row.name),
+                    cleared: cleared.get(&row.name).copied().unwrap_or_default(),
                     name: row.name,
                     text: row.text,
                     has_location: row.has_location,

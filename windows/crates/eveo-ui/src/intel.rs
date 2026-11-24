@@ -24,6 +24,8 @@ pub struct LocationView {
     pub has_location: bool,
     /// 上次输入的星系名查不到。
     pub not_found: bool,
+    /// 设置成功的次数；每变一次页上清空这一行的输入框。
+    pub cleared: i32,
 }
 
 /// 「预警」页要显示的运行时状态。
@@ -52,6 +54,7 @@ pub fn show_intel_view(ui: &SettingsWindow, view: &IntelView) {
             text: row.text.as_str().into(),
             has_location: row.has_location,
             not_found: row.not_found,
+            cleared: row.cleared,
         })
         .collect();
     // 名字的集合不变时逐行改（行内的输入框保留），集合变了才整表换掉。

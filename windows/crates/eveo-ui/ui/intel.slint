@@ -24,8 +24,10 @@ export struct IntelLocationRow {
     text: string,
     // 有没有位置记录（「清除」只在有记录时可点）。
     has-location: bool,
-    // 上次输入的星系名查不到（行下提示）。
+    // 上次输入的星系名查不到（行下提示，输入框保留输入的文字）。
     not-found: bool,
+    // 设置成功的次数：每变一次清空这一行的输入框。
+    cleared: int,
 }
 
 // 本页的数据。
@@ -99,17 +101,10 @@ export component IntelPage inherits VerticalLayout {
         }
     }
     RowGap { }
+    // 状态文字含日志目录的路径，放在标题下面占满整行宽度，长路径不在右侧窄栏里折成几行。
     SettingRow {
         title: IntelText.status-label;
-        Text {
-            text: IntelModel.status-text;
-            color: Theme.text-secondary;
-            vertical-alignment: center;
-            horizontal-alignment: right;
-            wrap: word-wrap;
-            // 状态文字较长，限制宽度并换行，不把左边的名字挤没。
-            max-width: 380px;
-        }
+        description: IntelModel.status-text;
     }
     // EVE 默认不把聊天写进文件，这句提醒用户去游戏设置里打开。
     Footnote { text: SettingsText.chat-log-help; }
@@ -135,13 +130,14 @@ export component IntelPage inherits VerticalLayout {
             title: row.name;
             description: row.text;
             LineEdit {
+                // 应用在设置成功后把 cleared 加一，这里随之清空；查不到时保留文字，用户能看到输错了什么。
+                property <int> cleared: row.cleared;
+                changed cleared => { self.text = ""; }
                 placeholder-text: IntelText.system-placeholder;
                 width: 220px;
-                // 回车提交后清空输入框；查不到时行下提示，用户重新输入。
                 accepted(text) => {
                     if text != "" {
                         IntelModel.set-location(row.name, text);
-                        self.text = "";
                     }
                 }
             }
