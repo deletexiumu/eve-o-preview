@@ -30,9 +30,13 @@ scopeGlobal = "전역"
 scopeGame = "EVE 안에서만"
 scopeGlobalOption = "전역: 모든 앱에서 작동(EVE 안 포함)"
 scopeGameOption = "EVE 안에서만: EVE 창이 맨 앞에 있을 때만 작동"
-defaultScopeFooter = { macos = "각 단축키는 범위를 하나만 가지며 두 범위가 동시에 적용되지 않습니다. 단축키 오른쪽의 표시가 실제 범위를 보여 줍니다. 표시를 클릭하면 그 단축키만 전역, EVE 안에서만 또는 여기의 기본값으로 바꿀 수 있습니다.", windows = "각 단축키는 범위를 하나만 가집니다. 따로 정하지 않은 단축키는 여기를 따르며, 단축키 옆에서 하나씩 바꿀 수 있습니다." }
-scopeFollowDefault = "기본값 따르기(현재: {current})"
+defaultScopeFooter = { macos = "각 단축키는 범위를 하나만 가지며 두 범위가 동시에 적용되지 않습니다. 단축키 오른쪽의 표시가 실제 범위를 보여 줍니다. 표시를 클릭하면 그 단축키만 전역, EVE 안에서만 또는 여기의 기본값으로 바꿀 수 있습니다.", windows = "‘기본값 따르기’인 단축키는 여기 설정을 따릅니다. 전역 또는 EVE 안에서만으로 따로 설정한 단축키는 영향을 받지 않습니다. 새로 기록한 마우스 버튼은 다른 앱에서 그 버튼을 가로채지 않도록(브라우저의 뒤로 버튼 등) 따로 EVE 안에서만으로 설정됩니다." }
+scopeFollowDefault = { macos = "기본값 따르기(현재: {current})", windows = "기본값 따르기({current})" }
 scopeMenuHelp = "범위: {resolved}. 클릭하면 이 단축키의 범위를 바꿀 수 있습니다."
+scopeOverrideGlobal = "개별: 전역"
+scopeOverrideGame = "개별: EVE 안에서만"
+scopeOverrideCount = "단축키 {count}개는 범위를 따로 설정해 이 기본값을 따르지 않습니다."
+resetScopesToDefault = "모두 기본값 따르기"
 menuHotkeysOnlyInEVE = "단축키를 EVE 안에서만 사용"
 
 addHotkey = { macos = "+ 추가", windows = "단축키 추가" }

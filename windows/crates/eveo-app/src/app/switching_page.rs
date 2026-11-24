@@ -99,6 +99,9 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
             });
         }
     });
+    let send = sender(runtime);
+    // 「全部改为跟随默认」：不需要参数，绑定层遍历所有位置。
+    model.on_reset_scopes(move || send(Edit::ResetScopes));
     let weak = Rc::downgrade(runtime);
     // 录制按钮不改配置，只切换录制状态，单独走一个输入。
     model.on_record(move |slot, text| post(&weak, Input::Record(slot.into(), text.into())));

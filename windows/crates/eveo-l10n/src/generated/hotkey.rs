@@ -74,6 +74,14 @@ pub trait HotkeyStrings: Sync {
     fn scope_follow_default(&self, current: &str) -> String;
     /// 作用范围菜单的提示文字，参数是这一行已解析的作用范围名称。
     fn scope_menu_help(&self, resolved: &str) -> String;
+    /// Windows：每行作用范围下拉框的第 2 项，这一个热键单独设为全局，不跟随默认。要短（下拉框约 170px 宽）。
+    fn scope_override_global(&self) -> &'static str;
+    /// Windows：每行作用范围下拉框的第 3 项，这一个热键单独设为仅游戏内，不跟随默认。要短。
+    fn scope_override_game(&self) -> &'static str;
+    /// Windows：默认范围下方的提示，参数是单独设了范围、不跟随默认的热键条数（至少 1）。
+    fn scope_override_count(&self, count: i64) -> String;
+    /// Windows：把所有单独设了范围的热键改回跟随默认的按钮。
+    fn reset_scopes_to_default(&self) -> &'static str;
     /// 菜单栏菜单的一项：勾选时当前配置方案的默认作用范围是 game。
     fn menu_hotkeys_only_in_eve(&self) -> &'static str;
     // 录制器
@@ -196,13 +204,25 @@ impl HotkeyStrings for HotkeyStringsEn {
         "Only in EVE: works only while an EVE window is in front"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Each hotkey uses one scope, never both. Hotkeys without their own scope follow this default; change one next to the hotkey."
+        "Hotkeys set to “Use Default” follow this choice; hotkeys with their own Global or Only in EVE scope ignore it. A newly recorded mouse button gets its own Only in EVE scope, so it doesn’t swallow that button in other apps (such as the browser’s Back button)."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Use Default ({})", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("Scope: {}. Click to change it for this hotkey.", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "Own: Global"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "Own: Only in EVE"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("{} hotkeys have their own scope and ignore this default.", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "Make All Use Default"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "Hotkeys Only in EVE"
@@ -340,13 +360,25 @@ impl HotkeyStrings for HotkeyStringsZh {
         "仅游戏内：只在 EVE 窗口位于前台时生效"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "每个热键只有一种作用范围；没有单独设置的热键跟随这里，也可以在热键旁单独修改。"
+        "热键旁选「跟随默认」的按这里生效；单独设了全局或仅游戏内的不受这里影响。录入鼠标按键时默认单独设为仅游戏内，免得在其他程序里吞掉这个按键（比如浏览器的后退键）。"
     }
     fn scope_follow_default(&self, current: &str) -> String {
-        format!("跟随默认（当前：{}）", current)
+        format!("跟随默认（{}）", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("生效范围：{}。点击可单独修改这个热键。", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "单独：全局"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "单独：仅游戏内"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("有 {} 个热键单独设了范围，不跟随这里的默认。", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "全部改为跟随默认"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "热键只在 EVE 内生效"
@@ -484,13 +516,25 @@ impl HotkeyStrings for HotkeyStringsRu {
         "Только в EVE: работает, только когда окно EVE на переднем плане"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "У каждой горячей клавиши одна область действия. Клавиши без своей области следуют этому значению; изменить его для одной клавиши можно рядом с ней."
+        "Клавиши с вариантом «По умолчанию» следуют этому выбору; клавиши со своей областью (глобально или только в EVE) его не учитывают. Новая кнопка мыши получает свою область «только в EVE», чтобы не перехватывать эту кнопку в других программах (например, «Назад» в браузере)."
     }
     fn scope_follow_default(&self, current: &str) -> String {
-        format!("По умолчанию (сейчас: {})", current)
+        format!("По умолчанию ({})", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("Область действия: {}. Нажмите, чтобы изменить её для этой клавиши.", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "Свой: глобально"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "Свой: только в EVE"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("У горячих клавиш ({}) своя область, они не следуют этому значению.", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "Всем по умолчанию"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "Горячие клавиши только в EVE"
@@ -628,13 +672,25 @@ impl HotkeyStrings for HotkeyStringsJa {
         "EVE 内のみ：EVE のウインドウが最前面のときだけ有効"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "各ホットキーの範囲は 1 つだけです。個別に設定していないホットキーはここに従います。ホットキーの横で個別に変更できます。"
+        "「既定に従う」のホットキーはここの設定に従います。グローバルまたは EVE 内のみを個別に設定したホットキーは影響を受けません。新しく記録したマウスボタンは、ほかのアプリでそのボタンを奪わないよう（ブラウザーの「戻る」など）、個別に EVE 内のみになります。"
     }
     fn scope_follow_default(&self, current: &str) -> String {
-        format!("既定に従う（現在：{}）", current)
+        format!("既定に従う（{}）", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("範囲：{}。クリックするとこのホットキーの範囲を変更できます。", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "個別：グローバル"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "個別：EVE 内のみ"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("{} 個のホットキーは範囲を個別に設定しており、この既定に従いません。", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "すべて既定に従う"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "ホットキーを EVE 内のみで有効にする"
@@ -772,13 +828,25 @@ impl HotkeyStrings for HotkeyStringsKo {
         "EVE 안에서만: EVE 창이 맨 앞에 있을 때만 작동"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "각 단축키는 범위를 하나만 가집니다. 따로 정하지 않은 단축키는 여기를 따르며, 단축키 옆에서 하나씩 바꿀 수 있습니다."
+        "‘기본값 따르기’인 단축키는 여기 설정을 따릅니다. 전역 또는 EVE 안에서만으로 따로 설정한 단축키는 영향을 받지 않습니다. 새로 기록한 마우스 버튼은 다른 앱에서 그 버튼을 가로채지 않도록(브라우저의 뒤로 버튼 등) 따로 EVE 안에서만으로 설정됩니다."
     }
     fn scope_follow_default(&self, current: &str) -> String {
-        format!("기본값 따르기(현재: {})", current)
+        format!("기본값 따르기({})", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("범위: {}. 클릭하면 이 단축키의 범위를 바꿀 수 있습니다.", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "개별: 전역"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "개별: EVE 안에서만"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("단축키 {}개는 범위를 따로 설정해 이 기본값을 따르지 않습니다.", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "모두 기본값 따르기"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "단축키를 EVE 안에서만 사용"
@@ -916,13 +984,25 @@ impl HotkeyStrings for HotkeyStringsFr {
         "Seulement dans EVE : fonctionne uniquement quand une fenêtre EVE est au premier plan"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Chaque raccourci a une seule portée. Ceux qui n'en ont pas suivent cette valeur ; modifiez-la pour un raccourci à côté de celui-ci."
+        "Les raccourcis réglés sur « Par défaut » suivent ce choix ; ceux qui ont leur propre portée (global ou EVE seulement) l’ignorent. Un bouton de souris nouvellement enregistré reçoit sa propre portée « EVE seulement », pour ne pas capturer ce bouton dans les autres applications (comme Précédent dans le navigateur)."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Par défaut ({})", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("Portée : {}. Cliquez pour la modifier pour ce raccourci.", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "Propre : global"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "Propre : EVE seulement"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("{} raccourcis ont leur propre portée et ignorent ce choix.", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "Tout remettre par défaut"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "Raccourcis seulement dans EVE"
@@ -1060,13 +1140,25 @@ impl HotkeyStrings for HotkeyStringsDe {
         "Nur in EVE: wirkt nur, solange ein EVE-Fenster im Vordergrund ist"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Jeder Hotkey hat genau einen Bereich. Hotkeys ohne eigenen Bereich folgen diesem Standard; einzeln änderbar neben dem Hotkey."
+        "Tastenkürzel mit „Standard“ folgen dieser Auswahl; Tastenkürzel mit eigenem Bereich (global oder nur in EVE) nicht. Eine neu aufgenommene Maustaste erhält den eigenen Bereich „nur in EVE“, damit sie diese Taste in anderen Apps nicht abfängt (etwa „Zurück“ im Browser)."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Standard ({})", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("Bereich: {}. Zum Ändern für diesen Hotkey klicken.", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "Eigen: global"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "Eigen: nur in EVE"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("{} Tastenkürzel haben einen eigenen Bereich und folgen dieser Vorgabe nicht.", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "Alle auf Standard"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "Hotkeys nur in EVE"
@@ -1204,13 +1296,25 @@ impl HotkeyStrings for HotkeyStringsEs {
         "Solo en EVE: funciona solo mientras una ventana de EVE está al frente"
     }
     fn default_scope_footer(&self) -> &'static str {
-        "Cada atajo tiene un solo ámbito. Los que no tienen uno propio siguen este valor; puedes cambiarlo junto a cada atajo."
+        "Los atajos con «Usar predeterminado» siguen esta opción; los que tienen su propio ámbito (global o solo en EVE) no. Un botón del ratón recién grabado recibe su propio ámbito «solo en EVE» para no capturar ese botón en otras aplicaciones (como Atrás en el navegador)."
     }
     fn scope_follow_default(&self, current: &str) -> String {
         format!("Usar predeterminado ({})", current)
     }
     fn scope_menu_help(&self, resolved: &str) -> String {
         format!("Ámbito: {}. Haz clic para cambiarlo en este atajo.", resolved)
+    }
+    fn scope_override_global(&self) -> &'static str {
+        "Propio: global"
+    }
+    fn scope_override_game(&self) -> &'static str {
+        "Propio: solo en EVE"
+    }
+    fn scope_override_count(&self, count: i64) -> String {
+        format!("{} atajos tienen su propio ámbito y no siguen este valor.", count)
+    }
+    fn reset_scopes_to_default(&self) -> &'static str {
+        "Todos por defecto"
     }
     fn menu_hotkeys_only_in_eve(&self) -> &'static str {
         "Atajos solo en EVE"

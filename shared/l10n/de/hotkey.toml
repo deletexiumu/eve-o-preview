@@ -31,10 +31,14 @@ scopeGlobal = "Überall"
 scopeGame = "Nur in EVE"
 scopeGlobalOption = "Überall: wirkt in jeder App, auch in EVE"
 scopeGameOption = "Nur in EVE: wirkt nur, solange ein EVE-Fenster im Vordergrund ist"
-defaultScopeFooter = { macos = "Jeder Hotkey hat genau einen Bereich, nie beide zugleich. Die Markierung rechts neben jedem Hotkey zeigt den tatsächlich verwendeten Bereich. Ein Klick darauf stellt diesen einen Hotkey auf Überall, Nur in EVE oder den hier gewählten Standard.", windows = "Jeder Hotkey hat genau einen Bereich. Hotkeys ohne eigenen Bereich folgen diesem Standard; einzeln änderbar neben dem Hotkey." }
+defaultScopeFooter = { macos = "Jeder Hotkey hat genau einen Bereich, nie beide zugleich. Die Markierung rechts neben jedem Hotkey zeigt den tatsächlich verwendeten Bereich. Ein Klick darauf stellt diesen einen Hotkey auf Überall, Nur in EVE oder den hier gewählten Standard.", windows = "Tastenkürzel mit „Standard“ folgen dieser Auswahl; Tastenkürzel mit eigenem Bereich (global oder nur in EVE) nicht. Eine neu aufgenommene Maustaste erhält den eigenen Bereich „nur in EVE“, damit sie diese Taste in anderen Apps nicht abfängt (etwa „Zurück“ im Browser)." }
 # 「跟随默认」：Standard 后面的括号里是当前默认范围的名称。
 scopeFollowDefault = "Standard ({current})"
 scopeMenuHelp = "Bereich: {resolved}. Zum Ändern für diesen Hotkey klicken."
+scopeOverrideGlobal = "Eigen: global"
+scopeOverrideGame = "Eigen: nur in EVE"
+scopeOverrideCount = "{count} Tastenkürzel haben einen eigenen Bereich und folgen dieser Vorgabe nicht."
+resetScopesToDefault = "Alle auf Standard"
 menuHotkeysOnlyInEVE = "Hotkeys nur in EVE"
 
 addHotkey = { macos = "+ Hinzufügen", windows = "Hotkey hinzufügen" }

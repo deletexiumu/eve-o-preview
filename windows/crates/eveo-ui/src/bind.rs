@@ -446,6 +446,7 @@ mod tests {
 
         clients_page(&ui);
         crate::switching::tests::check_page(&ui);
+        crate::switching::tests::check_scope_radio_click(&ui);
         crate::profiles::tests::check_page(&ui);
         crate::general::tests::check_page(&ui);
         crate::alerts::tests::check_page(&ui);

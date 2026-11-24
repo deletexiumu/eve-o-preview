@@ -200,6 +200,8 @@ pub enum SwitchingEdit {
         /// 新的作用范围。
         scope: Option<HotkeyScope>,
     },
+    /// 把全部单独设了范围的热键改回跟随默认（默认范围下方的按钮）。
+    ResetScopes,
 }
 
 /// 新建循环组的 id：大写 UUID，与 macOS 相同。
@@ -289,7 +291,45 @@ pub fn apply_switching_edit(profile: &mut Profile, edit: &SwitchingEdit) {
                 set_hotkeys(profile, slot, list);
             }
         }
+        // 每个位置里能解析的热键都去掉后缀；解析不了的原样保留，没有改动的位置不写回。
+        SwitchingEdit::ResetScopes => {
+            for slot in all_slots(profile) {
+                let list = hotkeys(profile, &slot);
+                let reset: Vec<String> = list
+                    .iter()
+                    .map(|text| match HotkeySpec::parse(text) {
+                        Some(spec) if spec.scope.is_some() => HotkeySpec { scope: None, ..spec }.to_string(),
+                        _ => text.clone(),
+                    })
+                    .collect();
+                if reset != list {
+                    set_hotkeys(profile, &slot, reset);
+                }
+            }
+        }
     }
+}
+
+/// 配置里所有放热键的位置：各循环组的前进与后退、有热键的角色、三个通用热键。
+fn all_slots(profile: &Profile) -> Vec<Slot> {
+    let groups = profile.cycle_groups.iter().flat_map(|g| {
+        [CycleDirection::Forward, CycleDirection::Backward].map(|d| Slot::Cycle(g.id.clone(), d))
+    });
+    // 角色只取配置里有热键的；没有热键的角色不需要处理。
+    let characters = profile.character_hotkeys.keys().cloned().map(Slot::Character);
+    groups
+        .chain(characters)
+        .chain([Slot::ToggleHideAll, Slot::MinimizeAll, Slot::CycleLoginClients])
+        .collect()
+}
+
+/// 单独设了范围（写了后缀、不跟随默认）的热键条数，给默认范围下方的提示用。
+pub fn override_count(profile: &Profile) -> usize {
+    all_slots(profile)
+        .iter()
+        .flat_map(|slot| hotkeys(profile, slot))
+        .filter(|text| HotkeySpec::parse(text).is_some_and(|s| s.scope.is_some()))
+        .count()
 }
 
 /// 录到的热键要写进配置的字符串：重录保留原来的作用范围；原来没有后缀（或新增）而录到鼠标按键时写 `@game`。
@@ -327,6 +367,8 @@ pub fn show_switching(ui: &SettingsWindow, profile: &Profile, state: &SwitchingS
         HotkeyScope::Global => 0,
         HotkeyScope::Game => 1,
     });
+    // 条数超过 i32 不可能出现；万一出现按最大值显示，提示照样出现。
+    model.set_override_count(i32::try_from(override_count(profile)).unwrap_or(i32::MAX));
     // 录制状态写成「位置|原文」，页面上每个按钮自己比较，决定是否显示「按下组合键…」。
     let recording = state
         .recording
@@ -584,6 +626,7 @@ fn same_group(a: &CycleGroupData, b: &CycleGroupData) -> bool {
 pub(crate) mod tests {
     use super::*;
     use eveo_core::hotkeys::HotkeyModifiers;
+    use slint::platform::WindowEvent;
 
     /// 一个带循环组与直达热键的配置方案。
     /// 三个成员的循环组，前进热键 Ctrl+F13；Alpha 的直达热键里有一条与之重复，还有一条缺修饰键。
@@ -720,6 +763,62 @@ pub(crate) mod tests {
         let gone = Slot::Cycle("nope".to_owned(), CycleDirection::Forward);
         set_hotkeys(&mut profile, &gone, vec!["F1".to_owned()]);
         assert!(hotkeys(&profile, &gone).is_empty());
+    }
+
+    /// 单独设了范围的条数，以及「全部改为跟随默认」：去掉所有位置里的后缀，解析不了的原样保留。
+    #[test]
+    fn reset_scopes_counts_and_clears_overrides() {
+        let mut profile = sample();
+        profile.cycle_groups[0].backward_hotkeys = vec!["Mouse4@game".to_owned()];
+        profile.hotkeys.toggle_hide_all = vec!["ctrl+alt+shift+H@global".to_owned(), "??".to_owned()];
+        // 后退侧键与全部隐藏各一条单独设了范围；解析不了的一条不算。
+        assert_eq!(override_count(&profile), 2);
+        apply_switching_edit(&mut profile, &SwitchingEdit::ResetScopes);
+        assert_eq!(override_count(&profile), 0);
+        assert_eq!(profile.cycle_groups[0].backward_hotkeys, ["Mouse4"]);
+        assert_eq!(profile.hotkeys.toggle_hide_all, ["ctrl+alt+shift+H", "??"]);
+        // 本来就跟随默认的不变。
+        assert_eq!(
+            hotkeys(&profile, &Slot::Character("Alpha".to_owned())),
+            ["ctrl+F13", "K"]
+        );
+    }
+
+    /// 默认作用范围的单选能用鼠标点选：在第二项（仅游戏内）的文字所在的那一列从上往下逐点点击，
+    /// 应有一段连续的位置能把范围改成 1，在这段中间点圆点也能选中。由 bind 的 Slint 用例调用。
+    /// 之前单选项是 HorizontalLayout，TouchArea 只分到行尾一条几乎没有宽度的格子，这里一处也点不中。
+    pub(crate) fn check_scope_radio_click(ui: &SettingsWindow) {
+        let window = crate::screenshot::window().expect("软件渲染窗口");
+        window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: 1.0 });
+        window.set_size(slint::PhysicalSize::new(1040, 760));
+        ui.set_page(2);
+        ui.show().expect("显示窗口");
+        let model = ui.global::<SwitchingModel>();
+        // 文字从 x≈467 起（截图里量的，逻辑像素），圆点在 x≈342；纵向在页首卡片的范围里找。
+        let hits: Vec<f32> = (100..320)
+            .step_by(2)
+            .map(|y| y as f32)
+            .filter(|&y| {
+                model.set_default_scope(0);
+                click(&window, 470.0, y);
+                model.get_default_scope() == 1
+            })
+            .collect();
+        assert!(hits.len() >= 6, "点中「仅游戏内」的位置太少：{hits:?}");
+        let middle = hits[hits.len() / 2];
+        model.set_default_scope(0);
+        click(&window, 342.0, middle);
+        assert_eq!(model.get_default_scope(), 1, "点圆点没选中");
+        ui.hide().expect("隐藏窗口");
+    }
+
+    /// 在逻辑坐标 (x, y) 按下再松开鼠标左键。
+    fn click(window: &slint::platform::software_renderer::MinimalSoftwareWindow, x: f32, y: f32) {
+        let position = slint::LogicalPosition::new(x, y);
+        let button = slint::platform::PointerEventButton::Left;
+        window.dispatch_event(WindowEvent::PointerPressed { position, button });
+        window.dispatch_event(WindowEvent::PointerReleased { position, button });
+        window.dispatch_event(WindowEvent::PointerExited);
     }
 
     /// 页面内容：行的界面写法与范围、问题提示（重复、缺修饰键、注册失败）与录制状态。由 bind 的 Slint 用例调用。
