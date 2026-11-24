@@ -7,8 +7,16 @@
 // - OverlaySpan / OverlaySpanStyle：一段带样式的文字。
 // - OverlayLine：一条消息，至多两行文字，另带强调背景、复制文字与右键链接。
 // - OverlayStatus / OverlayContent：标题下的状态行与整个浮窗的内容。
+// - planner：浮窗的可见性、位置、层级与外观，以及活动角色（8.6 节）。
+// - scroll：列表的滚动状态、新旧列表的差异与空列表的说明（8.5 节）。
 
 //! 浮窗的种类与内容模型。
+
+pub mod planner;
+pub mod scroll;
+
+#[cfg(test)]
+mod tests;
 
 /// 浮窗的种类：同一种面板，两个实例。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
