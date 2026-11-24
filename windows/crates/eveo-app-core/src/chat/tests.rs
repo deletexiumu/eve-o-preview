@@ -29,14 +29,14 @@ const JSON: &str = r#"{"format":1,"sdeBuild":3720952,"sdeReleaseDate":"2026-11-1
 "ships":[{"i":22456,"g":541,"n":"Sabre","l":{"zh":"剑齿虎级"}}]}"#;
 
 /// 活动角色（虚构）。
-const ACTIVE: &str = "Kael Doran";
+pub(super) const ACTIVE: &str = "Kael Doran";
 /// 另一个在线角色（虚构）。
-const OTHER: &str = "Mira Sol";
+pub(super) const OTHER: &str = "Mira Sol";
 /// 现在（墙上时钟）。
-const NOW: f64 = 1_800_000_000.0;
+pub(super) const NOW: f64 = 1_800_000_000.0;
 
 /// 解码夹具。
-fn data() -> Arc<EveStaticData> {
+pub(super) fn data() -> Arc<EveStaticData> {
     Arc::new(EveStaticData::decode(JSON).expect("夹具能解码"))
 }
 
@@ -60,7 +60,7 @@ fn context(static_data: Option<Arc<EveStaticData>>) -> ChatFeedContext {
 }
 
 /// 收听者 listener 在 time 收到的一条消息。
-fn message(listener: &str, text: &str, time: f64) -> ChatLogEvent {
+pub(super) fn message(listener: &str, text: &str, time: f64) -> ChatLogEvent {
     ChatLogEvent::Message(ChatMessage {
         listener: listener.to_owned(),
         channel_id: "player_1".to_owned(),
@@ -73,7 +73,7 @@ fn message(listener: &str, text: &str, time: f64) -> ChatLogEvent {
 }
 
 /// 角色在 time 进入 system 的 Local 频道。
-fn local(character: &str, system: &str, time: f64) -> ChatLogEvent {
+pub(super) fn local(character: &str, system: &str, time: f64) -> ChatLogEvent {
     ChatLogEvent::LocationHint(LocationHint {
         character: character.to_owned(),
         time,
