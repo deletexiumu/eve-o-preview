@@ -94,13 +94,40 @@ impl Coordinator {
     }
 
     /// 浮窗拖动结束：把最终 frame 写进当前配置方案。规划时再收进屏幕，这里原样保存。
+    ///
+    /// 只移动、落到缩放比例不同的屏幕上时，宽高按两块屏幕的比例换算（见 [`Self::rescaled_for_screen`]）。
     pub(super) fn overlay_drag_ended(&mut self, kind: OverlayKind, frame: ScreenRect) {
+        let frame = self.rescaled_for_screen(kind, frame);
         self.update_profile(|profile| match kind {
             OverlayKind::Intel => profile.intel.overlay.frame = Some(frame),
             OverlayKind::Translation => profile.translation.overlay.frame = Some(frame),
         });
         // 配置没变（松开在原位）时 update_config 不会要求重算；这里也重算一次，浮窗回到规划的 frame。
         self.needs_replan = true;
+    }
+
+    /// 浮窗保存的 frame 是物理像素。拖动中浮窗的像素尺寸不变，从 100% 的屏幕拖到 150% 的屏幕后看起来就小了一圈；
+    /// 缩略图在这种情况下落下后按新屏幕换算、看起来一样大，浮窗也照此处理：只移动（宽高与拖动前相差不到半个像素）
+    /// 且前后所在屏幕的缩放比例不同时，宽高乘以「新屏幕 ÷ 旧屏幕」，取整到像素，左上角不动。
+    /// 改了尺寸时按用户拖出来的像素尺寸保存，不换算。浮窗没在规划结果里（拖动中途被关掉）时原样返回。
+    fn rescaled_for_screen(&self, kind: OverlayKind, frame: ScreenRect) -> ScreenRect {
+        let Some(start) = self.overlay_plan.iter().find(|p| p.kind == kind).map(|p| p.frame) else {
+            return frame;
+        };
+        let resized = (start.width - frame.width).abs() >= 0.5 || (start.height - frame.height).abs() >= 0.5;
+        let before = size_scale_at(&self.screens, start.center());
+        let after = size_scale_at(&self.screens, frame.center());
+        // 比例相同（同一块屏幕或缩放相同的屏幕）时不换算；比例不是正数（不会出现）时也不换算。
+        if resized || before <= 0.0 || (before - after).abs() < 1e-6 {
+            return frame;
+        }
+        let ratio = after / before;
+        ScreenRect::new(
+            frame.x,
+            frame.y,
+            (frame.width * ratio).round(),
+            (frame.height * ratio).round(),
+        )
     }
 
     /// 浮窗右键菜单里改配置的动作（8.7 节的表）。

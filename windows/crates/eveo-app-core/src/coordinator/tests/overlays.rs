@@ -8,7 +8,8 @@ use eveo_core::model::AppConfig;
 use eveo_core::overlay::OverlayKind;
 use eveo_core::overlay::planner::{MAXIMUM_SIZE, MINIMUM_SIZE, OverlayPresentation};
 
-use super::{changed_config, config, started, three_characters};
+use super::{changed_config, config, mixed_dpi_screens, started, three_characters};
+use crate::coordinator::Coordinator;
 use crate::event::{Effect, Event, ForegroundOwner, OverlayMenuAction, SettingsPage};
 
 /// 打开预警（可选同时打开翻译）的默认配置。
@@ -125,4 +126,49 @@ fn drag_end_and_menu_actions_edit_config() {
     // 「打开设置…」不改配置，只有打开设置窗口这一个效果。
     let effects = coordinator.handle(menu(OverlayMenuAction::OpenSettings), 5.0);
     assert_eq!(effects, vec![Effect::OpenSettings(SettingsPage::Intel)]);
+}
+
+/// 只移动到缩放比例不同的屏幕上：宽高按比例换算，看起来与拖动前一样大；在新屏幕上改了尺寸则按像素保存。
+#[test]
+fn moving_to_a_scaled_screen_keeps_apparent_size() {
+    let mut coordinator = Coordinator::new(intel_on(false), mixed_dpi_screens());
+    coordinator.handle(Event::Started, 1.0);
+    coordinator.handle(Event::WindowsPolled(three_characters()), 1.1);
+    // 默认位置在 100% 的主屏右上角，380×260。
+    let start = overlays_in_plan(&coordinator);
+    assert_eq!((start.width, start.height), (380.0, 260.0));
+    // 原样拖到 150% 的副屏：存成 570×390，左上角不动。
+    let moved = ScreenRect::new(2200.0, 200.0, start.width, start.height);
+    let effects = coordinator.handle(
+        Event::OverlayDragEnded {
+            kind: OverlayKind::Intel,
+            frame: moved,
+        },
+        2.0,
+    );
+    let saved = changed_config(&effects).unwrap().profiles[0].intel.overlay.frame;
+    assert_eq!(saved, Some(ScreenRect::new(2200.0, 200.0, 570.0, 390.0)));
+    // 在副屏上改尺寸：不再换算。
+    let resized = ScreenRect::new(2200.0, 200.0, 700.0, 500.0);
+    let effects = coordinator.handle(
+        Event::OverlayDragEnded {
+            kind: OverlayKind::Intel,
+            frame: resized,
+        },
+        3.0,
+    );
+    assert_eq!(
+        changed_config(&effects).unwrap().profiles[0].intel.overlay.frame,
+        Some(resized)
+    );
+}
+
+/// 规划结果里预警浮窗的 frame。
+fn overlays_in_plan(coordinator: &Coordinator) -> ScreenRect {
+    coordinator
+        .overlay_presentations()
+        .iter()
+        .find(|p| p.kind == OverlayKind::Intel)
+        .expect("预警浮窗在规划里")
+        .frame
 }

@@ -141,6 +141,7 @@ impl App {
         let config = self.coordinator.config();
         if let Some(profile) = config.active_profile() {
             chat::show_intel(window, &profile.intel);
+            chat::show_intel_status(window, self.chat_log_status());
             chat::show_translation(window, &profile.translation, &config.general.translation_endpoint);
         }
     }

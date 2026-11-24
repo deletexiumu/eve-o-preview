@@ -121,13 +121,27 @@ impl App {
         if self.chat.features.take_static_data_request() {
             self.load_static_data();
         }
+        self.show_chat_status();
         self.refresh_overlays(None);
+    }
+
+    /// 聊天日志的跟踪状态，填设置窗口的预警页时用。
+    pub(super) fn chat_log_status(&self) -> &ChatLogStatus {
+        self.chat.features.chat_log_status()
+    }
+
+    /// 设置窗口开着时刷新预警页的状态行（聊天日志的跟踪状态）。
+    fn show_chat_status(&self) {
+        if let Some(window) = &self.settings {
+            eveo_ui::chat::show_intel_status(window, self.chat.features.chat_log_status());
+        }
     }
 
     /// 界面语言变了：浮窗的固定文字与各行的用语都换成新语言。
     pub(super) fn chat_language_changed(&mut self) {
         self.chat.overlays.set_language(self.language);
         self.chat.features.set_language(self.language, wall_clock());
+        self.show_chat_status();
         self.refresh_overlays(None);
     }
 
@@ -179,7 +193,13 @@ impl App {
             match message {
                 ChatLogMessage::Events(events) => stale.extend(self.chat.features.events(events, now)),
                 // 状态变了：浮窗的状态行要换。
-                ChatLogMessage::Status(status) => all |= self.chat.features.status_changed(status, now),
+                ChatLogMessage::Status(status) => {
+                    if self.chat.features.status_changed(status, now) {
+                        all = true;
+                        // 预警页的状态行也跟着换。
+                        self.show_chat_status();
+                    }
+                }
                 // 跟踪的频道只有翻译用来提示「EVE 没写这些频道的日志」；翻译移植后接上。
                 ChatLogMessage::Followed(_) => {}
             }
