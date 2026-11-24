@@ -42,6 +42,11 @@ export component SettingsWindow inherits Window {
     in-out property <bool> mica <=> Theme.mica;
     // 当前页：0 客户端，1 预览与布局，2 切换与热键，3 提醒，4 预警，5 翻译，6 配置方案，7 通用，8 关于，9 环境检查（导航里排在「通用」之后，编号放在最后，已有的编号不变）。
     in-out property <int> page: 1;
+    // 切页时回到顶部：各页共用这一个滚动区，不重置的话新页会停在上一页滚到的位置（例如在长页滚到底再切过去，
+    // 新页一打开就在下半截）。
+    changed page => {
+        content.viewport-y = 0;
+    }
     // 界面字体。Windows 上是 Segoe UI Variable，中日韩文字由系统字体回退补上（微软雅黑等）。
     in property <string> ui-font: "Segoe UI Variable Text";
     // 首次打开的大小；可以缩小到最小尺寸，内容区滚动。
@@ -110,7 +115,7 @@ export component SettingsWindow inherits Window {
             NavItem { icon: Icons.about; text: SettingsText.page-about; selected: page == 8; clicked => { page = 8; } }
         }
         // 右侧内容：可滚动；右边距比左边大一些，给滚动条留位置。
-        ScrollView {
+        content := ScrollView {
             // 内容区的边距与 Win11 设置相近。
             VerticalLayout {
                 padding: 36px;
