@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 问题报告窗口，对应 macOS 的 ProblemReportView（v1.1 设计 7.4 节）：
+// 问题报告窗口（860x560），对应 macOS 的 ProblemReportView（v1.1 设计 7.4 节）：
 // - 顶部：手动情境是说明文字 intro，崩溃情境是 crash-intro；下面一行是脱敏的说明。
 // - 左栏：文件列表，每行有勾选框、名称、大小。summary.md 与 manifest.json 的勾选框不可用。
-// - 右栏：选中文件脱敏后的文字，等宽字体，只读，可以选中复制。太长时只显示开头，下方注明；再下面是替换次数。
+// - 右栏：选中文件脱敏后的文字，只读，长行折行，可以选中复制。太长时只显示开头，下方注明；再下面是替换次数。
 // - 底部按钮：手动情境是「取消」「只生成报告」「生成报告并打开 GitHub」；崩溃情境把「取消」换成「不报告」与「以后再说」。
 // - 收集期间显示进度，按钮不可用。生成失败时在按钮上方显示原因。
 // - 完成页：说明文字，按钮「在资源管理器中显示」「再次打开 GitHub」「关闭」。
@@ -119,9 +119,9 @@ export component ProblemReportWindow inherits Window {
     in property <string> ui-font: "Segoe UI Variable Text";
     title: DiagnosticsText.window-title;
     icon: @image-url("images/app-icon.png");
-    preferred-width: 800px;
+    preferred-width: 860px;
     preferred-height: 560px;
-    min-width: 640px;
+    min-width: 700px;
     min-height: 420px;
     background: Theme.window-background;
     default-font-family: ui-font;
@@ -173,8 +173,9 @@ export component ProblemReportWindow inherits Window {
         if !ReportModel.collecting: HorizontalLayout {
             vertical-stretch: 1;
             spacing: 12px;
+            // 宽度放得下「应用日志 · eve-o-preview.log」加大小一列。
             Rectangle {
-                width: 280px;
+                width: 340px;
                 background: Theme.card;
                 border-color: Theme.card-border;
                 border-width: 1px;
@@ -210,11 +211,12 @@ export component ProblemReportWindow inherits Window {
             VerticalLayout {
                 horizontal-stretch: 1;
                 spacing: 6px;
-                // 只读的文本框：能选中复制，自带滚动条。
+                // 只读的文本框：能选中复制，自带竖向滚动条。长行折行显示：Fluent 风格的 TextEdit
+                // 不折行时没有横向滚动条，右边的内容会被裁掉（真机上见过）。
                 TextEdit {
                     text: ReportModel.preview;
                     read-only: true;
-                    wrap: no-wrap;
+                    wrap: word-wrap;
                     font-size: 12px;
                     vertical-stretch: 1;
                 }

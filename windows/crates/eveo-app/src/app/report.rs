@@ -23,7 +23,7 @@ use eveo_app_core::report::{self, CollectRequest, CrashSource, ManifestInfo, Rep
 use eveo_app_core::state_store::PendingCrash;
 use eveo_core::chat_log::ChatLogStatus;
 use eveo_core::combat_log::CombatLogStatus;
-use eveo_core::diagnostics::issue::{self, MAX_URL_BYTES, problem_report_draft};
+use eveo_core::diagnostics::issue::{self, problem_report_draft};
 use eveo_core::diagnostics::redactor::{RedactionTerms, Redactor, character_names};
 use eveo_core::diagnostics::summary::{
     AppEnvironment, DiagnosticsBundlePlanner, EnvironmentReport, RuntimeSummary, config_summary, pretty_json,
@@ -40,6 +40,11 @@ use super::{App, Input, Runtime, post, shell};
 
 /// 问题报告的日志。
 const LOG: Logger = Logger::new("Report");
+
+/// 新建 Issue 地址的上限（字节）。macOS 用 6000；Windows 上地址交给 ShellExecuteW 再转给浏览器，
+/// 超过 INTERNET_MAX_URL_LENGTH（2083）的地址可能被截断或打不开，留些余量取 2000。
+/// 放不下时 issue_url 先整段省掉可选的小节，再逐行删环境信息；完整的一份在压缩包的 summary.md 里。
+const ISSUE_URL_BYTES: usize = 2000;
 /// report.slint 里窗口的首选尺寸（逻辑像素），首次显示时居中用。
 const REPORT_SIZE: (f64, f64) = (800.0, 560.0);
 
@@ -354,10 +359,17 @@ impl App {
                 show_session(session, language);
             }
             ReportInput::Create(open) => self.create_report(open),
-            ReportInput::Dismiss | ReportInput::Close => self.close_report(),
+            ReportInput::Dismiss | ReportInput::Close => {
+                // 崩溃情境的「以后再说」记一行：崩溃的提示保留，下次还会出现。
+                if session.crash.is_some() && matches!(input, ReportInput::Dismiss) {
+                    LOG.info("崩溃报告：以后再说");
+                }
+                self.close_report();
+            }
             // 「不报告」：这次崩溃不再提示，名单最多记 20 个会话。
             ReportInput::DontReport => {
                 if let Some(crash) = session.crash.clone() {
+                    LOG.info("崩溃报告：不报告，这次崩溃不再提示");
                     self.update_crash_state(|diagnostics| {
                         diagnostics.dismiss(&crash.session_id);
                         diagnostics.pending_crash = None;
@@ -438,7 +450,7 @@ impl App {
             for section in &mut draft.sections {
                 section.body = redactor.redact(&section.body).0;
             }
-            let url = issue::issue_url(&draft, MAX_URL_BYTES);
+            let url = issue::issue_url(&draft, ISSUE_URL_BYTES);
             shell::open_url(&url);
             session.issue_url = Some(url);
         } else {

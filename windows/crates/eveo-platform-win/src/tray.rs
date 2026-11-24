@@ -11,7 +11,7 @@
 // 推荐的格式，键盘操作托盘图标时也有反应。新格式下系统默认不显示悬停提示，要带 NIF_SHOWTIP。
 //
 // 通知（notify）：NIF_INFO 的气球提示，Windows 10/11 上显示成系统通知。用户点了通知时回调 NIN_BALLOONUSERCLICK，
-// 送给处理函数；带 NIIF_RESPECT_QUIET_TIME，专注助手、全屏游戏时系统不弹出。只用于崩溃后的「报告问题」提示。
+// 送给处理函数；勿扰、全屏游戏时系统自己不弹出。只用于崩溃后的「报告问题」提示。
 //
 // 图标在任务栏的溢出菜单（「显示隐藏的图标」）里时，选中图标后 Windows 11 不会自己收起溢出菜单，
 // 打开设置窗口后它一直留在屏幕上（真机测试发现，原版 EVE-O Preview 也是这样）。选中时如果前台是溢出菜单，
@@ -22,14 +22,14 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::HBRUSH;
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
 use windows::Win32::UI::Shell::{
-    NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_SHOWTIP, NIF_TIP, NIIF_INFO, NIIF_RESPECT_QUIET_TIME, NIM_ADD,
-    NIM_DELETE, NIM_MODIFY, NIM_SETVERSION, NIN_BALLOONUSERCLICK, NIN_SELECT, NOTIFYICON_VERSION_4,
-    NOTIFYICONDATAW, Shell_NotifyIconW,
+    NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_SHOWTIP, NIF_TIP, NIIF_INFO, NIM_ADD, NIM_DELETE, NIM_MODIFY,
+    NIM_SETVERSION, NIN_BALLOONUSERCLICK, NIN_SELECT, NOTIFYICON_VERSION_4, NOTIFYICONDATAW,
+    Shell_NotifyIconW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, GetClassNameW, GetForegroundWindow, GetSystemMetrics,
@@ -135,21 +135,29 @@ impl TrayIcon {
     }
 
     /// 显示一条通知：标题最多 63 个、正文最多 255 个 UTF-16 单元，超长时截断。只显示一次，不改图标的其余状态。
-    pub fn notify(&self, title: &str, text: &str) {
+    /// 返回 Shell_NotifyIconW 是否接受了这次修改（接受了也可能因专注助手等不显示）；失败时附上系统错误码。
+    pub fn notify(&self, title: &str, text: &str) -> std::result::Result<(), u32> {
         ICONS.with(|icons| {
             let Some(base) = icons.borrow().get(&(self.hwnd.0 as usize)).copied() else {
-                return;
+                // 图标不在本线程的表里：不是在建图标的线程上调用，或图标已删除。
+                return Err(0);
             };
             // 在保存的图标数据的副本上加 NIF_INFO：保存的那份不带它，资源管理器重启后重新添加时不会再弹一次。
             let mut data = base;
-            // 只带 NIF_INFO：图标、提示文字与回调消息保持不变。
-            data.uFlags = NIF_INFO;
-            data.dwInfoFlags = NIIF_INFO | NIIF_RESPECT_QUIET_TIME;
+            // 原有的标志加上 NIF_INFO：图标、提示文字与回调消息按原值再设一遍，不会变。
+            // 不带 NIIF_RESPECT_QUIET_TIME：勿扰与全屏游戏时系统自己会压下通知，不必再加一层条件。
+            data.uFlags |= NIF_INFO;
+            data.dwInfoFlags = NIIF_INFO;
             copy_into(&mut data.szInfoTitle, title);
             copy_into(&mut data.szInfo, text);
             // SAFETY: data 的大小与图标编号沿用添加时的值，缓冲区已截断并以 0 结尾。
-            let _ = unsafe { Shell_NotifyIconW(NIM_MODIFY, &data) };
-        });
+            if unsafe { Shell_NotifyIconW(NIM_MODIFY, &data) }.as_bool() {
+                Ok(())
+            } else {
+                // SAFETY: 紧接着失败的调用读本线程的错误码。
+                Err(unsafe { GetLastError() }.0)
+            }
+        })
     }
 
     /// 主消息窗口的句柄，弹出托盘菜单时作为所有者。
