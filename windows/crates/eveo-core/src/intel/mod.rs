@@ -7,6 +7,7 @@
 // - feed：按收听者分开的消息缓冲（每人至多 300 条，编号递增）。
 // - counting：数量的归属、敌对数量与「安全」是否被否定（6.4 节「舰船的数量与敌对数量」）。
 // - pilots：人名核对（ESI 请求写法、缓存、排队节流、按查到的角色重新分人，6.9～6.10 节）。
+// - presenter：预警浮窗每一行的内容（6.7 节）：时间、星系与跳数、数量、舰船、人名、用语与强调背景。
 // 消息本身由聊天日志的跟踪服务给出；星系与舰船靠 static_data 的术语匹配认出。
 
 //! 预警消息的解析：分段、人数、人名与敌对数量。
@@ -15,6 +16,7 @@ mod counting;
 pub mod feed;
 pub mod parser;
 pub mod pilots;
+pub mod presenter;
 
 #[cfg(test)]
 mod tests;
