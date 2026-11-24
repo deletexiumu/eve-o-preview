@@ -509,8 +509,9 @@ exe 的版本资源里写入版本号、构建标签与提交号。CI 在发布�
 规则（多久检查一次、跳过的版本、何时可以安装、发布说明按语言取哪一块、中间版本的说明）全部来自 Core 的 `UpdatePolicy`、`ReleaseHistory`、`ReleaseNotes`，从 Swift 移植，与 macOS 行为一致。平台层只做下面这些：
 
 1. 取 `https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=100`，只看 tag 以 `win-v` 开头、不是草稿的条目，按语义化版本取最高的正式版。不用 `/releases/latest`，它永远指向 macOS 版（7.4 节）。
+   测试版的渠道：正在运行的是预发布版（`win-v0.x` 的测试版或 CI 构建）时，也提示更新的预发布版；正在运行正式版时只提示正式版。中间版本的发布说明从同一页列表里挑，不再另请求。
 2. 附件地址必须在本仓库的 `/releases/` 路径下，校验规则移植 `UpdateFeed.accepts`。
-3. 下载 zip、`SHA256SUMS.txt` 与 `.sig`。先用内置的 ed25519 公钥验签校验和文件，再核对 zip 的 SHA-256。
+3. 下载 zip、`SHA256SUMS.txt` 与 `.sig`。先用内置的 ed25519 公钥验签校验和文件，再核对 zip 的 SHA-256。签名文件是对 `SHA256SUMS.txt` 原始字节的 ed25519 签名的 base64（一行）。
 4. exe 带 Authenticode 签名时，用 `WinVerifyTrust` 核对，并要求签名者与当前运行的 exe 相同。没有签名的阶段只靠第 3 步。
 5. 安装：把新 exe 解到同目录的临时文件名；把正在运行的 exe 改名为 `*.old`（Windows 允许给运行中的 exe 改名）；把新文件改成正式名字；启动新进程并退出。新进程启动后删除 `*.old`。
 6. 回滚：新版本启动后 30 秒内没有写入「启动成功」标记就退出的话，下次由 `*.old` 恢复。标记放在 `state.json`。
