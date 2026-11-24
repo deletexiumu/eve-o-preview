@@ -46,6 +46,12 @@ export component SettingsWindow inherits Window {
     // 新页一打开就在下半截）。
     changed page => {
         content.viewport-y = 0;
+        // 切到预警或翻译页时重新扫描日志目录，「从日志添加」列出的是此刻最近用过的频道。
+        if page == 4 {
+            IntelModel.refresh-discovered();
+        } else if page == 5 {
+            TranslationModel.refresh-discovered();
+        }
     }
     // 界面字体。Windows 上是 Segoe UI Variable，中日韩文字由系统字体回退补上（微软雅黑等）。
     in property <string> ui-font: "Segoe UI Variable Text";

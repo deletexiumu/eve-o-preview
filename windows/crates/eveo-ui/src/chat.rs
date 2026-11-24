@@ -10,7 +10,7 @@
 
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
-use eveo_core::chat_log::ChatLogStatus;
+use eveo_core::chat_log::{ChatChannelKind, ChatLogStatus, DiscoveredChannel};
 use eveo_core::model::{
     AppLanguage, ChannelRef, INTEL_ALERT_JUMPS_RANGE, INTEL_MAX_JUMPS_RANGE, INTEL_WINDOW_MINUTES_RANGE,
     IntelSettings, MAX_CHANNELS, OVERLAY_FONT_SIZE_RANGE, OVERLAY_OPACITY_RANGE, OverlayPanelSettings,
@@ -21,8 +21,8 @@ use eveo_core::support::StringEnum;
 
 use crate::{IntelModel, SettingsWindow, TranslationModel};
 
-/// 频道列表的一次改动，来自页上的按钮与输入框。
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// 频道列表的一次改动，来自页上的按钮与输入框。ChannelRef 没有实现 Eq，这里只比较相等。
+#[derive(Debug, Clone, PartialEq)]
 pub enum ChannelEdit {
     /// 移除第几项。
     Remove(usize),
@@ -30,6 +30,8 @@ pub enum ChannelEdit {
     AddName(String),
     /// 添加第几个内置频道（ChannelRef::built_ins 的顺序：本地、军团、联盟、舰队）。
     AddBuiltIn(usize),
+    /// 添加「从日志添加」里选的频道（名字与 ID 都有）。
+    AddRef(ChannelRef),
 }
 
 /// 按改动修改频道列表；返回列表是否变了。已选的、已满的、空白名字的添加什么也不做。
@@ -55,6 +57,8 @@ pub fn apply_channel_edit(channels: &mut Vec<ChannelRef>, edit: &ChannelEdit) ->
             Some(channel) => channel,
             None => return false,
         },
+        // 从日志里选的频道带 ID，按 ID 匹配，改名后仍然认得。
+        ChannelEdit::AddRef(channel) => channel.clone(),
     };
     // 已满时页上的入口本已置灰；这里再挡一次，防止排队中的多次添加超过上限。
     if channels.len() >= MAX_CHANNELS || is_selected(channels, &candidate) {
@@ -98,6 +102,55 @@ pub fn channel_name(channel: &ChannelRef, language: AppLanguage) -> String {
     } else {
         name.to_owned()
     }
+}
+
+/// 「从日志添加」能选的频道：去掉内置频道的种类（本地、军团、联盟、舰队按 ID 匹配，翻译页另有按钮）
+/// 与已选的，顺序同发现的结果（最近用过的在前）。应用按同一个函数把页上的下标换回频道。
+pub fn discovered_choices<'a>(
+    discovered: &'a [DiscoveredChannel],
+    selected: &[ChannelRef],
+) -> Vec<&'a DiscoveredChannel> {
+    discovered
+        .iter()
+        .filter(|c| matches!(c.kind, ChatChannelKind::Player | ChatChannelKind::Other))
+        .filter(|c| !is_selected(selected, &c.channel_ref()))
+        .collect()
+}
+
+/// 「从日志添加」下拉框的各项：第一项是提示文字，之后是「名称 — N 个角色」。
+/// `discovered` 为 `None` 表示还没扫描过（只显示提示）；扫描过却没有可选的频道时提示换成「没有最近的聊天日志」。
+fn discovered_items(
+    discovered: Option<&[DiscoveredChannel]>,
+    selected: &[ChannelRef],
+) -> ModelRc<SharedString> {
+    let text = eveo_l10n::overlay(crate::language());
+    let choices = discovered
+        .map(|d| discovered_choices(d, selected))
+        .unwrap_or_default();
+    let prompt = if discovered.is_some() && choices.is_empty() {
+        text.no_discovered_channels()
+    } else {
+        text.pick_from_logs()
+    };
+    // 角色数超过 i64 不可能出现；按最大值显示。
+    let rows = choices.iter().map(|c| {
+        let listeners = i64::try_from(c.listeners).unwrap_or(i64::MAX);
+        format!("{} — {}", c.name, text.channel_listeners(listeners))
+    });
+    strings(std::iter::once(prompt.to_owned()).chain(rows))
+}
+
+/// 把发现的频道填进两页的「从日志添加」下拉框；两页已选的频道不同，各自去掉自己已选的。
+pub fn show_discovered(
+    ui: &SettingsWindow,
+    discovered: Option<&[DiscoveredChannel]>,
+    intel: &[ChannelRef],
+    translation: &[ChannelRef],
+) {
+    ui.global::<IntelModel>()
+        .set_discovered(discovered_items(discovered, intel));
+    ui.global::<TranslationModel>()
+        .set_discovered(discovered_items(discovered, translation));
 }
 
 /// 字符串列表转成 Slint 的模型。
@@ -371,6 +424,35 @@ pub(crate) mod tests {
             apply_channel_edit(&mut channels, &ChannelEdit::AddName(format!("c{i}")));
         }
         assert_eq!(channels.len(), MAX_CHANNELS);
+    }
+
+    /// 「从日志添加」：去掉内置种类与已选的（按 ID），保留发现的顺序；选中的频道带 ID 加进列表。
+    #[test]
+    fn discovered_choices_skip_built_ins_and_selected() {
+        let found = |id: &str, name: &str, kind| DiscoveredChannel {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            kind,
+            listeners: 1,
+            last_modified: 0.0,
+        };
+        let discovered = [
+            found("player_a", "intel.A", ChatChannelKind::Player),
+            found("local", "Local", ChatChannelKind::Local),
+            found("player_b", "intel.B", ChatChannelKind::Player),
+            found("fleet_1", "Fleet", ChatChannelKind::Fleet),
+        ];
+        // intel.B 已按 ID 选过（名字大小写不同也算）。
+        let mut selected = vec![ChannelRef::new("INTEL.b", Some("player_b"))];
+        let names: Vec<&str> = discovered_choices(&discovered, &selected)
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+        assert_eq!(names, ["intel.A"]);
+        let pick = discovered_choices(&discovered, &selected)[0].channel_ref();
+        assert!(apply_channel_edit(&mut selected, &ChannelEdit::AddRef(pick)));
+        assert_eq!(selected[1].id.as_deref(), Some("player_a"));
+        assert!(discovered_choices(&discovered, &selected).is_empty());
     }
 
     /// 内置频道显示本地化的名字，名字为空的频道显示 ID。

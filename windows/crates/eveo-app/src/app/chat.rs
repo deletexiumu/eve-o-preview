@@ -8,12 +8,16 @@
 //! 「预警」与「翻译」两页。
 
 use std::rc::Rc;
+use std::sync::mpsc;
 
 use eveo_app_core::Event;
+use eveo_app_core::chat_log::discovery::discover_channels;
 use eveo_core::model::{AppConfig, Profile};
 use eveo_ui::chat::{self, ChannelEdit};
 use slint::ComponentHandle;
 
+use super::alerts::automatic_directory;
+use super::intel::wall_clock;
 use super::{App, Input, Runtime, post};
 
 /// 哪一页：两页的频道列表与浮窗设置结构相同，动作带上页名区分。
@@ -34,6 +38,10 @@ pub(super) enum ChatInput {
     Channel(ChatPage, ChannelEdit),
     /// 「恢复默认位置」：浮窗的位置回到默认（frame 清空）。
     ResetFrame(ChatPage),
+    /// 添加「从日志添加」里的第几个频道（页上的下标，不含提示文字）。
+    AddDiscovered(ChatPage, usize),
+    /// 重新扫描日志目录里最近出现过的频道（切到页面、点「刷新」）。
+    RefreshDiscovered,
 }
 
 /// 接上两页的回调：都转成输入排队，不在 Slint 的事件处理中途借用应用。
@@ -62,6 +70,18 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
         post(&weak, Input::Chat(ChatInput::Channel(ChatPage::Intel, edit)));
     });
 
+    let weak = Rc::downgrade(runtime);
+    intel.on_add_discovered(move |index| {
+        if let Ok(index) = usize::try_from(index) {
+            post(
+                &weak,
+                Input::Chat(ChatInput::AddDiscovered(ChatPage::Intel, index)),
+            );
+        }
+    });
+    let weak = Rc::downgrade(runtime);
+    intel.on_refresh_discovered(move || post(&weak, Input::Chat(ChatInput::RefreshDiscovered)));
+
     let translation = window.global::<eveo_ui::TranslationModel>();
     translation.on_edited(send(runtime, ChatInput::Edited, ChatPage::Translation));
     translation.on_reset_overlay_frame(send(runtime, ChatInput::ResetFrame, ChatPage::Translation));
@@ -84,6 +104,15 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
         );
     });
     let weak = Rc::downgrade(runtime);
+    translation.on_add_discovered(move |index| {
+        if let Ok(index) = usize::try_from(index) {
+            let input = ChatInput::AddDiscovered(ChatPage::Translation, index);
+            post(&weak, Input::Chat(input));
+        }
+    });
+    let weak = Rc::downgrade(runtime);
+    translation.on_refresh_discovered(move || post(&weak, Input::Chat(ChatInput::RefreshDiscovered)));
+    let weak = Rc::downgrade(runtime);
     translation.on_add_built_in(move |index| {
         if let Ok(index) = usize::try_from(index) {
             let edit = ChannelEdit::AddBuiltIn(index);
@@ -98,6 +127,11 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
 impl App {
     /// 处理两页的输入：在协调器手里那份配置的副本上改，有变化才交给协调器（不覆盖期间别处的改动）。
     pub(super) fn chat_input(&mut self, input: ChatInput, runtime: &Rc<Runtime>) {
+        // 扫描不改配置，单独处理。
+        if matches!(input, ChatInput::RefreshDiscovered) {
+            self.refresh_discovered();
+            return;
+        }
         let Some(window) = &self.settings else {
             return;
         };
@@ -125,6 +159,19 @@ impl App {
                 };
                 chat::apply_channel_edit(channels, &edit);
             }),
+            // 下标按页上显示时的同一份列表换回频道；列表已变（别处刚加过）时越界，什么也不做。
+            ChatInput::AddDiscovered(page, index) => with_profile(&mut config, |profile| {
+                let channels = match page {
+                    ChatPage::Intel => &mut profile.intel.channels,
+                    ChatPage::Translation => &mut profile.translation.channels,
+                };
+                let discovered = self.chat.discovered.as_deref().unwrap_or_default();
+                if let Some(found) = chat::discovered_choices(discovered, channels).get(index) {
+                    let edit = ChannelEdit::AddRef(found.channel_ref());
+                    chat::apply_channel_edit(channels, &edit);
+                }
+            }),
+            ChatInput::RefreshDiscovered => {}
             // 浮窗下次显示时按默认位置摆放（M6 的浮窗按 frame 为空取默认位置）。
             ChatInput::ResetFrame(page) => with_profile(&mut config, |profile| match page {
                 ChatPage::Intel => profile.intel.overlay.frame = None,
@@ -149,9 +196,62 @@ impl App {
             chat::show_intel_status(window, self.chat_log_status());
             chat::show_translation(window, &profile.translation, &config.general.translation_endpoint);
         }
+        self.show_discovered();
         // 运行时的状态整组重填：接口设置、Key 是否已保存与各段文字都可能随配置或界面语言变。
         self.show_translation_page_again();
         self.show_intel_page_again();
+    }
+}
+
+impl App {
+    /// 在后台线程里扫描日志目录（读几十到几百个文件的开头），结果在定时器里取回。正在扫描时不再开一个。
+    pub(super) fn refresh_discovered(&mut self) {
+        if self.chat.discovery.is_some() {
+            return;
+        }
+        let configured = self.coordinator.config().general.eve_log_directory.clone();
+        let automatic = automatic_directory();
+        let (sender, receiver) = mpsc::channel();
+        let spawned = std::thread::Builder::new()
+            .name("chat-discovery".to_owned())
+            .spawn(move || {
+                // 设置窗口关了、应用退出时接收端已丢掉，发送失败无妨。
+                let _ = sender.send(discover_channels(configured.as_deref(), &automatic, wall_clock()));
+            });
+        // 线程建不出来（系统资源耗尽）时不扫描，下次切页或点「刷新」再试。
+        if spawned.is_ok() {
+            self.chat.discovery = Some(receiver);
+        }
+    }
+
+    /// 定时器里调用：扫描完成时记下结果并填两页；扫描线程意外结束时放弃这一次。
+    pub(super) fn take_discovered(&mut self) {
+        let Some(receiver) = &self.chat.discovery else {
+            return;
+        };
+        match receiver.try_recv() {
+            Ok(found) => {
+                self.chat.discovery = None;
+                self.chat.discovered = Some(found);
+                self.show_discovered();
+            }
+            Err(mpsc::TryRecvError::Empty) => {}
+            Err(mpsc::TryRecvError::Disconnected) => self.chat.discovery = None,
+        }
+    }
+
+    /// 把发现的频道填进两页的下拉框（各自去掉已选的）；设置窗口没开或没有当前方案时什么也不做。
+    fn show_discovered(&self) {
+        let (Some(window), Some(profile)) = (&self.settings, self.coordinator.config().active_profile())
+        else {
+            return;
+        };
+        chat::show_discovered(
+            window,
+            self.chat.discovered.as_deref(),
+            &profile.intel.channels,
+            &profile.translation.channels,
+        );
     }
 }
 

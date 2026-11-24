@@ -74,6 +74,12 @@ export global TranslationModel {
     callback remove-channel(int);
     // 按名称添加频道。
     callback add-channel(string);
+    // 「从日志添加」下拉框的各项（第一项是提示文字）；两页的内容由应用分别填（已选的频道不同）。
+    in property <[string]> discovered;
+    // 添加「从日志添加」里的第几个频道（不含提示文字）。
+    callback add-discovered(int);
+    // 重新扫描日志目录（切到本页、点「刷新」时）。
+    callback refresh-discovered();
     // 添加第几个内置频道（本地、军团、联盟、舰队）。
     callback add-built-in(int);
     // 「恢复默认位置」。
@@ -135,6 +141,9 @@ export component TranslationPage inherits VerticalLayout {
         help: TranslationText.channels-help;
         remove(index) => { TranslationModel.remove-channel(index); }
         add-name(text) => { TranslationModel.add-channel(text); }
+        discovered: TranslationModel.discovered;
+        add-discovered(index) => { TranslationModel.add-discovered(index); }
+        refresh-discovered => { TranslationModel.refresh-discovered(); }
         add-built-in(index) => { TranslationModel.add-built-in(index); }
     }
 
