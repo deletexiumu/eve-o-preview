@@ -133,6 +133,21 @@ impl ChatFeatures {
         &mut self.intel
     }
 
+    /// 界面语言。
+    pub fn language(&self) -> AppLanguage {
+        self.language
+    }
+
+    /// 星图数据；还没读完、缺失或无效时为 None。
+    pub fn static_data(&self) -> Option<&EveStaticData> {
+        self.static_data.as_deref()
+    }
+
+    /// 最近一次交来的配置；还没交过时为 None。
+    pub fn config(&self) -> Option<&AppConfig> {
+        self.config.as_ref()
+    }
+
     /// 跟踪服务最近报告的状态。
     pub fn chat_log_status(&self) -> &ChatLogStatus {
         &self.chat_log_status

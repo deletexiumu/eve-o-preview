@@ -16,7 +16,7 @@ import { ProfileRow, ProfilesModel, ProfilesPage } from "profiles.slint";
 import { GeneralModel, GeneralPage } from "general.slint";
 import { AboutModel, AboutPage } from "about.slint";
 import { AlertsModel, AlertsPage } from "alerts.slint";
-import { IntelModel, IntelPage } from "intel.slint";
+import { IntelLocationRow, IntelModel, IntelPage } from "intel.slint";
 import { TranslationModel, TranslationPage } from "translation.slint";
 import { EnvironmentModel, EnvironmentPage } from "environment.slint";
 import { OverlayRowData, OverlayWindow } from "overlay.slint";
@@ -24,7 +24,7 @@ import { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, Settin
 
 // 浮窗是另一个窗口，与设置窗口一起编译，共用主题与字体的约定。
 export { OverlayRowData, OverlayWindow }
-export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, EnvironmentModel, GeneralModel, HotkeyRow, HotkeySlotData, IntelModel, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel, TranslationModel }
+export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, EnvironmentModel, GeneralModel, HotkeyRow, HotkeySlotData, IntelLocationRow, IntelModel, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel, TranslationModel }
 // 界面文字的全局，由 Rust 的 l10n::apply 按界面语言填值。
 export { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText }
 

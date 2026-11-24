@@ -74,7 +74,7 @@ fn main() {
         ("settings-profiles-dark.png", true, 6, (1040, 760)),
         ("settings-alerts-light-full.png", false, 3, (1040, 1100)),
         ("settings-alerts-dark.png", true, 3, (1040, 760)),
-        ("settings-intel-light-full.png", false, 4, (1040, 1700)),
+        ("settings-intel-light-full.png", false, 4, (1040, 1800)),
         ("settings-intel-dark.png", true, 4, (1040, 760)),
         ("settings-translation-light-full.png", false, 5, (1040, 1700)),
         ("settings-translation-dark.png", true, 5, (1040, 760)),

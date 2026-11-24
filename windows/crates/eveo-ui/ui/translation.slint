@@ -11,24 +11,9 @@
 
 import { Button, ComboBox, LineEdit, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { Footnote, Notice, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
 import { ChannelListSection, OverlaySection } from "chat.slint";
 import { SettingsText, TranslationText } from "generated/l10n.slint";
-
-// 需要用户留意的一句提示（地址不能用、Key 保存失败、测试失败），放在卡片下面。
-component Notice inherits VerticalLayout {
-    // 提示文字；为空时不占高度。
-    in property <string> text;
-    // 为真时用普通的次要文字颜色（成功的测试结果）。
-    in property <bool> calm;
-    padding-top: text == "" ? 0px : 4px;
-    if text != "": Text {
-        text: root.text;
-        color: root.calm ? Theme.text-secondary : Theme.caution;
-        font-size: 12px;
-        wrap: word-wrap;
-    }
-}
 
 // 本页的数据。
 export global TranslationModel {

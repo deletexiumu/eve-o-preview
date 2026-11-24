@@ -4,7 +4,6 @@
 pageSubtitle = "Lit les journaux des canaux de renseignement et indique où sont les hostiles, combien, avec quels vaisseaux et à quelle distance."
 enableToggle = "Afficher l’overlay de renseignement"
 statusLabel = "État"
-notAvailableYet = "La lecture des journaux de chat et la fenêtre de renseignement arriveront dans une prochaine version de test ; vous pouvez déjà remplir les réglages"
 channelsHelp = "Choisissez les canaux où les hostiles sont signalés."
 
 locationHeader = "Ma position"

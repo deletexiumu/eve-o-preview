@@ -4,7 +4,6 @@
 pageSubtitle = "Lee los registros de los canales de inteligencia y muestra dónde están los hostiles, cuántos son, en qué naves y a qué distancia."
 enableToggle = "Mostrar superposición de inteligencia"
 statusLabel = "Estado"
-notAvailableYet = "La lectura de los registros de chat y la ventana de inteligencia llegarán en una próxima versión de prueba; ya puedes rellenar los ajustes"
 channelsHelp = "Elige los canales donde se informa de hostiles."
 
 locationHeader = "Mi ubicación"

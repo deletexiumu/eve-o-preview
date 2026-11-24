@@ -29,6 +29,7 @@ use eveo_app_core::chat_log::{ChatLogMessage, ChatLogTailer};
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::pilots::PilotLookupService;
 use eveo_app_core::pilots::store::PilotNameStore;
+use eveo_app_core::state_store::StateStore;
 use eveo_app_core::{DragContext, Event};
 use eveo_core::chat_log::ChatLogStatus;
 use eveo_core::geometry::{ScreenPoint, ScreenRect};
@@ -38,6 +39,7 @@ use eveo_core::overlay::planner::OverlayPresentation;
 use eveo_platform_win::{esi, menu, shell};
 
 use super::alerts::automatic_directory;
+use super::intel_page::IntelPage;
 use super::translation::{self, TranslationPage};
 use super::{App, Runtime};
 use crate::menus::{self, OverlayChoice};
@@ -59,6 +61,10 @@ pub(super) struct ChatRuntime {
     pub(super) features: ChatFeatures,
     /// 「翻译」页只给显示用的状态（Key 的失败说明、测试结果）。
     pub(super) translation_page: TranslationPage,
+    /// 「预警」页只给显示用的状态（星系查不到的角色）。
+    pub(super) intel_page: IntelPage,
+    /// state.json：手动设置的位置存在这里，重启后恢复。
+    pub(super) state: StateStore,
     /// 聊天日志的跟踪服务；功能都关着时为 None。
     tailer: Option<ChatLogTailer>,
     /// 读星图数据的后台线程交回结果的通道；没在读时为 None。
@@ -79,8 +85,9 @@ impl ChatRuntime {
         let version = env!("CARGO_PKG_VERSION");
         let resolver = Box::new(move |names: &[String]| esi::resolve(names, version).result);
         let pilots = PilotLookupService::new(PilotNameStore::in_dir(&paths.cache_dir()), resolver);
-        // 手动位置（state.json）还没有设置界面，先从空表开始；接上「预警」页的位置一栏时再读写。
-        let intel = IntelController::new(BTreeMap::new(), Some(pilots));
+        // 手动位置从 state.json 恢复；文件不存在或内容不对时从空表开始。
+        let state = StateStore::load(paths.state_file());
+        let intel = IntelController::new(state.state().manual_locations.clone(), Some(pilots));
         let drag_contexts: Rc<RefCell<BTreeMap<OverlayKind, DragContext>>> = Rc::default();
         let table = drag_contexts.clone();
         // 按下时把起点换成浮窗当前的 frame（拖动中被规划改过之前的位置以浮窗为准）；边缘判断用同一个 frame。
@@ -93,6 +100,8 @@ impl ChatRuntime {
         Self {
             features: ChatFeatures::new(intel, language).with_translation(translation::controller(paths)),
             translation_page: TranslationPage::default(),
+            intel_page: IntelPage::default(),
+            state,
             tailer: None,
             static_data: None,
             static_override: paths.config_file().with_file_name(static_file::FILE_NAME),
@@ -226,6 +235,9 @@ impl App {
             translation.take_log_lines();
         }
         self.show_translation_page();
+        // 预警：新的线索可能覆盖了手动位置，写回 state.json；页上的位置与「多久以前」随之刷新。
+        self.save_manual_locations();
+        self.show_intel_page();
         // 「多久以前」与过期清理：到点时刷新全部可见的浮窗，refresh_overlays 会重新安排下一次。
         if self.chat.refresh_at.is_some_and(|at| now >= at) {
             all = true;
@@ -247,9 +259,9 @@ impl App {
         self.chat.tailer = None;
     }
 
-    /// 「翻译」页的按钮改了翻译的内容（Key、重试、清空缓存）：刷新翻译浮窗。
-    pub(super) fn refresh_translation_overlay(&mut self) {
-        self.refresh_overlays(Some(&BTreeSet::from([OverlayKind::Translation])));
+    /// 设置页的按钮改了某个浮窗的内容（Key、重试、清空缓存、手动位置）：刷新那个浮窗。
+    pub(super) fn refresh_overlay(&mut self, kind: OverlayKind) {
+        self.refresh_overlays(Some(&BTreeSet::from([kind])));
     }
 
     /// 把新内容交给可见的浮窗：kinds 为 None 时是全部可见的浮窗，否则只刷新其中可见的那些。

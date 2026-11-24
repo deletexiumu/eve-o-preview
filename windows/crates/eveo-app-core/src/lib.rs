@@ -14,6 +14,7 @@
 
 //! EVE-O Preview Windows 版的协调器、配置存储与数据位置。
 
+mod atomic_file;
 pub mod chat;
 pub mod chat_log;
 pub mod config_store;
@@ -25,6 +26,7 @@ pub mod gesture;
 pub mod paths;
 pub mod pilots;
 mod poller;
+pub mod state_store;
 pub mod translation;
 
 pub use coordinator::Coordinator;

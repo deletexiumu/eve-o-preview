@@ -131,6 +131,35 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     ];
     intel.reference_system = Some("1DQ1-A".to_owned());
     crate::chat::show_intel(&ui, &intel);
+    // 运行时状态：两个在线角色（一个有游戏日志的位置、一个手动输入的星系查不到）、人名核对就绪、星图数据已读入。
+    let intel_text = eveo_l10n::intel(crate::language());
+    crate::intel::show_intel_view(
+        &ui,
+        &crate::intel::IntelView {
+            locations: vec![
+                crate::intel::LocationView {
+                    name: "Pilot One".to_owned(),
+                    text: intel_text.location_value(
+                        "1DQ1-A",
+                        intel_text.source_game_log(),
+                        &intel_text.age_minutes(3),
+                    ),
+                    has_location: true,
+                    not_found: false,
+                },
+                crate::intel::LocationView {
+                    name: "Pilot Two".to_owned(),
+                    text: intel_text.location_unknown().to_owned(),
+                    has_location: false,
+                    not_found: true,
+                },
+            ],
+            reference_not_found: false,
+            pilot_status: intel_text.pilot_lookup_idle(42),
+            pilot_cache: intel_text.pilot_cache_count(42),
+            static_data: intel_text.static_data_build(3_720_952),
+        },
+    );
     let mut translation = config.profiles[0].translation.clone();
     translation.channels = vec![
         ChannelRef::built_ins()[0].clone(),

@@ -11,17 +11,13 @@
 //! `translation-cache.json` 的读写。
 
 use std::fs;
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use eveo_core::translation::cache::{CacheEntry, decode_file, encode_file};
 
 /// 文件名。
 pub const FILE_NAME: &str = "translation-cache.json";
-
-/// 临时文件名里的序号：同一进程里连续两次写入不会撞名。
-static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// 存在文件里的译文缓存。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,23 +53,6 @@ impl TranslationCacheStore {
     /// 写全部条目：同目录的临时文件写好并刷盘后改名替换。目录不存在时创建。
     pub fn save(&self, entries: Vec<CacheEntry>) -> io::Result<()> {
         let bytes = encode_file(entries);
-        let directory = self.path.parent().unwrap_or_else(|| Path::new("."));
-        fs::create_dir_all(directory)?;
-        // 文件名带进程号与序号：两个实例、或同一进程里的两次写入都不会撞名。
-        let serial = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let temp = directory.join(format!(".translation-cache-{}-{serial}.tmp", std::process::id()));
-        let result = (|| {
-            let mut handle = fs::File::create(&temp)?;
-            handle.write_all(&bytes)?;
-            handle.sync_all()?;
-            // 先关掉句柄再改名：Windows 上打开着的文件不能被改名替换。
-            drop(handle);
-            fs::rename(&temp, &self.path)
-        })();
-        // 失败时删掉临时文件，原文件保持不变。
-        if result.is_err() {
-            let _ = fs::remove_file(&temp);
-        }
-        result
+        crate::atomic_file::write_atomic(&self.path, &bytes, "translation-cache")
     }
 }

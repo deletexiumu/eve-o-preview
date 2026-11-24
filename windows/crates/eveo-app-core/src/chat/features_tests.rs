@@ -275,3 +275,50 @@ fn messages_reach_translation() {
         Some(eveo_core::translation::TranslationStatus::Off)
     );
 }
+
+/// 「预警」页：在线角色排序、位置文字与来源、手动设置与清除、参考星系查不到、星图数据一行。
+#[test]
+fn intel_page_state() {
+    let mut features = features();
+    let config = with_intel(&config(), |intel| {
+        intel.reference_system = Some("Nowhere".to_owned())
+    });
+    features.apply(&config, NOW);
+    // 星图数据还没读：参考星系不判断，星图数据一行是「—」，手动设置找不到星系。
+    let before = features.intel_page(&["b pilot".to_owned()], NOW);
+    assert!(!before.reference_not_found);
+    assert_eq!(before.static_data, "—");
+    assert!(!features.intel_mut().set_manual_location("b pilot", "Jita", NOW));
+    features.static_data_loaded(StaticDataLoad::Loaded(data(), "bundle"), NOW);
+    // 手动设成 Jita：记录变了，要写 state.json。
+    assert!(
+        features
+            .intel_mut()
+            .set_manual_location("b pilot", "Jita", NOW - 120.0)
+    );
+    assert!(features.intel_mut().take_manual_locations().is_some());
+    let names = ["b pilot".to_owned(), "A Pilot".to_owned(), "B Pilot".to_owned()];
+    let page = features.intel_page(&names, NOW);
+    // 按名字排序（不区分大小写），只差大小写的同名只留一个；位置按不区分大小写找到。
+    let rows: Vec<&str> = page.locations.iter().map(|r| r.name.as_str()).collect();
+    assert_eq!(rows, ["A Pilot", "B Pilot"]);
+    assert!(!page.locations[0].has_location);
+    assert_eq!(page.locations[0].text, "Unknown");
+    assert!(page.locations[1].has_location);
+    assert!(
+        page.locations[1].text.contains("Jita"),
+        "{}",
+        page.locations[1].text
+    );
+    assert!(
+        page.locations[1].text.contains("manual"),
+        "{}",
+        page.locations[1].text
+    );
+    assert!(page.reference_not_found);
+    assert!(page.static_data.contains("3720952"));
+    // 清除后回到未知，记录又要写回。
+    assert!(features.intel_mut().clear_manual_location("b pilot", NOW));
+    assert!(features.intel_mut().take_manual_locations().is_some());
+    assert!(!features.intel_page(&names, NOW).locations[1].has_location);
+}

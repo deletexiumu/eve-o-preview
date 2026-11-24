@@ -4,7 +4,6 @@
 pageSubtitle = "读预警频道的聊天日志，显示敌对的位置、数量、舰船和距离。"
 enableToggle = "显示预警浮窗"
 statusLabel = "状态"
-notAvailableYet = "读聊天日志与预警浮窗在后续测试版加上，现在可以先把设置填好"
 channelsHelp = "选择报告敌情的频道。"
 
 locationHeader = "我的位置"

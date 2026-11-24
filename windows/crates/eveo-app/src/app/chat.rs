@@ -151,6 +151,7 @@ impl App {
         }
         // 运行时的状态整组重填：接口设置、Key 是否已保存与各段文字都可能随配置或界面语言变。
         self.show_translation_page_again();
+        self.show_intel_page_again();
     }
 }
 
