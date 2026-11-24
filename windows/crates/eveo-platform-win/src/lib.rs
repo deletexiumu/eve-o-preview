@@ -32,6 +32,7 @@ pub mod screens;
 pub mod screenshot;
 pub mod shell;
 pub mod single_instance;
+pub mod system_info;
 mod text;
 pub mod thumbnail;
 pub mod translation;
