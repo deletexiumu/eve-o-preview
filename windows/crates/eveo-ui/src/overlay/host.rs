@@ -175,7 +175,9 @@ impl OverlayHost {
 
 /// 预乘的 RGBA 换成预乘的 BGRA（32 位 DIB 的字节顺序）。out 的长度是 pixels 的 4 倍。
 pub fn to_bgra(pixels: &[PremultipliedRgbaColor], out: &mut [u8]) {
-    for (pixel, chunk) in pixels.iter().zip(out.chunks_exact_mut(4)) {
-        chunk.copy_from_slice(&[pixel.blue, pixel.green, pixel.red, pixel.alpha]);
+    // as_chunks_mut 把字节切成定长的 [u8; 4]，编译器能省掉每个像素的边界检查；不足 4 字节的尾巴不会出现。
+    let (chunks, _) = out.as_chunks_mut::<4>();
+    for (pixel, chunk) in pixels.iter().zip(chunks) {
+        *chunk = [pixel.blue, pixel.green, pixel.red, pixel.alpha];
     }
 }
