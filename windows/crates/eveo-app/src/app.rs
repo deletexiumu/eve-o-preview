@@ -46,6 +46,7 @@ use crate::thumbnails::ThumbnailManager;
 
 mod alerts;
 mod chat;
+mod diagnostics;
 mod environment;
 mod general;
 mod intel;
@@ -188,6 +189,8 @@ struct App {
     combat_status: CombatLogStatus,
     /// 预警浮窗与聊天日志。
     chat: intel::ChatRuntime,
+    /// 会话标记与上一次崩溃的检测。
+    diagnostics: diagnostics::Diagnostics,
     /// 退出的计时：收到退出时开始，run() 的收尾里逐步记下耗时。
     quit_timer: Option<logging::QuitTimer>,
 }
@@ -209,7 +212,9 @@ pub fn run() -> ExitCode {
     let paths = DataPaths::from_env().unwrap_or_else(|| DataPaths::new(".", None));
     // 先装上文件日志，读配置的错误才能写进去。
     let logs_dir = logging::log_directory(paths.logs_dir());
-    logging::start(&logs_dir);
+    // 本次运行的会话编号：日志的会话头与 session.json 用同一个，上一次崩溃时靠它在日志里找到那次会话。
+    let session_id = eveo_core::config::new_id();
+    logging::start(&logs_dir, &session_id);
     let store = JsonFileConfigStore::new(paths.config_file());
     let (config, writable, first_run) = match store.load(&local_timestamp()) {
         Ok(result) => {
@@ -239,6 +244,8 @@ pub fn run() -> ExitCode {
     let language = general::resolve_language(&config.general);
     let mut thumbnails = ThumbnailManager::default();
     thumbnails.set_language(language);
+    // 读上一次的会话标记、写本次的；上一次异常结束时在后台找崩溃的证据。
+    let diagnostics = diagnostics::Diagnostics::start(&paths, &session_id, logs_dir.clone());
     let app = App {
         coordinator: Coordinator::new(config, screens.clone()),
         store,
@@ -268,6 +275,7 @@ pub fn run() -> ExitCode {
         game_log: None,
         combat_status: CombatLogStatus::Stopped,
         chat: intel::ChatRuntime::new(&paths, language),
+        diagnostics,
         quit_timer: None,
     };
     let runtime = Rc::new(Runtime {
@@ -307,6 +315,7 @@ pub fn run() -> ExitCode {
     app.chat_stop(&mut quit);
     quit.step("停止游戏日志", || app.stop_game_logs());
     quit.step("销毁缩略图", || app.thumbnails.clear());
+    quit.step("标记正常结束", || app.diagnostics.mark_ended_cleanly());
     drop(app);
     quit.step("释放热键、钩子、托盘与窗口", || drop(runtime));
     quit.finish();
@@ -531,6 +540,9 @@ impl App {
         self.drain_game_log(runtime);
         // 聊天日志、星图数据、人名核对与浮窗的事件，以及浮窗按时间的刷新。
         self.chat_tick(runtime);
+        // 上一次崩溃的检测结果（后台线程找完后交回）。
+        self.poll_crash_scan();
+        self.debug_panic_check();
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());
         let now = Instant::now();

@@ -3,6 +3,7 @@
 // Windows 版的应用层逻辑（架构文档 3.1 节、3.3 节）：
 // - coordinator：协调器。对应 macOS 的 AppCoordinator，事件进、效果出，自己不碰任何系统接口。
 // - config_store：config.json 的读写，对应 macOS 的 JSONFileConfigStore。
+// - session：会话标记 session.json 与上一次崩溃的证据（WER 报告目录、日志里的 fault 行）。
 // - log：全局的日志入口与写日志文件（带轮转、限速，panic 时记一条 fault）。
 // - paths：%APPDATA% 与 %LOCALAPPDATA% 下的数据位置（架构文档 4.10 节）。
 // - gesture：缩略图的鼠标手势状态机；flash：战斗提醒的闪烁曲线。
@@ -28,6 +29,7 @@ pub mod log;
 pub mod paths;
 pub mod pilots;
 mod poller;
+pub mod session;
 pub mod state_store;
 pub mod translation;
 
