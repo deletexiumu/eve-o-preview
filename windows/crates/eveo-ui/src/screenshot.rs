@@ -45,6 +45,10 @@ struct Headless {
 
 impl Platform for Headless {
     fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
+        // 浮窗宿主事先放好了自己的软件渲染窗口时用它（与应用里的平台相同的约定），否则用截图窗口。
+        if let Some(adapter) = crate::overlay::host::take_pending_adapter() {
+            return Ok(adapter);
+        }
         Ok(self.window.clone())
     }
 }

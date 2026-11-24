@@ -14,6 +14,12 @@ mod app;
 mod hotkeys;
 #[cfg(windows)]
 mod menus;
+// 浮窗的管理；接到协调器与菜单在下一步（M6n），在那之前部分接口还没有调用方。
+#[cfg(windows)]
+#[allow(dead_code)]
+mod overlays;
+#[cfg(windows)]
+mod slint_platform;
 #[cfg(windows)]
 mod thumbnails;
 

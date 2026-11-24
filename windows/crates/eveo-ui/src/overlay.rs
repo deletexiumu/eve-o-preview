@@ -338,5 +338,7 @@ impl OverlayView {
     }
 }
 
+pub mod host;
+
 #[cfg(test)]
 mod tests;

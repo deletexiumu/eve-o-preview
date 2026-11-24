@@ -23,6 +23,7 @@ pub mod menu;
 pub mod message_loop;
 pub mod mouse_hook;
 pub mod overlay;
+pub mod panel;
 pub mod process;
 pub mod recorder;
 pub mod screens;

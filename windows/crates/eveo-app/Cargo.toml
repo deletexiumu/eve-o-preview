@@ -31,6 +31,10 @@ eveo-ui = { path = "../eveo-ui" }
 raw-window-handle.workspace = true
 windows.workspace = true
 slint = { workspace = true, features = ["backend-winit", "renderer-software", "raw-window-handle-06"] }
+# 应用的 Slint 平台包了一层 winit 后端：浮窗用离屏的软件渲染窗口，其余窗口照常交给 winit（slint_platform 模块）。
+# 版本必须与 slint 完全一致：包装要转交几个只在内部使用的平台方法。
+i-slint-backend-winit = { version = "=1.19.0", default-features = false, features = ["renderer-software"] }
+i-slint-core = { version = "=1.19.0", default-features = false }
 
 [lints]
 workspace = true
