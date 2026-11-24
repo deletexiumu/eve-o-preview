@@ -519,7 +519,7 @@ exe 的版本资源里写入版本号、构建标签与提交号。CI 在发布�
 7. 安装目录不可写（例如用户放在了 Program Files 下）时只提示有更新，给出下载页的链接。
 8. 安装时机与 macOS 相同：没有 EVE 客户端运行满一分钟时，或用户退出时。
 
-ed25519 私钥放在 Actions secret 里，并离线备份，做法同 macOS 的签名证书。公钥写在 `eveo-core` 里。它的作用是在没有 Authenticode 证书时也能保证更新包确实出自本项目的 CI。
+ed25519 私钥放在 Actions secret 里，并离线备份，做法同 macOS 的签名证书。公钥提交在 `windows/packaging/update-public-key.txt`，发布构建时编进 exe。密钥的生成与发布步骤见[打包与发布](packaging.md)。它的作用是在没有 Authenticode 证书时也能保证更新包确实出自本项目的 CI。
 
 ### 6.4 代码签名与 SmartScreen
 
