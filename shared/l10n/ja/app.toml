@@ -135,6 +135,10 @@ followSystem = "システムに合わせる"
 machineTranslationNote = "一部の翻訳は機械翻訳です。修正のご指摘を歓迎します。"
 showDockIcon = "Dock にアイコンを表示"
 showDockIconHelp = "オフにすると、メニューバーのアイコンだけが表示されます。"
+launchAtLogin = "Windows へのサインイン時に起動"
+launchAtLoginHelp = "起動時は通知領域にアイコンだけを表示し、設定ウインドウは開きません。"
+launchAtLoginDisabledBySystem = "タスク マネージャーの「スタートアップ アプリ」で無効になっています。オンにすると再び有効になります。"
+launchAtLoginFailed = "スタートアップの設定を変更できませんでした。"
 
 # 权限页。
 permissionsSubtitle = "どちらの権限も「システム設定」>「プライバシーとセキュリティ」で許可します。"

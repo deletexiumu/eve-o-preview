@@ -279,6 +279,14 @@ pub trait SettingsStrings: Sync {
     fn show_dock_icon(&self) -> &'static str;
     /// 开关下方的说明。
     fn show_dock_icon_help(&self) -> &'static str;
+    /// Windows「通用」页：「登录 Windows 时启动」开关。
+    fn launch_at_login(&self) -> &'static str;
+    /// 开关下方的说明：开机启动时不打开设置窗口。
+    fn launch_at_login_help(&self) -> &'static str;
+    /// 开关下方的说明：用户在任务管理器的「启动应用」里禁用了本应用；打开开关会重新启用。
+    fn launch_at_login_disabled_by_system(&self) -> &'static str;
+    /// 开关下方的说明：写注册表失败，开机启动没有改成功。
+    fn launch_at_login_failed(&self) -> &'static str;
     // 权限页
     /// 页标题下的说明：两项权限在系统设置的哪里授予。
     fn permissions_subtitle(&self) -> &'static str;
@@ -769,6 +777,18 @@ impl SettingsStrings for SettingsStringsEn {
     }
     fn show_dock_icon_help(&self) -> &'static str {
         "When off, EVE-O Preview shows only its menu bar icon."
+    }
+    fn launch_at_login(&self) -> &'static str {
+        "Start when I sign in to Windows"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "EVE-O Preview starts in the notification area without opening Settings."
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "Disabled in Task Manager under Startup apps. Turning this on enables it again."
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "Couldn't change the startup setting."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Both permissions are granted in System Settings > Privacy & Security."
@@ -1307,6 +1327,18 @@ impl SettingsStrings for SettingsStringsZh {
     fn show_dock_icon_help(&self) -> &'static str {
         "关掉后只在菜单栏显示图标。"
     }
+    fn launch_at_login(&self) -> &'static str {
+        "登录 Windows 时启动"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "启动后只在通知区域显示图标，不打开设置窗口。"
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "已在任务管理器的「启动应用」里禁用。打开此开关会重新启用。"
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "无法更改开机启动设置。"
+    }
     fn permissions_subtitle(&self) -> &'static str {
         "两项权限都在「系统设置 > 隐私与安全性」里授予。"
     }
@@ -1840,6 +1872,18 @@ impl SettingsStrings for SettingsStringsRu {
     }
     fn show_dock_icon_help(&self) -> &'static str {
         "Если выключено, EVE-O Preview показывает только значок в строке меню."
+    }
+    fn launch_at_login(&self) -> &'static str {
+        "Запускать при входе в Windows"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "EVE-O Preview запускается в области уведомлений, не открывая настройки."
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "Отключено в диспетчере задач в разделе «Автозагрузка приложений». Если включить этот параметр, запуск снова будет разрешён."
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "Не удалось изменить параметр автозапуска."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Оба разрешения выдаются в разделе «Системные настройки» > «Конфиденциальность и безопасность»."
@@ -2379,6 +2423,18 @@ impl SettingsStrings for SettingsStringsJa {
     fn show_dock_icon_help(&self) -> &'static str {
         "オフにすると、メニューバーのアイコンだけが表示されます。"
     }
+    fn launch_at_login(&self) -> &'static str {
+        "Windows へのサインイン時に起動"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "起動時は通知領域にアイコンだけを表示し、設定ウインドウは開きません。"
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "タスク マネージャーの「スタートアップ アプリ」で無効になっています。オンにすると再び有効になります。"
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "スタートアップの設定を変更できませんでした。"
+    }
     fn permissions_subtitle(&self) -> &'static str {
         "どちらの権限も「システム設定」>「プライバシーとセキュリティ」で許可します。"
     }
@@ -2913,6 +2969,18 @@ impl SettingsStrings for SettingsStringsKo {
     fn show_dock_icon_help(&self) -> &'static str {
         "끄면 메뉴 막대 아이콘만 표시됩니다."
     }
+    fn launch_at_login(&self) -> &'static str {
+        "Windows에 로그인할 때 시작"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "알림 영역에서 시작하며 설정 창은 열지 않습니다."
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "작업 관리자의 시작 앱에서 사용 안 함으로 설정되어 있습니다. 켜면 다시 사용하도록 설정됩니다."
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "시작 프로그램 설정을 변경하지 못했습니다."
+    }
     fn permissions_subtitle(&self) -> &'static str {
         "두 권한 모두 ‘시스템 설정 > 개인정보 보호 및 보안’에서 허용합니다."
     }
@@ -3446,6 +3514,18 @@ impl SettingsStrings for SettingsStringsFr {
     }
     fn show_dock_icon_help(&self) -> &'static str {
         "Si cette option est désactivée, EVE-O Preview n'affiche que son icône dans la barre des menus."
+    }
+    fn launch_at_login(&self) -> &'static str {
+        "Démarrer à l'ouverture de session Windows"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "EVE-O Preview démarre dans la zone de notification sans ouvrir les Réglages."
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "Désactivé dans le Gestionnaire des tâches, sous Applications de démarrage. Activer cette option le réactive."
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "Impossible de modifier le réglage de démarrage."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Les deux autorisations s'accordent dans Réglages Système > Confidentialité et sécurité."
@@ -3984,6 +4064,18 @@ impl SettingsStrings for SettingsStringsDe {
     fn show_dock_icon_help(&self) -> &'static str {
         "Wenn deaktiviert, erscheint EVE-O Preview nur in der Menüleiste."
     }
+    fn launch_at_login(&self) -> &'static str {
+        "Beim Anmelden bei Windows starten"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "EVE-O Preview startet im Infobereich, ohne die Einstellungen zu öffnen."
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "Im Task-Manager unter „Autostart-Apps“ deaktiviert. Wenn Sie diese Option einschalten, wird es wieder aktiviert."
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "Die Autostart-Einstellung konnte nicht geändert werden."
+    }
     fn permissions_subtitle(&self) -> &'static str {
         "Beide Berechtigungen werden unter „Systemeinstellungen“ > „Datenschutz & Sicherheit“ erteilt."
     }
@@ -4520,6 +4612,18 @@ impl SettingsStrings for SettingsStringsEs {
     }
     fn show_dock_icon_help(&self) -> &'static str {
         "Si se desactiva, EVE-O Preview solo muestra su icono en la barra de menús."
+    }
+    fn launch_at_login(&self) -> &'static str {
+        "Iniciar al iniciar sesión en Windows"
+    }
+    fn launch_at_login_help(&self) -> &'static str {
+        "EVE-O Preview se inicia en el área de notificación sin abrir Ajustes."
+    }
+    fn launch_at_login_disabled_by_system(&self) -> &'static str {
+        "Deshabilitado en el Administrador de tareas, en Aplicaciones de arranque. Al activar esta opción se vuelve a habilitar."
+    }
+    fn launch_at_login_failed(&self) -> &'static str {
+        "No se pudo cambiar la configuración de inicio."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Ambos permisos se conceden en Ajustes del Sistema > Privacidad y seguridad."

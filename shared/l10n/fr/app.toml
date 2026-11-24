@@ -149,6 +149,10 @@ followSystem = "Selon le système"
 machineTranslationNote = "Certaines traductions sont générées automatiquement. Les corrections sont les bienvenues."
 showDockIcon = "Afficher l'icône dans le Dock"
 showDockIconHelp = "Si cette option est désactivée, EVE-O Preview n'affiche que son icône dans la barre des menus."
+launchAtLogin = "Démarrer à l'ouverture de session Windows"
+launchAtLoginHelp = "EVE-O Preview démarre dans la zone de notification sans ouvrir les Réglages."
+launchAtLoginDisabledBySystem = "Désactivé dans le Gestionnaire des tâches, sous Applications de démarrage. Activer cette option le réactive."
+launchAtLoginFailed = "Impossible de modifier le réglage de démarrage."
 
 # 权限页。权限名与系统设置的路径取 macOS 法文版的官方叫法。
 permissionsSubtitle = "Les deux autorisations s'accordent dans Réglages Système > Confidentialité et sécurité."

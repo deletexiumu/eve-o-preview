@@ -10,6 +10,8 @@
 // 版本、时刻与状态由应用层按更新状态机算好写进来，按钮交回应用。更新功能停用的构建（本机编译、版本号解析不了）
 // 按钮不可用，状态写「这个构建不能使用更新功能」。
 // 诊断一组：详细日志、日志位置与「报告问题…」（M7）。
+// 「登录 Windows 时启动」（Windows 独有）：开关的状态来自注册表，不在配置里；用户拨动时交回应用写注册表，
+// 写完应用再按注册表的实际状态写回开关。被任务管理器禁用或写入失败时，说明换成对应的一句话。
 
 import { Button, ComboBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
@@ -44,6 +46,12 @@ export global GeneralModel {
     in property <bool> update-can-check: true;
     // 「立即检查」。
     callback check-updates-now();
+    // 开机启动是否开着（注册表里登记了且没被任务管理器禁用）。
+    in-out property <bool> launch-at-login;
+    // 开机启动的说明：空串时显示默认说明，否则显示这句（被系统禁用、改不了）。
+    in property <string> launch-at-login-note;
+    // 用户拨动了开机启动的开关，参数是想要的新状态。
+    callback launch-at-login-toggled(bool);
 }
 
 // 「通用」页。
@@ -69,6 +77,18 @@ export component GeneralPage inherits VerticalLayout {
     }
     Footnote {
         text: SettingsText.machine-translation-note;
+    }
+
+    // 开机启动：与语言一样对整个应用生效，放在更新一组之前。
+    SettingRow {
+        title: SettingsText.launch-at-login;
+        description: GeneralModel.launch-at-login-note != "" ? GeneralModel.launch-at-login-note : SettingsText.launch-at-login-help;
+        Switch {
+            checked <=> GeneralModel.launch-at-login;
+            toggled => {
+                GeneralModel.launch-at-login-toggled(self.checked);
+            }
+        }
     }
 
     SectionHeader { text: UpdateText.section-header; }

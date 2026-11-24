@@ -255,6 +255,7 @@ pub fn run() -> ExitCode {
         }
     };
 
+    general::repair_autostart();
     let screens = screens::screens();
     // 热键窗口与托盘窗口是应用能运行的前提；建不了（系统资源耗尽）时直接退出。
     let (Ok(hotkey_window), Ok(tray)) = (HotkeyWindow::create(), TrayIcon::create("EVE-O Preview")) else {

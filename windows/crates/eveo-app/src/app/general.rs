@@ -10,13 +10,18 @@
 use std::rc::Rc;
 
 use eveo_app_core::Event;
+use eveo_app_core::log::Logger;
+use eveo_core::autostart::AutostartState;
 use eveo_core::model::{AppLanguage, GeneralSettings};
-use eveo_platform_win::appearance;
+use eveo_platform_win::{appearance, autostart};
 use eveo_ui::general;
 use slint::ComponentHandle;
 
 use super::{App, Input, Runtime, post, shell};
 use crate::menus;
+
+/// 「通用」页的日志（开机启动的改动）。
+const LOG: Logger = Logger::new("General");
 
 /// 「通用」与「关于」页发给应用的输入。
 #[derive(Debug, Clone)]
@@ -29,6 +34,29 @@ pub(super) enum GeneralInput {
     ReportProblem,
     /// 「关于」页的链接。
     OpenUrl(String),
+    /// 「登录 Windows 时启动」开关，值是用户想要的新状态。
+    LaunchAtLogin(bool),
+}
+
+/// 启动时修复开机启动：登记的 exe 已经不在（用户挪了文件夹）、自己以正式文件名运行时，改成自己的路径。
+/// 用户没有打开开机启动时什么都不做。
+pub(super) fn repair_autostart() {
+    let Some(command) = autostart::registered_command() else {
+        return;
+    };
+    let registered_exists = eveo_core::autostart::exe_from_command(&command)
+        .is_some_and(|path| std::path::Path::new(path).exists());
+    let own = super::update_launch::own_exe().map(|exe| exe.to_string_lossy().into_owned());
+    if !eveo_core::autostart::needs_repair(Some(&command), registered_exists, own.as_deref()) {
+        return;
+    }
+    // own 在 needs_repair 为真时一定有值。
+    if let Some(own) = own {
+        match autostart::enable(&own) {
+            Ok(()) => LOG.notice("开机启动登记的 exe 已不在，改成了当前的位置"),
+            Err(code) => LOG.error(format_args!("修复开机启动失败：错误码 {code}")),
+        }
+    }
 }
 
 /// 求出界面实际使用的语言。环境变量 `EVEO_LANG`（只用于调试）优先，规则在 Core 的
@@ -52,6 +80,8 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
     model.on_reveal_logs(move || send(GeneralInput::RevealLogs));
     let send = sender(runtime);
     model.on_report_problem(move || send(GeneralInput::ReportProblem));
+    let send = sender(runtime);
+    model.on_launch_at_login_toggled(move |on| send(GeneralInput::LaunchAtLogin(on)));
     // 「立即检查」直接交给更新：状态行与按钮能否点由更新模块刷新（见 updates 模块）。
     let weak = Rc::downgrade(runtime);
     model.on_check_updates_now(move || post(&weak, Input::Update(super::updates::UpdateInput::CheckNow)));
@@ -72,7 +102,39 @@ impl App {
             // 只打开「关于」页上列出的地址。
             GeneralInput::OpenUrl(url) if general::is_about_link(&url) => shell::open_url(&url),
             GeneralInput::OpenUrl(_) => {}
+            GeneralInput::LaunchAtLogin(on) => self.set_launch_at_login(on),
         }
+    }
+
+    /// 打开或关闭开机启动，再按注册表的实际状态刷新开关；失败时开关回到实际状态，说明换成「改不了」。
+    fn set_launch_at_login(&self, on: bool) {
+        let result = match (on, std::env::current_exe()) {
+            (true, Ok(exe)) => autostart::enable(&exe.to_string_lossy()),
+            // 取不到自己的路径（极少见）：按系统错误码 2（找不到文件）处理。
+            (true, Err(_)) => Err(2),
+            (false, _) => autostart::disable(),
+        };
+        match result {
+            Ok(()) => LOG.info(format_args!("开机启动已{}", if on { "打开" } else { "关闭" })),
+            Err(code) => LOG.error(format_args!("更改开机启动失败：错误码 {code}")),
+        }
+        if let Some(window) = &self.settings {
+            self.show_launch_at_login(window, result.is_err());
+        }
+    }
+
+    /// 按注册表填「登录 Windows 时启动」的开关与说明。failed 为真时说明换成「改不了」。
+    fn show_launch_at_login(&self, window: &eveo_ui::SettingsWindow, failed: bool) {
+        let text = eveo_l10n::settings(self.language);
+        let state = autostart::state();
+        let note = if failed {
+            text.launch_at_login_failed()
+        } else if state == AutostartState::DisabledBySystem {
+            text.launch_at_login_disabled_by_system()
+        } else {
+            ""
+        };
+        general::show_launch_at_login(window, state == AutostartState::On, note);
     }
 
     /// 读回「通用」页，有变化才交给协调器。
@@ -125,6 +187,7 @@ impl App {
     pub(super) fn show_general(&self, window: &eveo_ui::SettingsWindow) {
         let logs = self.logs_dir.display().to_string();
         general::show_general(window, &self.coordinator.config().general, &logs);
+        self.show_launch_at_login(window, false);
         general::show_about(window);
     }
 }

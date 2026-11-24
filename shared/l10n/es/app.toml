@@ -152,6 +152,10 @@ machineTranslationNote = "Algunas traducciones son automáticas. Se agradecen la
 # Dock 与菜单栏用 macOS 西班牙文的叫法：el Dock、la barra de menús。
 showDockIcon = "Mostrar icono en el Dock"
 showDockIconHelp = "Si se desactiva, EVE-O Preview solo muestra su icono en la barra de menús."
+launchAtLogin = "Iniciar al iniciar sesión en Windows"
+launchAtLoginHelp = "EVE-O Preview se inicia en el área de notificación sin abrir Ajustes."
+launchAtLoginDisabledBySystem = "Deshabilitado en el Administrador de tareas, en Aplicaciones de arranque. Al activar esta opción se vuelve a habilitar."
+launchAtLoginFailed = "No se pudo cambiar la configuración de inicio."
 
 # 权限页。系统设置的路径不加引号，与 Apple 西班牙文的说明文字一致；单独提到的权限名加引号。
 # 两项权限的名称与 macOS 西班牙文「隐私与安全性」里的条目名一致。

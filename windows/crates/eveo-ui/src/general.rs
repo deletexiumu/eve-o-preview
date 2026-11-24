@@ -56,6 +56,13 @@ pub fn show_update_status(
     model.set_update_can_check(can_check);
 }
 
+/// 「登录 Windows 时启动」的开关与说明。开关的状态来自注册表（不在配置里），note 为空串时显示默认说明。
+pub fn show_launch_at_login(ui: &SettingsWindow, on: bool, note: &str) {
+    let model = ui.global::<GeneralModel>();
+    model.set_launch_at_login(on);
+    model.set_launch_at_login_note(note.into());
+}
+
 /// 从「通用」页读回 general。没有出现在页上的字段（轮询间隔、日志目录等）保持不变。
 pub fn read_general(ui: &SettingsWindow, general: &mut GeneralSettings) {
     let model = ui.global::<GeneralModel>();

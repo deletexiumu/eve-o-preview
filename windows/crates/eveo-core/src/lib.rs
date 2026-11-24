@@ -25,6 +25,7 @@
 #[macro_use]
 pub mod support;
 
+pub mod autostart;
 pub mod chat_log;
 pub mod clients;
 pub mod combat_log;
