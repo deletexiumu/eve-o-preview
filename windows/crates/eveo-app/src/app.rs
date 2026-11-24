@@ -310,11 +310,8 @@ pub fn run() -> ExitCode {
     drop(app);
     quit.step("释放热键、钩子、托盘与窗口", || drop(runtime));
     quit.finish();
-    if result.is_ok() {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::FAILURE
-    }
+    // 配置、state.json、缓存与日志都已写完：直接结束进程，跳过进程拆除阶段（见 logging 模块的说明）。
+    eveo_platform_win::crash::terminate_now(u32::from(result.is_err()))
 }
 
 /// 给热键窗口与托盘设处理函数：只把输入放进队列。缩略图窗口的处理函数在建窗口时设。

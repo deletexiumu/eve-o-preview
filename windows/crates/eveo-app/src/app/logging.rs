@@ -5,7 +5,9 @@
 //   重复启动后自己退出的实例不装（它在 single_instance 那一步就返回了）。
 //   环境变量 EVEO_LOG_DIR 可以换日志目录（与 macOS 相同，开发与测试用）。
 // - 级别：`general.logLevel` 在 info 与 debug 之间切换（「通用」页的「详细日志」），配置变化时立即生效。
-// - 退出：每一步的耗时都记下来。托盘「退出」在真机上要约 5 秒才结束，靠这些行找出慢在哪一步。
+// - 退出：每一步的耗时都记下来。托盘「退出」在真机上要 5～10 秒才结束，这些行显示应用自己的收尾只要几十毫秒，
+//   慢在随后的进程拆除阶段：那里抛出未处理的结构化异常（0x87A），WER 收集完才放进程走。
+//   所以收尾做完后直接结束进程（crash::terminate_now），并装顶层异常过滤器把这类异常记进日志。
 // 会话头只有版本、构建类别、架构与随机的会话编号，不含个人信息。
 
 //! 启动时装上文件日志，退出时记下每一步的耗时。
@@ -20,6 +22,7 @@ use eveo_app_core::log::{self, Logger};
 use eveo_core::chat_log::ChatLogStatus;
 use eveo_core::combat_log::CombatLogStatus;
 use eveo_core::model::AppConfig;
+use eveo_platform_win::crash::{self, CrashInfo};
 
 /// 会话与退出的日志。
 pub(super) const LOG: Logger = Logger::new("Session");
@@ -35,7 +38,17 @@ pub(super) fn log_directory(default: PathBuf) -> PathBuf {
 pub(super) fn start(directory: &Path) {
     log::install(directory);
     log::install_panic_hook();
+    crash::install_crash_filter(report_crash);
     LOG.info(session_header());
+}
+
+/// 未处理的结构化异常：记一条 fault（异常码、模块文件名与偏移）。在异常过滤器里运行，不等锁。
+fn report_crash(info: &CrashInfo) {
+    let text = format!(
+        "未处理的异常 0x{:08x}，{}+0x{:x}",
+        info.code, info.module, info.offset
+    );
+    log::try_fault("Fault", &text);
 }
 
 /// 会话头。例：`会话开始 6f1d3c2a：版本 0.1.0，构建 release，x86_64`。
