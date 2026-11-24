@@ -8,12 +8,10 @@
 // - 退出：每一步的耗时都记下来。托盘「退出」在真机上要 5～10 秒才结束，这些行显示应用自己的收尾只要几十毫秒，
 //   慢在随后的进程拆除阶段：那里抛出未处理的结构化异常（0x87A），WER 收集完才放进程走。
 //   所以收尾做完后直接结束进程（crash::terminate_now），并装顶层异常过滤器把这类异常记进日志。
-// 会话头只有版本、构建类别、架构与随机的会话编号，不含个人信息。
+// 会话头只有版本、构建类别、架构与会话编号的前 8 位，不含个人信息。
 
 //! 启动时装上文件日志，退出时记下每一步的耗时。
 
-use std::collections::hash_map::RandomState;
-use std::hash::{BuildHasher, Hasher};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -21,6 +19,7 @@ use eveo_app_core::config_store::ConfigWarning;
 use eveo_app_core::log::{self, Logger};
 use eveo_core::chat_log::ChatLogStatus;
 use eveo_core::combat_log::CombatLogStatus;
+use eveo_core::diagnostics::crash::short_session_id;
 use eveo_core::model::AppConfig;
 use eveo_platform_win::crash::{self, CrashInfo};
 
@@ -34,12 +33,12 @@ pub(super) fn log_directory(default: PathBuf) -> PathBuf {
         .map_or(default, PathBuf::from)
 }
 
-/// 装上文件日志与 panic 钩子，写会话头。启动时、读配置之前调一次。
-pub(super) fn start(directory: &Path) {
+/// 装上文件日志与 panic 钩子，写会话头。启动时、读配置之前调一次。session_id 是本次运行的会话编号。
+pub(super) fn start(directory: &Path, session_id: &str) {
     log::install(directory);
     log::install_panic_hook();
     crash::install_crash_filter(report_crash);
-    LOG.info(session_header());
+    LOG.info(session_header(session_id));
 }
 
 /// 未处理的结构化异常：记一条 fault（异常码、模块文件名与偏移）。在异常过滤器里运行，不等锁。
@@ -51,22 +50,25 @@ fn report_crash(info: &CrashInfo) {
     log::try_fault("Fault", &text);
 }
 
-/// 会话头。例：`会话开始 6f1d3c2a：版本 0.1.0，构建 release，x86_64`。
-fn session_header() -> String {
-    // 会话编号只用来在几份日志之间认出同一次运行；标准库的随机哈希种子足够，不必另加依赖。
-    let mut hasher = RandomState::new().build_hasher();
-    hasher.write_u32(std::process::id());
-    let session = format!("{:08x}", hasher.finish() & 0xffff_ffff);
-    let build = if cfg!(debug_assertions) {
+/// 会话头。例：`会话开始 6f1d3c2a：版本 0.1.0，构建 release，x86_64`。会话编号取前 8 位（与 session.json 相同），
+/// 上一次异常结束时靠它在日志里找到那次会话的 fault 行。
+fn session_header(session_id: &str) -> String {
+    format!(
+        "会话开始 {}：版本 {}，构建 {}，{}",
+        short_session_id(session_id),
+        env!("CARGO_PKG_VERSION"),
+        build_label(),
+        std::env::consts::ARCH
+    )
+}
+
+/// 构建标签：调试版是 debug，发布版是 release。
+pub(super) fn build_label() -> &'static str {
+    if cfg!(debug_assertions) {
         "debug"
     } else {
         "release"
-    };
-    format!(
-        "会话开始 {session}：版本 {}，构建 {build}，{}",
-        env!("CARGO_PKG_VERSION"),
-        std::env::consts::ARCH
-    )
+    }
 }
 
 /// 按配置设最低级别（启动时与每次配置变化后）。级别变了时记一行。

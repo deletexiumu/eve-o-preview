@@ -60,7 +60,7 @@ pub(crate) fn utc_seconds(t: &[u8]) -> Option<f64> {
     if !valid {
         return None;
     }
-    let days = days_from_civil(year, month, day);
+    let days = crate::support::time::days_from_civil(year, month, day);
     Some((days * 86_400 + hour * 3_600 + minute * 60 + second) as f64)
 }
 
@@ -168,17 +168,6 @@ fn is_timestamp(t: &[u8]) -> bool {
             13 | 16 => byte == b':',
             _ => byte.is_ascii_digit(),
         })
-}
-
-/// 公历日期到 1970-01-01 的天数（Howard Hinnant 的 days_from_civil 算法），不依赖时区。
-fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
-    let y = if month <= 2 { year - 1 } else { year };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (month + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + day - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
 }
 
 /// 正文开头的伤害数字与它之前最后一个颜色标记。
