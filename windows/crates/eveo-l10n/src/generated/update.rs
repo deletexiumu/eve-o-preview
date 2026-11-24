@@ -115,6 +115,10 @@ pub trait UpdateStrings: Sync {
     fn blocker_development_signature(&self) -> &'static str;
     /// `unsigned`。
     fn blocker_unsigned(&self) -> &'static str;
+    /// Windows 的 `noSigningKey`：这个构建没有内置核对更新包签名的公钥（本机编译的构建）。
+    fn blocker_no_signing_key(&self) -> &'static str;
+    /// Windows 的 `developmentBuild`：调试版或 PR 构建，不自动安装正式版。
+    fn blocker_development_build(&self) -> &'static str;
     // 错误（UpdateError，按类合并）
     /// `network`。
     fn error_network(&self) -> &'static str;
@@ -291,6 +295,12 @@ impl UpdateStrings for UpdateStringsEn {
     }
     fn blocker_unsigned(&self) -> &'static str {
         "This build isn't signed."
+    }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "This build doesn't include the key needed to verify updates."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "This is a development build."
     }
     fn error_network(&self) -> &'static str {
         "Couldn't reach GitHub. Check your internet connection."
@@ -478,6 +488,12 @@ impl UpdateStrings for UpdateStringsZh {
     fn blocker_unsigned(&self) -> &'static str {
         "这个构建没有签名。"
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "这个构建没有内置核对更新所需的公钥。"
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "这是开发构建。"
+    }
     fn error_network(&self) -> &'static str {
         "无法连接 GitHub。请检查网络连接。"
     }
@@ -663,6 +679,12 @@ impl UpdateStrings for UpdateStringsRu {
     }
     fn blocker_unsigned(&self) -> &'static str {
         "Эта сборка не подписана."
+    }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "В этой сборке нет ключа для проверки обновлений."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Это сборка для разработки."
     }
     fn error_network(&self) -> &'static str {
         "Не удалось подключиться к GitHub. Проверьте подключение к интернету."
@@ -850,6 +872,12 @@ impl UpdateStrings for UpdateStringsJa {
     fn blocker_unsigned(&self) -> &'static str {
         "このビルドは署名されていません。"
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "このビルドには更新を検証するための鍵が含まれていません。"
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "これは開発用ビルドです。"
+    }
     fn error_network(&self) -> &'static str {
         "GitHub に接続できませんでした。インターネット接続を確認してください。"
     }
@@ -1035,6 +1063,12 @@ impl UpdateStrings for UpdateStringsKo {
     }
     fn blocker_unsigned(&self) -> &'static str {
         "이 빌드는 서명되지 않았습니다."
+    }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "이 빌드에는 업데이트를 확인하는 데 필요한 키가 없습니다."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "개발용 빌드입니다."
     }
     fn error_network(&self) -> &'static str {
         "GitHub에 연결할 수 없습니다. 인터넷 연결을 확인하십시오."
@@ -1222,6 +1256,12 @@ impl UpdateStrings for UpdateStringsFr {
     fn blocker_unsigned(&self) -> &'static str {
         "Cette copie de l'app n'est pas signée."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "Cette copie de l'app ne contient pas la clé nécessaire pour vérifier les mises à jour."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Il s'agit d'une version de développement."
+    }
     fn error_network(&self) -> &'static str {
         "Impossible de joindre GitHub. Vérifiez votre connexion Internet."
     }
@@ -1408,6 +1448,12 @@ impl UpdateStrings for UpdateStringsDe {
     fn blocker_unsigned(&self) -> &'static str {
         "Dieser Build ist nicht signiert."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "Dieser Build enthält nicht den Schlüssel, der zum Prüfen von Updates nötig ist."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Dies ist ein Entwicklungs-Build."
+    }
     fn error_network(&self) -> &'static str {
         "GitHub ist nicht erreichbar. Internetverbindung prüfen."
     }
@@ -1593,6 +1639,12 @@ impl UpdateStrings for UpdateStringsEs {
     }
     fn blocker_unsigned(&self) -> &'static str {
         "Esta compilación no está firmada."
+    }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "Esta compilación no incluye la clave necesaria para verificar las actualizaciones."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Esta es una compilación de desarrollo."
     }
     fn error_network(&self) -> &'static str {
         "No se ha podido conectar con GitHub. Comprueba tu conexión a internet."

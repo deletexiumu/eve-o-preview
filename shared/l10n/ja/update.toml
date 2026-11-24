@@ -54,6 +54,8 @@ blockerUnsupportedVolume = "アプリが APFS 以外の形式のディスクに�
 blockerAdHocSignature = "このビルドには固定の署名がないため、新しいバージョンを検証できません。"
 blockerDevelopmentSignature = "これはローカルで署名された開発用ビルドです。"
 blockerUnsigned = "このビルドは署名されていません。"
+blockerNoSigningKey = "このビルドには更新を検証するための鍵が含まれていません。"
+blockerDevelopmentBuild = "これは開発用ビルドです。"
 
 errorNetwork = "GitHub に接続できませんでした。インターネット接続を確認してください。"
 errorHTTPStatus = "GitHub がエラーを返しました（{code}）。"

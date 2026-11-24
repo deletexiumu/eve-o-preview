@@ -61,6 +61,8 @@ blockerUnsupportedVolume = "La app está en un disco sin formato APFS, por lo qu
 blockerAdHocSignature = "Esta compilación no tiene una firma estable, así que no se puede verificar una nueva versión con ella."
 blockerDevelopmentSignature = "Esta es una compilación de desarrollo firmada localmente."
 blockerUnsigned = "Esta compilación no está firmada."
+blockerNoSigningKey = "Esta compilación no incluye la clave necesaria para verificar las actualizaciones."
+blockerDevelopmentBuild = "Esta es una compilación de desarrollo."
 
 # 错误说明都是完整的句子，以句号结尾。
 errorNetwork = "No se ha podido conectar con GitHub. Comprueba tu conexión a internet."

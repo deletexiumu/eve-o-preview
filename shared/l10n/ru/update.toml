@@ -54,6 +54,8 @@ blockerUnsupportedVolume = "Приложение находится на дис�
 blockerAdHocSignature = "У этой сборки нет постоянной подписи, поэтому новую версию невозможно проверить."
 blockerDevelopmentSignature = "Это сборка для разработки с локальной подписью."
 blockerUnsigned = "Эта сборка не подписана."
+blockerNoSigningKey = "В этой сборке нет ключа для проверки обновлений."
+blockerDevelopmentBuild = "Это сборка для разработки."
 
 errorNetwork = "Не удалось подключиться к GitHub. Проверьте подключение к интернету."
 errorHTTPStatus = "GitHub вернул ошибку ({code})."

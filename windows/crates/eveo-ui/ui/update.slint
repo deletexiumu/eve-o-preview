@@ -1,0 +1,303 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 软件更新窗口（640x540），对应 macOS 的 UpdateView 与 ReleaseNotesView（v1.1 设计 8.6、9.2 节）：
+// - 顶部：大标题（「EVE-O Preview <版本> 可用」或状态文字）与一行副标题（「当前版本是 <版本>。」等）。
+//   使用测试地址时标题旁多一个「测试地址」标记。只提示的构建在副标题下说明原因。
+// - 中间：可滚动的「新内容」，先列最新版的说明，再按版本列出中间版本的说明；更早的版本请看发布页。
+//   说明按界面语言选块（Core 的 notes::section），切成标题、段落、列表项、代码几种块，由 Rust 填进来。
+// - 进度：下载中显示进度条与「下载中… 已收到，共 总数」；核对、安装、重新启动时进度条不定。
+// - 底部按钮按阶段变化：
+//   可用：跳过此版本、稍后、安装更新（只提示的构建换成「打开发布页」）；
+//   下载中与核对中：取消；待安装：稍后、安装更新；安装中与重新启动中：没有按钮；
+//   失败：打开发布页、关闭、重试；已是最新与检查中：关闭；重新启动失败：关闭（提示手动重新打开）。
+// 窗口只显示，不做判断：阶段与文字都由应用层按状态机的阶段算好（eveo-ui 的 update 模块）。
+
+import { Button, Palette, ProgressIndicator, ScrollView, Spinner } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { UpdateText } from "generated/l10n.slint";
+
+// 发布说明的一块。
+export struct NotesBlock {
+    // 0 标题、1 段落、2 列表项、3 代码、4 版本小标题（中间版本的「版本 x.y.z」）。
+    kind: int,
+    // 文字。列表项不含前面的符号，由界面画；编号列表的编号已拼进文字。
+    text: string,
+    // 列表项的缩进层级，从 0 开始；标题的级别（1～6）。
+    level: int,
+}
+
+// 更新窗口的数据与操作。
+export global UpdateModel {
+    // 阶段：0 检查中、1 已是最新、2 可用、3 下载中、4 核对中、5 待安装、6 安装中、7 重新启动中、8 失败。
+    in property <int> phase;
+    // 大标题。
+    in property <string> headline;
+    // 副标题（当前版本、状态说明或失败原因）。
+    in property <string> subtitle;
+    // 只提示的构建：说明与原因（空串表示能安装）。
+    in property <string> notify-only;
+    // 是否使用测试地址。
+    in property <bool> test-feed;
+    // 发布说明的各块；空表示不显示「新内容」。
+    in property <[NotesBlock]> notes;
+    // 是否还有更早的中间版本没有列出。
+    in property <bool> more-on-release-page;
+    // 下载进度 0～1；小于 0 表示不定。
+    in property <float> progress: -1;
+    // 进度旁的文字。
+    in property <string> progress-text;
+    // 失败时是否带着发布版（能重试安装，也能打开发布页）。
+    in property <bool> has-release;
+    // 重新启动没有成功：提示手动重新打开。
+    in property <bool> relaunch-failed;
+    // 安装更新（或待安装时的「重新启动以更新」）。
+    callback install();
+    // 跳过此版本。
+    callback skip();
+    // 稍后（关窗口，保留提示）。
+    callback later();
+    // 取消下载。
+    callback cancel();
+    // 关闭。
+    callback close();
+    // 重试：失败的是检查时重新检查，失败的是安装时重新安装。
+    callback retry();
+    // 打开发布页。
+    callback open-release-page();
+}
+
+// 发布说明的一块：标题加粗、列表项前加圆点、代码用等宽字体与浅底色。
+component NotesBlockView inherits VerticalLayout {
+    in property <NotesBlock> block;
+    padding-top: block.kind == 0 || block.kind == 4 ? 8px : 2px;
+    if block.kind == 0 || block.kind == 4: Text {
+        text: block.text;
+        color: Theme.text;
+        // 版本小标题比说明里的标题大一点，分清每个版本从哪里开始。
+        font-size: block.kind == 4 ? 15px : (block.level <= 2 ? 14px : 13px);
+        font-weight: 600;
+        wrap: word-wrap;
+    }
+    if block.kind == 1: Text {
+        text: block.text;
+        color: Theme.text;
+        wrap: word-wrap;
+    }
+    if block.kind == 2: HorizontalLayout {
+        padding-left: 12px + block.level * 16px;
+        spacing: 6px;
+        Text {
+            text: "•";
+            color: Theme.text-secondary;
+            vertical-alignment: top;
+        }
+        Text {
+            text: block.text;
+            color: Theme.text;
+            wrap: word-wrap;
+            horizontal-stretch: 1;
+        }
+    }
+    if block.kind == 3: Rectangle {
+        background: Theme.nav-hover;
+        border-radius: 4px;
+        HorizontalLayout {
+            padding: 6px;
+            Text {
+                text: block.text;
+                color: Theme.text;
+                font-family: "Consolas";
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+// 软件更新窗口。
+export component UpdateWindow inherits Window {
+    // 暗色外观，见 Theme.dark。每个窗口有自己的一份全局量，所以每个窗口都要设。
+    in-out property <bool> dark <=> Theme.dark;
+    // 界面字体，与设置窗口、问题报告窗口相同。
+    in property <string> ui-font: "Segoe UI Variable Text";
+    title: UpdateText.window-title;
+    icon: @image-url("images/app-icon.png");
+    preferred-width: 640px;
+    preferred-height: 540px;
+    min-width: 520px;
+    min-height: 360px;
+    background: Theme.window-background;
+    default-font-family: ui-font;
+    default-font-size: 14px;
+
+    // std-widgets 的控件按 Palette.color-scheme 选明暗配色，要与 Theme.dark 一致。
+    init => {
+        Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light;
+    }
+    changed dark => {
+        Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light;
+    }
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 12px;
+
+        // 标题行：检查中、核对中、安装中与重新启动中前面有一个转圈。
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            if UpdateModel.phase == 0 || UpdateModel.phase == 4 || UpdateModel.phase == 6 || (UpdateModel.phase == 7 && !UpdateModel.relaunch-failed): Spinner {
+                indeterminate: true;
+                width: 22px;
+                height: 22px;
+            }
+            Text {
+                text: UpdateModel.headline;
+                color: Theme.text;
+                font-size: 20px;
+                font-weight: 600;
+                wrap: word-wrap;
+                horizontal-stretch: 1;
+            }
+            if UpdateModel.test-feed: Rectangle {
+                background: Theme.caution;
+                border-radius: 4px;
+                height: 22px;
+                width: badge.preferred-width + 12px;
+                badge := Text {
+                    text: UpdateText.test-feed-badge;
+                    // 警示色在暗色外观下是亮黄（配深色字），亮色外观下是深棕（配白字）。
+                    color: Theme.dark ? #1a1a1a : white;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+        if UpdateModel.subtitle != "": Text {
+            text: UpdateModel.subtitle;
+            color: UpdateModel.phase == 8 ? Theme.caution : Theme.text-secondary;
+            wrap: word-wrap;
+        }
+        if UpdateModel.notify-only != "": Text {
+            text: UpdateModel.notify-only;
+            color: Theme.text-secondary;
+            wrap: word-wrap;
+        }
+
+        // 新内容：可滚动；没有说明时这一块不出现，按钮行贴着标题。
+        if UpdateModel.notes.length > 0: Text {
+            text: UpdateText.release-notes-header;
+            color: Theme.text;
+            font-weight: 600;
+        }
+        if UpdateModel.notes.length > 0: Rectangle {
+            vertical-stretch: 1;
+            border-width: 1px;
+            border-color: Theme.card-border;
+            border-radius: 6px;
+            ScrollView {
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 4px;
+                    alignment: start;
+                    for block in UpdateModel.notes: NotesBlockView {
+                        block: block;
+                    }
+                    if UpdateModel.more-on-release-page: Text {
+                        text: UpdateText.earlier-versions-on-release-page;
+                        color: Theme.text-secondary;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+        // 没有说明时用一个弹性空白把按钮推到底部。
+        if UpdateModel.notes.length == 0: Rectangle {
+            vertical-stretch: 1;
+        }
+
+        // 进度：下载中有确定的进度条，核对、安装、重新启动时不定。
+        if UpdateModel.phase >= 3 && UpdateModel.phase != 5 && UpdateModel.phase <= 7 && !UpdateModel.relaunch-failed: VerticalLayout {
+            spacing: 4px;
+            ProgressIndicator {
+                indeterminate: UpdateModel.progress < 0;
+                progress: max(0, UpdateModel.progress);
+                height: 6px;
+            }
+            Text {
+                text: UpdateModel.progress-text;
+                color: Theme.text-secondary;
+                font-size: 12px;
+            }
+        }
+        if UpdateModel.phase == 2 && UpdateModel.notify-only == "": Text {
+            text: UpdateText.install-help;
+            color: Theme.text-secondary;
+            font-size: 12px;
+            wrap: word-wrap;
+        }
+
+        // 底部按钮：靠右，主操作在最右。
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+            // 可用：跳过此版本、稍后、安装更新（或打开发布页）。
+            if UpdateModel.phase == 2: Button {
+                text: UpdateText.skip-button;
+                clicked => {
+                    UpdateModel.skip();
+                }
+            }
+            if UpdateModel.phase == 2 || UpdateModel.phase == 5: Button {
+                text: UpdateText.later-button;
+                clicked => {
+                    UpdateModel.later();
+                }
+            }
+            if (UpdateModel.phase == 2 || UpdateModel.phase == 5) && UpdateModel.notify-only == "": Button {
+                text: UpdateText.install-button;
+                primary: true;
+                clicked => {
+                    UpdateModel.install();
+                }
+            }
+            if UpdateModel.phase == 2 && UpdateModel.notify-only != "": Button {
+                text: UpdateText.open-release-page-button;
+                primary: true;
+                clicked => {
+                    UpdateModel.open-release-page();
+                }
+            }
+            // 下载中与核对中：取消。
+            if UpdateModel.phase == 3 || UpdateModel.phase == 4: Button {
+                text: UpdateText.cancel-button;
+                clicked => {
+                    UpdateModel.cancel();
+                }
+            }
+            // 失败：打开发布页（带着发布版时）、关闭、重试。
+            if UpdateModel.phase == 8 && UpdateModel.has-release: Button {
+                text: UpdateText.open-release-page-button;
+                clicked => {
+                    UpdateModel.open-release-page();
+                }
+            }
+            if UpdateModel.phase == 0 || UpdateModel.phase == 1 || UpdateModel.phase == 8 || UpdateModel.relaunch-failed: Button {
+                text: UpdateText.close-button;
+                primary: UpdateModel.phase != 8;
+                clicked => {
+                    UpdateModel.close();
+                }
+            }
+            if UpdateModel.phase == 8: Button {
+                text: UpdateText.retry-button;
+                primary: true;
+                clicked => {
+                    UpdateModel.retry();
+                }
+            }
+        }
+    }
+}

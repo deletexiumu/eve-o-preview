@@ -36,7 +36,22 @@ const EXE_FILE_NAME: &str = "EVE-O Preview.exe";
 
 /// 本构建的版本标签：打包时由环境变量 EVEO_BUILD_LABEL 给出（如 `0.9.1`、`0.9.1-ci.42`），没有时是版本号。
 /// 与 exe 版本资源里的 BuildLabel 相同（见 build.rs），更新时用它比较新旧。
+///
+/// 调试构建可以用环境变量 EVEO_DEBUG_VERSION_LABEL 覆盖它（必须是合法的版本号），让旧进程自称旧版本，
+/// 在真机上跑完整的下载、替换与重新启动；正式构建忽略这个变量。重新启动新版时去掉它（见 platform 的 launch）。
 pub(super) fn version_label() -> &'static str {
+    #[cfg(debug_assertions)]
+    {
+        static OVERRIDE: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+        let label = OVERRIDE.get_or_init(|| {
+            std::env::var(update::DEBUG_VERSION_LABEL_ENV)
+                .ok()
+                .filter(|label| eveo_core::update::version::SemanticVersion::parse(label).is_some())
+        });
+        if let Some(label) = label.as_deref() {
+            return label;
+        }
+    }
     option_env!("EVEO_BUILD_LABEL").unwrap_or(env!("CARGO_PKG_VERSION"))
 }
 
@@ -68,7 +83,7 @@ pub(super) struct UpdateLaunch {
 }
 
 /// 本进程的 exe 路径；不是以正式文件名运行时返回 None。
-fn own_exe() -> Option<PathBuf> {
+pub(super) fn own_exe() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     let name = exe.file_name()?.to_str()?;
     name.eq_ignore_ascii_case(EXE_FILE_NAME).then_some(exe)

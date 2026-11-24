@@ -54,6 +54,8 @@ blockerUnsupportedVolume = "The app is on a disk that is not formatted as APFS, 
 blockerAdHocSignature = "This build has no stable signature, so a new version can't be verified against it."
 blockerDevelopmentSignature = "This is a locally signed development build."
 blockerUnsigned = "This build isn't signed."
+blockerNoSigningKey = "This build doesn't include the key needed to verify updates."
+blockerDevelopmentBuild = "This is a development build."
 
 errorNetwork = "Couldn't reach GitHub. Check your internet connection."
 errorHTTPStatus = "GitHub answered with an error ({code})."

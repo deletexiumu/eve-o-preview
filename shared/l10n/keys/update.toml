@@ -176,6 +176,14 @@ doc = "`developmentSignature`。"
 [UpdateStrings.blockerUnsigned]
 doc = "`unsigned`。"
 
+[UpdateStrings.blockerNoSigningKey]
+doc = "Windows 的 `noSigningKey`：这个构建没有内置核对更新包签名的公钥（本机编译的构建）。"
+platforms = ["windows"]
+
+[UpdateStrings.blockerDevelopmentBuild]
+doc = "Windows 的 `developmentBuild`：调试版或 PR 构建，不自动安装正式版。"
+platforms = ["windows"]
+
 [UpdateStrings.errorNetwork]
 section = "错误（UpdateError，按类合并）"
 doc = "`network`。"

@@ -57,7 +57,9 @@ mod report;
 mod shell;
 mod switching_page;
 mod translation;
+mod update_jobs;
 mod update_launch;
+mod updates;
 
 /// 定时器的周期：取窗口事件、检查轮询、唤醒与写盘。
 const TICK: Duration = Duration::from_millis(50);
@@ -110,6 +112,8 @@ enum Input {
     Environment(environment::EnvironmentInput),
     /// 问题报告窗口的操作。
     Report(report::ReportInput),
+    /// 更新窗口、托盘菜单与「通用」页的更新操作。
+    Update(updates::UpdateInput),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -199,6 +203,8 @@ struct App {
     quit_timer: Option<logging::QuitTimer>,
     /// 自动更新换上的新版：等待确认的状态。
     update_launch: update_launch::UpdateLaunch,
+    /// 自动更新。
+    updates: updates::Updates,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -262,6 +268,7 @@ pub fn run() -> ExitCode {
     thumbnails.set_language(language);
     // 读上一次的会话标记、写本次的；上一次异常结束时在后台找崩溃的证据。
     let diagnostics = diagnostics::Diagnostics::start(&paths, &session_id, logs_dir.clone());
+    let updates = updates::Updates::new(&paths, updates::switches(&config.general));
     let app = App {
         coordinator: Coordinator::new(config, screens.clone()),
         store,
@@ -294,6 +301,7 @@ pub fn run() -> ExitCode {
         diagnostics,
         quit_timer: None,
         update_launch,
+        updates,
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -305,6 +313,7 @@ pub fn run() -> ExitCode {
     runtime.post(Input::Event(Event::Started));
     // 聊天日志按读入的配置开始（ConfigChanged 只在配置变化时才发，启动时要自己交一次）。
     runtime.app.borrow_mut().chat_config_changed();
+    runtime.app.borrow_mut().start_updates(&runtime);
     if first_run && !background {
         runtime.post(Input::Event(Event::Tray(eveo_app_core::TrayAction::OpenSettings)));
     }
@@ -334,6 +343,7 @@ pub fn run() -> ExitCode {
     quit.step("销毁缩略图", || app.thumbnails.clear());
     quit.step("标记正常结束", || app.diagnostics.mark_ended_cleanly());
     quit.step("确认更新", || app.confirm_update("正常退出"));
+    quit.step("安装更新", || app.updates_quit());
     drop(app);
     quit.step("释放热键、钩子、托盘与窗口", || drop(runtime));
     quit.finish();
@@ -381,8 +391,12 @@ impl App {
             Input::Tray(TrayEvent::LeftClick | TrayEvent::ActivateRequested) => {
                 self.open_settings(SettingsPage::General, runtime);
             }
-            // 点了崩溃后的通知：打开崩溃情境的报告窗口。
-            Input::Tray(TrayEvent::NotificationClicked) => self.open_report(true, runtime),
+            // 点了通知：新版本的通知打开更新窗口，崩溃后的通知打开崩溃情境的报告窗口。
+            Input::Tray(TrayEvent::NotificationClicked) => {
+                if !self.update_notification_clicked(runtime) {
+                    self.open_report(true, runtime);
+                }
+            }
             Input::Tick => self.tick(runtime),
             Input::SettingsEdited => self.settings_edited(false, runtime),
             Input::UnifySizes => self.settings_edited(true, runtime),
@@ -398,6 +412,7 @@ impl App {
             Input::IntelPage(action) => self.intel_action(action),
             Input::Environment(input) => self.environment_input(input),
             Input::Report(input) => self.report_input(input),
+            Input::Update(input) => self.update_input(input, runtime),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -565,6 +580,7 @@ impl App {
         // 上一次崩溃的检测结果（后台线程找完后交回）。
         self.poll_crash_scan();
         self.report_tick();
+        self.updates_tick(runtime);
         self.debug_panic_check();
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());
@@ -739,15 +755,30 @@ impl App {
     /// 在光标处弹出托盘菜单。
     fn tray_menu(&mut self, runtime: &Rc<Runtime>) {
         let model = self.coordinator.tray();
-        let entries = menus::tray_menu(&model, self.crash_pending(), self.language);
+        let (update, check_updates) = self.updates.menu();
+        let extras = menus::TrayExtras {
+            crash_pending: self.crash_pending(),
+            update,
+            check_updates,
+        };
+        let entries = menus::tray_menu(&model, &extras, self.language);
         let chosen = menu::popup(self.tray.hwnd(), cursor_point(), &entries);
-        match chosen
+        let choice = chosen
             .ok()
             .flatten()
-            .and_then(|id| menus::tray_action(id, &model))
-        {
+            .and_then(|id| menus::tray_action(id, &model, &extras));
+        match choice {
             Some(menus::TrayChoice::Coordinator(action)) => self.send(Event::Tray(action), runtime),
             Some(menus::TrayChoice::Report { crash }) => self.open_report(crash, runtime),
+            Some(menus::TrayChoice::UpdateHint { ready: true }) => {
+                self.update_input(updates::UpdateInput::RestartToInstall, runtime);
+            }
+            Some(menus::TrayChoice::UpdateHint { ready: false }) => {
+                self.update_input(updates::UpdateInput::ShowWindow, runtime);
+            }
+            Some(menus::TrayChoice::CheckUpdates) => {
+                self.update_input(updates::UpdateInput::CheckNow, runtime)
+            }
             None => {}
         }
     }

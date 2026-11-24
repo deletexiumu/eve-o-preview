@@ -268,6 +268,9 @@ pub fn clean_up(exe: &Path) -> usize {
         .count()
 }
 
+/// 调试构建里覆盖版本标签的环境变量（见 eveo-app 的 update_launch::version_label）。
+pub const DEBUG_VERSION_LABEL_ENV: &str = "EVEO_DEBUG_VERSION_LABEL";
+
 /// 启动 exe（带参数），返回新进程的编号。
 ///
 /// 不等新进程，也不保留它的句柄（Child 丢弃时不会结束进程）。新进程从 exe 所在的位置启动，
@@ -275,6 +278,8 @@ pub fn clean_up(exe: &Path) -> usize {
 pub fn launch(exe: &Path, args: &[String]) -> Result<u32, u32> {
     std::process::Command::new(exe)
         .args(args)
+        // 调试构建的版本标签覆盖（测试自动更新时让旧进程自称旧版本）不能传给新版，否则新版也自称旧版本。
+        .env_remove(DEBUG_VERSION_LABEL_ENV)
         .spawn()
         .map(|child| child.id())
         .map_err(|e| code(&e))

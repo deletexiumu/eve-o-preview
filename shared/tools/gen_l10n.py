@@ -757,12 +757,13 @@ def slint_file(domains: list[Domain]) -> str:
 
 
 def slint_rust_file(domains: list[Domain]) -> str:
-    """把某种语言的文字填进 Slint 全局。每个窗口有自己的一份全局，所以写成宏，设置窗口与问题报告窗口各展开一次。"""
+    """把某种语言的文字填进 Slint 全局。每个窗口有自己的一份全局，所以写成宏，设置窗口、问题报告窗口与
+    更新窗口各展开一次。"""
     globals_ = [slint_global(p) for _, p, _ in slint_protos(domains)]
     lines = [f"// {GENERATED}", "",
              "//! 按界面语言把文字填进各窗口的 Slint 全局（ui/generated/l10n.slint）。", "",
              "use eveo_core::model::AppLanguage;", "use slint::ComponentHandle;", "",
-             f"use crate::{{ProblemReportWindow, SettingsWindow, {', '.join(globals_)}}};", "",
+             f"use crate::{{ProblemReportWindow, SettingsWindow, UpdateWindow, {', '.join(globals_)}}};", "",
              "/// 填一个窗口的全部全局。",
              "macro_rules! fill {",
              "    ($ui:expr, $language:expr) => {{",
@@ -792,6 +793,10 @@ def slint_rust_file(domains: list[Domain]) -> str:
               "}", "",
               "/// 按语言填问题报告窗口的文字（与设置窗口同一套全局，各窗口各有一份）。",
               "pub fn apply_report(ui: &ProblemReportWindow, language: AppLanguage) {",
+              "    fill!(ui, language);",
+              "}", "",
+              "/// 按语言填更新窗口的文字（同上）。",
+              "pub fn apply_update(ui: &UpdateWindow, language: AppLanguage) {",
               "    fill!(ui, language);",
               "}", ""]
     return "\n".join(lines)

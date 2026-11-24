@@ -52,6 +52,9 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
     model.on_reveal_logs(move || send(GeneralInput::RevealLogs));
     let send = sender(runtime);
     model.on_report_problem(move || send(GeneralInput::ReportProblem));
+    // 「立即检查」直接交给更新：状态行与按钮能否点由更新模块刷新（见 updates 模块）。
+    let weak = Rc::downgrade(runtime);
+    model.on_check_updates_now(move || post(&weak, Input::Update(super::updates::UpdateInput::CheckNow)));
     let send = sender(runtime);
     // 地址在处理时再核对，回调里只转交。
     window

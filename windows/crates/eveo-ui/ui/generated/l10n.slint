@@ -1003,6 +1003,10 @@ export global UpdateText {
     in property <string> blocker-development-signature: "This is a locally signed development build.";
     // `unsigned`。
     in property <string> blocker-unsigned: "This build isn't signed.";
+    // Windows 的 `noSigningKey`：这个构建没有内置核对更新包签名的公钥（本机编译的构建）。
+    in property <string> blocker-no-signing-key: "This build doesn't include the key needed to verify updates.";
+    // Windows 的 `developmentBuild`：调试版或 PR 构建，不自动安装正式版。
+    in property <string> blocker-development-build: "This is a development build.";
     // `network`。
     in property <string> error-network: "Couldn't reach GitHub. Check your internet connection.";
     // `httpStatus`，参数是状态码。

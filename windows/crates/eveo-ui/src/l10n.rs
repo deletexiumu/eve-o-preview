@@ -5,7 +5,7 @@
 use eveo_core::model::AppLanguage;
 use slint::ComponentHandle;
 
-use crate::{ProblemReportWindow, SettingsWindow, SettingsText, CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, TranslationText, UpdateText};
+use crate::{ProblemReportWindow, SettingsWindow, UpdateWindow, SettingsText, CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, TranslationText, UpdateText};
 
 /// 填一个窗口的全部全局。
 macro_rules! fill {
@@ -516,6 +516,8 @@ macro_rules! fill {
     text.set_blocker_ad_hoc_signature(updates.blocker_ad_hoc_signature().into());
     text.set_blocker_development_signature(updates.blocker_development_signature().into());
     text.set_blocker_unsigned(updates.blocker_unsigned().into());
+    text.set_blocker_no_signing_key(updates.blocker_no_signing_key().into());
+    text.set_blocker_development_build(updates.blocker_development_build().into());
     text.set_error_network(updates.error_network().into());
     text.on_error_http_status(move |code| updates.error_http_status(i64::from(code)).into());
     text.set_error_malformed_feed(updates.error_malformed_feed().into());
@@ -536,5 +538,10 @@ pub fn apply(ui: &SettingsWindow, language: AppLanguage) {
 
 /// 按语言填问题报告窗口的文字（与设置窗口同一套全局，各窗口各有一份）。
 pub fn apply_report(ui: &ProblemReportWindow, language: AppLanguage) {
+    fill!(ui, language);
+}
+
+/// 按语言填更新窗口的文字（同上）。
+pub fn apply_update(ui: &UpdateWindow, language: AppLanguage) {
     fill!(ui, language);
 }
