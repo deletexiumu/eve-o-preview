@@ -21,10 +21,6 @@ doc = "总开关。"
 [TranslationStrings.statusLabel]
 doc = "状态行的标签。"
 
-[TranslationStrings.notAvailableYet]
-doc = "Windows「翻译」页：状态行。翻译功能随 M6 加上之前显示。"
-platforms = ["windows"]
-
 [TranslationStrings.statusOff]
 doc = "状态：未启用。"
 
@@ -61,6 +57,7 @@ doc = "公网的 http 地址。"
 [TranslationStrings.failureMissingKey]
 doc = "没有 Key。"
 
+# Windows 上「钥匙串」是凭据管理器：failureKeychain、apiKeyStored、keychainError 的值按两端分开写。
 [TranslationStrings.failureKeychain]
 doc = "读不到钥匙串里的 Key。"
 
@@ -136,10 +133,6 @@ doc = "「模型名」。"
 
 [TranslationStrings.apiKey]
 doc = "「API Key」。"
-
-[TranslationStrings.apiKeyNotAvailableYet]
-doc = "Windows「翻译」页：API Key 一行。保存 Key 随翻译功能在 M6 加上之前显示。"
-platforms = ["windows"]
 
 [TranslationStrings.apiKeyStored]
 doc = "「已保存在钥匙串」。"

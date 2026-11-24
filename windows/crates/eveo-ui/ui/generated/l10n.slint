@@ -799,8 +799,6 @@ export global TranslationText {
     in property <string> enable-toggle: "Show translation overlay";
     // 状态行的标签。
     in property <string> status-label: "Status";
-    // Windows「翻译」页：状态行。翻译功能随 M6 加上之前显示。
-    in property <string> not-available-yet: "The translation overlay arrives in a later test build; you can fill in the settings now";
     // 状态：未启用。
     in property <string> status-off: "Off";
     // 状态：就绪。
@@ -824,7 +822,7 @@ export global TranslationText {
     // 没有 Key。
     in property <string> failure-missing-key: "No API key set";
     // 读不到钥匙串里的 Key。
-    in property <string> failure-keychain: "Cannot read the key from the keychain; save it again on the Translation page";
+    in property <string> failure-keychain: "Cannot read the key from Windows Credential Manager; save it again on the Translation page";
     // Key 无效，附状态码。
     pure callback failure-unauthorized(status: int) -> string;
     // 地址或模型名不对。
@@ -869,10 +867,8 @@ export global TranslationText {
     in property <string> model: "Model Name";
     // 「API Key」。
     in property <string> api-key: "API Key";
-    // Windows「翻译」页：API Key 一行。保存 Key 随翻译功能在 M6 加上之前显示。
-    in property <string> api-key-not-available-yet: "The key will be stored in Windows Credential Manager; this arrives with translation in a later test build";
     // 「已保存在钥匙串」。
-    in property <string> api-key-stored: "Saved in the keychain";
+    in property <string> api-key-stored: "Saved in Windows Credential Manager";
     // Key 输入框的占位文字。
     in property <string> api-key-placeholder: "Paste the key, then click Save";
     // 「保存」。

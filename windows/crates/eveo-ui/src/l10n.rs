@@ -412,7 +412,6 @@ pub fn apply(ui: &SettingsWindow, language: AppLanguage) {
     text.set_page_subtitle(translation.page_subtitle().into());
     text.set_enable_toggle(translation.enable_toggle().into());
     text.set_status_label(translation.status_label().into());
-    text.set_not_available_yet(translation.not_available_yet().into());
     text.set_status_off(translation.status_off().into());
     text.set_status_idle(translation.status_idle().into());
     text.set_status_translating(translation.status_translating().into());
@@ -447,7 +446,6 @@ pub fn apply(ui: &SettingsWindow, language: AppLanguage) {
     text.set_base_url(translation.base_url().into());
     text.set_model(translation.model().into());
     text.set_api_key(translation.api_key().into());
-    text.set_api_key_not_available_yet(translation.api_key_not_available_yet().into());
     text.set_api_key_stored(translation.api_key_stored().into());
     text.set_api_key_placeholder(translation.api_key_placeholder().into());
     text.set_save_key(translation.save_key().into());

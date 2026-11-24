@@ -28,3 +28,4 @@ pub mod overlay;
 pub mod profiles;
 pub mod screenshot;
 pub mod switching;
+pub mod translation;

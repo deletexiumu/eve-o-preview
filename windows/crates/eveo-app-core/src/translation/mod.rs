@@ -64,6 +64,8 @@ use crate::chat::ChatFeedContext;
 
 /// 两次存盘至少隔几秒：译文一批批到达，每批都写文件没有必要。
 pub const CACHE_SAVE_INTERVAL: f64 = 30.0;
+/// 至多攒几行日志：应用层没来取时丢掉最早的，内存不会无限增长。
+pub const MAX_LOG_LINES: usize = 200;
 
 /// 读写 API Key 的失败。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -267,6 +269,14 @@ impl TranslationController {
         std::mem::take(&mut self.log)
     }
 
+    /// 记一行日志；超过上限时丢掉最早的一行。
+    fn note(&mut self, line: impl Into<String>) {
+        if self.log.len() >= MAX_LOG_LINES {
+            self.log.remove(0);
+        }
+        self.log.push(line.into());
+    }
+
     /// 当前配置方案的翻译设置；还没有上下文时是默认值。
     fn settings(&self) -> TranslationSettings {
         self.context
@@ -452,7 +462,7 @@ impl TranslationController {
             && self.cache.is_dirty()
             && let Err(error) = self.cache_store.save(self.cache.snapshot())
         {
-            self.log.push(format!("译文缓存存盘失败：{:?}", error.kind()));
+            self.note(format!("译文缓存存盘失败：{:?}", error.kind()));
         }
         self.status = TranslationStatus::Off;
     }

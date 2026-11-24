@@ -4,14 +4,31 @@
 // 总开关与状态、频道（可添加 4 个内置频道）、目标语言与显示、模型服务、浮窗、页尾的隐私与费用说明。
 // 开关、频道、目标语言与浮窗在当前配置方案的 translation 里；模型服务在 general.translationEndpoint，对全部方案生效。
 //
-// 翻译本身、API Key（Windows 上存进凭据管理器）、「测试」与译文缓存在 M6 接上，现在状态行与 Key 一行写明这一点。
-// 换服务预设时清掉自定义的地址与模型名（与 macOS 相同）；输入框的提示是预设的默认值，留空就用它。
+// 状态行在暂停或等待时用醒目的颜色并附「立即重试」；API Key 存进 Windows 凭据管理器，输入框是密文，保存后清空；
+// 「测试」用当前设置发一次固定样例；译文缓存一行显示条数并可清空。这些运行时的状态由应用层整组填入（Rust 侧的
+// TranslationView），按钮经回调交给应用。换服务预设时清掉自定义的地址与模型名（与 macOS 相同）；
+// 输入框的提示是预设的默认值，留空就用它。
 
-import { ComboBox, LineEdit, Switch } from "std-widgets.slint";
+import { Button, ComboBox, LineEdit, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
 import { ChannelListSection, OverlaySection } from "chat.slint";
 import { SettingsText, TranslationText } from "generated/l10n.slint";
+
+// 需要用户留意的一句提示（地址不能用、Key 保存失败、测试失败），放在卡片下面。
+component Notice inherits VerticalLayout {
+    // 提示文字；为空时不占高度。
+    in property <string> text;
+    // 为真时用普通的次要文字颜色（成功的测试结果）。
+    in property <bool> calm;
+    padding-top: text == "" ? 0px : 4px;
+    if text != "": Text {
+        text: root.text;
+        color: root.calm ? Theme.text-secondary : Theme.caution;
+        font-size: 12px;
+        wrap: word-wrap;
+    }
+}
 
 // 本页的数据。
 export global TranslationModel {
@@ -40,6 +57,27 @@ export global TranslationModel {
     in property <string> model-placeholder;
     // 这个预设是否用 Key；不用时 Key 一行只说明不需要。
     in property <bool> uses-key: true;
+    // 运行时的状态（应用层整组填入）：状态行的文字与是否需要留意（暂停或等待）。
+    in property <string> status-text;
+    in property <bool> needs-attention;
+    // 聊天日志的错误（找不到目录、没有权限）；为空表示没有。
+    in property <string> chat-log-problem;
+    // 接口设置不能用的原因；为空表示能用。
+    in property <string> endpoint-issue;
+    // Key 输入框的草稿（密文显示）；保存成功后应用清空它。
+    in-out property <string> key-draft;
+    // 当前预设的 Key 是否已在凭据管理器里；是否是自定义接口（Key 可不填）。
+    in property <bool> key-stored;
+    in property <bool> key-optional;
+    // 保存或删除 Key 失败的说明；为空表示没有。
+    in property <string> key-error;
+    // 「测试」在等答复；测试结果的文字与是否成功。
+    in property <bool> testing;
+    in property <string> test-result;
+    in property <bool> test-succeeded;
+    // 译文缓存的条数文字，与是否为空（为空时「清空缓存」不可点）。
+    in property <string> cache-text;
+    in property <bool> cache-empty: true;
     // translation.overlay 的显示范围、不透明度、字号，与是否保存过位置。
     in-out property <int> overlay-visibility;
     in-out property <float> overlay-opacity: 0.75;
@@ -55,6 +93,12 @@ export global TranslationModel {
     callback add-built-in(int);
     // 「恢复默认位置」。
     callback reset-overlay-frame();
+    // 「保存」Key（参数是草稿）、「删除 Key」、「立即重试」、「测试」、「清空缓存」。
+    callback save-key(string);
+    callback delete-key();
+    callback retry();
+    callback test();
+    callback clear-cache();
 }
 
 // 「翻译」页。
@@ -80,15 +124,21 @@ export component TranslationPage inherits VerticalLayout {
     SettingRow {
         title: TranslationText.status-label;
         Text {
-            text: TranslationText.not-available-yet;
-            color: Theme.text-secondary;
+            text: TranslationModel.status-text;
+            // 暂停或等待时用「注意」色，提醒用户看原因。
+            color: TranslationModel.needs-attention ? Theme.caution : Theme.text-secondary;
             vertical-alignment: center;
             horizontal-alignment: right;
             wrap: word-wrap;
-            // 状态文字较长，限制宽度并换行。
-            max-width: 380px;
+            // 状态文字较长（附失败原因），限制宽度并换行。
+            max-width: 340px;
+        }
+        if TranslationModel.needs-attention: Button {
+            text: TranslationText.retry-now;
+            clicked => { TranslationModel.retry(); }
         }
     }
+    Notice { text: TranslationModel.chat-log-problem; }
     Footnote { text: SettingsText.chat-log-help; }
 
     // 第 2 组：翻译频道，可直接添加内置频道（本地频道最常用）。
@@ -168,6 +218,8 @@ export component TranslationPage inherits VerticalLayout {
             }
         }
     }
+    // 地址不能用时（公网 http、格式不对等）在地址下面说明原因。
+    Notice { text: TranslationModel.endpoint-issue; }
     RowGap { }
     SettingRow {
         title: TranslationText.model;
@@ -186,17 +238,52 @@ export component TranslationPage inherits VerticalLayout {
         }
     }
     RowGap { }
-    SettingRow {
+    // Ollama 这类本机服务不用 Key，只显示一句说明。
+    if !TranslationModel.uses-key: SettingRow {
         title: TranslationText.api-key;
-        // Ollama 这类本机服务不用 Key；其余服务的 Key 随翻译功能加上（存进 Windows 凭据管理器，不进配置文件）。
         Text {
-            text: TranslationModel.uses-key ? TranslationText.api-key-not-available-yet : TranslationText.key-not-required;
+            text: TranslationText.key-not-required;
             color: Theme.text-secondary;
             vertical-alignment: center;
-            horizontal-alignment: right;
-            wrap: word-wrap;
-            max-width: 380px;
         }
+    }
+    // 要 Key 的服务：密文输入框与「保存」「删除 Key」。Key 存进 Windows 凭据管理器，不进配置文件。
+    if TranslationModel.uses-key: SettingRow {
+        title: TranslationText.api-key;
+        // 已保存时说明存在哪里；自定义接口另说明 Key 可不填。
+        description: TranslationModel.key-stored ? TranslationText.api-key-stored : (TranslationModel.key-optional ? TranslationText.key-optional : "");
+        LineEdit {
+            text <=> TranslationModel.key-draft;
+            input-type: password;
+            placeholder-text: TranslationText.api-key-placeholder;
+            width: 200px;
+            accepted(text) => { TranslationModel.save-key(text); }
+        }
+        Button {
+            text: TranslationText.save-key;
+            enabled: TranslationModel.key-draft != "";
+            clicked => { TranslationModel.save-key(TranslationModel.key-draft); }
+        }
+        Button {
+            text: TranslationText.delete-key;
+            enabled: TranslationModel.key-stored;
+            clicked => { TranslationModel.delete-key(); }
+        }
+    }
+    Notice { text: TranslationModel.key-error; }
+    RowGap { }
+    // 「测试」：用当前的设置与 Key 发一次固定样例，结果显示在下面。
+    SettingRow {
+        title: TranslationText.test;
+        Button {
+            text: TranslationModel.testing ? TranslationText.testing : TranslationText.test;
+            enabled: !TranslationModel.testing;
+            clicked => { TranslationModel.test(); }
+        }
+    }
+    Notice {
+        text: TranslationModel.test-result;
+        calm: TranslationModel.test-succeeded;
     }
 
     // 第 5 组：浮窗。
@@ -207,6 +294,16 @@ export component TranslationPage inherits VerticalLayout {
         has-frame: TranslationModel.overlay-has-frame;
         edited => { TranslationModel.edited(); }
         reset-frame => { TranslationModel.reset-overlay-frame(); }
+    }
+    // 第 6 组：译文缓存。已翻译过的句子不再花钱；清空后文件也变空。
+    SectionHeader { text: TranslationText.cache-header; }
+    SettingRow {
+        title: TranslationModel.cache-text;
+        Button {
+            text: TranslationText.clear-cache;
+            enabled: !TranslationModel.cache-empty;
+            clicked => { TranslationModel.clear-cache(); }
+        }
     }
     // 页尾：发给谁、花多少，两句说明。
     Footnote { text: TranslationText.privacy-note; }

@@ -3,7 +3,7 @@
 // 设置窗口「预警」「翻译」两页与应用之间的连接。读回的设置与其他页一样以 ConfigEdited 交给协调器：
 // - 标量的值整页读回（预警在当前方案的 intel；翻译在 translation，模型服务在 general.translationEndpoint）。
 // - 频道的增删与「恢复默认位置」是动作，直接改协调器手里那份配置的副本。
-// 读聊天日志、浮窗与翻译在 M6 接上，这里只管配置。
+// 「翻译」页的按钮（Key、测试、重试、清空缓存）与运行时状态在 translation 模块里。
 
 //! 「预警」与「翻译」两页。
 
@@ -102,6 +102,7 @@ impl App {
             return;
         };
         let mut config = self.coordinator.config().clone();
+        let provider = config.general.translation_endpoint.provider;
         // 每种输入只改自己的那部分；没有当前方案（配置还没加载好）时什么也不改。
         match input {
             ChatInput::Edited(ChatPage::Intel) => {
@@ -130,6 +131,10 @@ impl App {
                 ChatPage::Translation => profile.translation.overlay.frame = None,
             }),
         }
+        // 换了服务预设：Key 的输入框与测试结果属于旧预设，先清掉。
+        if config.general.translation_endpoint.provider != provider {
+            self.translation_provider_changed();
+        }
         if &config != self.coordinator.config() {
             self.send(Event::ConfigEdited(config), runtime);
         }
@@ -144,6 +149,8 @@ impl App {
             chat::show_intel_status(window, self.chat_log_status());
             chat::show_translation(window, &profile.translation, &config.general.translation_endpoint);
         }
+        // 运行时的状态整组重填：接口设置、Key 是否已保存与各段文字都可能随配置或界面语言变。
+        self.show_translation_page_again();
     }
 }
 

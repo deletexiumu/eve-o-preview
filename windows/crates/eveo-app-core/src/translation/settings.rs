@@ -24,6 +24,7 @@ impl TranslationController {
     /// 读一次 Key，结果留在内存里。只在 7.7 节的 3 个时机调用。
     pub(super) fn load_key(&mut self, provider: TranslationProviderId) {
         self.key_provider = Some(provider);
+        // 不用 Key 的预设（Ollama）不碰凭据管理器，记为没有。
         if !uses_key(provider) {
             self.key = KeyState::Missing;
             return;
@@ -33,7 +34,7 @@ impl TranslationController {
             Ok(Some(value)) if !value.is_empty() => KeyState::Value(value),
             Ok(_) => KeyState::Missing,
             Err(error) => {
-                self.log.push(format!(
+                self.note(format!(
                     "凭据管理器：读取 Key 失败（{}）",
                     secret_error_code(error)
                 ));
@@ -51,6 +52,7 @@ impl TranslationController {
 
     /// 在后台线程读缓存文件；建不了线程时直接在这里读。
     pub(super) fn start_loading(&mut self) {
+        // 读文件的线程只读一次就结束；结果经通道交回，由 tick 取走。
         let (sender, receiver) = mpsc::channel();
         let store = self.cache_store.clone();
         let spawned = thread::Builder::new()
@@ -60,6 +62,7 @@ impl TranslationController {
             });
         self.cache_load = match spawned {
             Ok(_) => CacheLoad::Loading(receiver),
+            // 建不了线程（极少见）时直接在这里读，界面会顿一下，但不丢缓存。
             Err(_) => {
                 let entries = self.cache_store.load();
                 self.cache_loaded(entries);
@@ -73,6 +76,7 @@ impl TranslationController {
         let CacheLoad::Loading(receiver) = &self.cache_load else {
             return;
         };
+        // 还没读完就下次再看；线程退出而没交回结果时从空缓存开始。
         let entries = match receiver.try_recv() {
             Ok(entries) => entries,
             Err(TryRecvError::Empty) => return,
@@ -90,13 +94,14 @@ impl TranslationController {
         if !self.discard_loaded_cache {
             self.cache.merge_older(entries);
         }
-        self.log.push(format!("译文缓存：读入 {count} 条"));
+        self.note(format!("译文缓存：读入 {count} 条"));
         // 「翻译」页显示缓存条数，要刷新。
         self.changed = true;
     }
 
     /// 缓存有改动、且距上次存盘满 30 秒（或 force）时，交给写入线程存一次。读完文件之前不存。
     pub(super) fn save_cache_if_due(&mut self, now: f64, force: bool) {
+        // 读完文件之前不存：此时存盘会用不完整的内容盖掉文件里的旧条目。
         if !matches!(self.cache_load, CacheLoad::Loaded)
             || !self.cache.is_dirty()
             || !(force || now - self.last_cache_save >= CACHE_SAVE_INTERVAL)
@@ -104,12 +109,14 @@ impl TranslationController {
             return;
         }
         self.last_cache_save = now;
+        // snapshot 同时清掉改动标记：这之后的改动等下一次存。
         let entries = self.cache.snapshot();
         self.write_async(entries);
     }
 
     /// 交给写入线程写文件；线程还没建时先建，建不了时在这里同步写。
     pub(super) fn write_async(&mut self, entries: Vec<CacheEntry>) {
+        // 写入线程按需建，之后一直留着，直到 stop。
         if self.writer.is_none() {
             self.writer = spawn_writer(self.cache_store.clone());
         }
@@ -121,8 +128,9 @@ impl TranslationController {
             },
             None => entries,
         };
+        // 先写进凭据管理器，成功后才留在内存里：失败时内存与凭据管理器保持一致。
         if let Err(error) = self.cache_store.save(entries) {
-            self.log.push(format!("译文缓存存盘失败：{:?}", error.kind()));
+            self.note(format!("译文缓存存盘失败：{:?}", error.kind()));
         }
     }
 
@@ -136,17 +144,19 @@ impl TranslationController {
     /// 清空译文缓存并存盘（文件变成空的）。文件还没读完时，读完的结果不再用。
     pub fn clear_cache(&mut self, now: f64) {
         self.cache.clear();
+        // 已读完：立刻把空的快照交给写入线程，文件随之变空。未读完：读到的旧条目到时丢掉。
         if matches!(self.cache_load, CacheLoad::Loaded) {
             self.save_cache_if_due(now, true);
         } else {
             self.discard_loaded_cache = true;
         }
-        self.log.push("译文缓存已清空".to_owned());
+        self.note("译文缓存已清空".to_owned());
         self.changed = true;
     }
 
     /// 某个预设的 Key 是否已在凭据管理器里：读过且有值（或读取失败）时为真，读过且没有时为假，没读过时为 None。
     pub fn is_key_stored(&self, provider: TranslationProviderId) -> Option<bool> {
+        // 读到的 Key 属于别的预设，或还没读过：不知道。
         if self.key_provider != Some(provider) {
             return None;
         }
@@ -173,7 +183,7 @@ impl TranslationController {
             .secrets
             .write(&providers::credential_account(provider), value)
         {
-            self.log.push(format!(
+            self.note(format!(
                 "凭据管理器：保存 Key 失败（{}）",
                 secret_error_code(error)
             ));
@@ -181,7 +191,7 @@ impl TranslationController {
         }
         self.key_provider = Some(provider);
         self.key = KeyState::Value(value.to_owned());
-        self.log.push("凭据管理器：已保存 Key".to_owned());
+        self.note("凭据管理器：已保存 Key".to_owned());
         self.restart(now);
         Ok(())
     }
@@ -191,7 +201,7 @@ impl TranslationController {
         self.secrets.delete(&providers::credential_account(provider))?;
         self.key_provider = Some(provider);
         self.key = KeyState::Missing;
-        self.log.push("凭据管理器：已删除 Key".to_owned());
+        self.note("凭据管理器：已删除 Key".to_owned());
         self.restart(now);
         Ok(())
     }
@@ -205,6 +215,7 @@ impl TranslationController {
         else {
             return;
         };
+        // 「立即重试」是读 Key 的第三个时机：用户可能刚在凭据管理器里手动加了 Key。
         if uses_key(provider) && (self.key_provider != Some(provider) || !self.has_key_value()) {
             self.load_key(provider);
         }
@@ -214,6 +225,7 @@ impl TranslationController {
     /// 用户点「测试」：用给出的接口设置与当前的 Key 发一次固定样例。结果由 take_test_result 取走。
     /// 内存里没有这个预设的 Key 时再读一次。测试不改队列的状态。已有一次在等答复时什么也不做。
     pub fn start_test(&mut self, settings: &TranslationEndpointSettings, target: AppLanguage, now: f64) {
+        // 一次只测一个：按钮在等答复时本来就不可点，这里再挡一次。
         if self.testing || self.stopped {
             return;
         }
@@ -251,6 +263,7 @@ impl TranslationController {
                 return;
             }
         };
+        // 固定样例只有一条，编号 1；答复里第一条译文就是结果。
         let content = prompt::test_content(target);
         let request = wire::request(&endpoint, key.as_deref(), &content);
         self.testing = true;
@@ -278,10 +291,8 @@ impl TranslationController {
                 .ok_or(Failure::MalformedAnswer)
         });
         match &result {
-            Ok(_) => self.log.push("翻译测试：成功".to_owned()),
-            Err(failure) => self
-                .log
-                .push(format!("翻译测试失败：{}", failure_log_name(failure))),
+            Ok(_) => self.note("翻译测试：成功".to_owned()),
+            Err(failure) => self.note(format!("翻译测试失败：{}", failure_log_name(failure))),
         }
         self.test_result = Some(result);
         self.changed = true;

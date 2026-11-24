@@ -137,6 +137,19 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
         ChannelRef::new("Rookie Help", None),
     ];
     crate::chat::show_translation(&ui, &translation, &config.general.translation_endpoint);
+    // 运行时状态：未启用、Key 已保存、测过一次、缓存里有一些句子（示意各行的样子）。
+    let text = eveo_l10n::translation(crate::language());
+    crate::translation::show_translation_view(
+        &ui,
+        &crate::translation::TranslationView {
+            status_text: text.status_off().to_owned(),
+            key_stored: true,
+            test_result: text.test_succeeded("o7，星门安全，一路顺风"),
+            test_succeeded: true,
+            cache_count: 128,
+            ..Default::default()
+        },
+    );
     // 「环境检查」页：一个以管理员运行的客户端（示意警示色与说明），日志目录在、Gamelogs 不在。
     crate::environment::show_privileges(&ui, false, &["Pilot One".to_owned()]);
     let folders = crate::environment::LogFolders {

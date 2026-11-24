@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 预警浮窗与聊天日志的接线，对应 macOS 的 AppCoordinator+ChatOverlays 与 ChatFeatureController 里碰平台的部分
+// 预警与翻译浮窗、聊天日志的接线，对应 macOS 的 AppCoordinator+ChatOverlays 与 ChatFeatureController 里碰平台的部分
 // （docs/macos/design-intel-translate.md 9.2、9.3 节）。决定都在 eveo-app-core 里做（总控 ChatFeatures、
 // 协调器的浮窗规划），这里只执行：
 // - 跟踪服务：总控要求开始、重建或停止时建或丢掉 ChatLogTailer；50 毫秒的定时器取走它的消息交给总控。
@@ -38,6 +38,7 @@ use eveo_core::overlay::planner::OverlayPresentation;
 use eveo_platform_win::{esi, menu, shell};
 
 use super::alerts::automatic_directory;
+use super::translation::{self, TranslationPage};
 use super::{App, Runtime};
 use crate::menus::{self, OverlayChoice};
 use crate::overlays::{DragContextProvider, InfoOverlays, OverlayEvent};
@@ -54,8 +55,10 @@ pub(super) fn wall_clock() -> f64 {
 
 /// 预警浮窗与聊天日志的运行状态。
 pub(super) struct ChatRuntime {
-    /// 总控（含预警功能）。
-    features: ChatFeatures,
+    /// 总控（含预警与翻译功能）。
+    pub(super) features: ChatFeatures,
+    /// 「翻译」页只给显示用的状态（Key 的失败说明、测试结果）。
+    pub(super) translation_page: TranslationPage,
     /// 聊天日志的跟踪服务；功能都关着时为 None。
     tailer: Option<ChatLogTailer>,
     /// 读星图数据的后台线程交回结果的通道；没在读时为 None。
@@ -88,7 +91,8 @@ impl ChatRuntime {
             Some(context)
         });
         Self {
-            features: ChatFeatures::new(intel, language),
+            features: ChatFeatures::new(intel, language).with_translation(translation::controller(paths)),
+            translation_page: TranslationPage::default(),
             tailer: None,
             static_data: None,
             static_override: paths.config_file().with_file_name(static_file::FILE_NAME),
@@ -200,8 +204,12 @@ impl App {
                         self.show_chat_status();
                     }
                 }
-                // 跟踪的频道只有翻译用来提示「EVE 没写这些频道的日志」；翻译移植后接上。
-                ChatLogMessage::Followed(_) => {}
+                // 跟踪的日志文件变了：翻译浮窗的状态行可能要提示（或不再提示）「EVE 没写这些频道的日志」。
+                ChatLogMessage::Followed(followed) => {
+                    if self.chat.features.followed_changed(followed, now) {
+                        stale.insert(OverlayKind::Translation);
+                    }
+                }
             }
         }
         if let Some(receiver) = &self.chat.static_data
@@ -212,6 +220,12 @@ impl App {
             all = true;
         }
         stale.extend(self.chat.features.tick(now));
+        // 翻译：测试结果换成页面上的文字；日志行在诊断日志接上之前丢掉（只有条数与状态码）。
+        self.take_translation_test();
+        if let Some(translation) = self.chat.features.translation_mut() {
+            translation.take_log_lines();
+        }
+        self.show_translation_page();
         // 「多久以前」与过期清理：到点时刷新全部可见的浮窗，refresh_overlays 会重新安排下一次。
         if self.chat.refresh_at.is_some_and(|at| now >= at) {
             all = true;
@@ -231,6 +245,11 @@ impl App {
     pub(super) fn chat_stop(&mut self) {
         self.chat.features.stop(wall_clock());
         self.chat.tailer = None;
+    }
+
+    /// 「翻译」页的按钮改了翻译的内容（Key、重试、清空缓存）：刷新翻译浮窗。
+    pub(super) fn refresh_translation_overlay(&mut self) {
+        self.refresh_overlays(Some(&BTreeSet::from([OverlayKind::Translation])));
     }
 
     /// 把新内容交给可见的浮窗：kinds 为 None 时是全部可见的浮窗，否则只刷新其中可见的那些。

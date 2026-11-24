@@ -33,7 +33,7 @@ fn overlays_in(effects: &[Effect]) -> Option<(Vec<OverlayPresentation>, Option<S
     })
 }
 
-/// 打开预警后第一次规划就有预警浮窗与活动角色；同样的状态再算一次不重复发。翻译浮窗暂不规划。
+/// 打开预警与翻译后第一次规划就有两个浮窗与活动角色；同样的状态再算一次不重复发。
 #[test]
 fn intel_overlay_is_planned_once() {
     // 启动时还没有客户端：浮窗不可见，活动角色为空，与初始的「上一次」相同，不发效果。
@@ -41,9 +41,11 @@ fn intel_overlay_is_planned_once() {
     // 三个客户端出现：浮窗变成可见，活动角色有了。
     let effects = coordinator.handle(Event::WindowsPolled(three_characters()), 2.0);
     let (presentations, active) = overlays_in(&effects).expect("有客户端后规划浮窗");
-    assert_eq!(presentations.len(), 1, "翻译还没有移植，不规划翻译浮窗");
-    assert_eq!(presentations[0].kind, OverlayKind::Intel);
-    assert!(presentations[0].is_visible);
+    let kinds: Vec<OverlayKind> = presentations.iter().map(|p| p.kind).collect();
+    assert_eq!(kinds, vec![OverlayKind::Intel, OverlayKind::Translation]);
+    assert!(presentations.iter().all(|p| p.is_visible));
+    // 两个浮窗的默认位置不重叠（翻译浮窗排在预警浮窗下面）。
+    assert!(!presentations[0].frame.intersects(&presentations[1].frame));
     // 没有前台客户端、也没有最后活动的客户端时，取第一个有角色名的客户端。
     assert_eq!(active.as_deref(), Some("Alpha"));
     let again = coordinator.handle(Event::WindowsPolled(three_characters()), 3.0);
