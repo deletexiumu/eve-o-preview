@@ -1,0 +1,241 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 预警与翻译的浮窗，对应 macOS 的 InfoOverlayContentView 与 OverlayRowView（docs/macos/design-intel-translate.md 8.4 节）。
+// 从上到下：标题行、状态行（可选，至多 2 行）、消息列表、盖在列表底部的新消息条；列表为空时显示一句说明。
+//
+// 观感：
+// - 背景是黑色，不透明度取浮窗设置；圆角 6，1 像素的白色边线（不透明度 0.18）。只有背景随不透明度变，文字始终不透明。
+// - 每行一段带颜色的富文本（StyledText），颜色与粗细由 Rust 的 overlay 模块按样式表拼好；第二行（原文）小 1 号。
+// - alert 行的底色是 #FF3B30（0.22），clear 行是 #34C759（0.12）。
+//
+// 滚动（8.5 节）：
+// - 列表不虚拟化（每个浮窗至多 300 行），内容高度准确，Rust 可以按「去掉头部前后的内容高度差」保持阅读位置。
+// - pinned 为真时，内容高度或可见高度变了都滚到底部：新消息到达、窗口缩放后都停在最新一行。
+// - 用户滚动（滚轮、拖滚动条）时报 scrolled(距底部的距离)，由 Rust 按 OverlayScrollRules 更新 pinned 与新消息条数。
+//
+// 窗口本身（无边框、不抢焦点、置顶、拖动与缩放、右键菜单）由应用层的 Win32 代码处理，这里只画内容并报告事件。
+
+import { ScrollView } from "std-widgets.slint";
+
+// 列表里的一行。
+export struct OverlayRowData {
+    // 第一行：解析后的要点或译文。
+    primary: styled-text,
+    // 第二行：原文；has-secondary 为假时不显示。
+    secondary: styled-text,
+    // 有第二行。
+    has-secondary: bool,
+    // 强调背景：0 没有，1 alert（红），2 clear（绿）。
+    emphasis: int,
+}
+
+// 浮窗的内容视图。窗口的位置与尺寸由应用层设，这里填满整个窗口。
+export component OverlayWindow inherits Window {
+    // 界面字体，与设置窗口相同。
+    in property <string> ui-font: "Segoe UI Variable Text";
+    // 背景的不透明度，0.2～1。
+    in property <float> background-opacity: 0.85;
+    // 第一行的字号；第二行小 1 号，不小于 9。
+    in property <length> font-size: 12px;
+    // 标题行。
+    in property <string> title-text;
+    // 状态行；空串时不显示。
+    in property <string> status-text;
+    // 状态行的级别：0 说明，1 提醒，2 错误。
+    in property <int> status-level;
+    // 各行，旧的在前。
+    in property <[OverlayRowData]> rows;
+    // 列表为空时的说明；列表不空时由 Rust 设为空串。
+    in property <string> placeholder;
+    // 新消息条的文字；空串时不显示。
+    in property <string> new-messages;
+    // 贴住底部：内容或尺寸变化后滚到底部。
+    in property <bool> pinned: true;
+
+    // 列表的滚动位置（≤ 0），Rust 保持阅读位置时读写。
+    in-out property <length> content-y <=> list.content-y;
+    // 列表内容的总高度与可见高度，Rust 读来换算距底部的距离。
+    out property <length> content-height: list.content-height;
+    out property <length> visible-height: list.visible-height;
+
+    // 光标下那一行的下标；不在任何一行上时是 -1。右键菜单的「复制这一条」与「在浏览器中打开」按它取消息。
+    out property <int> hovered-row: -1;
+
+    // 用户滚动了列表；参数是内容底部到可见区域底部的距离。
+    callback scrolled(distance-from-bottom: length);
+    // 用户点了新消息条。
+    callback new-messages-clicked();
+
+    // 滚到底部。内容比可见区域矮时停在顶部。
+    public function scroll-to-bottom() {
+        list.content-y = min(0px, list.visible-height - list.content-height);
+    }
+
+    // 第二行的字号（macOS 的 minimumSecondaryFontSize 是 9）。
+    property <length> secondary-size: max(9px, root.font-size - 1px);
+
+    no-frame: true;
+    background: transparent;
+    default-font-family: root.ui-font;
+    default-font-size: root.font-size;
+
+    changed content-height => {
+        if root.pinned {
+            root.scroll-to-bottom();
+        }
+    }
+    changed visible-height => {
+        if root.pinned {
+            root.scroll-to-bottom();
+        }
+    }
+    // Rust 把 pinned 设回真（点了新消息条、菜单的「滚动到最新」）时立即回到底部。
+    changed pinned => {
+        if root.pinned {
+            root.scroll-to-bottom();
+        }
+    }
+
+    // 背景：黑色加白色细边线，圆角 6。
+    Rectangle {
+        background: #000000;
+        opacity: root.background-opacity;
+        border-radius: 6px;
+    }
+
+    Rectangle {
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: #ffffff2e;
+    }
+
+    VerticalLayout {
+        padding-left: 8px;
+        // 右侧与底部各留 6，滚动条不与缩放用的边缘带重叠（8.7 节）。
+        padding-right: 6px;
+        padding-top: 4px;
+        padding-bottom: 6px;
+        spacing: 2px;
+
+        // 标题行：粗体，高度是字号加 10。
+        Text {
+            text: root.title-text;
+            height: root.font-size + 10px;
+            font-weight: 700;
+            color: #ffffff;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // 状态行。
+        if root.status-text != "": Text {
+            text: root.status-text;
+            font-size: root.secondary-size;
+            color: root.status-level == 2 ? #ff7a7a : root.status-level == 1 ? #ffd166 : #ffffff8c;
+            wrap: word-wrap;
+            max-lines: 2;
+            overflow: elide;
+        }
+
+        // 列表与盖在上面的说明、新消息条。
+        Rectangle {
+            vertical-stretch: 1;
+
+            list := ScrollView {
+                width: 100%;
+                height: 100%;
+                horizontal-scrollbar-policy: always-off;
+                // 内容高度取各行的首选高度之和：默认取的是最小高度，折行文字的最小高度量不准。
+                content-height: rows-layout.preferred-height;
+                scrolled => {
+                    root.scrolled(list.content-height + list.content-y - list.visible-height);
+                }
+
+                rows-layout := VerticalLayout {
+                    // 宽度固定为可见宽度，文字按它折行。
+                    width: list.visible-width;
+                    // 给滚动条留出位置，文字不被它盖住。
+                    padding-right: 10px;
+                    spacing: 2px;
+                    alignment: start;
+
+                    for row[index] in root.rows: Rectangle {
+                        background: row.emphasis == 1 ? #ff3b3038 : row.emphasis == 2 ? #34c7591f : transparent;
+                        border-radius: 3px;
+                        // 行高取文字的首选高度：Rectangle 不会自己按子元素算高度。
+                        height: row-content.preferred-height;
+
+                        row-content := VerticalLayout {
+                            padding-left: 3px;
+                            padding-right: 3px;
+                            // 行高是文字高度加 4（macOS 的 heightOfRow）。
+                            padding-top: 2px;
+                            padding-bottom: 2px;
+
+                            StyledText {
+                                text: row.primary;
+                                default-color: #ffffffeb;
+                                default-font-size: root.font-size;
+                                horizontal-alignment: left;
+                            }
+
+                            if row.has-secondary: StyledText {
+                                text: row.secondary;
+                                default-color: #ffffff8c;
+                                default-font-size: root.secondary-size;
+                                horizontal-alignment: left;
+                            }
+                        }
+
+                        // 只跟踪光标在哪一行，不接受点击与滚轮：滚轮照常交给列表。
+                        TouchArea {
+                            changed has-hover => {
+                                if self.has-hover {
+                                    root.hovered-row = index;
+                                } else if root.hovered-row == index {
+                                    root.hovered-row = -1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 列表为空时的说明，居中。
+            if root.placeholder != "": Text {
+                text: root.placeholder;
+                color: #ffffff8c;
+                font-size: root.secondary-size;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                wrap: word-wrap;
+                width: parent.width - 16px;
+            }
+
+            // 新消息条：盖在列表底部居中，点它回到最新。
+            if root.new-messages != "": Rectangle {
+                y: parent.height - self.height - 6px;
+                width: label.preferred-width + 20px;
+                height: label.preferred-height + 8px;
+                border-radius: self.height / 2;
+                background: pill-touch.has-hover ? #2f6fd8 : #2563c7;
+                drop-shadow-blur: 6px;
+                drop-shadow-color: #00000080;
+
+                label := Text {
+                    text: root.new-messages;
+                    color: #ffffff;
+                    font-size: root.secondary-size;
+                    font-weight: 600;
+                }
+
+                pill-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.new-messages-clicked();
+                    }
+                }
+            }
+        }
+    }
+}

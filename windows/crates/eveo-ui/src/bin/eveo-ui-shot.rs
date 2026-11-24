@@ -41,6 +41,25 @@ fn main() {
         eprintln!("建不了 {}：{error}", out.display());
         std::process::exit(2);
     }
+    // 预警浮窗（380×260，与默认尺寸相同），只出一张：浮窗本来就是暗色的，不分明暗。
+    let overlay = ShotOptions {
+        dark: true,
+        size: (380, 260),
+        scale,
+        font: font.clone(),
+        page: 0,
+        language,
+    };
+    let name = format!("overlay-intel.{code}.png");
+    match eveo_ui::screenshot::overlay_png(&overlay)
+        .and_then(|png| std::fs::write(out.join(&name), png).map_err(|e| e.to_string()))
+    {
+        Ok(()) => println!("{}", out.join(&name).display()),
+        Err(error) => {
+            eprintln!("{name}：{error}");
+            std::process::exit(1);
+        }
+    }
     // 「预览与布局」页：首屏（窗口默认大小）与整页（内容全部展开）各一张，明暗两套；「客户端」页明暗各一张；「切换与热键」页整页一张、暗色首屏一张。
     let shots = [
         ("settings-previews-light.png", false, 1, (1040, 760)),
