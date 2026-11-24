@@ -20,6 +20,7 @@ use eveo_core::combat_log::framer::LogTextEncoding;
 use eveo_core::model::ChannelRef;
 use eveo_core::overlay::OverlayKind;
 
+use super::discovery::{WINDOW_SECONDS, discover_channels};
 use super::file::{last_game_notes, lines};
 use super::worker::{RETRY_INTERVAL, Worker};
 use super::{ChatLogMessage, ChatLogTailer};
@@ -390,4 +391,52 @@ fn tailer_reports_status() {
     }
     assert!(seen.contains(&watching(&dir, 0)));
     drop(tailer);
+}
+
+/// 频道发现：按 Channel ID 合并、收听者不区分大小写计数、名字取最近的文件；私聊、旧文件、不合法的文件名不列。
+#[test]
+fn discovers_recent_channels() {
+    let dir = scratch("discover");
+    let chat = dir.join("Chatlogs");
+    // 同一个频道两个角色（大小写不同的同一个角色算一个），另一个玩家频道一个角色，再加一个私聊。
+    let header = |id: &str, name: &str, listener: &str| chat_header(id, name).replace(PILOT, listener);
+    write_chat(
+        &chat.join("intel.Demo_20261120_113340_1.txt"),
+        &header(INTEL.1, INTEL.0, PILOT),
+    );
+    write_chat(
+        &chat.join("intel.Demo_20261120_113341_2.txt"),
+        &header(INTEL.1, INTEL.0, "Lyra Quell"),
+    );
+    write_chat(
+        &chat.join("intel.Demo_20261120_113342_3.txt"),
+        &header(INTEL.1, INTEL.0, "kael doran"),
+    );
+    write_chat(
+        &chat.join("chat.Demo_20261120_113343_1.txt"),
+        &header("player_feed", "chat.Demo", PILOT),
+    );
+    write_chat(
+        &chat.join("Mira Voss_20261120_113344_1.txt"),
+        &header("private_1", "Mira Voss", PILOT),
+    );
+    // 文件名不合法的不读。
+    write_chat(&chat.join("notes.txt"), &header("player_x", "notes", PILOT));
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("时钟")
+        .as_secs_f64();
+    // 直接给 Chatlogs 目录：候选拼接用的是 Windows 的分隔符，Linux 上只有这样能对上。
+    let found = discover_channels(Some(&text(&chat)), "unused", now);
+    let mut ids: Vec<(&str, &str, usize)> = found
+        .iter()
+        .map(|c| (c.id.as_str(), c.name.as_str(), c.listeners))
+        .collect();
+    ids.sort();
+    assert_eq!(ids, [(INTEL.1, INTEL.0, 2), ("player_feed", "chat.Demo", 1)]);
+    // 14 天以前的文件不列：把「现在」挪到 15 天以后。
+    assert!(discover_channels(Some(&text(&chat)), "unused", now + WINDOW_SECONDS + 86_400.0).is_empty());
+    // 目录不存在时为空。
+    assert!(discover_channels(Some(&text(&dir.join("missing"))), "unused", now).is_empty());
+    let _ = fs::remove_dir_all(&dir);
 }

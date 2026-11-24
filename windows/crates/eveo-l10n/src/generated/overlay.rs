@@ -68,6 +68,8 @@ pub trait OverlayStrings: Sync {
     fn add_built_in(&self) -> &'static str;
     /// Windows：频道列表下按名称添加一行的名字。
     fn add_by_name(&self) -> &'static str;
+    /// Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 14 天出现过、还没选的频道。
+    fn pick_from_logs(&self) -> &'static str;
     /// 「移除」按钮。
     fn remove_channel(&self) -> &'static str;
     /// 列表为空时的说明。
@@ -172,6 +174,9 @@ impl OverlayStrings for OverlayStringsEn {
     }
     fn add_by_name(&self) -> &'static str {
         "Add by name"
+    }
+    fn pick_from_logs(&self) -> &'static str {
+        "Choose a channel from your logs…"
     }
     fn remove_channel(&self) -> &'static str {
         "Remove"
@@ -289,6 +294,9 @@ impl OverlayStrings for OverlayStringsZh {
     }
     fn add_by_name(&self) -> &'static str {
         "按名称添加"
+    }
+    fn pick_from_logs(&self) -> &'static str {
+        "选择日志里出现过的频道…"
     }
     fn remove_channel(&self) -> &'static str {
         "移除"
@@ -408,6 +416,9 @@ impl OverlayStrings for OverlayStringsRu {
     fn add_by_name(&self) -> &'static str {
         "Добавить по названию"
     }
+    fn pick_from_logs(&self) -> &'static str {
+        "Выберите канал из журналов…"
+    }
     fn remove_channel(&self) -> &'static str {
         "Удалить"
     }
@@ -526,6 +537,9 @@ impl OverlayStrings for OverlayStringsJa {
     fn add_by_name(&self) -> &'static str {
         "名前で追加"
     }
+    fn pick_from_logs(&self) -> &'static str {
+        "ログに出てきたチャンネルを選択…"
+    }
     fn remove_channel(&self) -> &'static str {
         "削除"
     }
@@ -639,6 +653,9 @@ impl OverlayStrings for OverlayStringsKo {
     }
     fn add_by_name(&self) -> &'static str {
         "이름으로 추가"
+    }
+    fn pick_from_logs(&self) -> &'static str {
+        "로그에 있는 채널 선택…"
     }
     fn remove_channel(&self) -> &'static str {
         "제거"
@@ -757,6 +774,9 @@ impl OverlayStrings for OverlayStringsFr {
     fn add_by_name(&self) -> &'static str {
         "Ajouter par nom"
     }
+    fn pick_from_logs(&self) -> &'static str {
+        "Choisir un canal des journaux…"
+    }
     fn remove_channel(&self) -> &'static str {
         "Retirer"
     }
@@ -873,6 +893,9 @@ impl OverlayStrings for OverlayStringsDe {
     }
     fn add_by_name(&self) -> &'static str {
         "Nach Namen hinzufügen"
+    }
+    fn pick_from_logs(&self) -> &'static str {
+        "Kanal aus den Logs wählen…"
     }
     fn remove_channel(&self) -> &'static str {
         "Entfernen"
@@ -993,6 +1016,9 @@ impl OverlayStrings for OverlayStringsEs {
     }
     fn add_by_name(&self) -> &'static str {
         "Añadir por nombre"
+    }
+    fn pick_from_logs(&self) -> &'static str {
+        "Elegir un canal de los registros…"
     }
     fn remove_channel(&self) -> &'static str {
         "Quitar"

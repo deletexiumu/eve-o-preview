@@ -406,6 +406,7 @@ macro_rules! fill {
     text.set_add_by_name_placeholder(overlay.add_by_name_placeholder().into());
     text.set_add_built_in(overlay.add_built_in().into());
     text.set_add_by_name(overlay.add_by_name().into());
+    text.set_pick_from_logs(overlay.pick_from_logs().into());
     text.set_remove_channel(overlay.remove_channel().into());
     text.set_no_channels(overlay.no_channels().into());
     text.set_refresh_channels(overlay.refresh_channels().into());

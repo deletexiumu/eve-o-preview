@@ -99,6 +99,10 @@ platforms = ["windows"]
 doc = "Windows：频道列表下按名称添加一行的名字。"
 platforms = ["windows"]
 
+[OverlayStrings.pickFromLogs]
+doc = "Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 14 天出现过、还没选的频道。"
+platforms = ["windows"]
+
 [OverlayStrings.removeChannel]
 doc = "「移除」按钮。"
 

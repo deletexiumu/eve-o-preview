@@ -2,13 +2,14 @@
 //
 // 「预警」页与「翻译」页共用的两组控件，对应 macOS 的 ChannelListEditor 与 OverlaySettingsSection
 // （docs/macos/design-intel-translate.md 第 10 节）：
-// - ChannelListSection：已选频道的列表（每行「移除」），「按名称添加」的输入框；翻译页另有一行添加 4 个内置频道。
-//   macOS 的「从日志添加」要读聊天日志目录，随读日志的功能在 M6 加上。已有 16 项时添加的入口置灰。
+// - ChannelListSection：已选频道的列表（每行「移除」），「从日志添加」的下拉框与「刷新」，「按名称添加」的输入框；
+//   翻译页另有一行添加 4 个内置频道。已有 16 项时添加的入口置灰。
+//   「从日志添加」列出日志目录最近 14 天出现过、还没选的频道（macOS 是菜单，这里用下拉框），切到页面时由应用重新扫描。
 // - OverlaySection：浮窗的显示范围、背景不透明度、字号与「恢复默认位置」。
 //   macOS 的位置与尺寸数字框要用浮窗的布局规划，随浮窗在 M6 加上。
 // 频道的增删是动作（回调带下标或文字，由 Rust 改配置）；浮窗的值与其他页一样双向绑定，改动后触发 edited。
 
-import { Button, LineEdit, Slider } from "std-widgets.slint";
+import { Button, ComboBox, LineEdit, Slider } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { RadioOption, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
 import { OverlayText, SettingsText } from "generated/l10n.slint";
@@ -23,6 +24,9 @@ export component ChannelListSection inherits VerticalLayout {
     in property <bool> show-built-ins;
     // 4 个内置频道（本地、军团、联盟、舰队）是否已选；已选的按钮置灰。
     in property <[bool]> built-in-selected: [false, false, false, false];
+    // 「从日志添加」下拉框的各项：第一项是提示文字，之后是可选的频道（「名称 — N 个角色」）。
+    // 只有提示一项时下拉框置灰（还没扫描完，或日志里没有可加的频道，提示文字会说明）。
+    in property <[string]> discovered;
     // 列表下面的说明。
     in property <string> help;
     // 移除第几项。
@@ -31,6 +35,10 @@ export component ChannelListSection inherits VerticalLayout {
     callback add-name(string);
     // 添加第几个内置频道，顺序同上。
     callback add-built-in(int);
+    // 添加「从日志添加」里的第几个频道（不含提示文字，从 0 数）。
+    callback add-discovered(int);
+    // 重新扫描日志目录。
+    callback refresh-discovered();
 
     SectionHeader { text: OverlayText.channels-header; }
     // 空列表时显示一行灰字，免得只剩添加入口，看不出列表在哪里。
@@ -79,6 +87,28 @@ export component ChannelListSection inherits VerticalLayout {
             }
         }
     }
+    // 从日志里选：频道名要与日志文件头里的完全一致，手打容易打错，所以放在按名称添加的前面。
+    SettingRow {
+        title: OverlayText.add-from-logs;
+        ComboBox {
+            // 选了某个频道后立刻添加并回到第一项（提示文字），与「添加成员」相同。
+            model: root.discovered;
+            current-index: 0;
+            enabled: !root.full && root.discovered.length > 1;
+            width: 260px;
+            selected(value) => {
+                if self.current-index > 0 {
+                    root.add-discovered(self.current-index - 1);
+                }
+                self.current-index = 0;
+            }
+        }
+        Button {
+            text: OverlayText.refresh-channels;
+            clicked => { root.refresh-discovered(); }
+        }
+    }
+    RowGap { }
     SettingRow {
         title: OverlayText.add-by-name;
         // 回车时添加并清空；游戏里看到的名字，大小写不同的视为同一个频道。
