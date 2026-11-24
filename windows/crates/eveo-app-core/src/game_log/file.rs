@@ -26,7 +26,7 @@ pub(super) const HEADER_PROBE_BYTES: u64 = 2_048;
 
 /// 目录里的一个普通文件。
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct Entry {
+pub(crate) struct Entry {
     /// 文件名（不含目录）。
     pub name: String,
     /// 修改时间。
@@ -37,7 +37,7 @@ pub(super) struct Entry {
 
 /// 列目录的结果。
 #[derive(Debug, Clone, PartialEq)]
-pub(super) enum Listing {
+pub(crate) enum Listing {
     /// 目录下的普通文件。
     Entries(Vec<Entry>),
     /// 被系统拒绝。
@@ -48,7 +48,7 @@ pub(super) enum Listing {
 
 /// 文件头的探测结果。
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum HeaderProbe {
+pub(crate) enum HeaderProbe {
     /// 文件头完整：收听者（登录界面阶段的文件没有）与分行器判断出的编码。
     Complete {
         /// 收听者。
@@ -63,13 +63,13 @@ pub(super) enum HeaderProbe {
 }
 
 /// 系统时间换成 1970 年以来的秒数；早于 1970 年的按 0。
-pub(super) fn seconds(time: SystemTime) -> f64 {
+pub(crate) fn seconds(time: SystemTime) -> f64 {
     time.duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
 }
 
 /// 列目录：只要名字是合法 UTF-8 的普通文件。权限错误与「不存在」分开报告。
 /// 目录项的时间在 Windows 上来自目录本身（FindNextFile），不必逐个打开文件。
-pub(super) fn list(path: &Path) -> Listing {
+pub(crate) fn list(path: &Path) -> Listing {
     let reader = match fs::read_dir(path) {
         Ok(reader) => reader,
         Err(error) if error.kind() == ErrorKind::PermissionDenied => return Listing::Denied,
@@ -96,7 +96,7 @@ pub(super) fn list(path: &Path) -> Listing {
 }
 
 /// 读文件开头至多 2,048 字节，取收听者与编码。读满仍不完整时按「完整、没有收听者」处理。
-pub(super) fn probe_header(path: &Path) -> HeaderProbe {
+pub(crate) fn probe_header(path: &Path) -> HeaderProbe {
     let Ok(file) = File::open(path) else {
         return HeaderProbe::Unreadable;
     };

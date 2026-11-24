@@ -6,15 +6,17 @@
 //   UTF-16 的偶数偏移。
 // - coverage：活动角色在所选频道里有没有被跟踪的日志文件（浮窗据此说明「EVE 没写这个频道的日志」）。
 // - location：位置线索的句式，从 Local 的系统消息与游戏日志的 (None) 行里取星系名的原文。
+// - request：跟踪请求（目录、频道、是否读位置线索、补读的秒数），以及什么时候要重建跟踪服务。
 // 这里只有值类型与规则；读目录与文件的跟踪服务在 eveo-app-core。
 // 时间都是 UTC，1970 年以来的秒数；聊天日志里的时间就是 UTC（EVE 时间）。
 
-//! 聊天日志的解析、目录与文件取舍、覆盖情况与位置线索。
+//! 聊天日志的解析、目录与文件取舍、覆盖情况、位置线索与跟踪请求。
 
 pub mod coverage;
 pub mod directory;
 pub mod location;
 pub mod parser;
+pub mod request;
 
 #[cfg(test)]
 mod tests;

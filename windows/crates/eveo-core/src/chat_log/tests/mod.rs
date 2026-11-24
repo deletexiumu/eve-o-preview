@@ -10,6 +10,7 @@ mod coverage;
 mod directory;
 mod location;
 mod parser;
+mod request;
 
 /// 虚构的收听者。
 pub(super) const LISTENER: &str = "Kael Doran";
