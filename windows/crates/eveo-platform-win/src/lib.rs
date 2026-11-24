@@ -12,15 +12,18 @@
 #![cfg(windows)]
 
 pub mod activation;
+pub mod amd;
 pub mod appearance;
 pub mod autostart;
 pub mod crash;
 pub mod credentials;
 pub mod discovery;
+mod driver_dll;
 pub mod esi;
 pub mod events;
 pub mod hotkey;
 pub mod http;
+pub mod intel;
 pub mod known_folders;
 pub mod menu;
 pub mod message_loop;

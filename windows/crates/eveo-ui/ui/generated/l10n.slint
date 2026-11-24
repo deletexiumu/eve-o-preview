@@ -269,22 +269,34 @@ export global SettingsText {
     in property <string> frame-cap-section: "Game frame rate";
     // Windows「通用」页：「限制 EVE 客户端帧率」开关。
     in property <string> frame-cap-toggle: "Limit EVE client frame rate";
-    // 开关下方的默认说明：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。
+    // 开关下方的默认说明（NVIDIA）：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。
     in property <string> frame-cap-help: "Sets “Max Frame Rate” for exefile.exe in the NVIDIA driver, for every client. Turning it off restores the previous setting.";
+    // 开关下方的默认说明（AMD）：打开 AMD 驱动的「帧率目标控制」（Frame Rate Target Control）并设为这个帧数，关闭时还原。
+    in property <string> frame-cap-help-amd: "Turns on “Frame Rate Target Control” in the AMD driver at this frame rate. Turning it off restores the previous setting.";
+    // 开关下方的默认说明（Intel）：在 Intel 显卡驱动里给 exefile.exe 设帧数上限，关闭时还原。
+    in property <string> frame-cap-help-intel: "Sets a frame rate limit for exefile.exe in the Intel graphics driver, for every client. Turning it off restores the previous setting.";
     // 帧数输入框左边的标签。
     in property <string> frame-cap-fps: "Max frame rate";
     // 限帧一组下方的脚注：为什么要限帧、何时生效、应用不运行时也有效。
     in property <string> frame-cap-note: "Capping every client at around 60 FPS while multiboxing makes switching between clients much smoother and saves GPU power. Clients that are already running pick it up after a restart. This is a driver setting, so it stays in effect even when this app isn't running.";
     // 开关下方的说明：启动后正在检测显卡驱动。
     in property <string> frame-cap-checking: "Checking the graphics driver…";
-    // 开关下方的说明：没有 NVIDIA 显卡驱动，开关置灰；提示 AMD、Intel 用户在显卡驱动里手动限帧。
-    in property <string> frame-cap-not-nvidia: "No NVIDIA graphics driver found, so this isn't available. With AMD or Intel graphics, you can limit exefile.exe in the graphics driver's settings.";
-    // 开关下方的说明：驱动里已经设好了帧数。
-    pure callback frame-cap-applied(fps: int) -> string;
-    // 开关下方的说明：NVIDIA 驱动要求管理员权限才能写入。
-    in property <string> frame-cap-needs-admin: "The NVIDIA driver needs administrator rights to change this setting.";
-    // 开关下方的说明：写驱动失败，带 NVAPI 的错误码。
-    pure callback frame-cap-failed(code: int) -> string;
+    // 开关下方的说明：没有支持限帧的显卡驱动（NVIDIA、AMD、Intel 都不行），开关置灰。
+    in property <string> frame-cap-unsupported: "No graphics driver with frame rate limiting found (NVIDIA, AMD or Intel), so this isn't available.";
+    // 开关下方的说明（NVIDIA、Intel）：驱动里已经给 exefile.exe 设好了帧数。vendor 是厂商名（NVIDIA 或 Intel）。
+    pure callback frame-cap-applied(fps: int, vendor: string) -> string;
+    // 开关下方的说明（AMD）：驱动里已经打开帧率目标控制，所有游戏都限为这个帧数。
+    pure callback frame-cap-applied-amd(fps: int) -> string;
+    // 开关下方的说明：显卡驱动要求管理员权限才能写入。vendor 是厂商名（NVIDIA、AMD 或 Intel）。
+    pure callback frame-cap-needs-admin(vendor: string) -> string;
+    // 开关下方的说明：写驱动失败，带驱动的错误码。vendor 是厂商名（NVIDIA、AMD 或 Intel）。
+    pure callback frame-cap-failed(code: int, vendor: string) -> string;
+    // 开关下方的说明：失败且不知道是哪家显卡（检测用的子进程异常结束），带错误码（子进程的退出码）。
+    pure callback frame-cap-failed-unknown(code: int) -> string;
+    // AMD 显卡时开关下方的红字警告：AMD 只能全局限帧，打开后这台电脑上所有游戏都会被限帧。
+    in property <string> frame-cap-amd-warning: "Note: the AMD driver can only limit the frame rate globally. While this is on, every game on this PC, not just EVE, is limited to this frame rate.";
+    // AMD、Intel 显卡时的脚注：这两家的支持还没有实测，不起作用时请反馈上面的提示或错误码。
+    in property <string> frame-cap-untested: "Support for AMD and Intel graphics hasn't been tested on real hardware yet. If it doesn't work, please send us the message or error code shown above.";
     // 页标题下的说明：两项权限在系统设置的哪里授予。
     in property <string> permissions-subtitle: "Both permissions are granted in System Settings > Privacy & Security.";
     // 屏幕录制权限的名称。

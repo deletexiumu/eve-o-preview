@@ -124,8 +124,12 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
         fps: 60,
     });
     crate::general::show_general(&ui, &config.general, logs);
-    let applied = eveo_l10n::settings(options.language).frame_cap_applied(60);
-    crate::general::show_frame_cap_status(&ui, eveo_core::frame_cap::FrameCapStatus::Applied(60), &applied);
+    crate::general::show_frame_cap_status(
+        &ui,
+        eveo_core::frame_cap::FrameCapStatus::Applied(60),
+        Some(eveo_core::frame_cap::Vendor::Nvidia),
+        options.language,
+    );
     crate::general::show_about(&ui);
     // 「提醒」页：默认值，日志目录自动查找。
     let automatic = r"C:\Users\Pilot\Documents\EVE\logs";

@@ -51,9 +51,15 @@ impl DataPaths {
         self.roaming.join("session.json")
     }
 
-    /// NVIDIA 驱动限帧的还原记录（eveo_core::frame_cap::OwnershipRecord）。驱动设置只属于这台电脑，放在本机目录。
-    pub fn frame_cap_record_file(&self) -> PathBuf {
-        self.local.join("frame-cap.json")
+    /// 驱动限帧的还原记录，每家显卡一个文件（NVIDIA 是 eveo_core::frame_cap::OwnershipRecord，AMD、Intel 是
+    /// ValueRecord）。驱动设置只属于这台电脑，放在本机目录。NVIDIA 沿用最早的文件名。
+    pub fn frame_cap_record_file(&self, vendor: eveo_core::frame_cap::Vendor) -> PathBuf {
+        use eveo_core::frame_cap::Vendor;
+        self.local.join(match vendor {
+            Vendor::Nvidia => "frame-cap.json",
+            Vendor::Amd => "frame-cap-amd.json",
+            Vendor::Intel => "frame-cap-intel.json",
+        })
     }
 
     /// 日志目录。

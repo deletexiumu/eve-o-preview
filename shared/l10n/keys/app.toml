@@ -472,8 +472,17 @@ doc = "Windows「通用」页：「限制 EVE 客户端帧率」开关。"
 platforms = ["windows"]
 
 [SettingsStrings.frameCapHelp]
-doc = "开关下方的默认说明：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。"
+doc = "开关下方的默认说明（NVIDIA）：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。"
 platforms = ["windows"]
+
+[SettingsStrings.frameCapHelpAmd]
+doc = "开关下方的默认说明（AMD）：打开 AMD 驱动的「帧率目标控制」（Frame Rate Target Control）并设为这个帧数，关闭时还原。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapHelpIntel]
+doc = "开关下方的默认说明（Intel）：在 Intel 显卡驱动里给 exefile.exe 设帧数上限，关闭时还原。"
+platforms = ["windows"]
+
 
 [SettingsStrings.frameCapFps]
 doc = "帧数输入框左边的标签。"
@@ -487,23 +496,46 @@ platforms = ["windows"]
 doc = "开关下方的说明：启动后正在检测显卡驱动。"
 platforms = ["windows"]
 
-[SettingsStrings.frameCapNotNvidia]
-doc = "开关下方的说明：没有 NVIDIA 显卡驱动，开关置灰；提示 AMD、Intel 用户在显卡驱动里手动限帧。"
+[SettingsStrings.frameCapUnsupported]
+doc = "开关下方的说明：没有支持限帧的显卡驱动（NVIDIA、AMD、Intel 都不行），开关置灰。"
 platforms = ["windows"]
 
+
 [SettingsStrings.frameCapApplied]
-doc = "开关下方的说明：驱动里已经设好了帧数。"
+doc = "开关下方的说明（NVIDIA、Intel）：驱动里已经给 exefile.exe 设好了帧数。vendor 是厂商名（NVIDIA 或 Intel）。"
+params = ["_ fps: Int", "vendor: String"]
+platforms = ["windows"]
+
+[SettingsStrings.frameCapAppliedAmd]
+doc = "开关下方的说明（AMD）：驱动里已经打开帧率目标控制，所有游戏都限为这个帧数。"
 params = ["_ fps: Int"]
 platforms = ["windows"]
 
+
 [SettingsStrings.frameCapNeedsAdmin]
-doc = "开关下方的说明：NVIDIA 驱动要求管理员权限才能写入。"
+doc = "开关下方的说明：显卡驱动要求管理员权限才能写入。vendor 是厂商名（NVIDIA、AMD 或 Intel）。"
+params = ["_ vendor: String"]
 platforms = ["windows"]
 
+
 [SettingsStrings.frameCapFailed]
-doc = "开关下方的说明：写驱动失败，带 NVAPI 的错误码。"
+doc = "开关下方的说明：写驱动失败，带驱动的错误码。vendor 是厂商名（NVIDIA、AMD 或 Intel）。"
+params = ["_ code: Int", "vendor: String"]
+platforms = ["windows"]
+
+[SettingsStrings.frameCapFailedUnknown]
+doc = "开关下方的说明：失败且不知道是哪家显卡（检测用的子进程异常结束），带错误码（子进程的退出码）。"
 params = ["_ code: Int"]
 platforms = ["windows"]
+
+[SettingsStrings.frameCapAmdWarning]
+doc = "AMD 显卡时开关下方的红字警告：AMD 只能全局限帧，打开后这台电脑上所有游戏都会被限帧。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapUntested]
+doc = "AMD、Intel 显卡时的脚注：这两家的支持还没有实测，不起作用时请反馈上面的提示或错误码。"
+platforms = ["windows"]
+
 
 [SettingsStrings.permissionsSubtitle]
 section = "权限页"

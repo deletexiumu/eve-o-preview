@@ -136,11 +136,11 @@ fn record_round_trip() {
     assert!(text.contains("\"appliedFps\": 60"));
 }
 
-/// 状态：检测中与不是 NVIDIA 时开关不能拨。
+/// 状态：检测中与不支持时开关不能拨。
 #[test]
 fn status_availability() {
     assert!(!FrameCapStatus::Checking.is_available());
-    assert!(!FrameCapStatus::NotNvidia.is_available());
+    assert!(!FrameCapStatus::Unsupported.is_available());
     assert!(FrameCapStatus::Ready.is_available());
     assert!(FrameCapStatus::NeedsAdmin.is_available());
 }
@@ -163,21 +163,24 @@ fn validator_clamps_fps_and_omits_missing_key() {
     assert!(normalized.clamped.contains(&"general.frameCap.fps".to_owned()));
 }
 
-/// 状态码与成功后的状态。
+/// NVAPI 状态码、NVIDIA 成功后的结果与设置页的状态。
 #[test]
 fn status_from_results() {
-    assert_eq!(FrameCapStatus::from_error(-2), FrameCapStatus::NotNvidia);
-    assert_eq!(FrameCapStatus::from_error(-6), FrameCapStatus::NotNvidia);
-    assert_eq!(FrameCapStatus::from_error(-137), FrameCapStatus::NeedsAdmin);
-    assert_eq!(FrameCapStatus::from_error(-1), FrameCapStatus::Failed(-1));
+    assert_eq!(nvapi_error(-2), SyncError::Unsupported);
+    assert_eq!(nvapi_error(-6), SyncError::Unsupported);
+    assert_eq!(nvapi_error(-137), SyncError::NeedsAdmin);
+    assert_eq!(nvapi_error(-1), SyncError::Failed(-1));
     let set = state("EVE Online", Some(60));
-    assert_eq!(
-        FrameCapStatus::after_success(Some(60), &set),
-        FrameCapStatus::Applied(60)
-    );
-    assert_eq!(
-        FrameCapStatus::after_success(Some(30), &set),
-        FrameCapStatus::Failed(-1)
-    );
-    assert_eq!(FrameCapStatus::after_success(None, &set), FrameCapStatus::Ready);
+    let applied = nvidia_synced(Some(60), 1, &set);
+    assert_eq!(FrameCapStatus::from_result(&applied), FrameCapStatus::Applied(60));
+    assert_eq!(nvidia_synced(Some(30), 1, &set), Err(SyncError::Failed(-1)));
+    let cleared = nvidia_synced(None, 0, &set);
+    assert_eq!(FrameCapStatus::from_result(&cleared), FrameCapStatus::Ready);
+    for (error, status) in [
+        (SyncError::Unsupported, FrameCapStatus::Unsupported),
+        (SyncError::NeedsAdmin, FrameCapStatus::NeedsAdmin),
+        (SyncError::Failed(7), FrameCapStatus::Failed(7)),
+    ] {
+        assert_eq!(FrameCapStatus::from_result(&Err(error)), status);
+    }
 }
