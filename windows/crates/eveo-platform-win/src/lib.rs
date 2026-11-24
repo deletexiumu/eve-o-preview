@@ -28,6 +28,7 @@ pub mod process;
 pub mod recorder;
 pub mod screens;
 pub mod screenshot;
+pub mod shell;
 pub mod single_instance;
 mod text;
 pub mod thumbnail;

@@ -27,6 +27,6 @@ mod poller;
 
 pub use coordinator::Coordinator;
 pub use event::{
-    ContextMenuAction, ContextMenuModel, DragContext, Effect, Event, ForegroundOwner, SettingsPage,
-    TrayAction, TrayModel,
+    ContextMenuAction, ContextMenuModel, DragContext, Effect, Event, ForegroundOwner, OverlayMenuAction,
+    SettingsPage, TrayAction, TrayModel,
 };

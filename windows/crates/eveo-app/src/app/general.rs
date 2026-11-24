@@ -102,6 +102,7 @@ impl App {
         }
         self.language = language;
         self.thumbnails.set_language(language);
+        self.chat_language_changed();
         self.tray
             .set_tooltip(&menus::tray_tooltip(&self.coordinator.tray(), language));
         // 设置窗口：Slint 全局里的文字由 set_language 换；由 Rust 拼的文字（热键的问题提示等）

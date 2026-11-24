@@ -10,6 +10,7 @@
 
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
+use eveo_core::chat_log::ChatLogStatus;
 use eveo_core::model::{
     AppLanguage, ChannelRef, INTEL_ALERT_JUMPS_RANGE, INTEL_MAX_JUMPS_RANGE, INTEL_WINDOW_MINUTES_RANGE,
     IntelSettings, MAX_CHANNELS, OVERLAY_FONT_SIZE_RANGE, OVERLAY_OPACITY_RANGE, OverlayPanelSettings,
@@ -185,6 +186,29 @@ pub fn show_intel(ui: &SettingsWindow, intel: &IntelSettings) {
     model.set_overlay_opacity(overlay.opacity);
     model.set_overlay_font_size(overlay.font_size);
     model.set_overlay_has_frame(overlay.has_frame);
+}
+
+/// 显示聊天日志的跟踪状态，同 macOS 的 intelStatusText。文字没变时不重设。
+pub fn show_intel_status(ui: &SettingsWindow, status: &ChatLogStatus) {
+    let text = chat_log_status_text(status);
+    let model = ui.global::<IntelModel>();
+    if model.get_status_text() != text.as_str() {
+        model.set_status_text(text.into());
+    }
+}
+
+/// 聊天日志状态的文字：未启用、监视中（目录与文件数）、找不到目录、没有读取权限（预警页与翻译页共用）。
+pub fn chat_log_status_text(status: &ChatLogStatus) -> String {
+    let strings = eveo_l10n::settings(crate::language());
+    match status {
+        ChatLogStatus::Stopped => strings.chat_log_status_stopped().to_owned(),
+        ChatLogStatus::Watching {
+            directory,
+            followed_files,
+        } => strings.chat_log_status_watching(directory, i64::try_from(*followed_files).unwrap_or(i64::MAX)),
+        ChatLogStatus::DirectoryNotFound(path) => strings.chat_log_status_directory_not_found(path),
+        ChatLogStatus::AccessDenied(path) => strings.chat_log_status_access_denied(path),
+    }
 }
 
 /// 从页上读回预警设置。频道列表与浮窗位置不在这里改（见 ChannelEdit 与「恢复默认位置」）。

@@ -14,6 +14,8 @@ use eveo_core::geometry::{ScreenInfo, ScreenRect, ScreenSize};
 use eveo_core::hotkeys::planner::HotkeyBinding;
 use eveo_core::layout::SnapTargets;
 use eveo_core::model::{AppConfig, Pid, WindowId, WindowInfo};
+use eveo_core::overlay::OverlayKind;
+use eveo_core::overlay::planner::OverlayPresentation;
 use eveo_core::planning::{ThumbnailPresentation, ThumbnailStatus};
 
 /// 前台窗口属于谁，由平台层判断后送进来。协调器再按客户端列表换算成规划器用的 `FrontmostContext`。
@@ -40,6 +42,10 @@ pub enum SettingsPage {
     Clients,
     /// 切换与热键。
     Switching,
+    /// 预警（浮窗右键菜单的「打开设置…」）。
+    Intel,
+    /// 翻译。
+    Translation,
     /// 配置方案。
     Profiles,
     /// 关于。
@@ -137,6 +143,34 @@ pub enum Event {
     TestCombatAlert,
     /// 游戏日志跟踪服务读到的一批受击事件，还没按提醒设置过滤。
     CombatEvents(Vec<CombatLogEvent>),
+    /// 浮窗拖动结束，关联值是最终的 frame（已吸附与约束），写进当前配置方案。
+    OverlayDragEnded {
+        /// 哪个浮窗。
+        kind: OverlayKind,
+        /// 最终的 frame，全局屏幕坐标（物理像素）。
+        frame: ScreenRect,
+    },
+    /// 在浮窗的右键菜单里选了一项要改配置的动作（滚动、复制、打开链接、清空由应用层处理）。
+    OverlayMenu {
+        /// 哪个浮窗。
+        kind: OverlayKind,
+        /// 选中的动作。
+        action: OverlayMenuAction,
+    },
+}
+
+/// 浮窗右键菜单里交给协调器的动作（设计文档 8.7 节的表），对应 macOS 的 OverlayMenuAction 去掉 clear：
+/// 清空列表只动聊天功能的缓冲，由应用层直接交给总控。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum OverlayMenuAction {
+    /// 「锁定布局」：切换 behavior.lockLayout（缩略图与浮窗共用）。
+    ToggleLock,
+    /// 「恢复默认位置与尺寸」：清掉这个浮窗保存的 frame。
+    ResetFrame,
+    /// 「隐藏此浮窗」：关掉对应的功能（intel.enabled 或 translation.enabled）。
+    Hide,
+    /// 「打开设置…」：打开设置窗口的对应页。
+    OpenSettings,
 }
 
 /// 协调器要求执行的效果，按产生的顺序执行。
@@ -171,6 +205,14 @@ pub enum Effect {
     WatchGameLogs(Option<String>),
     /// 停止跟踪游戏日志。
     StopGameLogs,
+    /// 按规划更新预警与翻译浮窗：建、关、移动、改外观、显示或隐藏；正在拖动的浮窗不改 frame。
+    /// 活动角色一起给出，应用层据此换浮窗的内容。
+    ApplyOverlays {
+        /// 已启用的浮窗，按 Intel、Translation 的顺序；没启用的不在里面（应用层关掉它）。
+        presentations: Vec<OverlayPresentation>,
+        /// 活动角色；没有客户端或前台是登录界面时为 None。
+        active_character: Option<String>,
+    },
     /// 退出应用：先把配置立即写盘，再拆掉各服务。
     Quit,
 }
