@@ -32,7 +32,7 @@ use eveo_app_core::pilots::PilotLookupService;
 use eveo_app_core::pilots::store::PilotNameStore;
 use eveo_app_core::state_store::StateStore;
 use eveo_app_core::{DragContext, Event};
-use eveo_core::chat_log::ChatLogStatus;
+use eveo_core::chat_log::{ChatLogStatus, DiscoveredChannel};
 use eveo_core::geometry::{ScreenPoint, ScreenRect};
 use eveo_core::model::AppLanguage;
 use eveo_core::overlay::OverlayKind;
@@ -84,6 +84,10 @@ pub(super) struct ChatRuntime {
     drag_contexts: Rc<RefCell<BTreeMap<OverlayKind, DragContext>>>,
     /// 下一次按时间刷新浮窗的时刻（墙上时钟）；不用时为 None。
     refresh_at: Option<f64>,
+    /// 日志目录里最近出现过的频道，「从日志添加」用；还没扫描过时为 None。
+    pub(super) discovered: Option<Vec<DiscoveredChannel>>,
+    /// 扫描线程交回结果的通道；没在扫描时为 None。
+    pub(super) discovery: Option<Receiver<Vec<DiscoveredChannel>>>,
 }
 
 impl ChatRuntime {
@@ -115,6 +119,8 @@ impl ChatRuntime {
             overlays: InfoOverlays::new(language, provider),
             drag_contexts,
             refresh_at: None,
+            discovered: None,
+            discovery: None,
         }
     }
 }
@@ -239,6 +245,8 @@ impl App {
             ));
             all = true;
         }
+        // 「从日志添加」的扫描结果。
+        self.take_discovered();
         stale.extend(self.chat.features.tick(now));
         // 翻译：测试结果换成页面上的文字；控制器记下的日志行（只有条数、状态码与耗时，不含原文与 Key）写进诊断日志。
         self.take_translation_test();

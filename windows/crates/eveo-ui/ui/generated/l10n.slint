@@ -568,11 +568,19 @@ export global HotkeyText {
     // 单选按钮里 game 一项的文字：名称加一句说明，讲清只在 EVE 窗口位于前台时生效。
     in property <string> scope-game-option: "Only in EVE: works only while an EVE window is in front";
     // 「切换与热键」页首默认范围下方的说明：每个热键只有一种范围，热键旁的标记显示并可单独修改它。
-    in property <string> default-scope-footer: "Each hotkey uses one scope, never both. Hotkeys without their own scope follow this default; change one next to the hotkey.";
+    in property <string> default-scope-footer: "Hotkeys set to “Use Default” follow this choice; hotkeys with their own Global or Only in EVE scope ignore it. A newly recorded mouse button gets its own Only in EVE scope, so it doesn’t swallow that button in other apps (such as the browser’s Back button).";
     // 每行作用范围菜单的第 1 项「跟随默认」，参数是当前默认范围的名称。
     pure callback scope-follow-default(current: string) -> string;
     // 作用范围菜单的提示文字，参数是这一行已解析的作用范围名称。
     pure callback scope-menu-help(resolved: string) -> string;
+    // Windows：每行作用范围下拉框的第 2 项，这一个热键单独设为全局，不跟随默认。要短（下拉框约 170px 宽）。
+    in property <string> scope-override-global: "Own: Global";
+    // Windows：每行作用范围下拉框的第 3 项，这一个热键单独设为仅游戏内，不跟随默认。要短。
+    in property <string> scope-override-game: "Own: Only in EVE";
+    // Windows：默认范围下方的提示，参数是单独设了范围、不跟随默认的热键条数（至少 1）。
+    pure callback scope-override-count(count: int) -> string;
+    // Windows：把所有单独设了范围的热键改回跟随默认的按钮。
+    in property <string> reset-scopes-to-default: "Make All Use Default";
     // 菜单栏菜单的一项：勾选时当前配置方案的默认作用范围是 game。
     in property <string> menu-hotkeys-only-in-eve: "Hotkeys Only in EVE";
     // 「添加」按钮。
@@ -775,6 +783,8 @@ export global OverlayText {
     in property <string> add-built-in: "Add a built-in channel";
     // Windows：频道列表下按名称添加一行的名字。
     in property <string> add-by-name: "Add by name";
+    // Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 14 天出现过、还没选的频道。
+    in property <string> pick-from-logs: "Choose a channel from your logs…";
     // 「移除」按钮。
     in property <string> remove-channel: "Remove";
     // 列表为空时的说明。

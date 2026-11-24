@@ -77,6 +77,12 @@ export global IntelModel {
     callback remove-channel(int);
     // 按名称添加频道。
     callback add-channel(string);
+    // 「从日志添加」下拉框的各项（第一项是提示文字）；两页的内容由应用分别填（已选的频道不同）。
+    in property <[string]> discovered;
+    // 添加「从日志添加」里的第几个频道（不含提示文字）。
+    callback add-discovered(int);
+    // 重新扫描日志目录（切到本页、点「刷新」时）。
+    callback refresh-discovered();
     // 「恢复默认位置」。
     callback reset-overlay-frame();
 }
@@ -117,6 +123,9 @@ export component IntelPage inherits VerticalLayout {
         help: IntelText.channels-help;
         remove(index) => { IntelModel.remove-channel(index); }
         add-name(text) => { IntelModel.add-channel(text); }
+        discovered: IntelModel.discovered;
+        add-discovered(index) => { IntelModel.add-discovered(index); }
+        refresh-discovered => { IntelModel.refresh-discovered(); }
     }
 
     // 第 3 组：我的位置与参考星系。位置取自游戏日志与本地频道；都没有时在这里手动填，不知道时跳数从参考星系算。

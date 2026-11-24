@@ -72,6 +72,9 @@ export global SwitchingModel {
     in-out property <int> default-scope;
     // 跟随默认时的范围名称，用在每行的范围下拉框里。
     out property <string> default-scope-name: default-scope == 0 ? HotkeyText.scope-global : HotkeyText.scope-game;
+    // 单独设了范围（不跟随默认）的热键条数；大于 0 时默认范围下方提示，并给出「全部改为跟随默认」。
+    // 用户只改默认范围、却看不出哪些热键不受影响，是最容易误会的地方。
+    in property <int> override-count;
     // 循环组。
     in-out property <[CycleGroupData]> groups;
     // 每个角色的直达热键，按角色名排序。
@@ -100,6 +103,8 @@ export global SwitchingModel {
     callback remove-hotkey(string, string);
     // 改一条热键的作用范围（slot、原文、0 跟随默认 / 1 全局 / 2 仅游戏内）。
     callback set-scope(string, string, int);
+    // 把所有单独设了范围的热键改回跟随默认。
+    callback reset-scopes();
 }
 
 // 一条热键：问题提示、录制按钮、作用范围、移除。
@@ -135,9 +140,11 @@ component HotkeyLine inherits HorizontalLayout {
     // 作用范围；解析不了的一条没有范围可改，只能重录或移除。
     if entry.scope >= 0: ComboBox {
         // 第一项写出默认范围此刻是什么，不用回到页首查看。
-        model: [HotkeyText.scope-follow-default(SwitchingModel.default-scope-name), HotkeyText.scope-global, HotkeyText.scope-game];
+        // 后两项写明「单独」：选了它们，这一个热键就不再跟随页首的默认范围。
+        model: [HotkeyText.scope-follow-default(SwitchingModel.default-scope-name), HotkeyText.scope-override-global, HotkeyText.scope-override-game];
         current-index: entry.scope;
-        width: 170px;
+        // 宽度放得下「跟随默认（仅游戏内）」与「单独：仅游戏内」，不被截断。
+        width: 190px;
         selected(value) => {
             SwitchingModel.set-scope(slot, entry.text, self.current-index);
         }
@@ -391,6 +398,25 @@ export component SwitchingPage inherits VerticalLayout {
                 clicked => {
                     SwitchingModel.default-scope = 1;
                     SwitchingModel.default-scope-changed(1);
+                }
+            }
+            // 有热键单独设了范围时，说明它们不跟随上面的选择，并给出一键改回的按钮。
+            if SwitchingModel.override-count > 0: HorizontalLayout {
+                spacing: 10px;
+                Text {
+                    // 文字占满剩下的宽度，按钮保持自身宽度。
+                    horizontal-stretch: 1;
+                    text: HotkeyText.scope-override-count(SwitchingModel.override-count);
+                    color: Theme.text-secondary;
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                }
+                Button {
+                    horizontal-stretch: 0;
+                    text: HotkeyText.reset-scopes-to-default;
+                    clicked => {
+                        SwitchingModel.reset-scopes();
+                    }
                 }
             }
         }

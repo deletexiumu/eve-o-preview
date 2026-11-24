@@ -9,6 +9,7 @@
 
 //! 聊天日志的跟踪服务：后台线程轮询 Chatlogs（与位置线索用的 Gamelogs），把消息、线索与状态交给主线程。
 
+pub mod discovery;
 mod file;
 mod worker;
 
