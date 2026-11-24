@@ -33,4 +33,5 @@ pub mod logging;
 pub mod model;
 pub mod overlay;
 pub mod planning;
+pub mod static_data;
 pub mod switching;
