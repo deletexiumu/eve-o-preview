@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 热键录制（架构文档 4.4 节，对应 macOS 的 HotkeyRecorder）：设置窗口点了录制按钮后，
-// 在主线程装低级键盘钩子与低级鼠标钩子，取下一个组合键或鼠标中键、侧键。
+// 装低级键盘钩子与低级鼠标钩子，取下一个组合键或鼠标中键、侧键。
 // 用钩子而不是窗口的键盘消息：钩子给的是虚拟键码，分得清小键盘与主键盘的数字、F13～F24 这类键，
 // 也能在 RegisterHotKey 之前拦下按键，录制时不会触发已注册的热键（应用同时暂停热键服务，双保险）。
 //
@@ -12,23 +12,31 @@
 // - 鼠标中键与两个侧键也录（连同修饰键），左右键照常放行。
 // 按着 Win 时吞掉按键，松开 Win 会弹出开始菜单（系统认为 Win 是单独按的），所以先发一次未分配键打断它。
 //
-// 钩子回调里不调用应用：结果放进线程局部变量，应用在定时器里取（50 毫秒以内）。
-// 这样回调很快返回，也不会在回调里摘掉自己。录制器丢弃时摘掉两个钩子。
+// 两个钩子装在专用线程上，该线程只跑自己的消息循环（同 mouse_hook）。低级钩子的回调由安装它的线程的
+// 消息循环调用，系统要等回调返回才把按键交给下一个钩子和前台窗口；回调超过时限（LowLevelHooksTimeout）时，
+// 这次按键会丢掉，钩子还可能被系统悄悄摘掉。早先钩子装在主线程上，主线程忙着刷新设置页、缩略图时
+// 回调来不及返回，真机上约四成的组合键（Ctrl+Shift+J、Ctrl+J 等）整批消失，按钮一直停在「按下组合键…」。
+// 专用线程的回调不受主线程影响。结果放进共享状态（锁保护），应用在定时器里取（50 毫秒以内）。
+// 录制器丢弃时让线程退出，线程摘掉两个钩子。
 
 //! 热键录制。
 
 use std::cell::RefCell;
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread::JoinHandle;
 
 use eveo_core::hotkeys::{Hotkey, HotkeyModifiers};
 use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_BACK, VK_CONTROL, VK_DELETE, VK_ESCAPE, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_MENU,
     VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, LLKHF_INJECTED, MSLLHOOKSTRUCT, SetWindowsHookExW,
-    UnhookWindowsHookEx, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_KEYUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
-    WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP, XBUTTON1, XBUTTON2,
+    CallNextHookEx, GetMessageW, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, LLKHF_INJECTED, MSG, MSLLHOOKSTRUCT,
+    PM_NOREMOVE, PeekMessageW, PostThreadMessageW, SetWindowsHookExW, UnhookWindowsHookEx, WH_KEYBOARD_LL,
+    WH_MOUSE_LL, WM_KEYDOWN, WM_KEYUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_QUIT, WM_SYSKEYDOWN, WM_SYSKEYUP,
+    WM_XBUTTONDOWN, WM_XBUTTONUP, XBUTTON1, XBUTTON2,
 };
 
 use crate::{activation, mouse_hook, window_class};
@@ -44,7 +52,7 @@ pub enum RecordOutcome {
     Cancelled,
 }
 
-/// 录制中的状态，钩子回调与录制器共用（都在主线程）。
+/// 录制中的状态，钩子线程的回调写、主线程的定时器读，由锁保护。
 #[derive(Default)]
 struct State {
     /// 已有结果；之后的按键都放行（吞掉的那个键的松开除外）。
@@ -55,57 +63,121 @@ struct State {
     swallowed_button: Option<u8>,
 }
 
+/// 两个线程共用的录制状态。
+type SharedState = Arc<Mutex<State>>;
+
 thread_local! {
-    /// 当前录制的状态；没有在录时为 `None`。同一时刻只有一个录制器。
-    static STATE: RefCell<Option<State>> = const { RefCell::new(None) };
+    /// 钩子线程上的录制状态。回调没有上下文参数，只能放在线程局部变量里；只有钩子线程会设置它。
+    static STATE: RefCell<Option<SharedState>> = const { RefCell::new(None) };
 }
 
-/// 正在进行的录制。丢弃时摘掉钩子。
+/// 正在进行的录制。丢弃时让钩子线程摘掉钩子并退出。
 pub struct HotkeyRecorder {
-    /// 低级键盘钩子。
-    keyboard: HHOOK,
-    /// 低级鼠标钩子。
-    mouse: HHOOK,
+    /// 钩子线程的编号，用来投递 WM_QUIT。
+    thread_id: u32,
+    /// 钩子线程；丢弃时等它退出，保证返回后钩子已经摘掉。
+    join: Option<JoinHandle<()>>,
+    /// 与钩子线程共用的状态。
+    state: SharedState,
 }
 
 impl HotkeyRecorder {
-    /// 开始录制。已有录制器时先丢弃旧的再调用（同一时刻只有一个）。
+    /// 开始录制：启动钩子线程，两个钩子都装好后才返回。已有录制器时先丢弃旧的再调用（同一时刻只有一个）。
     pub fn start() -> Result<Self, String> {
-        // 低级钩子要一个模块句柄（本 exe），钩子本身装在调用线程上：回调由这个线程的消息循环调用。
-        let module = window_class::instance().map_err(|e| e.message())?;
-        // SAFETY: 回调是本模块的 extern "system" 函数；低级钩子不注入别的进程，模块句柄取本 exe 的。
-        let keyboard = unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), Some(module), 0) }
-            .map_err(|e| format!("安装低级键盘钩子失败：{}", e.message()))?;
-        // SAFETY: 同上。
-        let mouse = match unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), Some(module), 0) } {
-            Ok(hook) => hook,
-            Err(error) => {
-                // SAFETY: 刚装上的键盘钩子，只摘一次。
-                let _ = unsafe { UnhookWindowsHookEx(keyboard) };
-                return Err(format!("安装低级鼠标钩子失败：{}", error.message()));
+        let state = SharedState::default();
+        let (ready_tx, ready_rx) = mpsc::channel::<Result<u32, String>>();
+        let thread_state = Arc::clone(&state);
+        let join = std::thread::Builder::new()
+            .name("eveo-hotkey-recorder".into())
+            .spawn(move || run(thread_state, ready_tx))
+            .map_err(|e| format!("启动录制线程失败：{e}"))?;
+        // 等线程报告就绪：装钩子失败时线程已经退出，这里收回线程再返回错误。
+        match ready_rx.recv() {
+            Ok(Ok(thread_id)) => Ok(Self {
+                thread_id,
+                join: Some(join),
+                state,
+            }),
+            Ok(Err(message)) => {
+                let _ = join.join();
+                Err(message)
             }
-        };
-        // 两个钩子都装好后才开始记状态；装失败时不留下半套状态。
-        STATE.with(|s| *s.borrow_mut() = Some(State::default()));
-        Ok(Self { keyboard, mouse })
+            Err(_) => {
+                let _ = join.join();
+                Err("录制线程意外退出".into())
+            }
+        }
     }
 
     /// 取走结果；还没有结果时返回 `None`。取走后录制器仍在，吞掉的键的松开照样处理，由调用方丢弃它。
     /// 应用的定时器每 50 毫秒调一次；结果只交出一次。
     pub fn take_outcome(&self) -> Option<RecordOutcome> {
-        STATE.with(|s| s.borrow_mut().as_mut().and_then(|state| state.outcome.take()))
+        lock(&self.state).outcome.take()
     }
 }
 
 impl Drop for HotkeyRecorder {
     fn drop(&mut self) {
-        // SAFETY: 两个钩子都由本线程在 start 里安装，只摘一次。
-        unsafe {
-            let _ = UnhookWindowsHookEx(self.keyboard);
-            let _ = UnhookWindowsHookEx(self.mouse);
+        // SAFETY: 线程编号来自钩子线程自己，消息队列在报告就绪前已建立。线程收到 WM_QUIT 后摘掉钩子并退出。
+        let _ = unsafe { PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0)) };
+        if let Some(join) = self.join.take() {
+            let _ = join.join();
         }
-        STATE.with(|s| *s.borrow_mut() = None);
     }
+}
+
+/// 加锁；另一个线程拿着锁时崩溃（不应出现）也照常取出状态，录制不因此卡住。
+fn lock(state: &SharedState) -> std::sync::MutexGuard<'_, State> {
+    state.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// 钩子线程：建消息队列、装两个钩子、报告就绪，然后跑消息循环直到 WM_QUIT，最后摘掉钩子。
+fn run(state: SharedState, ready: mpsc::Sender<Result<u32, String>>) {
+    let mut msg = MSG::default();
+    // SAFETY: msg 是本函数的局部变量；PM_NOREMOVE 只为让系统给本线程建消息队列，WM_QUIT 才投递得进来。
+    let _ = unsafe { PeekMessageW(&mut msg, None, 0, 0, PM_NOREMOVE) };
+    STATE.with(|s| *s.borrow_mut() = Some(state));
+    let hooks = match install_hooks() {
+        Ok(hooks) => hooks,
+        Err(message) => {
+            let _ = ready.send(Err(message));
+            return;
+        }
+    };
+    // SAFETY: 只读当前线程的编号。
+    let _ = ready.send(Ok(unsafe { GetCurrentThreadId() }));
+    // 回调在 GetMessageW 里被调用；这个线程不做别的事，回调总能及时返回。
+    // SAFETY: msg 是局部变量；GetMessageW 在 WM_QUIT 时返回 0，出错时返回 -1。
+    while unsafe { GetMessageW(&mut msg, None, 0, 0) }.0 > 0 {}
+    // SAFETY: 两个钩子都由本线程安装，只摘一次。
+    unsafe {
+        let _ = UnhookWindowsHookEx(hooks.0);
+        let _ = UnhookWindowsHookEx(hooks.1);
+    }
+    STATE.with(|s| *s.borrow_mut() = None);
+}
+
+/// 在当前线程装低级键盘钩子与低级鼠标钩子；鼠标钩子装不上时摘掉已装的键盘钩子，不留下半套。
+fn install_hooks() -> Result<(HHOOK, HHOOK), String> {
+    // 低级钩子要一个模块句柄（本 exe），钩子本身装在调用线程上：回调由这个线程的消息循环调用。
+    let module = window_class::instance().map_err(|e| e.message())?;
+    // SAFETY: 回调是本模块的 extern "system" 函数；低级钩子不注入别的进程，模块句柄取本 exe 的。
+    let keyboard = unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), Some(module), 0) }
+        .map_err(|e| format!("安装低级键盘钩子失败：{}", e.message()))?;
+    // SAFETY: 同上。
+    match unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), Some(module), 0) } {
+        Ok(mouse) => Ok((keyboard, mouse)),
+        Err(error) => {
+            // SAFETY: 刚装上的键盘钩子，只摘一次。
+            let _ = unsafe { UnhookWindowsHookEx(keyboard) };
+            Err(format!("安装低级鼠标钩子失败：{}", error.message()))
+        }
+    }
+}
+
+/// 在钩子线程上对录制状态做一件事；不在录制线程上（状态为空）时返回 `None`。
+fn with_state<R>(f: impl FnOnce(&mut State) -> R) -> Option<R> {
+    STATE.with(|s| s.borrow().as_ref().map(|state| f(&mut lock(state))))
 }
 
 /// 修饰键（左右两侧与不分侧的写法）。
@@ -178,26 +250,23 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
             info.flags.0 & LLKHF_INJECTED.0 != 0 && info.vkCode == u32::from(activation::UNASSIGNED_VK);
         // 按下有 WM_KEYDOWN 与 WM_SYSKEYDOWN 两种（按着 Alt 时是后者），松开同理。
         let message = wparam.0 as u32;
-        let action = STATE.with(|s| {
-            let mut state = s.borrow_mut();
-            let Some(state) = state.as_mut().filter(|_| !own_key) else {
-                return KeyAction::Pass;
-            };
-            match message {
-                WM_KEYDOWN | WM_SYSKEYDOWN => {
-                    on_key_down(state, info.vkCode, mouse_hook::current_modifiers())
-                }
+        // 修饰键在加锁前读好，锁里只做纯逻辑。
+        let modifiers = mouse_hook::current_modifiers();
+        let action = if own_key {
+            KeyAction::Pass
+        } else {
+            with_state(|state| match message {
+                WM_KEYDOWN | WM_SYSKEYDOWN => on_key_down(state, info.vkCode, modifiers),
                 WM_KEYUP | WM_SYSKEYUP => on_key_up(state, info.vkCode),
                 _ => KeyAction::Pass,
-            }
-        });
+            })
+            .unwrap_or(KeyAction::Pass)
+        };
         if action == KeyAction::Swallow {
             // 按着 Win 时吞掉了按键：发一次未分配键，松开 Win 时不弹开始菜单。
-            if message == WM_KEYDOWN || message == WM_SYSKEYDOWN {
-                let modifiers = mouse_hook::current_modifiers();
-                if modifiers.contains(HotkeyModifiers::WIN) {
-                    activation::send_unassigned_key();
-                }
+            if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) && modifiers.contains(HotkeyModifiers::WIN)
+            {
+                activation::send_unassigned_key();
             }
             return LRESULT(1);
         }
@@ -249,10 +318,9 @@ unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) 
             _ => None,
         };
         if let Some((button, down)) = event {
-            let action = STATE.with(|s| match s.borrow_mut().as_mut() {
-                Some(state) => on_mouse(state, button, down, mouse_hook::current_modifiers()),
-                None => KeyAction::Pass,
-            });
+            let modifiers = mouse_hook::current_modifiers();
+            let action =
+                with_state(|state| on_mouse(state, button, down, modifiers)).unwrap_or(KeyAction::Pass);
             if action == KeyAction::Swallow {
                 return LRESULT(1);
             }
