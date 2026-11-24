@@ -476,6 +476,41 @@ fn restore_on_start() {
     assert_eq!((state.cached_release.clone(), state.etag.clone()), (None, None));
 }
 
+/// 上次运行检查到新版本、没下完就退出，1 小时内重新启动：第一次醒来时不检查（不到最小间隔），
+/// 但缓存的版本仍该提示、两个开关都开着，接着在后台下载；只开自动检查时保持「可用」，不发命令。
+#[test]
+fn resume_download_at_launch() {
+    let mut state = UpdateState::default();
+    state.cached_release = Some(release("0.9.1"));
+    state.last_check_at = Some(T0 - 600.0);
+    // 10 分钟前检查过：启动时那一次检查要求至少隔 1 小时（policy::is_check_due），所以第一次醒来不会检查。
+    // 没有 prepared 记录（上次下载被退出打断），阶段按缓存恢复成「可用」。
+    let mut machine = started(both_on(), &mut state.clone());
+    let mut resumed = state.clone();
+    machine.start(&mut resumed, T0, false);
+    assert_eq!(machine.phase(), &UpdatePhase::Available(release("0.9.1")));
+    assert_eq!(
+        machine.tick(&mut resumed, T0 + 10.0, true),
+        [Command::Prepare(release("0.9.1"))]
+    );
+    // 之后每小时醒来时不再重复（已经在下载中）。
+    // 下载中时 is_busy 为真，自动检查让开；at_launch 也只在第一次醒来时为真。
+    assert!(
+        machine
+            .tick(&mut resumed, T0 + 10.0 + WAKE_INTERVAL, true)
+            .is_empty()
+    );
+    // 自动安装关着：不下载，也不重复通知（启动时恢复的「可用」只在托盘菜单里提示）。
+    let only_check = Switches {
+        check: true,
+        auto_install: false,
+    };
+    let mut quiet = state.clone();
+    let mut machine = started(only_check, &mut quiet);
+    assert!(machine.tick(&mut quiet, T0 + 10.0, true).is_empty());
+    assert_eq!(machine.phase(), &UpdatePhase::Available(release("0.9.1")));
+}
+
 /// 开关：关掉自动检查时不再检查；打开时立即判断一次；关掉自动安装时「待安装」退为「可用」。
 #[test]
 fn switches() {

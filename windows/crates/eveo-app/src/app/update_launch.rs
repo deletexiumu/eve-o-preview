@@ -7,7 +7,7 @@
 //   - 第一次启动：记下启动时刻并写盘，运行满 30 秒（定时器里检查）或在此之前正常退出时确认：
 //     写一条成功的安装记录、清掉待确认的替换、删除 `.old`。
 //   - 启动过一次却没有确认：回滚（自己改名为 `.failed`、`.old` 改回 exe），写一条失败的安装记录，
-//     带 `--after-update <本进程编号>` 启动旧版，本进程退出。
+//     带 `--after-update <本进程编号> --background` 启动旧版，本进程退出。
 //   - 版本对不上：丢掉记录照常启动；没有记录时顺手删掉遗留的 `.new`、`.old`、`.failed`。
 // - 本进程不是以正式文件名运行（例如用户直接双击了 `.old`）时什么都不做，免得删掉或换掉别的副本。
 // 这一步在建 App 之前、预警模块读 state.json 之前完成，用自己读的 StateStore 写盘；之后的确认经 App 的
@@ -155,7 +155,12 @@ fn roll_back(exe: &Path, store: &mut StateStore, pending: Option<PendingSwap>) -
         ));
         return Startup::Continue(UpdateLaunch::default());
     }
-    let args = [AFTER_UPDATE_ARG.to_owned(), std::process::id().to_string()];
+    // 与正常的重新启动一样带 --background：用户没有主动打开应用，换回旧版后不弹设置窗口。
+    let args = [
+        AFTER_UPDATE_ARG.to_owned(),
+        std::process::id().to_string(),
+        "--background".to_owned(),
+    ];
     match update::launch(exe, &args) {
         Ok(_) => {
             LOG.notice("已换回旧版并启动它，本进程退出");

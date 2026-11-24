@@ -63,10 +63,12 @@ pub fn download(
             allows_http: feed.is_test_feed,
         };
         let mut body = Vec::new();
+        // 总长取答复头的 Content-Length（收到头时就知道），读完后用它让进度条走满。
         let mut total = None;
-        let response = http::stream(&request, &mut |chunk| {
+        let response = http::stream(&request, &mut |chunk, length| {
             body.extend_from_slice(chunk);
-            on_progress(body.len() as u64, total)
+            total = length;
+            on_progress(body.len() as u64, length)
         });
         let response = response.map_err(|error| match error {
             HttpError::TooLarge => UpdateError::DownloadTooLarge,
@@ -76,10 +78,6 @@ pub fn download(
         match response.status {
             200 => {
                 // 总长只用来显示进度；读完之后再报一次，让进度条走满。
-                total = response
-                    .headers
-                    .get("content-length")
-                    .and_then(|v| v.trim().parse().ok());
                 on_progress(body.len() as u64, total.or(Some(body.len() as u64)));
                 return Ok(body);
             }

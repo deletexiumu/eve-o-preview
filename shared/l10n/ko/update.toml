@@ -67,3 +67,5 @@ errorDiskImage = "다운로드한 디스크 이미지를 열 수 없습니다."
 errorVerification = "새 버전을 검증할 수 없어 설치하지 않았습니다."
 errorUnsupportedSystem = "이 버전에는 macOS {minimum} 이상이 필요합니다."
 errorSwapFailed = "앱을 교체할 수 없습니다."
+
+notificationBody = "클릭하여 새로운 기능을 확인하고 설치하세요."

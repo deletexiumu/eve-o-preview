@@ -532,6 +532,7 @@ macro_rules! fill {
     text.set_error_verification(updates.error_verification().into());
     text.on_error_unsupported_system(move |minimum| updates.error_unsupported_system(&minimum).into());
     text.set_error_swap_failed(updates.error_swap_failed().into());
+    text.set_notification_body(updates.notification_body().into());
     }};
 }
 

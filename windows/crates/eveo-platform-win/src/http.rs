@@ -193,17 +193,28 @@ pub fn send(request: &HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
 }
 
 /// 与 send 相同，但正文不攒在一起：每读到一段就交给 on_chunk，适合下载更新包时显示进度。
+/// on_chunk 的第二个参数是答复头里的 Content-Length（没有或解析不了时为 None），收到答复头时就知道，
+/// 进度条从第一段开始就能显示比例。
 ///
 /// on_chunk 返回 false 时立即停下，返回 Cancelled（用户点了取消）。正文总长超过 max_response_bytes 时返回 TooLarge。
 /// 取消的反应时间取决于下一段数据何时到达：网络很慢时最长要等一个超时（调用方给的秒数）。
 /// 返回的 HttpResponse 里正文为空；不读正文的状态码不调用 on_chunk。
 pub fn stream(
     request: &HttpRequest<'_>,
-    on_chunk: &mut dyn FnMut(&[u8]) -> bool,
+    on_chunk: &mut dyn FnMut(&[u8], Option<u64>) -> bool,
 ) -> Result<HttpResponse, HttpError> {
     let opened = open(request)?;
     if (request.reads_body)(opened.status) {
-        read_chunks(&opened.request, request.max_response_bytes, on_chunk)?;
+        // 答复头的名字已在 open 里转成小写。分块传输（chunked）或服务器没给长度时为 None，
+        // 调用方自己决定用什么代替（更新包用发布列表里附件声明的大小）。
+        // 解析不了的值（负数、非数字）同样当作没有，不让一个坏答复头让下载失败。
+        let total = opened
+            .headers
+            .get("content-length")
+            .and_then(|value| value.trim().parse().ok());
+        read_chunks(&opened.request, request.max_response_bytes, &mut |chunk| {
+            on_chunk(chunk, total)
+        })?;
     }
     Ok(HttpResponse {
         status: opened.status,

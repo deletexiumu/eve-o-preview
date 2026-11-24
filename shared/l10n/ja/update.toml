@@ -67,3 +67,5 @@ errorDiskImage = "ダウンロードしたディスクイメージを開けま�
 errorVerification = "新しいバージョンを検証できなかったため、インストールしませんでした。"
 errorUnsupportedSystem = "このバージョンには macOS {minimum} 以降が必要です。"
 errorSwapFailed = "アプリを置き換えられませんでした。"
+
+notificationBody = "クリックして新機能を確認し、インストールします。"
