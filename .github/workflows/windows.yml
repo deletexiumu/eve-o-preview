@@ -337,7 +337,7 @@ jobs:
           (cd release-files && sha256sum -c SHA256SUMS.txt)
           [[ "$(ls release-files | wc -l | tr -d ' ')" == "4" ]] || { echo "::error::附件数不是 4"; ls release-files; exit 1; }
 
-      # 说明取 docs/release-notes/windows/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号带 - 时标为预发布。
+      # 说明取 docs/release-notes/windows/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号（不含 win-v 前缀）带 - 时标为预发布。
       # 一律 --latest=false：/releases/latest 要留给 macOS（架构文档 7.4 节）。
       # 演练：建草稿 Release，tag 名带 -rehearsal，不打 tag、不公开，看完后在 Releases 页面删掉。
       # Release 已存在时不覆盖附件：已经发出去的文件和校验和不应被悄悄换掉。
@@ -359,7 +359,8 @@ jobs:
               echo "::error::Release ${TAG} 已存在，不覆盖附件"
               exit 1
             fi
-            if [[ "$TAG" == *-* ]]; then
+            # 看的是去掉 win-v 前缀后的版本号：tag 本身总带「win-」里的 -，不能拿整个 tag 判断。
+            if [[ "${TAG#win-v}" == *-* ]]; then
               args+=(--prerelease)
             fi
           fi
