@@ -4,7 +4,8 @@
 //
 // Windows 只取 Release 列表（feed 模块开头说明了原因），这里把一页列表转成 Windows 版的发布信息：
 // - 顶层是 JSON 数组，超过 4 MiB 时按 `MalformedFeed` 处理。数组的元素不是对象时跳过这一项。
-// - 只留 tag 以 `win-v` 开头、去掉前缀后能解析成 `SemanticVersion` 的项；草稿跳过。
+// - 只留 Windows 版的项：tag 是 `win-v<版本>`，或是 `v<版本>` 且附件里有这个版本的 Windows 压缩包
+//   （1.3.2 及更早的 `v*` 是纯 macOS 的 Release）。去掉前缀后要能解析成 `SemanticVersion`；草稿跳过。
 // - 一项的 `html_url` 不通过 `feed.accepts` 时只跳过这一项；附件地址不通过时只丢掉这个附件，附件只看前 100 个。
 // - `body` 超过 65,536 个字符时截短，缺失或为 null 时取空串；`name` 缺失或为空时标题取 tag。
 // - 预发布照样取出（是否提示由 policy 按正在运行的版本决定）。
@@ -71,9 +72,10 @@ fn release(object: &Map<String, Value>, feed: &UpdateFeed) -> Option<ReleaseInfo
     if object.get("draft").and_then(Value::as_bool) == Some(true) {
         return None;
     }
-    // tag 先去掉 `win-v`，macOS 的 `v*` 在这里就被排除。
+    // tag 先去掉 `win-v` 或 `v`；`v*` 的项在取完附件后还要核对有没有 Windows 压缩包。
     let tag = object.get("tag_name")?.as_str()?;
-    let version = SemanticVersion::parse(feed::version_text(tag)?)?;
+    let version_text = feed::version_text(tag)?;
+    let version = SemanticVersion::parse(version_text)?;
     // 发布页会被打开，地址不合格的整项不用。
     let page_url = object.get("html_url")?.as_str()?;
     if !feed.accepts(page_url) {
@@ -89,7 +91,7 @@ fn release(object: &Map<String, Value>, feed: &UpdateFeed) -> Option<ReleaseInfo
         .and_then(Value::as_str)
         .filter(|name| !name.is_empty())
         .unwrap_or(tag);
-    let assets = object
+    let assets: Vec<ReleaseAsset> = object
         .get("assets")
         .and_then(Value::as_array)
         .map(|assets| {
@@ -100,6 +102,11 @@ fn release(object: &Map<String, Value>, feed: &UpdateFeed) -> Option<ReleaseInfo
                 .collect()
         })
         .unwrap_or_default();
+    // 统一发布的 tag 也用在纯 macOS 的旧 Release 上：没有本版本 Windows 压缩包的不是 Windows 版。
+    // 附件名按 tag 里的原样版本文字拼，与发布脚本一致。
+    if feed::is_unified_tag(tag) && !has_archive(&assets, version_text) {
+        return None;
+    }
     Some(ReleaseInfo {
         version: version.to_string(),
         tag_name: tag.to_owned(),
@@ -114,6 +121,12 @@ fn release(object: &Map<String, Value>, feed: &UpdateFeed) -> Option<ReleaseInfo
         is_draft: false,
         assets,
     })
+}
+
+/// 附件里是否有这个版本的 Windows 压缩包（只看通过地址核对的附件）。
+fn has_archive(assets: &[ReleaseAsset], version_text: &str) -> bool {
+    let name = feed::archive_name(version_text);
+    assets.iter().any(|asset| asset.name == name)
 }
 
 /// 一个附件；缺字段或地址不通过 `feed.accepts` 时返回 None。

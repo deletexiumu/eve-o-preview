@@ -28,7 +28,7 @@ EVE-O Preview for Windows 1.0 は 2026-11-24 にリリースされました。�
 
 64 ビット版の Windows 10 22H2 または Windows 11 が必要です。
 
-1. [Releases](https://github.com/deletexiumu/eve-o-preview/releases) ページから `EVE-O-Preview-<バージョン>-windows-x64.zip` をダウンロードします。Windows 版のタグは `win-v<バージョン>` で、「Latest」と表示されているのは macOS 版です。
+1. [Releases](https://github.com/deletexiumu/eve-o-preview/releases) ページから `EVE-O-Preview-<バージョン>-windows-x64.zip` をダウンロードします。1.4.0 以降は macOS 版と Windows 版が同じリリース（タグ `v<バージョン>`）で公開されます。それ以前の Windows 版のタグは `win-v<バージョン>` です。
 2. 書き込みできる場所（「ドキュメント」や `D:\Games` など）にフォルダを展開します。「Program Files」は避けてください。アップデートは exe をその場で置き換えます。
 3. `EVE-O Preview.exe` を実行します。exe にはまだコード署名がないため、初回は Windows SmartScreen の警告が出ることがあります。「詳細情報」を選び、「実行」を選んでください。
 

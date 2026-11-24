@@ -16,7 +16,7 @@
 | 分发 | 单个 exe 的便携 zip，自带更新器（校验和加 ed25519 签名）；之后加 winget 与微软商店 |
 | 代码签名 | 先不签名发布测试版，同时申请 SignPath Foundation 的开源免费签名 |
 | 仓库 | 改成 monorepo（`macos/`、`windows/`、`shared/`），仓库改名为 `eve-o-preview` |
-| tag | macOS 永久用 `v*`，Windows 用 `win-v*` 且 Release 不标为 latest |
+| tag | 起初 macOS 用 `v*`，Windows 用 `win-v*` 且 Release 不标为 latest；1.4.0 起两个平台用同一个版本号，在同一个 `v*` tag 下一起发布（7.4.1 节） |
 | 迁移顺序 | 先发 macOS 过渡版 v1.3.0（同时接受新旧仓库名），再重组目录，等至少 3 周后改名 |
 
 最大的风险有三个：两份 Core（Swift 与 Rust）长期并存会出现行为漂移；云端没有 Windows 环境，平台层只能靠 CI 运行器与用户手工验证；没有代码签名时 SmartScreen 与杀毒软件会拦截。应对办法分别在第 5、8、6 节。
@@ -510,14 +510,14 @@ shared/fixtures/
 
 ### 6.2 发布契约（Windows）
 
-一个 Windows Release（tag `win-v<版本>`）有固定的 4 个附件：
+1.4.0 起，Windows 的附件放在两个平台共用的 Release（tag `v<版本>`）里，与 macOS 的 dmg 和源码包在一起；1.4.0 以前是单独的 Release（tag `win-v<版本>`）。Windows 的附件如下：
 
 | 附件 | 内容 |
 | --- | --- |
 | `EVE-O-Preview-<版本>-windows-x64.zip` | `EVE-O Preview.exe`、`LICENSE.txt`、`README.txt` |
 | `eve-o-preview-<版本>-windows-source.zip` | 该 tag 的 `windows/` 与 `shared/` 源码（GPL 要求） |
-| `SHA256SUMS.txt` | 上面两个文件的 SHA-256 |
-| `SHA256SUMS.txt.sig` | 对 `SHA256SUMS.txt` 的 ed25519 签名 |
+| `SHA256SUMS.txt` | 上面两个文件的 SHA-256；共用的 Release 里还有 macOS 附件的几行 |
+| `SHA256SUMS.txt.sig` | 对整个 `SHA256SUMS.txt` 的 ed25519 签名 |
 
 exe 的版本资源里写入版本号、构建标签与提交号。CI 在发布前核对这份契约，做法与 macOS 的「检查产物」一步相同。
 
@@ -525,7 +525,7 @@ exe 的版本资源里写入版本号、构建标签与提交号。CI 在发布�
 
 规则（多久检查一次、跳过的版本、何时可以安装、发布说明按语言取哪一块、中间版本的说明）全部来自 Core 的 `UpdatePolicy`、`ReleaseHistory`、`ReleaseNotes`，从 Swift 移植，与 macOS 行为一致。平台层只做下面这些：
 
-1. 取 `https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=100`，只看 tag 以 `win-v` 开头、不是草稿的条目，按语义化版本取最高的正式版。不用 `/releases/latest`，它永远指向 macOS 版（7.4 节）。
+1. 取 `https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=100`，只看不是草稿的条目，按语义化版本取最高的正式版。tag 可以是 `v<版本>` 或旧的 `win-v<版本>`；`v` 开头的条目必须带 `EVE-O-Preview-<版本>-windows-x64.zip`，否则跳过（1.3.2 及以前的 macOS Release 没有它）。不用 `/releases/latest`：1.4.0 以前它指向 macOS 版，以后也不应让 Windows 依赖它（7.4 节）。
    测试版的渠道：正在运行的是预发布版（`win-v0.x` 的测试版或 CI 构建）时，也提示更新的预发布版；正在运行正式版时只提示正式版。中间版本的发布说明从同一页列表里挑，不再另请求。
 2. 附件地址必须在本仓库的 `/releases/` 路径下，校验规则移植 `UpdateFeed.accepts`。
 3. 下载 zip、`SHA256SUMS.txt` 与 `.sig`。先用内置的 ed25519 公钥验签校验和文件，再核对 zip 的 SHA-256。签名文件是对 `SHA256SUMS.txt` 原始字节的 ed25519 签名的 base64（一行）。
@@ -585,9 +585,9 @@ eve-o-preview/
 ├── docs/
 │   ├── macos/                   现有的 architecture.md 等 6 份文档
 │   ├── windows/                 本方案定稿后放这里
-│   └── release-notes/{macos,windows}/
+│   └── release-notes/           v<版本>.md（1.4.0 起两个平台共用）；{macos,windows}/ 是之前的
 ├── scripts/                     仓库级的 check_quality.py、check_release_notes.py
-└── .github/workflows/           macos.yml、windows.yml
+└── .github/workflows/           macos.yml、windows.yml、release.yml
 ```
 
 ### 7.2 迁移顺序
@@ -615,8 +615,9 @@ eve-o-preview/
 
 | 工作流 | 触发 | 运行器 | 任务 |
 | --- | --- | --- | --- |
-| `macos.yml` | 推送 `v*` tag；手动运行。PR 的 macOS 检查改在维护者的 Mac 上跑 `scripts/verify_macos.sh`，以提交状态 `local/macos` 上报（macOS 架构文档 9.5 节） | `macos-15` | 现有的全部步骤，路径加上 `macos/` 前缀；另加共享生成物的漂移检查 |
-| `windows.yml` | PR 与推送到 `main`，改动涉及 `windows/**`、`shared/**`、`scripts/**`、`docs/release-notes/windows/**` 或工作流自身；推送 `win-v*` tag；手动运行 | 见下 | 见下 |
+| `release.yml` | 推送 `v*` tag；手动运行（演练）。1.4.0 起加入 | `ubuntu-latest` | 核对两个平台的版本号，调用下面两个工作流打包，合并校验和、签名，建一个 Release（7.4.1 节） |
+| `macos.yml` | 被 `release.yml` 调用；手动运行。PR 的 macOS 检查改在维护者的 Mac 上跑 `scripts/verify_macos.sh`，以提交状态 `local/macos` 上报（macOS 架构文档 9.5 节） | `macos-15` | 现有的全部步骤，路径加上 `macos/` 前缀；另加共享生成物的漂移检查 |
+| `windows.yml` | PR 与推送到 `main`，改动涉及 `windows/**`、`shared/**`、`scripts/**`、发布说明、`macos/VERSION` 或工作流自身；被 `release.yml` 调用；手动运行 | 见下 | 见下 |
 
 `windows.yml` 的任务：
 
@@ -624,12 +625,12 @@ eve-o-preview/
 | --- | --- | --- |
 | `core` | `ubuntu-latest` | 质量门禁、`cargo fmt --check`、`cargo clippy -D warnings`、`cargo deny`、`eveo-core` 与 `eveo-app-core` 的测试、一致性测试、`cargo check --target x86_64-pc-windows-msvc` 整个工作区、界面截图回归 |
 | `build` | `windows-latest` | 全工作区测试、发布构建、集成探针（8.2 节）、打包、发布契约检查、上传制品与截图 |
-| `release` | `ubuntu-latest` | 只在 `win-v*` tag 上运行：核对 tag 与 `windows/VERSION` 一致，签校验和，建 Release，`make_latest` 设为 `false`，随后调接口确认 `/releases/latest` 仍是 `v*` 的 tag，不是就失败并报警 |
+| `release` | `ubuntu-latest` | 1.4.0 以前只在 `win-v*` tag 上运行：签校验和，建不标 latest 的 Release。1.4.0 起移到 `release.yml` 的 `publish` 任务 |
 
 细节：
 
 1. 分支保护里的必需检查不能直接挂在带路径过滤的工作流上，否则没触发的工作流会让 PR 一直等待。做法是 `windows.yml` 在 PR 上总触发，第一个任务用 `git diff` 判断有没有相关改动，没有就让后续任务跳过（跳过算通过）。macOS 的本机验证脚本用同样的路径判断，没有相关改动时直接上报成功。
-2. tag 推送不受路径过滤影响，靠 tag 的前缀区分两个工作流。
+2. tag 推送不受路径过滤影响。1.4.0 以前靠 tag 的前缀区分两个工作流；1.4.0 起只有 `release.yml` 响应 tag。
 3. 质量门禁 `scripts/check_quality.py` 扩展为按语言配置：Rust（`//`、`///`、`//!`、块注释；函数从 `fn` 起算）与 `.slint`（`//`）加入检查，阈值不变：注释率大于 20%，单文件少于 1000 行，单函数少于 500 行。生成的文件（文案、词表）排除在外。
 4. 第三方 action 钉到提交 SHA，与现有约定一致。
 5. 分支名、提交信息、PR 的规则对 Windows 代码同样适用。提交的范围可以写成 `feat(windows): …`、`fix(macos): …`、`chore(shared): …`。
@@ -649,6 +650,17 @@ eve-o-preview/
 2. Windows 的 `release` 任务在发布后核对 latest，见 7.3 节。误标时在 Releases 页面把最近的 macOS Release 重新设为 latest 即可恢复。
 3. 预发布版本的 tag：macOS 沿用 `v1.4.0-beta.1`，Windows 用 `win-v0.3.0-beta.1`，带 `-` 的标为预发布。
 4. Release 列表里两端的版本混在一起。macOS 客户端取中间版本说明时会跳过解析不了的 tag（现有行为），但每页 30 条里会被 Windows 版本占掉一部分。过渡版把这个请求改成每页 100 条。
+
+### 7.4.1 1.4.0 起统一版本号与 tag
+
+2026-11-24 改为两个平台用同一个版本号，在同一个 tag 下发布，上面的方案 A 到 1.3.2（macOS）与 1.1.0（Windows）为止。从 1.4.0 起：
+
+1. 版本号：`macos/VERSION`、`windows/VERSION` 与 `windows/Cargo.toml` 的版本号始终相同，由 `scripts/check_versions.py` 核对。只改一个平台也一起升。两边起点不同（1.3.2 与 1.1.0），取较大的一边往上走，所以 Windows 从 1.1.0 直接到 1.4.0。
+2. tag 与 Release：一个 `v<版本>` tag，一个标为 latest 的 Release，放 dmg、Windows zip、两个源码包、合并的 `SHA256SUMS.txt` 与它的 ed25519 签名。两个平台都打包成功才建 Release。
+3. 旧的 macOS 客户端照常工作：它读 `/releases/latest`，按名字取 dmg 与 `SHA256SUMS.txt`，校验和文件里多出的行不影响解析。
+4. 旧的 Windows 客户端（1.0、1.1）只认 `win-v*`。`release.yml` 为 1.4.0 另建一个 `win-v1.4.0` Release（不标 latest，只放 Windows 的 4 个附件），让它们能自动更新。1.4.0 的客户端两种 tag 都认，之后不再建这种兼容 Release。
+5. 1.4.0 的 Windows 客户端在 `v*` 的 Release 里只认带本版本 Windows zip 的条目，所以只有 dmg 的旧 Release 不会被当成 Windows 版本。同一版本号同时出现在 `v1.4.0` 与 `win-v1.4.0` 时，中间版本的说明按版本号去重，只列一次。
+6. 发布说明一个版本一份（`docs/release-notes/v<版本>.md`），每个语言块里分 macOS 与 Windows 小节，见 [打包文档 4.1 节](packaging.md#41-发布说明)。
 
 ### 7.5 过渡版 v1.3.0 的内容
 

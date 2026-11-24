@@ -26,7 +26,7 @@ EVE-O Preview for Windows 1.0 于 2026-11-24 发布，功能与 macOS 版相同�
 
 需要 64 位的 Windows 10 22H2 或 Windows 11。
 
-1. 从 [Releases](https://github.com/deletexiumu/eve-o-preview/releases) 页面下载 `EVE-O-Preview-<版本>-windows-x64.zip`。Windows 版的 tag 是 `win-v<版本>`；标着「Latest」的是 macOS 版。
+1. 从 [Releases](https://github.com/deletexiumu/eve-o-preview/releases) 页面下载 `EVE-O-Preview-<版本>-windows-x64.zip`。1.4.0 起 macOS 版与 Windows 版在同一个 Release 里发布，tag 是 `v<版本>`；之前的 Windows 版 tag 是 `win-v<版本>`。
 2. 把文件夹解压到你有写权限的位置，例如「文档」或 `D:\Games`。不要放在「Program Files」下：更新需要原地替换 exe。
 3. 运行 `EVE-O Preview.exe`。exe 还没有代码签名，第一次运行时 Windows SmartScreen 可能提示：点「更多信息」，再点「仍要运行」。
 

@@ -2,8 +2,12 @@
 //
 // 更新检查的地址与附件地址的核对（docs/windows/architecture.md 6.2、6.3 节，规则移植 macOS 的 UpdateFeed）。
 //
-// Windows 版与 macOS 版发在同一个仓库里，`releases/latest` 永远指向 macOS 版，所以 Windows 只取 Release 列表
-// （每页 100 个），在里面找 tag 以 `win-v` 开头的项。一次请求同时得到最新版与中间版本的发布说明。
+// Windows 版与 macOS 版发在同一个仓库里，Windows 只取 Release 列表（每页 100 个），在里面找 Windows 版的项。
+// 一次请求同时得到最新版与中间版本的发布说明。Windows 版的项有两种 tag：
+// - `v<版本>`：1.4.0 起两个平台用同一个 tag、同一个 Release 发布。只有带着本版本 Windows 压缩包的才算，
+//   1.3.2 及更早的 `v*` 是纯 macOS 的 Release，没有这个附件，被排除（由 parser 按附件名判断）。
+// - `win-v<版本>`：1.4.0 以前 Windows 单独发布用的 tag。1.4.0 还会多发一个只含 Windows 文件的 `win-v1.4.0`，
+//   让只认这种 tag 的 1.0、1.1 能自动升级；同一个版本出现两次时由 policy 与 history 去重。
 //
 // 测试地址：环境变量 `EVEO_UPDATE_FEED_URL` 指向一个 Release 列表的 JSON。只接受 https，或主机是
 // 127.0.0.1、localhost、::1 的 http；不符合时用正式地址。测试地址下附件与发布页应与它同源。
@@ -23,8 +27,10 @@ pub const PRODUCTION_LIST_URL: &str =
 pub const PRODUCTION_ASSET_PREFIX: &str = "https://github.com/deletexiumu/eve-o-preview/releases/";
 /// 发布页列表：检查失败、不能自动安装时打开它。
 pub const RELEASES_PAGE_URL: &str = "https://github.com/deletexiumu/eve-o-preview/releases";
-/// Windows 版的 tag 前缀；macOS 版的 tag 是 `v*`。
-pub const TAG_PREFIX: &str = "win-v";
+/// 两个平台统一发布的 tag 前缀（1.4.0 起）。
+pub const TAG_PREFIX: &str = "v";
+/// 1.4.0 以前 Windows 单独发布用的 tag 前缀。
+pub const LEGACY_TAG_PREFIX: &str = "win-v";
 /// 校验和文件的附件名。
 pub const CHECKSUMS_NAME: &str = "SHA256SUMS.txt";
 /// 校验和文件的 ed25519 签名的附件名。
@@ -35,10 +41,17 @@ pub fn archive_name(version: &str) -> String {
     format!("EVE-O-Preview-{version}-windows-x64.zip")
 }
 
-/// tag 去掉 `win-v` 前缀后的版本文字；不是 Windows 的 tag 时返回 None。
+/// tag 去掉 `win-v` 或 `v` 前缀后的版本文字；两种前缀都不是时返回 None。
+/// `v*` 的项还要带着本版本的 Windows 压缩包才算 Windows 版，见 `is_unified_tag`。
 pub fn version_text(tag: &str) -> Option<&str> {
-    // 只认小写的前缀：发布脚本只打这一种写法，别的写法多半是误打的 tag。
-    tag.strip_prefix(TAG_PREFIX)
+    // 只认小写的前缀：发布脚本只打这两种写法，别的写法多半是误打的 tag。
+    tag.strip_prefix(LEGACY_TAG_PREFIX)
+        .or_else(|| tag.strip_prefix(TAG_PREFIX))
+}
+
+/// 是否是两个平台统一发布的 tag（`v*`）。这种 Release 里没有 Windows 压缩包时不是 Windows 版。
+pub fn is_unified_tag(tag: &str) -> bool {
+    tag.starts_with(TAG_PREFIX)
 }
 
 /// 更新检查的地址。
@@ -283,8 +296,12 @@ mod tests {
     fn names() {
         assert_eq!(archive_name("0.9.0"), "EVE-O-Preview-0.9.0-windows-x64.zip");
         assert_eq!(version_text("win-v0.9.0-beta.1"), Some("0.9.0-beta.1"));
-        assert_eq!(version_text("v1.3.1"), None);
+        assert_eq!(version_text("v1.4.0"), Some("1.4.0"));
         assert_eq!(version_text("Win-v0.9.0"), None);
+        assert_eq!(version_text("V1.4.0"), None);
+        assert_eq!(version_text("1.4.0"), None);
+        assert!(is_unified_tag("v1.4.0"));
+        assert!(!is_unified_tag("win-v1.4.0"));
         assert!(PRODUCTION_LIST_URL.ends_with(&format!("per_page={}", crate::update::history::PAGE_SIZE)));
     }
 

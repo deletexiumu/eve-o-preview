@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Release 列表解析与限流判断的用例，移植 macOS 的 ReleaseFeedParserTests 与 ReleaseHistoryTests 的解析部分，
-// 另加 Windows 的规则（只认 `win-v` 的 tag，macOS 的项跳过）。
+// 另加 Windows 的规则（认 `win-v` 与带 Windows 压缩包的 `v` 两种 tag，纯 macOS 的项跳过）。
 
 use super::*;
 use serde_json::json;
@@ -275,4 +275,41 @@ fn rate_limits() {
     assert_eq!(check(403, &[]), None);
     assert_eq!(check(200, &[("x-ratelimit-remaining", "0")]), None);
     assert_eq!(check(404, &[("retry-after", "5")]), None);
+}
+
+/// 统一发布（1.4.0 起）：`v*` 的项带着本版本的 Windows 压缩包才算 Windows 版；纯 macOS 的 `v*`、
+/// 压缩包版本号对不上的 `v*` 跳过；过渡用的 `win-v1.4.0` 照样认，同一版本出现两次由 policy 与 history 去重。
+#[test]
+fn unified_tags_need_the_windows_archive() {
+    let unified_assets = |version: &str, tag: &str| {
+        json!([
+            {"name": format!("EVE-O-Preview-{version}.dmg"), "size": 8_700_000,
+             "browser_download_url": url(&format!("download/{tag}/EVE-O-Preview-{version}.dmg"))},
+            {"name": format!("EVE-O-Preview-{version}-windows-x64.zip"), "size": 9_600_000,
+             "browser_download_url": url(&format!("download/{tag}/EVE-O-Preview-{version}-windows-x64.zip"))},
+            {"name": "SHA256SUMS.txt", "size": 400, "browser_download_url": url(&format!("download/{tag}/SHA256SUMS.txt"))},
+            {"name": "SHA256SUMS.txt.sig", "size": 89,
+             "browser_download_url": url(&format!("download/{tag}/SHA256SUMS.txt.sig"))}
+        ])
+    };
+    let mac_only = json!([
+        {"name": "EVE-O-Preview-1.3.2.dmg", "size": 8_699_515,
+         "browser_download_url": url("download/v1.3.2/EVE-O-Preview-1.3.2.dmg")},
+        {"name": "SHA256SUMS.txt", "size": 299, "browser_download_url": url("download/v1.3.2/SHA256SUMS.txt")}
+    ]);
+    let list = parse(vec![
+        item("v1.4.0", json!({"assets": unified_assets("1.4.0", "v1.4.0")})),
+        item("win-v1.4.0", json!({})),
+        item("v1.3.2", json!({"assets": mac_only})),
+        // 压缩包是别的版本的：不算。
+        item("v1.5.0", json!({"assets": unified_assets("1.4.9", "v1.5.0")})),
+        item("win-v1.1.0", json!({})),
+    ])
+    .expect("有效");
+    let tags: Vec<&str> = list.releases.iter().map(|info| info.tag_name.as_str()).collect();
+    assert_eq!(tags, ["v1.4.0", "win-v1.4.0", "win-v1.1.0"]);
+    let unified = &list.releases[0];
+    assert_eq!(unified.version, "1.4.0");
+    assert_eq!(unified.assets.len(), 4);
+    assert!(unified.asset("EVE-O-Preview-1.4.0-windows-x64.zip").is_some());
 }

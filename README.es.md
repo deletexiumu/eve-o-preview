@@ -28,7 +28,7 @@ EVE-O Preview for Windows 1.0 se publicó el 2026-11-24. Tiene las mismas funcio
 
 Requiere Windows 10 22H2 o Windows 11 de 64 bits.
 
-1. Descarga `EVE-O-Preview-<versión>-windows-x64.zip` de la página [Releases](https://github.com/deletexiumu/eve-o-preview/releases). Las versiones para Windows llevan la etiqueta `win-v<versión>`; la marcada como «Latest» es la app para macOS.
+1. Descarga `EVE-O-Preview-<versión>-windows-x64.zip` de la página [Releases](https://github.com/deletexiumu/eve-o-preview/releases). Desde la 1.4.0, las versiones para macOS y Windows se publican juntas en una misma release con la etiqueta `v<versión>`; las versiones anteriores para Windows llevan la etiqueta `win-v<versión>`.
 2. Extrae la carpeta en un lugar donde puedas escribir, como Documentos o `D:\Games`. No uses «Program Files»: las actualizaciones sustituyen el exe en su sitio.
 3. Ejecuta `EVE-O Preview.exe`. El exe aún no tiene firma de código, así que Windows SmartScreen puede mostrar un aviso la primera vez: elige «Más información» y luego «Ejecutar de todas formas».
 
