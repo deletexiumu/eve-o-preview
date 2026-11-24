@@ -6,6 +6,7 @@
 mod clear;
 mod feed;
 mod parser;
+mod pilots;
 
 use super::IntelReport;
 use super::parser::parse_with;
