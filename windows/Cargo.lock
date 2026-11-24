@@ -1003,6 +1003,7 @@ name = "eveo-app-core"
 version = "0.1.0"
 dependencies = [
  "eveo-core",
+ "eveo-l10n",
  "serde",
  "serde_json",
 ]

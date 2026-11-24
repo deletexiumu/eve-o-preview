@@ -7,11 +7,13 @@
 // - gesture：缩略图的鼠标手势状态机；flash：战斗提醒的闪烁曲线。
 // - game_log：游戏日志的跟踪服务（后台线程轮询 Gamelogs，只用标准库）。
 // - chat_log：聊天日志的跟踪服务（轮询 Chatlogs，位置线索另读 Gamelogs）；poller 是两者共用的轮询线程。
+// - chat：预警与翻译的功能控制器（取聊天日志事件，产出浮窗的内容）。
 // - pilots：人名核对服务（缓存文件、排队、后台发请求），发请求的函数由可执行文件交进来。
 // 这个 crate 不依赖 windows crate，在 Linux 上用事件序列做单元测试；Win32 的执行者在可执行文件里。
 
 //! EVE-O Preview Windows 版的协调器、配置存储与数据位置。
 
+pub mod chat;
 pub mod chat_log;
 pub mod config_store;
 pub mod coordinator;
