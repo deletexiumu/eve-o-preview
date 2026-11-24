@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 日志的纯逻辑部分，对应 macOS 的 Logging/。M2b 先放配置要用的日志级别。
+// 日志的纯逻辑部分，对应 macOS 的 Logging/：级别（配置要用）、一行的写法、限速、带轮转的文件。
+// 全局的日志入口（锁、最低级别、panic 时刷盘）在 eveo-app-core 的 log 模块。
 
 //! 日志。
+
+pub mod format;
+pub mod rate;
+pub mod rotating;
 
 use std::cmp::Ordering;
 

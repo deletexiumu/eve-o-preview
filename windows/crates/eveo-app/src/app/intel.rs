@@ -26,6 +26,7 @@ use eveo_app_core::chat::features::{ChatFeatures, StaticDataLoad, TailerCommand}
 use eveo_app_core::chat::intel::IntelController;
 use eveo_app_core::chat::static_file;
 use eveo_app_core::chat_log::{ChatLogMessage, ChatLogTailer};
+use eveo_app_core::log::Logger;
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::pilots::PilotLookupService;
 use eveo_app_core::pilots::store::PilotNameStore;
@@ -40,6 +41,7 @@ use eveo_platform_win::{esi, menu, shell};
 
 use super::alerts::automatic_directory;
 use super::intel_page::IntelPage;
+use super::logging::{self, QuitTimer};
 use super::translation::{self, TranslationPage};
 use super::{App, Runtime};
 use crate::menus::{self, OverlayChoice};
@@ -47,6 +49,11 @@ use crate::overlays::{DragContextProvider, InfoOverlays, OverlayEvent};
 
 /// 嵌进 exe 的星图数据（shared/static/eve-static.json，约 755 KB）。
 const EMBEDDED_STATIC_DATA: &str = include_str!("../../../../../shared/static/eve-static.json");
+
+/// 翻译的日志。
+const TRANSLATION_LOG: Logger = Logger::new("Translation");
+/// 预警与聊天日志的日志。
+const CHAT_LOG: Logger = Logger::new("Chat");
 
 /// 墙上时钟的秒数（1970 年以来）。系统时间早于 1970 年时记 0，只会让「多久以前」显示得不对，不会出错。
 pub(super) fn wall_clock() -> f64 {
@@ -127,7 +134,7 @@ impl App {
             }
             Some(TailerCommand::Stop) => {
                 self.chat.tailer = None;
-                self.chat.features.status_changed(ChatLogStatus::Stopped, now);
+                self.chat_status_changed(ChatLogStatus::Stopped, now);
             }
             None => {}
         }
@@ -207,7 +214,7 @@ impl App {
                 ChatLogMessage::Events(events) => stale.extend(self.chat.features.events(events, now)),
                 // 状态变了：浮窗的状态行要换。
                 ChatLogMessage::Status(status) => {
-                    if self.chat.features.status_changed(status, now) {
+                    if self.chat_status_changed(status, now) {
                         all = true;
                         // 预警页的状态行也跟着换。
                         self.show_chat_status();
@@ -226,13 +233,19 @@ impl App {
         {
             self.chat.static_data = None;
             self.chat.features.static_data_loaded(result, now);
+            CHAT_LOG.info(format_args!(
+                "星图数据：{}",
+                self.chat.features.static_data_state()
+            ));
             all = true;
         }
         stale.extend(self.chat.features.tick(now));
-        // 翻译：测试结果换成页面上的文字；日志行在诊断日志接上之前丢掉（只有条数与状态码）。
+        // 翻译：测试结果换成页面上的文字；控制器记下的日志行（只有条数、状态码与耗时，不含原文与 Key）写进诊断日志。
         self.take_translation_test();
         if let Some(translation) = self.chat.features.translation_mut() {
-            translation.take_log_lines();
+            for line in translation.take_log_lines() {
+                TRANSLATION_LOG.info(line);
+            }
         }
         self.show_translation_page();
         // 预警：新的线索可能覆盖了手动位置，写回 state.json；页上的位置与「多久以前」随之刷新。
@@ -253,10 +266,22 @@ impl App {
         }
     }
 
-    /// 应用退出：停掉人名核对（有改动时同步存盘）与跟踪服务。
-    pub(super) fn chat_stop(&mut self) {
-        self.chat.features.stop(wall_clock());
-        self.chat.tailer = None;
+    /// 应用退出：停掉人名核对（有改动时同步存盘）与翻译，再停聊天日志的跟踪服务。分两步，各记耗时。
+    pub(super) fn chat_stop(&mut self, quit: &mut QuitTimer) {
+        quit.step("停止人名核对与翻译", || {
+            self.chat.features.stop(wall_clock())
+        });
+        quit.step("停止聊天日志", || self.chat.tailer = None);
+    }
+
+    /// 交给总控一个新的跟踪状态；真的变了时记一行日志并返回真。
+    fn chat_status_changed(&mut self, status: ChatLogStatus, now: f64) -> bool {
+        let old = self.chat.features.chat_log_status().clone();
+        let changed = self.chat.features.status_changed(status, now);
+        if changed {
+            logging::chat_status_changed(&old, self.chat.features.chat_log_status());
+        }
+        changed
     }
 
     /// 设置页的按钮改了某个浮窗的内容（Key、重试、清空缓存、手动位置）：刷新那个浮窗。
