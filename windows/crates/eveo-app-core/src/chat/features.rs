@@ -21,6 +21,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use eveo_core::chat_log::coverage::FollowedChatChannel;
 use eveo_core::chat_log::request::ChatLogRequest;
 use eveo_core::chat_log::{ChatLogEvent, ChatLogStatus, ChatMessage};
 use eveo_core::model::{AppConfig, AppLanguage, ChannelRef};
@@ -64,6 +65,8 @@ pub struct ChatFeatures {
     visible: BTreeSet<OverlayKind>,
     /// 跟踪服务最近报告的状态。
     chat_log_status: ChatLogStatus,
+    /// 跟踪服务最近报告的日志文件（收听者与频道）；还没报告过时为 None。
+    followed_channels: Option<Vec<FollowedChatChannel>>,
     /// 最近一次要求的请求；None 表示没有在跟踪。
     current_request: Option<ChatLogRequest>,
     /// 星图数据；还没读、缺失或无效时为 None。
@@ -88,6 +91,7 @@ impl ChatFeatures {
             active_character: None,
             visible: BTreeSet::new(),
             chat_log_status: ChatLogStatus::Stopped,
+            followed_channels: None,
             current_request: None,
             static_data: None,
             static_data_state: "notLoaded".to_owned(),
@@ -257,6 +261,16 @@ impl ChatFeatures {
         true
     }
 
+    /// 跟踪的日志文件变了（例如 EVE 新建了某个频道的日志）：返回真时调用方刷新浮窗的状态行。
+    pub fn followed_changed(&mut self, followed: Vec<FollowedChatChannel>, now: f64) -> bool {
+        if self.stopped || self.followed_channels.as_ref() == Some(&followed) {
+            return false;
+        }
+        self.followed_channels = Some(followed);
+        self.update_consumers(now);
+        true
+    }
+
     /// 在应用的定时器里调用：收人名核对的结果。返回内容变了的浮窗。
     pub fn tick(&mut self, now: f64) -> BTreeSet<OverlayKind> {
         let mut changed = BTreeSet::new();
@@ -339,6 +353,7 @@ impl ChatFeatures {
             static_data: self.static_data.clone(),
             active_character: self.active_character.clone(),
             chat_log_status: self.chat_log_status.clone(),
+            followed_channels: self.followed_channels.clone(),
             language: self.language,
         };
         self.intel.update(context, now);

@@ -55,6 +55,7 @@ fn context(static_data: Option<Arc<EveStaticData>>) -> ChatFeedContext {
             directory: "C:\\Chatlogs".to_owned(),
             followed_files: 2,
         },
+        followed_channels: None,
         language: AppLanguage::En,
     }
 }
