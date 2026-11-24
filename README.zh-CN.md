@@ -1,15 +1,38 @@
 <p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS 图标"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 [English](README.md) | **简体中文** | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
-EVE-O Preview for macOS 给每个运行中的 EVE Online 客户端显示一个实时缩略图。点击缩略图或按全局热键，即可切换到对应的客户端。
+EVE-O Preview 给每个运行中的 EVE Online 客户端显示一个实时缩略图。点击缩略图或按全局热键，即可切换到对应的客户端。
 
-本项目按上游 [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)（Windows 版，GPL-3.0）的功能，用 Swift 在 macOS 上重新实现。我们没有移植上游的 C# 源码，界面与配置文件格式也与上游不同。
+本仓库有两个原生应用：macOS 版用 Swift 编写，Windows 版用 Rust 编写。两者共用 `shared/` 里的配置文件格式、界面文字与测试用例，各自调用本平台的系统接口。
+
+两个应用都按上游 [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)（Windows 版，GPL-3.0）的功能重新实现。我们没有移植上游的 C# 源码，界面与配置文件格式也与上游不同。
 本项目以 GNU 通用公共许可证第 3 版或任何更新的版本（GPL-3.0-or-later）发布，与源码文件头的 SPDX 标识一致；上游以 GPL-3.0 发布。许可证全文见 [LICENSE](LICENSE)。
 
-本仓库最初是 EveOPlus/eve-o-preview 在 GitHub 上的 fork，从 v1.0 起迁为独立仓库。本项目是独立项目，与 Windows 版没有共用代码，也不由上游作者维护。
+本仓库最初是 EveOPlus/eve-o-preview 在 GitHub 上的 fork，从 v1.0 起迁为独立仓库。本项目是独立项目，与上游 EveOPlus/eve-o-preview 没有共用代码，也不由上游作者维护。
+
+## Windows
+
+EVE-O Preview for Windows 1.0 于 2026-11-24 发布，功能与 macOS 版相同：DWM 实时缩略图、切换与热键（含鼠标按键）、布局、可见性规则、战斗提醒、预警与聊天翻译浮窗、配置方案、带签名校验的更新与问题报告。与 macOS 版的不同之处：
+
+- **游戏帧率**（1.1 起，默认关闭）：「通用」页的「游戏帧率」一组通过显卡驱动把所有 EVE 客户端限在同一个帧数（默认 60），多开时切换客户端更顺滑。它不碰游戏客户端：NVIDIA 显卡给 exefile.exe 设置「最大帧速率」，Intel 显卡给 exefile.exe 设置帧数上限；AMD 驱动只能对这台电脑上的所有游戏一起限帧。关闭后还原原来的驱动设置。AMD 与 Intel 的支持还没有经过实测。
+- **登录 Windows 时启动**，在「通用」页。
+- 用通知区域图标代替菜单栏图标：左键打开设置，右键打开菜单。
+- API Key 存进 Windows 凭据管理器，代替 macOS 钥匙串。
+
+### 在 Windows 上安装
+
+需要 64 位的 Windows 10 22H2 或 Windows 11。
+
+1. 从 [Releases](https://github.com/deletexiumu/eve-o-preview/releases) 页面下载 `EVE-O-Preview-<版本>-windows-x64.zip`。Windows 版的 tag 是 `win-v<版本>`；标着「Latest」的是 macOS 版。
+2. 把文件夹解压到你有写权限的位置，例如「文档」或 `D:\Games`。不要放在「Program Files」下：更新需要原地替换 exe。
+3. 运行 `EVE-O Preview.exe`。exe 还没有代码签名，第一次运行时 Windows SmartScreen 可能提示：点「更多信息」，再点「仍要运行」。
+
+设置保存在 `%APPDATA%\EVE-O Preview\config.json`，日志在 `%LOCALAPPDATA%\EVE-O Preview\logs\`。不会导入原版 EVE-O Preview 的设置。卸载：从托盘菜单退出；如果打开过「登录 Windows 时启动」，先关掉它；然后删除应用文件夹和上面两个文件夹。从源码构建见 [windows/README.md](windows/README.md)。
+
+本文其余部分介绍 macOS 版。
 
 ## 功能
 
@@ -250,7 +273,7 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 
 | 上游功能 | 原因 |
 | --- | --- |
-| 帧率限制、选择性静音（Robin 注入） | 上游向 Windows 进程注入 DLL 实现，macOS 没有对应的公开机制 |
+| 帧率限制、选择性静音（Robin 注入） | 上游向 Windows 进程注入 DLL 实现，macOS 没有对应的公开机制。Windows 版改为通过显卡驱动限帧（见 [Windows](#windows)） |
 | CPU 亲和性 | 依赖 Windows CPU Sets；Apple Silicon 没有按进程指定核心的公开接口 |
 | 战斗日志增强（Augments）中的伤害数字、DPS、维修量、星系叠层，FC 静态数据 | 独立的大型子系统，不属于「预览与切换」；只移植了「受到攻击时闪烁」 |
 | 主题、Legacy 界面、自定义右键菜单样式 | macOS 版跟随系统外观 |

@@ -1,17 +1,40 @@
 <p align="center"><img src="macos/packaging/AppIcon.png" width="128" alt="EVE-O Preview for macOS 아이콘"></p>
 
-# EVE-O Preview for macOS
+# EVE-O Preview for macOS & Windows
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | **한국어** | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 이 번역은 기계 번역이며, 영어 원문과 내용이 다를 경우 [영어 README](README.md)가 우선합니다.
 
-EVE-O Preview for macOS는 실행 중인 모든 EVE Online 클라이언트의 실시간 썸네일을 보여 줍니다. 썸네일을 클릭하거나 전역 단축키를 누르면 해당 클라이언트로 전환합니다.
+EVE-O Preview는 실행 중인 모든 EVE Online 클라이언트의 실시간 썸네일을 보여 줍니다. 썸네일을 클릭하거나 전역 단축키를 누르면 해당 클라이언트로 전환합니다.
 
-이 앱은 [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)(Windows, GPL-3.0)의 기능을 macOS용 네이티브 Swift로 새로 구현한 것입니다. 원본 프로젝트의 C# 코드를 이식하지 않았으며, UI와 설정 파일 형식도 원본 프로젝트와 다릅니다.
+이 저장소에는 네이티브 앱이 두 개 있습니다. macOS 버전은 Swift로, Windows 버전은 Rust로 작성했습니다. 설정 파일 형식, 인터페이스 문구, 테스트 케이스는 `shared/`에서 함께 쓰고, 각자 해당 플랫폼의 API를 사용합니다.
+
+두 앱 모두 [EveOPlus/eve-o-preview](https://github.com/EveOPlus/eve-o-preview)(Windows, GPL-3.0)의 기능을 새로 구현한 것입니다. 원본 프로젝트의 C# 코드를 이식하지 않았으며, UI와 설정 파일 형식도 원본 프로젝트와 다릅니다.
 라이선스는 GNU General Public License 버전 3 또는 그 이후 버전(GPL-3.0-or-later)이며, 소스 파일의 SPDX 식별자와 일치합니다. 원본 프로젝트의 라이선스는 GPL-3.0입니다. 전문은 [LICENSE](LICENSE)를 참고하십시오.
 
-이 저장소는 처음에 EveOPlus/eve-o-preview의 GitHub 포크로 만들어졌으며, v1.0부터 독립 저장소로 옮겼습니다. 이 프로젝트는 독립 프로젝트로, Windows 버전과 코드를 공유하지 않으며 원본 프로젝트의 작성자가 관리하지 않습니다.
+이 저장소는 처음에 EveOPlus/eve-o-preview의 GitHub 포크로 만들어졌으며, v1.0부터 독립 저장소로 옮겼습니다. 이 프로젝트는 독립 프로젝트로, 원본 EveOPlus/eve-o-preview와 코드를 공유하지 않으며 원본 프로젝트의 작성자가 관리하지 않습니다.
+
+## Windows
+
+EVE-O Preview for Windows 1.0은 2026-11-24에 출시됐습니다. 기능은 macOS 버전과 같습니다. DWM 실시간 썸네일, 전환과 단축키(마우스 버튼 포함), 레이아웃, 표시 규칙, 전투 알림, 정찰 오버레이와 채팅 번역 오버레이, 프로필, 서명을 확인하는 업데이트, 문제 신고를 지원합니다. macOS 버전과 다른 점:
+
+- **게임 프레임 속도**(1.1부터, 기본값 꺼짐): "일반" 페이지의 "게임 프레임 속도" 그룹에서 그래픽 드라이버를 통해 모든 EVE 클라이언트를 같은 프레임 속도(기본 60)로 제한합니다. 멀티박싱할 때 클라이언트 전환이 부드러워집니다. 게임 클라이언트는 건드리지 않습니다. NVIDIA는 exefile.exe의 ‘최대 프레임 속도’를, Intel은 exefile.exe의 프레임 속도 상한을 설정합니다. AMD 드라이버는 이 PC의 모든 게임을 한꺼번에만 제한할 수 있습니다. 끄면 이전 드라이버 설정으로 되돌립니다. AMD와 Intel 지원은 아직 실제 하드웨어에서 테스트하지 않았습니다.
+- "일반" 페이지의 **Windows에 로그인할 때 시작**.
+- 메뉴 막대 아이콘 대신 알림 영역 아이콘: 왼쪽 클릭으로 설정을, 오른쪽 클릭으로 메뉴를 엽니다.
+- API 키는 macOS 키체인 대신 Windows 자격 증명 관리자에 저장합니다.
+
+### Windows에 설치
+
+64비트 Windows 10 22H2 또는 Windows 11이 필요합니다.
+
+1. [Releases](https://github.com/deletexiumu/eve-o-preview/releases) 페이지에서 `EVE-O-Preview-<버전>-windows-x64.zip`을 내려받습니다. Windows 버전의 태그는 `win-v<버전>`이며, "Latest"로 표시된 릴리스는 macOS 버전입니다.
+2. 쓰기 권한이 있는 곳(예: "문서" 또는 `D:\Games`)에 폴더 압축을 풉니다. "Program Files"는 피하세요. 업데이트가 exe를 그 자리에서 교체합니다.
+3. `EVE-O Preview.exe`를 실행합니다. exe에 아직 코드 서명이 없어 처음 실행할 때 Windows SmartScreen 경고가 나올 수 있습니다. "추가 정보"를 누른 뒤 "실행"을 누르세요.
+
+설정은 `%APPDATA%\EVE-O Preview\config.json`에, 로그는 `%LOCALAPPDATA%\EVE-O Preview\logs\`에 저장됩니다. 기존 EVE-O Preview의 설정은 가져오지 않습니다. 제거하려면 트레이 메뉴에서 종료하고, "Windows에 로그인할 때 시작"을 켰다면 끈 다음, 앱 폴더와 위의 두 폴더를 삭제합니다. 소스에서 빌드하는 방법은 [windows/README.md](windows/README.md)를 참고하세요.
+
+이 문서의 나머지 부분은 macOS 버전을 설명합니다.
 
 ## 기능
 
@@ -252,7 +275,7 @@ macOS 사용자 이름, 전체 이름, 홈 폴더 경로, 컴퓨터 이름은 `[
 
 | 원본 프로젝트 기능 | 이유 |
 | --- | --- |
-| 프레임 속도 제한 및 선택적 음소거(Robin 인젝션) | 원본 프로젝트는 Windows 프로세스에 DLL을 주입합니다. macOS에는 이에 해당하는 공개 메커니즘이 없습니다 |
+| 프레임 속도 제한 및 선택적 음소거(Robin 인젝션) | 원본 프로젝트는 Windows 프로세스에 DLL을 주입합니다. macOS에는 이에 해당하는 공개 메커니즘이 없습니다. Windows 버전은 대신 그래픽 드라이버로 프레임 속도를 제한합니다([Windows](#windows) 참고) |
 | CPU 선호도 | Windows CPU Sets에 의존합니다. Apple Silicon에는 프로세스를 특정 코어에 고정하는 공개 API가 없습니다 |
 | 전투 로그 Augments: 피해량 수치, DPS, 수리량, 시스템 오버레이, FC 정적 데이터 | "미리 보기와 전환" 범위를 벗어나는 별도의 큰 하위 시스템입니다. "공격받으면 깜박이기"만 이식했습니다 |
 | 테마, 레거시 UI, 사용자 지정 오른쪽 클릭 메뉴 스타일 | macOS 버전은 시스템 모양을 따릅니다 |
