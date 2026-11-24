@@ -9,6 +9,7 @@
 // - chat_log：聊天日志的跟踪服务（轮询 Chatlogs，位置线索另读 Gamelogs）；poller 是两者共用的轮询线程。
 // - chat：预警与翻译的功能控制器（取聊天日志事件，产出浮窗的内容）。
 // - pilots：人名核对服务（缓存文件、排队、后台发请求），发请求的函数由可执行文件交进来。
+// - translation：翻译功能的控制器（缓冲、后台发请求、译文缓存与 API Key），传输与凭据由可执行文件交进来。
 // 这个 crate 不依赖 windows crate，在 Linux 上用事件序列做单元测试；Win32 的执行者在可执行文件里。
 
 //! EVE-O Preview Windows 版的协调器、配置存储与数据位置。
@@ -24,6 +25,7 @@ pub mod gesture;
 pub mod paths;
 pub mod pilots;
 mod poller;
+pub mod translation;
 
 pub use coordinator::Coordinator;
 pub use event::{

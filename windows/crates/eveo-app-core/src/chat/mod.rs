@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 聊天功能（预警与翻译）的控制器，对应 macOS 的 Chat/ 目录（docs/macos/design-intel-translate.md 9.2 节）。
-// - ChatFeedContext：交给功能控制器的上下文（配置方案、全局设置、星图数据、活动角色、聊天日志状态、界面语言）。
+// - ChatFeedContext：交给功能控制器的上下文（配置方案、全局设置、星图数据、活动角色、聊天日志状态、
+//   跟踪的日志文件、界面语言）。
 //   任何一项变了，应用层都再交一次；控制器与上一次比较，得出要做的事。
 // - IntelFormatter：用 eveo-l10n 的预警文字实现 Core 的 IntelLineFormatting（时间、跳数、数量与用语）。
 // - intel：预警功能的控制器（6.8 节）。
@@ -15,6 +16,7 @@
 use std::sync::Arc;
 
 use eveo_core::chat_log::ChatLogStatus;
+use eveo_core::chat_log::coverage::FollowedChatChannel;
 use eveo_core::intel::presenter::IntelLineFormatting;
 use eveo_core::model::{AppLanguage, GeneralSettings, Profile};
 use eveo_core::static_data::EveStaticData;
@@ -42,6 +44,8 @@ pub struct ChatFeedContext {
     pub active_character: Option<String>,
     /// 聊天日志跟踪服务的状态。
     pub chat_log_status: ChatLogStatus,
+    /// 跟踪服务正在跟踪的聊天日志文件（收听者与频道）；还没扫描完时为 None。翻译据此提示「EVE 没有写这些频道的日志」。
+    pub followed_channels: Option<Vec<FollowedChatChannel>>,
     /// 界面语言。
     pub language: AppLanguage,
 }

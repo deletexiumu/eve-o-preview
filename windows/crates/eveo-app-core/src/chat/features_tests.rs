@@ -5,6 +5,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use eveo_core::chat_log::coverage::FollowedChatChannel;
 use eveo_core::chat_log::{ChatLogEvent, ChatLogStatus, ChatMessage};
 use eveo_core::model::{AppConfig, AppLanguage, ChannelRef};
 use eveo_core::overlay::OverlayKind;
@@ -143,6 +144,15 @@ fn active_character_and_status_changes() {
     let status = ChatLogStatus::DirectoryNotFound("C:\\Chatlogs".to_owned());
     assert!(features.status_changed(status.clone(), NOW));
     assert!(!features.status_changed(status, NOW));
+    // 跟踪的日志文件同理：同样的列表再报一次不算变化。
+    let followed = vec![FollowedChatChannel {
+        listener: ACTIVE.to_owned(),
+        channel_id: "local".to_owned(),
+        channel_name: Some("Local".to_owned()),
+    }];
+    assert!(features.followed_changed(followed.clone(), NOW));
+    assert!(!features.followed_changed(followed, NOW));
+    assert!(features.followed_changed(Vec::new(), NOW));
     assert_eq!(
         features.content(OverlayKind::Intel, NOW).context_key,
         format!("intel:{ACTIVE}")
