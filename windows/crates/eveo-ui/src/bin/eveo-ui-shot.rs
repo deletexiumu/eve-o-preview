@@ -87,6 +87,35 @@ fn main() {
             }
         }
     }
+    // 更新窗口：可用（明暗各一张）、下载中与安装中，核对没有按钮时的排版。
+    // 安装中没有按钮行，最容易出现说明框被压扁或标题被挤到中间；下载中的进度条在暗色下最难看清，所以各留一张。
+    // 窗口大小 640×540 与应用里 update.slint 的默认大小一致；文件名带语言代码，几种语言的图可以放在同一目录里。
+    use eveo_ui::update::PhaseKind::{Available, Downloading, Installing};
+    for (name, dark, phase) in [
+        ("update-available-light.png", false, Available),
+        ("update-available-dark.png", true, Available),
+        ("update-downloading-dark.png", true, Downloading),
+        ("update-installing-light.png", false, Installing),
+    ] {
+        let options = ShotOptions {
+            dark,
+            size: (640, 540),
+            scale,
+            font: font.clone(),
+            page: 0,
+            language,
+        };
+        let name = name.replace(".png", &format!(".{code}.png"));
+        match eveo_ui::screenshot::update_png(&options, phase)
+            .and_then(|png| std::fs::write(out.join(&name), png).map_err(|e| e.to_string()))
+        {
+            Ok(()) => println!("{}", out.join(&name).display()),
+            Err(error) => {
+                eprintln!("{name}：{error}");
+                std::process::exit(1);
+            }
+        }
+    }
     // 「预览与布局」页：首屏（窗口默认大小）与整页（内容全部展开）各一张，明暗两套；「客户端」页明暗各一张；「切换与热键」页整页一张、暗色首屏一张。
     let shots = [
         ("settings-previews-light.png", false, 1, (1040, 760)),

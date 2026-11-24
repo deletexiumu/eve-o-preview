@@ -75,3 +75,5 @@ errorDiskImage = "Impossible d'ouvrir l'image disque téléchargée."
 errorVerification = "La nouvelle version n'a pas pu être vérifiée ; elle n'a donc pas été installée."
 errorUnsupportedSystem = "Cette version nécessite macOS {minimum} ou une version ultérieure."
 errorSwapFailed = "Impossible de remplacer l'app."
+
+notificationBody = "Cliquez pour voir les nouveautés et installer."

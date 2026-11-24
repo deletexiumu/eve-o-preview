@@ -67,3 +67,5 @@ errorDiskImage = "无法打开下载的磁盘映像。"
 errorVerification = "无法验证新版本，没有安装。"
 errorUnsupportedSystem = "这个版本需要 macOS {minimum} 或更高版本。"
 errorSwapFailed = "无法替换应用。"
+
+notificationBody = "点击查看新内容并安装。"
