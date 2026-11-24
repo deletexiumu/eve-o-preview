@@ -83,3 +83,12 @@ missing_docs = "warn"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+
+# panic 时直接结束进程（panic 钩子先把 fault 行写进日志）。默认的 unwind 下，主线程上的 panic 被 winit 的
+# 事件循环接住存起来，应用不退出也不再跑定时器，成了半死状态；真机上验证过（M7b）。结束进程后 WER 留下报告，
+# 下次启动按崩溃处理。cargo test 不受这个设置影响（测试总是 unwind）。
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
