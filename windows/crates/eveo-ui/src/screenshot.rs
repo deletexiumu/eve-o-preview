@@ -118,7 +118,14 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     // 「通用」与「关于」页：新配置的默认值（界面语言跟随系统）与版本号。
     config.general.language = eveo_core::model::LanguagePreference::System;
     let logs = r"C:\Users\Pilot\AppData\Local\EVE-O Preview\logs";
+    // 「游戏帧率」打开、驱动里已设好 60 帧（截图机器上没有显卡驱动，状态直接给出）。
+    config.general.frame_cap = Some(eveo_core::frame_cap::FrameCapSettings {
+        enabled: true,
+        fps: 60,
+    });
     crate::general::show_general(&ui, &config.general, logs);
+    let applied = eveo_l10n::settings(options.language).frame_cap_applied(60);
+    crate::general::show_frame_cap_status(&ui, eveo_core::frame_cap::FrameCapStatus::Applied(60), &applied);
     crate::general::show_about(&ui);
     // 「提醒」页：默认值，日志目录自动查找。
     let automatic = r"C:\Users\Pilot\Documents\EVE\logs";

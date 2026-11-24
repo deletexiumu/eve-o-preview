@@ -45,7 +45,7 @@ pub struct Normalized {
 /// - 布局里非有限的坐标改为 0，非正或非有限的宽高改为 `None`；坐标与登录位置夹到 [`COORDINATE_LIMIT`]。
 /// - 循环组成员去掉重复项，保留第一次出现的位置。
 /// - 战斗提醒的持续时间、最小伤害夹到范围内，非法颜色改回默认值；空白的日志目录改成 `None`。
-/// - `general.logLevel` 不是 info 或 debug 时改成 info。
+/// - `general.logLevel` 不是 info 或 debug 时改成 info；`general.frameCap.fps` 夹到驱动接受的范围。
 /// - 预警与翻译：数值夹到范围内，频道去重与截断，空白的参考星系改成 `None`，不可用的浮窗 frame 改成 `None`，
 ///   接口地址与模型名去掉首尾空白，地址末尾的 `/` 去掉。
 /// - 配置方案的 id 为空或重复时换新 id；名称去掉首尾空白，为空时用 `Profile`，超长时截断，
@@ -83,6 +83,14 @@ pub fn normalized_with(config: AppConfig, make_id: &mut dyn FnMut() -> String) -
     if general.log_level != LogLevel::Info && general.log_level != LogLevel::Debug {
         general.log_level = LogLevel::Info;
         fixer.record("general.logLevel");
+    }
+    // 限帧的帧数夹到驱动接受的范围（Windows 独有的键，macOS 的配置里没有）。
+    if let Some(frame_cap) = &mut general.frame_cap {
+        fixer.clamp_int(
+            &mut frame_cap.fps,
+            crate::frame_cap::FPS_RANGE,
+            "general.frameCap.fps",
+        );
     }
     normalize_endpoint(
         &mut general.translation_endpoint,

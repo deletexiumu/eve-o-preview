@@ -265,6 +265,26 @@ export global SettingsText {
     in property <string> launch-at-login-disabled-by-system: "Disabled in Task Manager under Startup apps. Turning this on enables it again.";
     // 开关下方的说明：写注册表失败，开机启动没有改成功。
     in property <string> launch-at-login-failed: "Couldn't change the startup setting.";
+    // Windows「通用」页：限帧一组的分节标题。
+    in property <string> frame-cap-section: "Game frame rate";
+    // Windows「通用」页：「限制 EVE 客户端帧率」开关。
+    in property <string> frame-cap-toggle: "Limit EVE client frame rate";
+    // 开关下方的默认说明：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。
+    in property <string> frame-cap-help: "Sets “Max Frame Rate” for exefile.exe in the NVIDIA driver, for every client. Turning it off restores the previous setting.";
+    // 帧数输入框左边的标签。
+    in property <string> frame-cap-fps: "Max frame rate";
+    // 限帧一组下方的脚注：为什么要限帧、何时生效、应用不运行时也有效。
+    in property <string> frame-cap-note: "Capping every client at around 60 FPS while multiboxing makes switching between clients much smoother and saves GPU power. Clients that are already running pick it up after a restart. This is a driver setting, so it stays in effect even when this app isn't running.";
+    // 开关下方的说明：启动后正在检测显卡驱动。
+    in property <string> frame-cap-checking: "Checking the graphics driver…";
+    // 开关下方的说明：没有 NVIDIA 显卡驱动，开关置灰；提示 AMD、Intel 用户在显卡驱动里手动限帧。
+    in property <string> frame-cap-not-nvidia: "No NVIDIA graphics driver found, so this isn't available. With AMD or Intel graphics, you can limit exefile.exe in the graphics driver's settings.";
+    // 开关下方的说明：驱动里已经设好了帧数。
+    pure callback frame-cap-applied(fps: int) -> string;
+    // 开关下方的说明：NVIDIA 驱动要求管理员权限才能写入。
+    in property <string> frame-cap-needs-admin: "The NVIDIA driver needs administrator rights to change this setting.";
+    // 开关下方的说明：写驱动失败，带 NVAPI 的错误码。
+    pure callback frame-cap-failed(code: int) -> string;
     // 页标题下的说明：两项权限在系统设置的哪里授予。
     in property <string> permissions-subtitle: "Both permissions are granted in System Settings > Privacy & Security.";
     // 屏幕录制权限的名称。
