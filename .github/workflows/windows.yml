@@ -245,6 +245,7 @@ jobs:
           [[ -f "$KEY_FILE" ]] || { echo "::error::缺少 ${KEY_FILE}，先按 docs/windows/packaging.md 生成签名密钥"; exit 1; }
           KEY="$(tr -d '[:space:]' < "$KEY_FILE")"
           [[ "$KEY" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::${KEY_FILE} 应是 64 位小写十六进制"; exit 1; }
+          echo "version=${BASE}" >> "$GITHUB_OUTPUT"
           echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
           echo "key=${KEY}" >> "$GITHUB_OUTPUT"
           echo "构建标签：${LABEL}"
@@ -271,6 +272,7 @@ jobs:
         working-directory: windows
         shell: pwsh
         env:
+          VERSION: ${{ steps.version.outputs.version }}
           LABEL: ${{ steps.version.outputs.label }}
           KEY: ${{ steps.version.outputs.key }}
         run: |
@@ -281,7 +283,7 @@ jobs:
             $hash, $name = $line -split '  ', 2
             if ((Get-FileHash -Algorithm SHA256 "dist/$name").Hash.ToLowerInvariant() -ne $hash) { throw "$name 的校验和不符" }
           }
-          ./target/release/eveo-probe.exe package-check --zip "dist/EVE-O-Preview-$env:LABEL-windows-x64.zip" --version $env:LABEL --public-key $env:KEY
+          ./target/release/eveo-probe.exe package-check --zip "dist/EVE-O-Preview-$env:LABEL-windows-x64.zip" --version $env:VERSION --build-label $env:LABEL --public-key $env:KEY
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: 上传发布包
@@ -361,7 +363,7 @@ jobs:
               args+=(--prerelease)
             fi
           fi
-          args+=(--repo "$GITHUB_REPOSITORY" --title "EVE-O Preview for Windows ${TAG}" --latest=false)
+          args+=(--repo "$GITHUB_REPOSITORY" --title "EVE-O Preview for Windows ${TAG#win-v}" --latest=false)
           if [[ -f "$NOTES" ]]; then
             args+=(--notes-file "$NOTES")
           else

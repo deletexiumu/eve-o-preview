@@ -26,15 +26,21 @@ const X64: u16 = 0x8664;
 /// 解出的 exe 的上限：与应用的下载上限相同。
 const MAX_EXE: usize = 128 * 1024 * 1024;
 
-/// 入口：`package-check --zip <路径> --version <版本> [--public-key <64 位十六进制>]`。
+/// 入口：`package-check --zip <路径> --version <版本> [--build-label <构建标签>] [--public-key <64 位十六进制>]`。
+///
+/// --version 核对 ProductVersion（Cargo 的版本号），--build-label 核对 BuildLabel，省略时与版本号相同。
+/// 正式发布时两者一样；发布演练的构建标签多一段 `-rehearsal.<运行号>`，版本号不变。
 pub fn run(args: &[String]) -> i32 {
     let (Some(zip), Some(version)) = (option(args, "--zip"), option(args, "--version")) else {
-        eprintln!("用法：eveo-probe package-check --zip <路径> --version <版本> [--public-key <十六进制>]");
+        eprintln!(
+            "用法：eveo-probe package-check --zip <路径> --version <版本> [--build-label <标签>] [--public-key <十六进制>]"
+        );
         return 2;
     };
-    match check(Path::new(zip), version, option(args, "--public-key")) {
+    let label = option(args, "--build-label").unwrap_or(version);
+    match check(Path::new(zip), version, label, option(args, "--public-key")) {
         Ok(()) => {
-            println!("发布包核对通过：{version}");
+            println!("发布包核对通过：{version}（构建 {label}）");
             0
         }
         Err(problem) => {
@@ -45,7 +51,7 @@ pub fn run(args: &[String]) -> i32 {
 }
 
 /// 逐项核对；返回第一个问题。
-fn check(zip: &Path, version: &str, public_key: Option<&str>) -> Result<(), String> {
+fn check(zip: &Path, version: &str, label: &str, public_key: Option<&str>) -> Result<(), String> {
     let data = std::fs::read(zip).map_err(|e| format!("读不了 zip：{e}"))?;
     let mut names = entry_names(&data).ok_or("zip 的中央目录读不了")?;
     names.sort();
@@ -63,9 +69,9 @@ fn check(zip: &Path, version: &str, public_key: Option<&str>) -> Result<(), Stri
     std::fs::write(&temp, &exe).map_err(|e| format!("写临时文件失败：{e}"))?;
     let info = eveo_platform_win::update::exe_version(&temp);
     let _ = std::fs::remove_file(&temp);
-    if info.product_version.as_deref() != Some(version) || info.build_label.as_deref() != Some(version) {
+    if info.product_version.as_deref() != Some(version) || info.build_label.as_deref() != Some(label) {
         return Err(format!(
-            "exe 的版本资源是 ProductVersion={:?}、BuildLabel={:?}，应为 {version}",
+            "exe 的版本资源是 ProductVersion={:?}、BuildLabel={:?}，应为 {version} 与 {label}",
             info.product_version, info.build_label
         ));
     }

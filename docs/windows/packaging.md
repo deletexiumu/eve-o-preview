@@ -25,7 +25,7 @@
    - `EVE-O-Preview-<标签>-windows-x64.zip`：根目录下的 `EVE-O Preview.exe`、`LICENSE.txt`、`README.txt`（`windows/packaging/README.txt`）；
    - `eve-o-preview-<标签>-windows-source.zip`：这个提交的 `windows/` 与 `shared/`；
    - `SHA256SUMS.txt`：上面两个文件的 SHA-256，LF 行尾。
-3. 自检：`eveo-probe package-check` 用应用自己的解包与版本核对检查 zip：正好三个文件、exe 是 x64、版本资源等于标签、exe 里带着公钥。
+3. 自检：`eveo-probe package-check` 用应用自己的解包与版本核对检查 zip：正好三个文件、exe 是 x64、ProductVersion 等于版本号、BuildLabel 等于构建标签（演练时多一段 `-rehearsal.<运行号>`）、exe 里带着公钥。
 
 ## 3 签名密钥（第一次发布前做一次）
 
