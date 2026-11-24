@@ -1165,25 +1165,27 @@ Info.plist 的键：
 
 ### 9.5 CI 与发布
 
-工作流是 `.github/workflows/macos.yml`，跑在 GitHub 托管的 `macos-15` 运行器上。仓库是公开仓库，不用自托管运行器；打包要用 macOS 的 `hdiutil` 与 `codesign`。第三方 action 钉到提交 SHA，行尾注释写版本号。
+1.4.0 起两个平台在同一个 tag 下一起发布：推送 `v*` tag 触发的是 `.github/workflows/release.yml`，它调用 `macos.yml` 与 `windows.yml` 打包，再在一个 Release 里发出两个平台的附件。步骤、合并的校验和与兼容措施见 [Windows 打包文档](../windows/packaging.md)；本节只讲 macOS 这一半。
 
-PR 不在 GitHub 上构建 macOS 版。托管的 macOS 运行器常要排队，2026-11-23 有 PR 排了 15 分钟没分到机器就被取消。现在由维护者在自己的 Mac 上运行 `scripts/verify_macos.sh <PR 编号>`：它把 PR 头提交检出到临时 worktree，跑文案生成检查、质量门禁、发布说明标记、文档链接、`swift build` 与 `swift test`，把结果作为提交状态 `local/macos` 上报。PR 没有改动 `macos/`、`shared/`、`scripts/`、`docs/release-notes/macos/` 或工作流时直接报成功。分支保护把 `local/macos` 设为必需检查。打包与签名仍只在 GitHub 上做。
+macOS 的工作流是 `.github/workflows/macos.yml`，跑在 GitHub 托管的 `macos-15` 运行器上。仓库是公开仓库，不用自托管运行器；打包要用 macOS 的 `hdiutil` 与 `codesign`。第三方 action 钉到提交 SHA，行尾注释写版本号。
+
+PR 不在 GitHub 上构建 macOS 版。托管的 macOS 运行器常要排队，2026-11-23 有 PR 排了 15 分钟没分到机器就被取消。现在由维护者在自己的 Mac 上运行 `scripts/verify_macos.sh <PR 编号>`：它把 PR 头提交检出到临时 worktree，跑文案生成检查、质量门禁、发布说明标记、文档链接、`swift build` 与 `swift test`，把结果作为提交状态 `local/macos` 上报。PR 没有改动 `macos/`、`shared/`、`scripts/`、`docs/release-notes/` 下的说明或工作流时直接报成功。分支保护把 `local/macos` 设为必需检查。打包与签名仍只在 GitHub 上做。
 
 | 触发 | 做的事 | 产物 |
 | --- | --- | --- |
 | PR（维护者的 Mac） | `scripts/verify_macos.sh`：上面列的检查与 `swift test` | 提交状态 `local/macos` |
 | 手动运行 | 质量门禁、发布说明标记检查（`scripts/check_release_notes.py`）、`swift test`、以 `UNIVERSAL=1` 打包，挂载 dmg 核对架构、签名、指定要求、「应用程序」替身与发布契约 | 工作流制品，保留 30 天；标签为 `<VERSION>-dev.<提交>` |
-| 推送 `v*` tag | 同上，另外核对 tag 与 `VERSION` 文件一致，再建 GitHub Release | Release 附件：dmg、两个源码包、`SHA256SUMS.txt` |
-| 手动运行并勾选「演练发布」（`rehearse_release`） | 同第一行，再建一个草稿 Release，名为 `v<VERSION>-rehearsal.<运行编号>` | 草稿 Release，不打 tag、不公开，检查完在 Releases 页面删掉 |
+| 推送 `v*` tag（由 `release.yml` 调用） | 同上；`release.yml` 先核对 tag 与两个平台的 `VERSION` 一致，两个平台都打包成功后建 GitHub Release | Release 附件：dmg、两个源码包，与 Windows 的附件放在一起；`SHA256SUMS.txt` 是两个平台合并的 |
+| 手动运行 `release.yml`（「演练发布」默认勾选） | 两个平台都打包，再建一个草稿 Release，名为 `v<VERSION>-rehearsal.<运行编号>` | 草稿 Release，不打 tag、不公开，检查完在 Releases 页面删掉 |
 
-发布契约是 CI 与应用自动更新之间的约定（v1.1 设计 8.1 节）：`dist/release/` 只有 4 个附件且名字固定，`SHA256SUMS.txt` 有 dmg 那一行，dmg 顶层的 `EVE-O Preview.app` 是真实目录，`Info.plist` 的 `CFBundleIdentifier`、`CFBundleExecutable`、`CFBundleShortVersionString`、`EVEOBuildLabel`、`EVEOBuildCommit` 取值正确。改动其中任何一项，已安装的版本就只能提示更新、不能自动安装。
+发布契约是 CI 与应用自动更新之间的约定（v1.1 设计 8.1 节）：`dist/release/` 只有 4 个附件且名字固定，`SHA256SUMS.txt` 有 dmg 那一行（发布时合并进 Windows 的几行，应用按文件名取 dmg 那一行，多出的行不影响它），dmg 顶层的 `EVE-O Preview.app` 是真实目录，`Info.plist` 的 `CFBundleIdentifier`、`CFBundleExecutable`、`CFBundleShortVersionString`、`EVEOBuildLabel`、`EVEOBuildCommit` 取值正确。改动其中任何一项，已安装的版本就只能提示更新、不能自动安装。
 
-只有建 Release 的任务有 `contents: write` 权限。tag 名带 `-`（如 `v1.1.0-beta.1`）时，Release 标为预发布。Release 已存在时任务失败，不覆盖附件：已经发出去的文件与校验和不应被悄悄替换，要重发按本节末尾的步骤重打 tag。签名见 9.6 节，发布说明的格式见 9.7 节。
+只有 `release.yml` 里建 Release 的任务有 `contents: write` 权限。tag 名带 `-`（如 `v1.1.0-beta.1`）时，Release 标为预发布。Release 已存在时任务失败，不覆盖附件：已经发出去的文件与校验和不应被悄悄替换，要重发按本节末尾的步骤重打 tag。签名见 9.6 节，发布说明的格式见 9.7 节。
 
 发布新版本的步骤：
 
-1. 在 PR 里把 `VERSION` 文件改成新版本号，并新增 `docs/release-notes/macos/v<版本号>.md`，合并到 `main`。
-2. 如果这次改了工作流的 release 任务，先手动运行工作流并勾选「演练发布」，检查草稿 Release 的附件与说明，再删掉草稿。
+1. 在 PR 里把 `macos/VERSION`、`windows/VERSION` 与 `windows/Cargo.toml` 的版本号一起改成新版本号，并新增 `docs/release-notes/v<版本号>.md`，合并到 `main`。
+2. 如果这次改了发布流程，先手动运行 `release.yml` 演练，检查草稿 Release 的附件与说明，再删掉草稿。
 3. 在 `main` 上打 tag 并推送：`git tag -a v<版本号> -m "..." && git push origin v<版本号>`。
 
 推送 tag 时，GitHub 用 tag 所在提交里的工作流。如果 tag 的运行失败，并且失败原因要改工作流或代码才能修，按以下步骤重打 tag：
@@ -1223,7 +1225,7 @@ PR 不在 GitHub 上构建 macOS 版。托管的 macOS 运行器常要排队，2
 
 ### 9.7 发布说明格式
 
-`docs/release-notes/macos/v<版本号>.md` 原样作为 Release 正文。英文在前，其余语言按 zh、ja、ko、ru、fr、de、es 的顺序各占一个可折叠区块，每块用 HTML 注释标出语言代码，代码与界面语言代码一致：
+`docs/release-notes/v<版本号>.md`（1.4.0 以前是 `docs/release-notes/macos/v<版本号>.md`）原样作为 Release 正文，两个平台共用一份，每个语言块里按平台分小节（Windows 打包文档 4.1 节）。英文在前，其余语言按 zh、ja、ko、ru、fr、de、es 的顺序各占一个可折叠区块，每块用 HTML 注释标出语言代码，代码与界面语言代码一致：
 
 ```markdown
 <!-- lang:en -->

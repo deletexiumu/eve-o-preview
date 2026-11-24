@@ -4,15 +4,18 @@
 
 ## 1 总览
 
-推送 `win-v<版本>` tag 后，`.github/workflows/windows.yml` 依次运行：
+1.4.0 起，macOS 与 Windows 用同一个版本号，在同一个 tag `v<版本>` 下发布同一个 Release。推送这个 tag 后，`.github/workflows/release.yml` 依次运行：
 
 | 任务 | 运行器 | 做什么 |
 | --- | --- | --- |
-| `core`、`build` | Linux、Windows | 与 PR 相同的检查；另核对 tag 与 `windows/VERSION` 一致 |
-| `package` | Windows | 发布构建，打包，自检 |
-| `release` | Linux | 用私钥给校验和签名，建 Release（不标为 latest），核对 `/releases/latest` 仍是 macOS 的 tag |
+| `versions` | Linux | 核对 `macos/VERSION`、`windows/VERSION`、`windows/Cargo.toml` 三处版本号相同，且等于 tag |
+| `macos` | macOS | 调用 `macos.yml`：检查、构建、签名，打出 dmg 与源码包 |
+| `windows` | Linux、Windows | 调用 `windows.yml`：与 PR 相同的检查，发布构建，打包，自检 |
+| `publish` | Linux | 合并两个平台的校验和，用私钥签名，建 Release 并标为 latest；需要时另建一个兼容用的 `win-v<版本>` Release（见第 4 节） |
 
-签名私钥只在 `release` 任务里用。Windows 运行器上只有公钥，它随发布构建编进 exe。
+两个平台任何一个失败，`publish` 都不运行，不会出现只有一个平台的 Release。签名私钥只在 `publish` 任务里用。Windows 运行器上只有公钥，它随发布构建编进 exe。
+
+1.4.0 以前 Windows 单独发布，tag 是 `win-v<版本>`，Release 不标为 latest。这些 Release 保留不动。
 
 ## 2 打包
 
@@ -42,21 +45,35 @@
 3. 把私钥文件离线备份（例如放进密码管理器），然后删掉本机的文件。私钥丢了，已安装的版本就再也验不过新包，只能让用户手动下载。
 4. 提交 `packaging/update-public-key.txt`。
 
-`release` 任务签名前会核对 secret 的私钥与提交的公钥是一对，不配对时失败。
+`publish` 任务签名前会核对 secret 的私钥与提交的公钥是一对，不配对时失败。
 
 换密钥：只有私钥泄露时才换。换了之后，旧版本验不过用新私钥签的包，所以要先发一个用旧私钥签、内置新公钥的过渡版，等大多数用户更新之后再换 secret。
 
 ## 4 发一个版本
 
 1. 开一个发版 PR：
-   - 改 `windows/VERSION` 与 `windows/Cargo.toml` 的 `[workspace.package] version`，两者必须相同（CI 核对）；
-   - 写发布说明 `docs/release-notes/windows/v<版本>.md`，格式与 macOS 的相同（语言块标记，见 `scripts/check_release_notes.py`）；
-   - 版本号带 `-`（如 `0.9.0-beta.1`）时 Release 标为预发布，只推给正在运行预发布版的用户。
-2. 合并后在 main 上打 tag 并推送：`git tag win-v<版本> && git push origin win-v<版本>`。
-3. 看 Actions 里这次运行的 `release` 任务：成功后 Release 页面有 4 个附件，`/releases/latest` 仍是 macOS 的版本。
+   - 改 `macos/VERSION`、`windows/VERSION` 与 `windows/Cargo.toml` 的 `[workspace.package] version`，三者必须相同（`scripts/check_versions.py`，CI 核对）。只改了一个平台也一起升版本号；
+   - 写发布说明 `docs/release-notes/v<版本>.md`，格式见下；
+   - 版本号带 `-`（如 `1.5.0-beta.1`）时 Release 标为预发布、不标 latest，只推给正在运行预发布版的 Windows 用户。
+2. 合并后在 main 上打 tag 并推送：`git tag -a v<版本> -m v<版本> && git push origin v<版本>`。
+3. 看 Actions 里这次 `release.yml` 的运行：成功后 Release 页面有 7 个附件（dmg、Windows zip、两个源码包、`SHA256SUMS.txt` 与它的签名），`/releases/latest` 指向这个 tag。
 
-Release 已存在时 `release` 任务失败，不覆盖附件。发错了要删掉 Release 与 tag，改版本号重发。
+Release 已存在时 `publish` 任务失败，不覆盖附件。发错了要删掉 Release 与 tag，改版本号重发。
+
+### 4.1 发布说明
+
+一个版本一份，两个平台共用，英文在前、其余 7 种语言各一个折叠块，语言块的标记与 macOS 原来的相同（`scripts/check_release_notes.py` 核对）。每个语言块里按平台分小节：两端都有的改动写在最前面，然后是「macOS」「Windows」两个小标题，某个平台没有改动就省掉它的小标题。两个平台的应用都显示整份说明里对应语言的那一块。
+
+1.4.0 以前的说明留在 `docs/release-notes/macos/` 与 `docs/release-notes/windows/`，不再新增。
+
+### 4.2 与旧版本的兼容
+
+- macOS：旧版本读 `/releases/latest`，按名字取 dmg 与 `SHA256SUMS.txt`，校验和文件里多出的 Windows 行不影响它。不需要别的措施。
+- Windows：1.4.0 以前的版本只认 `win-v` 开头的 tag。`release.yml` 的 `WINDOWS_LEGACY_TAG_VERSIONS` 列出的版本，`publish` 会另建一个 tag 为 `win-v<版本>` 的 Release（不标 latest），只放 Windows 的 4 个附件与单独签名的校验和，让旧版本能自动更新上来。现在列表里只有 1.4.0：装上 1.4.0 之后客户端就认 `v` 开头的 tag 了。
+- Windows 1.4.0 起两种 tag 都认；`v` 开头的 Release 必须带这个版本的 Windows zip 才算数，所以只有 macOS 附件的旧 Release（1.3.2 及以前）会被跳过。
 
 ## 5 演练
 
-在 Actions 里手动运行 Windows 工作流，勾选「演练发布」：打包、签名，建一个草稿 Release（tag 名 `win-v<版本>-rehearsal.<运行号>`，不公开、不打 tag）。看过附件后在 Releases 页面删掉这个草稿。演练同样需要公钥与 secret。
+在 Actions 里手动运行 `release.yml`（「演练发布」默认勾选）：两个平台都打包、签名，建一个草稿 Release（tag 名 `v<版本>-rehearsal.<运行号>`，不公开、不打 tag），不建兼容 Release。看过附件后在 Releases 页面删掉这个草稿。演练同样需要公钥、secret 与 macOS 的签名证书。
+
+单独手动运行 `macos.yml` 或 `windows.yml` 只做检查与构建，产物作为工作流制品上传，不建 Release。
