@@ -33,8 +33,8 @@ mod poller;
 pub mod report;
 pub mod session;
 pub mod state_store;
-pub mod state_updates;
 pub mod translation;
+pub mod update;
 
 pub use coordinator::Coordinator;
 pub use event::{

@@ -9,7 +9,7 @@
 // - chat.manualLocations（docs/macos/design-intel-translate.md 6.2 节）：角色名 → 手动设置的位置。
 //   角色登录后一直停在同一个星系时，聊天日志与游戏日志都没有线索，靠它在重启后恢复位置。
 // - diagnostics（v1.1 设计 3.3、6.3 节）：待报告的崩溃 pendingCrash 与用户选过「不报告」的会话编号（最多 20 个）。
-// - updates：自动更新的记录（state_updates.rs），替换 exe 后等待确认的记录与最近一次安装的结果。
+// - updates：自动更新的记录（update/state.rs），替换 exe 后等待确认的记录与最近一次安装的结果。
 //
 // 读取的规则与 macOS 相同：文件不存在、不是合法 JSON、顶层不是对象或 stateVersion 不是 1 时用默认状态，不报错、
 // 不隔离文件，下一次写入覆盖它；chat 或手动位置表的结构不符时只丢掉这一部分。
@@ -27,7 +27,7 @@ use eveo_core::chat_log::tracker::CharacterLocation;
 use eveo_core::support::time::{iso8601_seconds, parse_iso8601};
 use serde_json::{Map, Value};
 
-pub use crate::state_updates::UpdateState;
+pub use crate::update::state::UpdateState;
 
 /// 当前的状态文件版本。
 pub const STATE_VERSION: i64 = 1;
