@@ -96,6 +96,9 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     let (profile, clients) = sample();
     crate::bind::show_previews(&ui, &profile);
     crate::bind::show_clients(&ui, &profile, &clients, false);
+    // 「统一尺寸」的「按活动客户端」：取第一个示例角色当活动客户端，截图里按钮可用、说明带上角色名。
+    let active = clients.iter().find_map(|client| client.character_name());
+    crate::bind::show_active_character(&ui, active);
     // 「切换与热键」页的问题提示来自热键规划，与应用里一样由 Core 算出；截图里没有注册失败与录制。
     let plan = eveo_core::hotkeys::planner::plan(&profile);
     let state = crate::switching::SwitchingState {

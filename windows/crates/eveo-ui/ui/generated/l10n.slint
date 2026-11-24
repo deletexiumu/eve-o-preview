@@ -115,12 +115,16 @@ export global SettingsText {
     in property <string> minimum-size: "Minimum size";
     // 缩略图的最大尺寸。
     in property <string> maximum-size: "Maximum size";
-    // 清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。
-    in property <string> unify-sizes: "Reset all thumbnails to default size";
-    // Windows「预览与布局」页：统一尺寸一行的说明。
-    in property <string> unify-sizes-help: "Thumbnails you resized go back to the default size; positions stay the same";
-    // Windows「预览与布局」页：统一尺寸一行的按钮，宜短。
-    in property <string> unify-sizes-button: "Reset sizes";
+    // 「统一全部缩略图尺寸」的标题：Windows 是「预览与布局」页一行的标题，macOS 是两个按钮前的标签。
+    in property <string> unify-sizes: "Make all thumbnails the same size";
+    // 统一尺寸的说明：没有活动的角色客户端时显示（只能改回默认尺寸）。
+    in property <string> unify-sizes-help: "Thumbnails you resized go back to the default size; positions stay the same. Switch to a character's client to match its thumbnail size instead";
+    // 统一尺寸的说明：有活动的角色客户端时显示，参数是它的角色名。
+    pure callback unify-sizes-help-active(name: string) -> string;
+    // 统一尺寸：让全部缩略图都用活动客户端缩略图尺寸的按钮，宜短。
+    in property <string> unify-sizes-to-active: "Match active client";
+    // 统一尺寸：全部改回默认尺寸的按钮，宜短。
+    in property <string> unify-sizes-to-default: "Use default size";
     // 「外观」组的标题。
     in property <string> appearance-header: "Appearance";
     // 未悬停时缩略图的不透明度。

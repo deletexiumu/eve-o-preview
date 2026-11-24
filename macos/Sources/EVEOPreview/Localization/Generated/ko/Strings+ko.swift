@@ -63,7 +63,11 @@ struct SettingsStringsKO: SettingsStrings {
     var defaultSize: String { "기본 크기" }
     var minimumSize: String { "최소 크기" }
     var maximumSize: String { "최대 크기" }
-    var unifySizes: String { "모든 썸네일을 기본 크기로 되돌리기" }
+    var unifySizes: String { "모든 썸네일 크기 맞추기" }
+    var unifySizesHelp: String { "따로 크기를 바꾼 썸네일을 기본 크기로 되돌립니다. 위치는 그대로입니다. 캐릭터 클라이언트로 전환하면 그 썸네일 크기에 맞출 수도 있습니다" }
+    func unifySizesHelpActive(_ name: String) -> String { "모든 썸네일을 활성 클라이언트 \(name)(강조 표시된 것)의 크기나 위의 기본 크기로 맞춥니다. 위치는 그대로입니다" }
+    var unifySizesToActive: String { "활성 클라이언트에 맞추기" }
+    var unifySizesToDefault: String { "기본 크기로" }
     var appearanceHeader: String { "모양" }
     var opacity: String { "불투명도" }
     var showTitle: String { "캐릭터 이름 보기" }

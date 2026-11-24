@@ -224,15 +224,20 @@ doc = "缩略图的最小尺寸。"
 doc = "缩略图的最大尺寸。"
 
 [SettingsStrings.unifySizes]
-doc = "清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。"
+doc = "「统一全部缩略图尺寸」的标题：Windows 是「预览与布局」页一行的标题，macOS 是两个按钮前的标签。"
 
 [SettingsStrings.unifySizesHelp]
-doc = "Windows「预览与布局」页：统一尺寸一行的说明。"
-platforms = ["windows"]
+doc = "统一尺寸的说明：没有活动的角色客户端时显示（只能改回默认尺寸）。"
 
-[SettingsStrings.unifySizesButton]
-doc = "Windows「预览与布局」页：统一尺寸一行的按钮，宜短。"
-platforms = ["windows"]
+[SettingsStrings.unifySizesHelpActive]
+doc = "统一尺寸的说明：有活动的角色客户端时显示，参数是它的角色名。"
+params = ["_ name: String"]
+
+[SettingsStrings.unifySizesToActive]
+doc = "统一尺寸：让全部缩略图都用活动客户端缩略图尺寸的按钮，宜短。"
+
+[SettingsStrings.unifySizesToDefault]
+doc = "统一尺寸：全部改回默认尺寸的按钮，宜短。"
 
 [SettingsStrings.appearanceHeader]
 doc = "「外观」组的标题。"

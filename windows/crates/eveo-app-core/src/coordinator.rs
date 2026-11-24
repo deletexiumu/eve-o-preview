@@ -154,6 +154,21 @@ impl Coordinator {
         self.frontmost
     }
 
+    /// 活动客户端的角色名，即缩略图上加高亮的那个（不论高亮开关是否打开）。
+    ///
+    /// 前台是客户端时取它，否则取最近一次处于前台的客户端（规划器挑高亮用的是同一条规则），
+    /// 所以用户切到设置窗口后仍是刚才那个角色。活动的是登录界面或已不在时为 None。
+    /// 设置窗口「统一尺寸」的「按活动客户端」按钮据它启用。
+    pub fn active_character(&self) -> Option<&str> {
+        let pid = self.active_pid()?;
+        // 同一个进程可能有多个窗口，取第一个有角色名的。
+        self.registry
+            .clients()
+            .iter()
+            .filter(|client| client.pid == pid)
+            .find_map(|client| client.character_name())
+    }
+
     /// 当前热键规划（设置窗口据它的 `issues` 在热键旁提示）。
     pub fn hotkey_plan(&self) -> &HotkeyPlan {
         &self.hotkey_plan

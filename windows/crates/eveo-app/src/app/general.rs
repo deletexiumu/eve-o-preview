@@ -157,6 +157,8 @@ impl App {
             eveo_ui::bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
             self.show_switching(window, profile);
         }
+        // 窗口关着时 refresh_settings_pages 不刷新活动角色，打开时补一次。
+        eveo_ui::bind::show_active_character(window, self.coordinator.active_character());
         self.show_profiles(window);
         self.show_general(window);
         self.show_alerts(window);

@@ -87,8 +87,8 @@ enum Input {
     Tick,
     /// 设置窗口里改了值：读回整页，组成新配置交给协调器。
     SettingsEdited,
-    /// 设置窗口的「统一尺寸」按钮。
-    UnifySizes,
+    /// 设置窗口的「统一尺寸」按钮（按活动客户端或按默认尺寸）。
+    UnifySizes(bind::UnifyTarget),
     /// 「客户端」页上对某个角色的改动。
     ClientEdit(bind::ClientEdit),
     /// 「客户端」页的「全部隐藏」开关，值是用户要的新状态。
@@ -405,8 +405,8 @@ impl App {
                 }
             }
             Input::Tick => self.tick(runtime),
-            Input::SettingsEdited => self.settings_edited(false, runtime),
-            Input::UnifySizes => self.settings_edited(true, runtime),
+            Input::SettingsEdited => self.settings_edited(None, runtime),
+            Input::UnifySizes(target) => self.settings_edited(Some(&target), runtime),
             Input::ClientEdit(edit) => self.client_edited(&edit, runtime),
             Input::SwitchingEdit(edit) => self.switching_edited(&edit, runtime),
             // 录制的结果不经回调，由定时器从录制器取（见 check_recording）。
@@ -454,6 +454,8 @@ impl App {
             // 在线客户端取协调器的登记表，与缩略图用的是同一份，两边不会对不上。
             let clients = self.coordinator.registry().clients();
             bind::show_clients(window, profile, clients, self.coordinator.tray().hide_all);
+            // 「预览与布局」页的「按活动客户端」按钮跟着前台走，也在这里刷新。
+            bind::show_active_character(window, self.coordinator.active_character());
             self.show_switching(window, profile);
         }
         self.show_profiles(window);
@@ -810,7 +812,15 @@ impl App {
             let weak = Rc::downgrade(runtime);
             model.on_edited(move || post(&weak, Input::SettingsEdited));
             let weak = Rc::downgrade(runtime);
-            model.on_unify_sizes(move || post(&weak, Input::UnifySizes));
+            model.on_unify_sizes_to_default(move || {
+                post(&weak, Input::UnifySizes(bind::UnifyTarget::Default))
+            });
+            // 带的是按钮按下时界面上显示的角色名，即使之后前台变了，也照用户看到的那个改。
+            let weak = Rc::downgrade(runtime);
+            model.on_unify_sizes_to_active(move |name| {
+                let target = bind::UnifyTarget::Character(name.to_string());
+                post(&weak, Input::UnifySizes(target));
+            });
             // 「客户端」页：回调带角色名，转成 ClientEdit 排队。
             // 带角色名而不是下标：回调排队期间列表可能因轮询重排，下标会指错角色。
             let clients = window.global::<eveo_ui::ClientsModel>();
@@ -896,8 +906,8 @@ impl App {
     }
 
     /// 设置窗口里改了值：从当前配置出发读回「预览与布局」页，有变化才交给协调器。
-    /// `unify` 为真时再清掉各角色单独调过的尺寸。
-    fn settings_edited(&mut self, unify: bool, runtime: &Rc<Runtime>) {
+    /// `unify` 有值时再按它统一各角色的缩略图尺寸（「统一尺寸」的两个按钮）。
+    fn settings_edited(&mut self, unify: Option<&bind::UnifyTarget>, runtime: &Rc<Runtime>) {
         let Some(window) = &self.settings else {
             return;
         };
@@ -908,8 +918,8 @@ impl App {
             return;
         };
         bind::read_previews(window, profile);
-        if unify {
-            bind::unify_sizes(profile);
+        if let Some(target) = unify {
+            bind::unify_sizes(profile, target);
         }
         // 没有变化（例如输入框里的颜色还没输完）就不打扰协调器：省一次重算，也不排一次写盘。
         if &config != self.coordinator.config() {

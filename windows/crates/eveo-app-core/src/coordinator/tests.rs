@@ -215,6 +215,25 @@ fn foreground_client_enables_game_hotkeys_and_becomes_active() {
 }
 
 #[test]
+/// 活动角色（「统一尺寸」的「按活动客户端」用）：前台客户端的角色；切到设置窗口后仍是它；
+/// 活动的是登录界面时为 None。
+fn active_character_follows_highlight_rule() {
+    let mut windows = three_characters();
+    windows.push(window(4, 104, "EVE"));
+    let mut coordinator = started(config(), windows);
+    // 启动后还没有客户端到过前台。
+    assert_eq!(coordinator.active_character(), None);
+    coordinator.handle(Event::ForegroundChanged(ForegroundOwner::Process(102)), 2.0);
+    assert_eq!(coordinator.active_character(), Some("Bravo"));
+    // 用户切到设置窗口去按按钮：仍是刚才的 Bravo。
+    coordinator.handle(Event::ForegroundChanged(ForegroundOwner::SelfApp), 3.0);
+    assert_eq!(coordinator.active_character(), Some("Bravo"));
+    // 登录界面没有角色名。
+    coordinator.handle(Event::ForegroundChanged(ForegroundOwner::Process(104)), 4.0);
+    assert_eq!(coordinator.active_character(), None);
+}
+
+#[test]
 /// 前台是不认识的进程（例如浏览器）时按「其他应用」处理。
 fn unknown_process_in_foreground_is_other() {
     let mut coordinator = started(config(), three_characters());

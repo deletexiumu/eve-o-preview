@@ -63,7 +63,11 @@ struct SettingsStringsEN: SettingsStrings {
     var defaultSize: String { "Default size" }
     var minimumSize: String { "Minimum size" }
     var maximumSize: String { "Maximum size" }
-    var unifySizes: String { "Reset all thumbnails to default size" }
+    var unifySizes: String { "Make all thumbnails the same size" }
+    var unifySizesHelp: String { "Thumbnails you resized go back to the default size; positions stay the same. Switch to a character's client to match its thumbnail size instead" }
+    func unifySizesHelpActive(_ name: String) -> String { "Give every thumbnail the size of the active client \(name) (the highlighted one), or the default size above; positions stay the same" }
+    var unifySizesToActive: String { "Match active client" }
+    var unifySizesToDefault: String { "Use default size" }
     var appearanceHeader: String { "Appearance" }
     var opacity: String { "Opacity" }
     var showTitle: String { "Show character name" }
