@@ -352,7 +352,8 @@ impl ChatFeatures {
             .iter()
             .filter_map(|kind| match kind {
                 OverlayKind::Intel => self.intel.next_refresh(now),
-                OverlayKind::Translation => None,
+                // 翻译浮窗只在等待重试时随时间变（倒计时）。
+                OverlayKind::Translation => self.translation.as_ref().and_then(|t| t.next_refresh(now)),
             })
             .min_by(f64::total_cmp)
     }

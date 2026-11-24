@@ -437,6 +437,20 @@ impl TranslationController {
         std::mem::take(&mut self.changed)
     }
 
+    /// 翻译浮窗的内容下一次随时间变化的时刻：等待重试时状态行写着「N 秒后重试」，N 每过一秒少一。
+    /// 其余状态的内容不随时间变（时间戳是固定的 HH:mm），返回 None。
+    pub fn next_refresh(&self, now: f64) -> Option<f64> {
+        let TranslationStatus::Waiting { until, .. } = self.status else {
+            return None;
+        };
+        // 文字里的秒数是剩余时间向上取整；剩余时间降到下一个整数时文字才变。
+        let remaining = until - now;
+        if remaining <= 0.0 {
+            return None;
+        }
+        Some(until - (remaining.ceil() - 1.0))
+    }
+
     /// 下一次 tick 有事可做的时刻：队列的下一次尝试；没有时为 None。应用的定时器只用它在空闲时放慢。
     pub fn next_attempt(&self) -> Option<f64> {
         if self.is_enabled() {
