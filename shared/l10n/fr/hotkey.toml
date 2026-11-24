@@ -32,9 +32,13 @@ scopeGlobal = "Global"
 scopeGame = "Seulement dans EVE"
 scopeGlobalOption = "Global : fonctionne dans toutes les apps, y compris EVE"
 scopeGameOption = "Seulement dans EVE : fonctionne uniquement quand une fenêtre EVE est au premier plan"
-defaultScopeFooter = { macos = "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici.", windows = "Chaque raccourci a une seule portée. Ceux qui n'en ont pas suivent cette valeur ; modifiez-la pour un raccourci à côté de celui-ci." }
+defaultScopeFooter = { macos = "Chaque raccourci a une seule portée, jamais les deux. L'étiquette à droite de chaque raccourci indique la portée qu'il utilise réellement. Cliquez dessus pour choisir pour ce raccourci Global, Seulement dans EVE ou la valeur par défaut choisie ici.", windows = "Les raccourcis réglés sur « Par défaut » suivent ce choix ; ceux qui ont leur propre portée (global ou EVE seulement) l’ignorent. Un bouton de souris nouvellement enregistré reçoit sa propre portée « EVE seulement », pour ne pas capturer ce bouton dans les autres applications (comme Précédent dans le navigateur)." }
 scopeFollowDefault = "Par défaut ({current})"
 scopeMenuHelp = "Portée : {resolved}. Cliquez pour la modifier pour ce raccourci."
+scopeOverrideGlobal = "Propre : global"
+scopeOverrideGame = "Propre : EVE seulement"
+scopeOverrideCount = "{count} raccourcis ont leur propre portée et ignorent ce choix."
+resetScopesToDefault = "Tout remettre par défaut"
 menuHotkeysOnlyInEVE = "Raccourcis seulement dans EVE"
 
 addHotkey = { macos = "+ Ajouter", windows = "Ajouter un raccourci" }

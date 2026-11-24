@@ -301,6 +301,10 @@ macro_rules! fill {
     text.set_default_scope_footer(hotkeys.default_scope_footer().into());
     text.on_scope_follow_default(move |current| hotkeys.scope_follow_default(&current).into());
     text.on_scope_menu_help(move |resolved| hotkeys.scope_menu_help(&resolved).into());
+    text.set_scope_override_global(hotkeys.scope_override_global().into());
+    text.set_scope_override_game(hotkeys.scope_override_game().into());
+    text.on_scope_override_count(move |count| hotkeys.scope_override_count(i64::from(count)).into());
+    text.set_reset_scopes_to_default(hotkeys.reset_scopes_to_default().into());
     text.set_menu_hotkeys_only_in_eve(hotkeys.menu_hotkeys_only_in_eve().into());
     text.set_add_hotkey(hotkeys.add_hotkey().into());
     text.set_recording_prompt(hotkeys.recording_prompt().into());

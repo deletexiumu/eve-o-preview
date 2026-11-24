@@ -30,9 +30,13 @@ scopeGlobal = "Global"
 scopeGame = "Solo en EVE"
 scopeGlobalOption = "Global: funciona en cualquier app, incluido EVE"
 scopeGameOption = "Solo en EVE: funciona solo mientras una ventana de EVE está al frente"
-defaultScopeFooter = { macos = "Cada atajo tiene un solo ámbito, nunca los dos. La etiqueta a la derecha de cada atajo muestra el ámbito que usa de verdad. Haz clic en ella para poner ese atajo en Global, Solo en EVE o el predeterminado elegido aquí.", windows = "Cada atajo tiene un solo ámbito. Los que no tienen uno propio siguen este valor; puedes cambiarlo junto a cada atajo." }
+defaultScopeFooter = { macos = "Cada atajo tiene un solo ámbito, nunca los dos. La etiqueta a la derecha de cada atajo muestra el ámbito que usa de verdad. Haz clic en ella para poner ese atajo en Global, Solo en EVE o el predeterminado elegido aquí.", windows = "Los atajos con «Usar predeterminado» siguen esta opción; los que tienen su propio ámbito (global o solo en EVE) no. Un botón del ratón recién grabado recibe su propio ámbito «solo en EVE» para no capturar ese botón en otras aplicaciones (como Atrás en el navegador)." }
 scopeFollowDefault = "Usar predeterminado ({current})"
 scopeMenuHelp = "Ámbito: {resolved}. Haz clic para cambiarlo en este atajo."
+scopeOverrideGlobal = "Propio: global"
+scopeOverrideGame = "Propio: solo en EVE"
+scopeOverrideCount = "{count} atajos tienen su propio ámbito y no siguen este valor."
+resetScopesToDefault = "Todos por defecto"
 menuHotkeysOnlyInEVE = "Atajos solo en EVE"
 
 addHotkey = { macos = "+ Añadir", windows = "Añadir atajo" }

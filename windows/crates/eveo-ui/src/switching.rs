@@ -200,6 +200,8 @@ pub enum SwitchingEdit {
         /// 新的作用范围。
         scope: Option<HotkeyScope>,
     },
+    /// 把全部单独设了范围的热键改回跟随默认（默认范围下方的按钮）。
+    ResetScopes,
 }
 
 /// 新建循环组的 id：大写 UUID，与 macOS 相同。
@@ -289,7 +291,45 @@ pub fn apply_switching_edit(profile: &mut Profile, edit: &SwitchingEdit) {
                 set_hotkeys(profile, slot, list);
             }
         }
+        // 每个位置里能解析的热键都去掉后缀；解析不了的原样保留，没有改动的位置不写回。
+        SwitchingEdit::ResetScopes => {
+            for slot in all_slots(profile) {
+                let list = hotkeys(profile, &slot);
+                let reset: Vec<String> = list
+                    .iter()
+                    .map(|text| match HotkeySpec::parse(text) {
+                        Some(spec) if spec.scope.is_some() => HotkeySpec { scope: None, ..spec }.to_string(),
+                        _ => text.clone(),
+                    })
+                    .collect();
+                if reset != list {
+                    set_hotkeys(profile, &slot, reset);
+                }
+            }
+        }
     }
+}
+
+/// 配置里所有放热键的位置：各循环组的前进与后退、有热键的角色、三个通用热键。
+fn all_slots(profile: &Profile) -> Vec<Slot> {
+    let groups = profile.cycle_groups.iter().flat_map(|g| {
+        [CycleDirection::Forward, CycleDirection::Backward].map(|d| Slot::Cycle(g.id.clone(), d))
+    });
+    // 角色只取配置里有热键的；没有热键的角色不需要处理。
+    let characters = profile.character_hotkeys.keys().cloned().map(Slot::Character);
+    groups
+        .chain(characters)
+        .chain([Slot::ToggleHideAll, Slot::MinimizeAll, Slot::CycleLoginClients])
+        .collect()
+}
+
+/// 单独设了范围（写了后缀、不跟随默认）的热键条数，给默认范围下方的提示用。
+pub fn override_count(profile: &Profile) -> usize {
+    all_slots(profile)
+        .iter()
+        .flat_map(|slot| hotkeys(profile, slot))
+        .filter(|text| HotkeySpec::parse(text).is_some_and(|s| s.scope.is_some()))
+        .count()
 }
 
 /// 录到的热键要写进配置的字符串：重录保留原来的作用范围；原来没有后缀（或新增）而录到鼠标按键时写 `@game`。
@@ -327,6 +367,8 @@ pub fn show_switching(ui: &SettingsWindow, profile: &Profile, state: &SwitchingS
         HotkeyScope::Global => 0,
         HotkeyScope::Game => 1,
     });
+    // 条数超过 i32 不可能出现；万一出现按最大值显示，提示照样出现。
+    model.set_override_count(i32::try_from(override_count(profile)).unwrap_or(i32::MAX));
     // 录制状态写成「位置|原文」，页面上每个按钮自己比较，决定是否显示「按下组合键…」。
     let recording = state
         .recording
@@ -721,6 +763,25 @@ pub(crate) mod tests {
         let gone = Slot::Cycle("nope".to_owned(), CycleDirection::Forward);
         set_hotkeys(&mut profile, &gone, vec!["F1".to_owned()]);
         assert!(hotkeys(&profile, &gone).is_empty());
+    }
+
+    /// 单独设了范围的条数，以及「全部改为跟随默认」：去掉所有位置里的后缀，解析不了的原样保留。
+    #[test]
+    fn reset_scopes_counts_and_clears_overrides() {
+        let mut profile = sample();
+        profile.cycle_groups[0].backward_hotkeys = vec!["Mouse4@game".to_owned()];
+        profile.hotkeys.toggle_hide_all = vec!["ctrl+alt+shift+H@global".to_owned(), "??".to_owned()];
+        // 后退侧键与全部隐藏各一条单独设了范围；解析不了的一条不算。
+        assert_eq!(override_count(&profile), 2);
+        apply_switching_edit(&mut profile, &SwitchingEdit::ResetScopes);
+        assert_eq!(override_count(&profile), 0);
+        assert_eq!(profile.cycle_groups[0].backward_hotkeys, ["Mouse4"]);
+        assert_eq!(profile.hotkeys.toggle_hide_all, ["ctrl+alt+shift+H", "??"]);
+        // 本来就跟随默认的不变。
+        assert_eq!(
+            hotkeys(&profile, &Slot::Character("Alpha".to_owned())),
+            ["ctrl+F13", "K"]
+        );
     }
 
     /// 默认作用范围的单选能用鼠标点选：在第二项（仅游戏内）的文字所在的那一列从上往下逐点点击，

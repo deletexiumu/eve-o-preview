@@ -30,9 +30,13 @@ scopeGlobal = "Global"
 scopeGame = "Only in EVE"
 scopeGlobalOption = "Global: works in every app, including EVE"
 scopeGameOption = "Only in EVE: works only while an EVE window is in front"
-defaultScopeFooter = { macos = "Each hotkey uses one scope, never both. The tag next to each hotkey shows the scope it actually uses. Click the tag to set that hotkey to Global, Only in EVE, or the default chosen here.", windows = "Each hotkey uses one scope, never both. Hotkeys without their own scope follow this default; change one next to the hotkey." }
+defaultScopeFooter = { macos = "Each hotkey uses one scope, never both. The tag next to each hotkey shows the scope it actually uses. Click the tag to set that hotkey to Global, Only in EVE, or the default chosen here.", windows = "Hotkeys set to “Use Default” follow this choice; hotkeys with their own Global or Only in EVE scope ignore it. A newly recorded mouse button gets its own Only in EVE scope, so it doesn’t swallow that button in other apps (such as the browser’s Back button)." }
 scopeFollowDefault = "Use Default ({current})"
 scopeMenuHelp = "Scope: {resolved}. Click to change it for this hotkey."
+scopeOverrideGlobal = "Own: Global"
+scopeOverrideGame = "Own: Only in EVE"
+scopeOverrideCount = "{count} hotkeys have their own scope and ignore this default."
+resetScopesToDefault = "Make All Use Default"
 menuHotkeysOnlyInEVE = "Hotkeys Only in EVE"
 
 addHotkey = { macos = "+ Add", windows = "Add hotkey" }

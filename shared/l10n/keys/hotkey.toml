@@ -111,6 +111,23 @@ params = ["_ current: String"]
 doc = "作用范围菜单的提示文字，参数是这一行已解析的作用范围名称。"
 params = ["_ resolved: String"]
 
+[HotkeyStrings.scopeOverrideGlobal]
+doc = "Windows：每行作用范围下拉框的第 2 项，这一个热键单独设为全局，不跟随默认。要短（下拉框约 170px 宽）。"
+platforms = ["windows"]
+
+[HotkeyStrings.scopeOverrideGame]
+doc = "Windows：每行作用范围下拉框的第 3 项，这一个热键单独设为仅游戏内，不跟随默认。要短。"
+platforms = ["windows"]
+
+[HotkeyStrings.scopeOverrideCount]
+doc = "Windows：默认范围下方的提示，参数是单独设了范围、不跟随默认的热键条数（至少 1）。"
+params = ["_ count: Int"]
+platforms = ["windows"]
+
+[HotkeyStrings.resetScopesToDefault]
+doc = "Windows：把所有单独设了范围的热键改回跟随默认的按钮。"
+platforms = ["windows"]
+
 [HotkeyStrings.menuHotkeysOnlyInEVE]
 doc = "菜单栏菜单的一项：勾选时当前配置方案的默认作用范围是 game。"
 

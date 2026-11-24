@@ -30,9 +30,13 @@ scopeGlobal = "グローバル"
 scopeGame = "EVE 内のみ"
 scopeGlobalOption = "グローバル：どのアプリでも有効（EVE 内を含む）"
 scopeGameOption = "EVE 内のみ：EVE のウインドウが最前面のときだけ有効"
-defaultScopeFooter = { macos = "各ホットキーの範囲は 1 つだけで、両方が同時に有効になることはありません。ホットキーの右のタグが実際の範囲を示します。タグをクリックすると、そのホットキーだけをグローバル、EVE 内のみ、またはここの既定に変更できます。", windows = "各ホットキーの範囲は 1 つだけです。個別に設定していないホットキーはここに従います。ホットキーの横で個別に変更できます。" }
-scopeFollowDefault = "既定に従う（現在：{current}）"
+defaultScopeFooter = { macos = "各ホットキーの範囲は 1 つだけで、両方が同時に有効になることはありません。ホットキーの右のタグが実際の範囲を示します。タグをクリックすると、そのホットキーだけをグローバル、EVE 内のみ、またはここの既定に変更できます。", windows = "「既定に従う」のホットキーはここの設定に従います。グローバルまたは EVE 内のみを個別に設定したホットキーは影響を受けません。新しく記録したマウスボタンは、ほかのアプリでそのボタンを奪わないよう（ブラウザーの「戻る」など）、個別に EVE 内のみになります。" }
+scopeFollowDefault = { macos = "既定に従う（現在：{current}）", windows = "既定に従う（{current}）" }
 scopeMenuHelp = "範囲：{resolved}。クリックするとこのホットキーの範囲を変更できます。"
+scopeOverrideGlobal = "個別：グローバル"
+scopeOverrideGame = "個別：EVE 内のみ"
+scopeOverrideCount = "{count} 個のホットキーは範囲を個別に設定しており、この既定に従いません。"
+resetScopesToDefault = "すべて既定に従う"
 menuHotkeysOnlyInEVE = "ホットキーを EVE 内のみで有効にする"
 
 addHotkey = { macos = "+ 追加", windows = "ホットキーを追加" }
