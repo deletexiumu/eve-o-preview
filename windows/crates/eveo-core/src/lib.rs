@@ -31,5 +31,6 @@ pub mod hotkeys;
 pub mod layout;
 pub mod logging;
 pub mod model;
+pub mod overlay;
 pub mod planning;
 pub mod switching;
