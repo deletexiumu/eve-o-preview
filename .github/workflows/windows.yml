@@ -4,8 +4,11 @@
 # - 向 main 发起或更新 PR、推送到 main、手动运行：质量门禁、发布说明与 Rust 工作区的检查。
 #   PR 上工作流总会触发，但 changes 任务看改动的路径：没有动 windows/、shared/、scripts/、docs/release-notes/windows/
 #   与本文件时，后面的任务跳过（跳过算通过，分支保护的必需检查不会一直等）。推送到 main 直接用路径过滤。
-# - 推送 win-v* tag：同样检查。建 Release 的任务在 M9 加入，届时 Release 一律不标为 latest，
+# - 推送 win-v* tag：同样检查，然后打包（package）并发布（release）：Release 一律不标为 latest，
 #   并核对 /releases/latest 仍是 macOS 的 v* tag（已安装的 macOS 客户端靠它检查更新）。
+# - 手动运行时勾选「演练发布」：同样打包，再建一个草稿 Release（不打 tag、不公开），在正式打 tag 前验证发布流程。
+# 打包与签名的做法见 docs/windows/packaging.md：签名私钥只在 release 任务里用（Linux 运行器、Actions secret），
+# 不进 Windows 运行器；公钥提交在 windows/packaging/update-public-key.txt，打包时编进 exe。
 # Rust 工作区在 windows/Cargo.toml（M2 加入）；没有它时 Rust 的步骤自动跳过。
 # build 任务（M3 加入）在 Windows 运行器上构建整个工作区，启动假客户端跑集成探针，截图与报告作为制品上传。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
@@ -25,7 +28,13 @@ on:
       - ".github/workflows/windows.yml"
     tags: ["win-v*"]
   workflow_dispatch:
+    inputs:
+      rehearse_release:
+        description: 打包后建一个草稿 Release，演练发布流程
+        type: boolean
+        default: false
 
+# 默认只读；只有 release 任务单独提升为可写。
 permissions:
   contents: read
 
@@ -95,6 +104,17 @@ jobs:
       # 文案的 TOML 校验不过，或改了 TOML 没重新生成 Rust 与 Slint 时，在这里拦下（架构文档 5.2 节）。
       - name: 文案生成结果
         run: python3 shared/tools/gen_l10n.py --check
+
+      # windows/VERSION 是 Windows 版的版本号，必须与 Cargo 工作区的版本相同（应用用后者比较新旧）。
+      - name: 版本号一致
+        if: hashFiles('windows/Cargo.toml') != ''
+        run: |
+          BASE="$(tr -d '[:space:]' < windows/VERSION)"
+          CARGO="$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' windows/Cargo.toml)"
+          if [[ "$BASE" != "$CARGO" ]]; then
+            echo "::error::windows/VERSION（${BASE}）与 windows/Cargo.toml 的工作区版本（${CARGO}）不一致"
+            exit 1
+          fi
 
       # tag 必须与 windows/VERSION 一致（Windows 的版本号与 macOS 独立）。
       - name: tag 与版本号
@@ -194,3 +214,170 @@ jobs:
             windows/target/debug/eveo-probe.exe
           if-no-files-found: error
           retention-days: 14
+
+  # 打包（docs/windows/packaging.md 第 2 节）：只在 win-v* tag 与演练发布时运行。发布构建带上构建标签与更新公钥，
+  # 打出 zip、源码包与校验和，再用应用自己的解包与版本核对检查一遍（eveo-probe package-check）。
+  package:
+    needs: [core, build]
+    if: startsWith(github.ref, 'refs/tags/win-v') || (github.event_name == 'workflow_dispatch' && inputs.rehearse_release)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      label: ${{ steps.version.outputs.label }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # 构建标签：tag 上是版本号本身；演练时加 -rehearsal.<运行号>，不会与正式版混淆。
+      # 公钥必须已提交：没有公钥的正式构建装上之后再也不能自动更新。
+      - name: 版本号与公钥
+        id: version
+        shell: bash
+        run: |
+          BASE="$(tr -d '[:space:]' < windows/VERSION)"
+          if [[ "$GITHUB_REF" == refs/tags/win-v* ]]; then
+            LABEL="$BASE"
+          else
+            LABEL="${BASE}-rehearsal.${GITHUB_RUN_NUMBER}"
+          fi
+          KEY_FILE=windows/packaging/update-public-key.txt
+          [[ -f "$KEY_FILE" ]] || { echo "::error::缺少 ${KEY_FILE}，先按 docs/windows/packaging.md 生成签名密钥"; exit 1; }
+          KEY="$(tr -d '[:space:]' < "$KEY_FILE")"
+          [[ "$KEY" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::${KEY_FILE} 应是 64 位小写十六进制"; exit 1; }
+          echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
+          echo "key=${KEY}" >> "$GITHUB_OUTPUT"
+          echo "构建标签：${LABEL}"
+
+      - name: Rust 工具链
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustc --version
+
+      - name: 发布构建
+        working-directory: windows
+        env:
+          EVEO_BUILD_LABEL: ${{ steps.version.outputs.label }}
+          EVEO_UPDATE_PUBLIC_KEY: ${{ steps.version.outputs.key }}
+        run: cargo build --release --locked -p eveo-app -p eveo-probe
+
+      - name: 打包
+        working-directory: windows
+        shell: pwsh
+        run: ./packaging/package.ps1 -Version '${{ steps.version.outputs.label }}' -OutDir dist
+
+      # 发布契约：正好三个文件，校验和对得上；应用包能被应用自己解开，版本资源与公钥都对。
+      - name: 检查发布包
+        working-directory: windows
+        shell: pwsh
+        env:
+          LABEL: ${{ steps.version.outputs.label }}
+          KEY: ${{ steps.version.outputs.key }}
+        run: |
+          $names = (Get-ChildItem dist).Name | Sort-Object
+          $expected = @("EVE-O-Preview-$env:LABEL-windows-x64.zip", "SHA256SUMS.txt", "eve-o-preview-$env:LABEL-windows-source.zip") | Sort-Object
+          if (Compare-Object $names $expected) { throw "dist 里的文件不对：$($names -join ', ')" }
+          foreach ($line in (Get-Content dist/SHA256SUMS.txt)) {
+            $hash, $name = $line -split '  ', 2
+            if ((Get-FileHash -Algorithm SHA256 "dist/$name").Hash.ToLowerInvariant() -ne $hash) { throw "$name 的校验和不符" }
+          }
+          ./target/release/eveo-probe.exe package-check --zip "dist/EVE-O-Preview-$env:LABEL-windows-x64.zip" --version $env:LABEL --public-key $env:KEY
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: 上传发布包
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-release-${{ steps.version.outputs.label }}
+          path: windows/dist/
+          if-no-files-found: error
+
+  # 签名并发布（docs/windows/packaging.md 第 3、4 节）。私钥种子在 secret WINDOWS_UPDATE_SIGNING_KEY 里（64 位十六进制），
+  # 只经环境变量传给 Python 写成临时的 PKCS#8 文件，签完即删；签名前核对它的公钥与提交的公钥一致，签完再用提交的公钥验一遍。
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      # 只为读发布说明与公钥，不留写权限的凭据。
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-release-${{ needs.package.outputs.label }}
+          path: release-files
+
+      - name: 签名
+        env:
+          SIGNING_KEY: ${{ secrets.WINDOWS_UPDATE_SIGNING_KEY }}
+        run: |
+          [[ -n "$SIGNING_KEY" ]] || { echo "::error::缺少 secret WINDOWS_UPDATE_SIGNING_KEY"; exit 1; }
+          umask 077
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          # ed25519 私钥的 PKCS#8 DER = 固定前缀 + 32 字节种子；公钥的 SPKI DER = 固定前缀 + 32 字节公钥。
+          python3 -c 'import os,sys; seed=bytes.fromhex(os.environ["SIGNING_KEY"].strip()); assert len(seed)==32; sys.stdout.buffer.write(bytes.fromhex("302e020100300506032b657004220420")+seed)' > "$WORK/key.der"
+          PUBLIC="$(tr -d '[:space:]' < windows/packaging/update-public-key.txt)"
+          DERIVED="$(openssl pkey -inform DER -in "$WORK/key.der" -pubout -outform DER | tail -c 32 | python3 -c 'import sys; print(sys.stdin.buffer.read().hex())')"
+          if [[ "$DERIVED" != "$PUBLIC" ]]; then
+            echo "::error::secret 里的私钥与 windows/packaging/update-public-key.txt 的公钥不配对"
+            exit 1
+          fi
+          openssl pkeyutl -sign -keyform DER -inkey "$WORK/key.der" -rawin -in release-files/SHA256SUMS.txt -out "$WORK/sig.bin"
+          # 签名文件是一行 base64（架构文档 6.3 节第 3 条）。
+          base64 -w0 "$WORK/sig.bin" > release-files/SHA256SUMS.txt.sig
+          printf '\n' >> release-files/SHA256SUMS.txt.sig
+          python3 -c 'import sys; sys.stdout.buffer.write(bytes.fromhex("302a300506032b6570032100"+sys.argv[1]))' "$PUBLIC" > "$WORK/pub.der"
+          openssl pkeyutl -verify -pubin -keyform DER -inkey "$WORK/pub.der" -rawin -in release-files/SHA256SUMS.txt -sigfile "$WORK/sig.bin"
+          (cd release-files && sha256sum -c SHA256SUMS.txt)
+          [[ "$(ls release-files | wc -l | tr -d ' ')" == "4" ]] || { echo "::error::附件数不是 4"; ls release-files; exit 1; }
+
+      # 说明取 docs/release-notes/windows/v<VERSION>.md，不存在时让 GitHub 自动生成；版本号带 - 时标为预发布。
+      # 一律 --latest=false：/releases/latest 要留给 macOS（架构文档 7.4 节）。
+      # 演练：建草稿 Release，tag 名带 -rehearsal，不打 tag、不公开，看完后在 Releases 页面删掉。
+      # Release 已存在时不覆盖附件：已经发出去的文件和校验和不应被悄悄换掉。
+      - name: 发布 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ needs.package.outputs.label }}
+          REHEARSAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          VERSION="$(tr -d '[:space:]' < windows/VERSION)"
+          NOTES="docs/release-notes/windows/v${VERSION}.md"
+          if [[ "$REHEARSAL" == "true" ]]; then
+            TAG="win-v${LABEL}"
+            args=(--draft --prerelease --target "$GITHUB_SHA")
+          else
+            TAG="$GITHUB_REF_NAME"
+            args=(--verify-tag)
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+              echo "::error::Release ${TAG} 已存在，不覆盖附件"
+              exit 1
+            fi
+            if [[ "$TAG" == *-* ]]; then
+              args+=(--prerelease)
+            fi
+          fi
+          args+=(--repo "$GITHUB_REPOSITORY" --title "EVE-O Preview for Windows ${TAG}" --latest=false)
+          if [[ -f "$NOTES" ]]; then
+            args+=(--notes-file "$NOTES")
+          else
+            args+=(--generate-notes)
+          fi
+          gh release create "$TAG" release-files/* "${args[@]}"
+          echo "已建 Release：${TAG}"
+
+      # /releases/latest 必须仍是 macOS 的 v* tag；被 Windows 占了时失败，提醒在 Releases 页面把 macOS 的设回 latest。
+      - name: 核对 latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          echo "latest：${LATEST}"
+          if [[ "$LATEST" != v* ]]; then
+            echo "::error::/releases/latest 是 ${LATEST}，不是 macOS 的 v* tag；请在 Releases 页面把最近的 macOS Release 设为 latest"
+            exit 1
+          fi
