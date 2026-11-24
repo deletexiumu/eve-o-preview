@@ -16,6 +16,7 @@
 //! - [`planning`]：缩略图的可见性与呈现规划。
 //! - [`combat_log`]：战斗日志的分行、文件头、伤害行解析、目录与文件挑选、提醒规则与防重放。
 //! - [`config`]：配置的迁移、校验与配置方案的增删改。
+//! - [`translation`]：聊天翻译的接口解析、判断与分批、提示词、请求与答复。
 //! - [`support`]：字符串枚举与宽松解码、十六进制颜色、与 Foundation 对齐的文本处理。
 
 // 声明宏要在使用它们的模块之前引入，所以 support 放在最前面。
@@ -36,3 +37,4 @@ pub mod overlay;
 pub mod planning;
 pub mod static_data;
 pub mod switching;
+pub mod translation;
