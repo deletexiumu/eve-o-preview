@@ -12,9 +12,8 @@
 //! `pilot-names.json` 的读写。
 
 use std::fs;
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use eveo_core::intel::pilots::PilotNameCacheEntry;
 use serde::{Deserialize, Serialize};
@@ -23,9 +22,6 @@ use serde::{Deserialize, Serialize};
 pub const FILE_NAME: &str = "pilot-names.json";
 /// 文件的格式版本。与 macOS 相同，两边的文件可以互相读（虽然通常不会拷来拷去）。
 pub const FORMAT: i64 = 1;
-
-/// 临时文件名里的序号：同一进程里连续两次写入不会撞名。
-static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// 文件的结构。
 #[derive(Serialize, Deserialize)]
@@ -77,22 +73,6 @@ impl PilotNameStore {
             entries: entries.to_vec(),
         };
         let text = serde_json::to_string(&file).map_err(io::Error::other)?;
-        let directory = self.path.parent().unwrap_or_else(|| Path::new("."));
-        fs::create_dir_all(directory)?;
-        let serial = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let temp = directory.join(format!(".pilot-names-{}-{serial}.tmp", std::process::id()));
-        let result = (|| {
-            let mut handle = fs::File::create(&temp)?;
-            handle.write_all(text.as_bytes())?;
-            handle.sync_all()?;
-            // 先关掉句柄再改名：Windows 上打开着的文件不能被改名替换。
-            drop(handle);
-            fs::rename(&temp, &self.path)
-        })();
-        // 失败时删掉临时文件，原文件保持不变。
-        if result.is_err() {
-            let _ = fs::remove_file(&temp);
-        }
-        result
+        crate::atomic_file::write_atomic(&self.path, text.as_bytes(), "pilot-names")
     }
 }

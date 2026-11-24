@@ -4,15 +4,31 @@
 // 总开关与状态、频道、参考星系、显示（保留最近、最多计算、高亮距离、显示原文）、人名核对、浮窗、页尾说明。
 // 设置在当前配置方案的 intel 里。
 //
-// 状态行显示聊天日志的跟踪状态，与 macOS 的 intelStatusText 相同。macOS 的「我的位置」要列在线角色的位置，
-// 人名核对的状态与缓存要有查询服务，都随后续版本加上；参考星系现在只记下文字，查不到星系的提示也随后加上。
+// 状态行显示聊天日志的跟踪状态，与 macOS 的 intelStatusText 相同。
+// 「我的位置」每个在线角色一行：位置文字、星系输入框（回车提交）与「清除」；查不到星系时行下提示。
+// 手动设置的位置存进 state.json，重启后还在。参考星系查不到时同样提示。人名核对下面是状态与缓存条数，
+// 页尾是星图数据的版本。这些运行时的状态由应用层整组填入（Rust 侧的 IntelView），按钮经回调交给应用。
 // 与其他页的约定相同：控件只在用户操作时触发 edited，Rust 读回整页；频道的增删是单独的回调。
 
-import { LineEdit, SpinBox, Switch } from "std-widgets.slint";
+import { Button, LineEdit, SpinBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
+import { Footnote, Notice, PageHeader, RowGap, SectionHeader, SettingRow, ValueLabel } from "components.slint";
 import { ChannelListSection, OverlaySection } from "chat.slint";
 import { IntelText, SettingsText } from "generated/l10n.slint";
+
+// 「我的位置」的一行。
+export struct IntelLocationRow {
+    // 角色名。
+    name: string,
+    // 位置文字：「星系（来源，多久以前）」或「未知」。
+    text: string,
+    // 有没有位置记录（「清除」只在有记录时可点）。
+    has-location: bool,
+    // 上次输入的星系名查不到（行下提示，输入框保留输入的文字）。
+    not-found: bool,
+    // 设置成功的次数：每变一次清空这一行的输入框。
+    cleared: int,
+}
 
 // 本页的数据。
 export global IntelModel {
@@ -41,8 +57,22 @@ export global IntelModel {
     in-out property <float> overlay-opacity: 0.75;
     in-out property <float> overlay-font-size: 12;
     in property <bool> overlay-has-frame;
+    // 运行时的状态（应用层整组填入）：在线角色的位置；没有在线角色时为空。
+    in property <[IntelLocationRow]> locations;
+    // 参考星系填了却查不到。
+    in property <bool> reference-not-found;
+    // 人名核对的状态文字；功能关着时为空。
+    in property <string> pilot-status;
+    // 人名缓存的条数文字；缓存文件还没读完时为空（「清空人名缓存」此时也不可点）。
+    in property <string> pilot-cache;
+    // 星图数据一行的文字。
+    in property <string> static-data;
     // 用户改了某个值：Rust 读回整页。
     callback edited();
+    // 手动设置某个角色（名字）的位置（星系名）；「清除」某个角色的位置；「清空人名缓存」。
+    callback set-location(string, string);
+    callback clear-location(string);
+    callback clear-pilot-cache();
     // 移除第几个频道。
     callback remove-channel(int);
     // 按名称添加频道。
@@ -71,17 +101,10 @@ export component IntelPage inherits VerticalLayout {
         }
     }
     RowGap { }
+    // 状态文字含日志目录的路径，放在标题下面占满整行宽度，长路径不在右侧窄栏里折成几行。
     SettingRow {
         title: IntelText.status-label;
-        Text {
-            text: IntelModel.status-text;
-            color: Theme.text-secondary;
-            vertical-alignment: center;
-            horizontal-alignment: right;
-            wrap: word-wrap;
-            // 状态文字较长，限制宽度并换行，不把左边的名字挤没。
-            max-width: 380px;
-        }
+        description: IntelModel.status-text;
     }
     // EVE 默认不把聊天写进文件，这句提醒用户去游戏设置里打开。
     Footnote { text: SettingsText.chat-log-help; }
@@ -96,8 +119,39 @@ export component IntelPage inherits VerticalLayout {
         add-name(text) => { IntelModel.add-channel(text); }
     }
 
-    // 第 3 组：参考星系。不知道角色在哪里时，跳数从它算。
+    // 第 3 组：我的位置与参考星系。位置取自游戏日志与本地频道；都没有时在这里手动填，不知道时跳数从参考星系算。
     SectionHeader { text: IntelText.location-header; }
+    if IntelModel.locations.length == 0: SettingRow {
+        title: IntelText.no-online-characters;
+    }
+    for row in IntelModel.locations: VerticalLayout {
+        // 一个角色一张卡片：名字与位置文字在左，输入框与「清除」在右。
+        SettingRow {
+            title: row.name;
+            description: row.text;
+            LineEdit {
+                // 应用在设置成功后把 cleared 加一，这里随之清空；查不到时保留文字，用户能看到输错了什么。
+                property <int> cleared: row.cleared;
+                changed cleared => { self.text = ""; }
+                placeholder-text: IntelText.system-placeholder;
+                width: 220px;
+                accepted(text) => {
+                    if text != "" {
+                        IntelModel.set-location(row.name, text);
+                    }
+                }
+            }
+            Button {
+                text: IntelText.clear-location;
+                enabled: row.has-location;
+                clicked => { IntelModel.clear-location(row.name); }
+            }
+        }
+        Notice { text: row.not-found ? IntelText.system-not-found : ""; }
+        RowGap { }
+    }
+    Footnote { text: IntelText.location-help; }
+    RowGap { }
     SettingRow {
         title: IntelText.reference-system;
         description: IntelText.reference-system-help;
@@ -116,6 +170,7 @@ export component IntelPage inherits VerticalLayout {
             }
         }
     }
+    Notice { text: IntelModel.reference-not-found ? IntelText.system-not-found : ""; }
 
     // 第 4 组：显示。数字框右边是带单位的数值（单位随数量变化，例如俄语的复数）。
     SectionHeader { text: IntelText.display-header; }
@@ -191,6 +246,28 @@ export component IntelPage inherits VerticalLayout {
             }
         }
     }
+    // 开关打开时显示核对的状态（就绪、核对中、等待重试）。
+    if IntelModel.resolve-pilots && IntelModel.pilot-status != "": VerticalLayout {
+        RowGap { }
+        SettingRow {
+            title: IntelText.pilot-lookup-label;
+            ValueLabel {
+                text: IntelModel.pilot-status;
+                width: 340px;
+                wrap: word-wrap;
+            }
+        }
+    }
+    RowGap { }
+    // 人名缓存：查过的人名存在本机，同一个名字不再联网查。
+    SettingRow {
+        title: IntelModel.pilot-cache;
+        Button {
+            text: IntelText.clear-pilot-cache;
+            enabled: IntelModel.pilot-cache != "";
+            clicked => { IntelModel.clear-pilot-cache(); }
+        }
+    }
 
     // 第 6 组：浮窗。外观改动立即生效，与缩略图的滑块一样。
     OverlaySection {
@@ -200,6 +277,16 @@ export component IntelPage inherits VerticalLayout {
         has-frame: IntelModel.overlay-has-frame;
         edited => { IntelModel.edited(); }
         reset-frame => { IntelModel.reset-overlay-frame(); }
+    }
+    // 页尾：星图数据的版本（缺失时说明不能识别星系和舰船）与说明文字。
+    RowGap { }
+    SettingRow {
+        title: IntelText.static-data-label;
+        ValueLabel {
+            text: IntelModel.static-data;
+            width: 340px;
+            wrap: word-wrap;
+        }
     }
     Footnote { text: IntelText.footnote; }
     // 页底留白。

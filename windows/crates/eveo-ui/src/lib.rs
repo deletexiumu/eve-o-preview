@@ -21,6 +21,7 @@ pub mod bind;
 pub mod chat;
 pub mod environment;
 pub mod general;
+pub mod intel;
 #[rustfmt::skip]
 pub mod l10n;
 pub mod language;

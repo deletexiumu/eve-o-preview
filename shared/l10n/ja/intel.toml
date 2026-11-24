@@ -4,7 +4,6 @@
 pageSubtitle = "偵察チャンネルのチャットログを読み、敵対者の位置、人数、艦船、距離を表示します。"
 enableToggle = "偵察オーバーレイを表示"
 statusLabel = "状態"
-notAvailableYet = "チャットログの読み取りとインテルのオーバーレイは今後のテスト版で追加されます。設定は今のうちに入力できます"
 channelsHelp = "敵情が報告されるチャンネルを選択してください。"
 
 locationHeader = "現在地"

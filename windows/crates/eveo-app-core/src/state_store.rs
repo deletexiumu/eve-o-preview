@@ -1,0 +1,211 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 应用自己记下的状态 state.json，对应 macOS 的 AppState 与 JSONStateStore（docs/macos/design-v1.1.md 3.3 节）。
+// 位置：%APPDATA%\EVE-O Preview\state.json（paths::DataPaths::state_file），与用户的 config.json 分开：
+// - config.json 每次改动都重算规划；state.json 里的记录（手动位置、以后的更新检查时刻）改了不应触发这些。
+// - config.json 读取失败时整个会话不写盘；state.json 丢了也只是少了几条记录。
+//
+// 目前 Windows 只用 chat.manualLocations（docs/macos/design-intel-translate.md 6.2 节）：角色名 → 手动设置的位置。
+// 角色登录后一直停在同一个星系时，聊天日志与游戏日志都没有线索，靠它在重启后恢复位置。
+//
+// 读取的规则与 macOS 相同：文件不存在、不是合法 JSON、顶层不是对象或 stateVersion 不是 1 时用默认状态，不报错、
+// 不隔离文件，下一次写入覆盖它；chat 或手动位置表的结构不符时只丢掉这一部分。
+// 不认识的键原样保留（以后的版本加的更新、诊断记录），写回时不丢。键按字母排序，原子写入。
+// 文件里有角色名，只留在本机，不进问题报告。
+
+//! `state.json` 的读写。
+
+use std::collections::BTreeMap;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+
+use eveo_core::chat_log::tracker::CharacterLocation;
+use serde_json::{Map, Value};
+
+/// 当前的状态文件版本。
+pub const STATE_VERSION: i64 = 1;
+
+/// 顶层的版本键。
+const VERSION_KEY: &str = "stateVersion";
+/// 预警与翻译的记录所在的键。
+const CHAT_KEY: &str = "chat";
+/// chat 里手动位置表的键。
+const MANUAL_KEY: &str = "manualLocations";
+
+/// state.json 的内容。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AppState {
+    /// 手动设置的位置：角色名 → 位置。
+    pub manual_locations: BTreeMap<String, CharacterLocation>,
+    /// 顶层不认识的键（更新、诊断等），写回时原样保留。
+    other: Map<String, Value>,
+    /// chat 里不认识的键，同样原样保留。
+    chat_other: Map<String, Value>,
+}
+
+impl AppState {
+    /// 从文件内容解出状态；内容不对时得到默认状态（规则见文件头）。
+    pub fn decode(bytes: &[u8]) -> Self {
+        let Ok(Value::Object(mut root)) = serde_json::from_slice::<Value>(bytes) else {
+            return Self::default();
+        };
+        // 缺版本键按当前版本；版本不认识时整个文件不用。
+        let version = root
+            .remove(VERSION_KEY)
+            .map_or(Some(STATE_VERSION), |v| v.as_i64());
+        if version != Some(STATE_VERSION) {
+            return Self::default();
+        }
+        // chat 不是对象时整段丢掉；手动位置表解不出来时取空表，不连累 chat 里别的键。
+        let mut chat_other = match root.remove(CHAT_KEY) {
+            Some(Value::Object(chat)) => chat,
+            _ => Map::new(),
+        };
+        let manual_locations = chat_other
+            .remove(MANUAL_KEY)
+            .and_then(|value| serde_json::from_value(value).ok())
+            .unwrap_or_default();
+        Self {
+            manual_locations,
+            other: root,
+            chat_other,
+        }
+    }
+
+    /// 编码成文件内容：缩进两格、键按字母排序（serde_json 的 Map 本身有序），末尾换行。
+    pub fn encode(&self) -> Vec<u8> {
+        let mut chat = self.chat_other.clone();
+        // CharacterLocation 只有数字与枚举，序列化不会失败；万一失败就写空表。
+        let manual =
+            serde_json::to_value(&self.manual_locations).unwrap_or_else(|_| Value::Object(Map::new()));
+        chat.insert(MANUAL_KEY.to_owned(), manual);
+        let mut root = self.other.clone();
+        root.insert(CHAT_KEY.to_owned(), Value::Object(chat));
+        root.insert(VERSION_KEY.to_owned(), Value::from(STATE_VERSION));
+        let mut bytes = serde_json::to_vec_pretty(&Value::Object(root)).unwrap_or_default();
+        bytes.push(b'\n');
+        bytes
+    }
+}
+
+/// state.json 的持有者：记着读入的状态，改动后整份写回（保留不认识的键）。
+#[derive(Debug, Clone)]
+pub struct StateStore {
+    /// 文件的位置。
+    path: PathBuf,
+    /// 当前的状态。
+    state: AppState,
+}
+
+impl StateStore {
+    /// 读入文件建持有者；文件不存在或内容不对时从默认状态开始。
+    pub fn load(path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        let state = fs::read(&path)
+            .map(|bytes| AppState::decode(&bytes))
+            .unwrap_or_default();
+        Self { path, state }
+    }
+
+    /// 文件的位置。
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// 当前的状态。
+    pub fn state(&self) -> &AppState {
+        &self.state
+    }
+
+    /// 换上新的手动位置表并写盘；与现有的相同时不写。写盘失败时内存里的状态已经更新，下次改动再写。
+    pub fn set_manual_locations(&mut self, manual: BTreeMap<String, CharacterLocation>) -> io::Result<()> {
+        if self.state.manual_locations == manual {
+            return Ok(());
+        }
+        self.state.manual_locations = manual;
+        self.save()
+    }
+
+    /// 整份写盘（原子写入）。
+    pub fn save(&self) -> io::Result<()> {
+        crate::atomic_file::write_atomic(&self.path, &self.state.encode(), "state")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use eveo_core::chat_log::tracker::LocationSource;
+
+    /// 一条手动位置。
+    fn manual(system_id: i64) -> CharacterLocation {
+        CharacterLocation {
+            system_id,
+            time: 1_700_000_000.5,
+            source: LocationSource::Manual,
+        }
+    }
+
+    /// 与 macOS 写出的文件互通：键名、来源的原始值都相同，不认识的键保留。
+    #[test]
+    fn decodes_macos_layout_and_keeps_unknown_keys() {
+        let text = r#"{
+            "appliedDefaults": ["a"],
+            "chat": {"manualLocations": {"Pilot A": {"source": "manual", "systemID": 30000142, "time": 1700000000.5}},
+                     "future": 1},
+            "stateVersion": 1,
+            "updates": {"etag": "x"}
+        }"#;
+        let state = AppState::decode(text.as_bytes());
+        assert_eq!(state.manual_locations.get("Pilot A"), Some(&manual(30_000_142)));
+        let again: Value = serde_json::from_slice(&state.encode()).unwrap();
+        assert_eq!(again["updates"]["etag"], "x");
+        assert_eq!(again["appliedDefaults"][0], "a");
+        assert_eq!(again["chat"]["future"], 1);
+        assert_eq!(
+            again["chat"]["manualLocations"]["Pilot A"]["systemID"],
+            30_000_142
+        );
+        assert_eq!(again["stateVersion"], 1);
+        // 往返一致。
+        assert_eq!(AppState::decode(&state.encode()), state);
+    }
+
+    /// 内容不对时用默认状态；只有手动位置表坏了时只丢这一部分。
+    #[test]
+    fn bad_content_falls_back() {
+        for text in [
+            "",
+            "[]",
+            "not json",
+            r#"{"stateVersion": 2, "chat": {}}"#,
+            r#"{"stateVersion": "1"}"#,
+        ] {
+            assert_eq!(AppState::decode(text.as_bytes()), AppState::default(), "{text}");
+        }
+        let state = AppState::decode(br#"{"chat": {"manualLocations": [1], "keep": true}, "x": 1}"#);
+        assert!(state.manual_locations.is_empty());
+        let again: Value = serde_json::from_slice(&state.encode()).unwrap();
+        assert_eq!(again["chat"]["keep"], true);
+        assert_eq!(again["x"], 1);
+    }
+
+    /// 持有者：没有文件时从空开始；改动后写盘，再读回相同；相同的表不写。
+    #[test]
+    fn store_round_trip() {
+        let dir = std::env::temp_dir().join(format!("eveo-state-{}", std::process::id()));
+        let path = dir.join("state.json");
+        let _ = fs::remove_file(&path);
+        let mut store = StateStore::load(&path);
+        assert!(store.state().manual_locations.is_empty());
+        let table = BTreeMap::from([("Pilot B".to_owned(), manual(30_002_187))]);
+        store.set_manual_locations(table.clone()).unwrap();
+        assert_eq!(StateStore::load(&path).state().manual_locations, table);
+        // 相同的表不写：删掉文件后再交同一张表，文件不会重新出现。
+        fs::remove_file(&path).unwrap();
+        store.set_manual_locations(table).unwrap();
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+}

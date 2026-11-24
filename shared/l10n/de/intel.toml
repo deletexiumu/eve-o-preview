@@ -4,7 +4,6 @@
 pageSubtitle = "Liest die Chatprotokolle der Aufklärungskanäle und zeigt, wo Feinde sind, wie viele, mit welchen Schiffen und wie weit entfernt."
 enableToggle = "Aufklärungs-Overlay anzeigen"
 statusLabel = "Status"
-notAvailableYet = "Das Lesen der Chatprotokolle und das Aufklärungsfenster kommen in einem späteren Testbuild; die Einstellungen können Sie schon jetzt ausfüllen"
 channelsHelp = "Wähle die Kanäle, in denen Feinde gemeldet werden."
 
 locationHeader = "Mein Standort"

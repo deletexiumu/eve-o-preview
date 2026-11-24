@@ -317,7 +317,6 @@ pub fn apply(ui: &SettingsWindow, language: AppLanguage) {
     text.set_page_subtitle(intel.page_subtitle().into());
     text.set_enable_toggle(intel.enable_toggle().into());
     text.set_status_label(intel.status_label().into());
-    text.set_not_available_yet(intel.not_available_yet().into());
     text.set_channels_help(intel.channels_help().into());
     text.set_location_header(intel.location_header().into());
     text.set_location_help(intel.location_help().into());

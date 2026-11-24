@@ -22,6 +22,7 @@ use eveo_app_core::translation::text::{failure_text, issue_text, status_text};
 use eveo_app_core::translation::{SecretError, SecretStore, TranslationController, TranslationServices};
 use eveo_core::chat_log::ChatLogStatus;
 use eveo_core::model::{AppLanguage, TranslationProviderId};
+use eveo_core::overlay::OverlayKind;
 use eveo_core::translation::{HttpRequest, TranslationStatus, providers};
 use eveo_platform_win::credentials::{self, CredentialError};
 use eveo_ui::translation::{TranslationView, clear_key_draft, show_translation_view};
@@ -164,7 +165,7 @@ impl App {
         // 测试在发请求之前就失败（地址不对、缺 Key）时结果已经有了，这里一并取走。
         self.take_translation_test();
         self.show_translation_page();
-        self.refresh_translation_overlay();
+        self.refresh_overlay(OverlayKind::Translation);
     }
 
     /// 换了服务预设：Key 的输入框、失败说明与测试结果都属于旧预设，清掉。
