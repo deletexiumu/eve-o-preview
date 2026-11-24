@@ -142,28 +142,8 @@ fn put32(buffer: &mut Vec<u8>, value: u32) {
     buffer.extend_from_slice(&value.to_le_bytes());
 }
 
-/// CRC-32（IEEE 802.3，多项式 0xEDB88320），逐字节查表。
-pub fn crc32(data: &[u8]) -> u32 {
-    // 表只有 256 项，每次现算也只要几微秒；报告只写一次，不必缓存。
-    let mut table = [0u32; 256];
-    for (i, slot) in table.iter_mut().enumerate() {
-        let mut c = i as u32;
-        for _ in 0..8 {
-            c = if c & 1 != 0 {
-                0xEDB8_8320 ^ (c >> 1)
-            } else {
-                c >> 1
-            };
-        }
-        *slot = c;
-    }
-    // 初值全 1、结果取反，是 zip 与以太网共用的约定。
-    let mut crc = 0xFFFF_FFFF_u32;
-    for &byte in data {
-        crc = table[((crc ^ u32::from(byte)) & 0xFF) as usize] ^ (crc >> 8);
-    }
-    !crc
-}
+/// CRC-32 与 Core 共用一份实现（更新包的解包也要核对它）。
+pub use eveo_core::support::crc::crc32;
 
 #[cfg(test)]
 mod tests {

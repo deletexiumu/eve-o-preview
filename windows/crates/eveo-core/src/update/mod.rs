@@ -12,12 +12,16 @@
 //! - [`history`]：中间版本的发布说明。
 //! - [`notes`]：发布说明按语言的选取与切块。
 //! - [`policy`]：能否安装、挑哪个版本、要不要提示、何时检查、新 exe 能否安装。
+//! - [`install`]：替换 exe 与回滚的规则。
+//! - [`archive`]：从更新包里取出 exe、PE 头的机器类型。
 //! - [`checksums`]：校验和文件、签名与 SHA-256。
 //! - [`models`]：值类型与错误。
 
+pub mod archive;
 pub mod checksums;
 pub mod feed;
 pub mod history;
+pub mod install;
 pub mod models;
 pub mod notes;
 pub mod parser;

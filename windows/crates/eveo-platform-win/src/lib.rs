@@ -37,6 +37,7 @@ mod text;
 pub mod thumbnail;
 pub mod translation;
 pub mod tray;
+pub mod update;
 mod window_class;
 
 use eveo_core::model::WindowId;

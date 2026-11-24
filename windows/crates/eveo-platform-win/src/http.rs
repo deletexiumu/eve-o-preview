@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 最小的 HTTPS 客户端（WinHTTP 同步调用），给 ESI 人名核对与之后的翻译用。对应 macOS 用 .ephemeral 的 URLSession：
+// 最小的 HTTPS 客户端（WinHTTP 同步调用），给 ESI 人名核对、翻译与自动更新用。对应 macOS 用 .ephemeral 的 URLSession：
 // - 默认只发 https；调用方明确允许时也发 http（翻译服务的本机地址，如 Ollama，是否本机由调用方先检查）。
 // - 系统代理按「自动」取（WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY，Windows 8.1 起支持；不支持时退回默认代理）。
 // - 不跟随重定向（3xx 原样交回，调用方按「请求有问题」处理）、不用 Cookie、不读写缓存（WINHTTP_FLAG_REFRESH）。
@@ -68,6 +68,8 @@ pub enum HttpError {
     Network(String),
     /// 正文超过上限。
     TooLarge,
+    /// 调用方在读正文时要求停下（stream 的回调返回 false）。
+    Cancelled,
 }
 
 impl HttpError {
@@ -77,6 +79,7 @@ impl HttpError {
             Self::InvalidUrl => "invalid url".to_owned(),
             Self::Network(reason) => reason.clone(),
             Self::TooLarge => "response too large".to_owned(),
+            Self::Cancelled => "cancelled".to_owned(),
         }
     }
 }
@@ -175,6 +178,56 @@ impl Drop for Handle {
 /// 任何一步失败都返回 Network，说明里带上失败的步骤名，便于从日志里看出卡在哪一步。
 /// 三个句柄按会话、连接、请求的顺序声明，离开函数时按相反顺序关闭。
 pub fn send(request: &HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
+    let opened = open(request)?;
+    // 不读正文的状态码（如 ESI 的 4xx、5xx）直接关句柄，正文留在连接里由 WinHTTP 丢弃。
+    let body = if (request.reads_body)(opened.status) {
+        read_body(&opened.request, request.max_response_bytes)?
+    } else {
+        Vec::new()
+    };
+    Ok(HttpResponse {
+        status: opened.status,
+        headers: opened.headers,
+        body,
+    })
+}
+
+/// 与 send 相同，但正文不攒在一起：每读到一段就交给 on_chunk，适合下载更新包时显示进度。
+///
+/// on_chunk 返回 false 时立即停下，返回 Cancelled（用户点了取消）。正文总长超过 max_response_bytes 时返回 TooLarge。
+/// 取消的反应时间取决于下一段数据何时到达：网络很慢时最长要等一个超时（调用方给的秒数）。
+/// 返回的 HttpResponse 里正文为空；不读正文的状态码不调用 on_chunk。
+pub fn stream(
+    request: &HttpRequest<'_>,
+    on_chunk: &mut dyn FnMut(&[u8]) -> bool,
+) -> Result<HttpResponse, HttpError> {
+    let opened = open(request)?;
+    if (request.reads_body)(opened.status) {
+        read_chunks(&opened.request, request.max_response_bytes, on_chunk)?;
+    }
+    Ok(HttpResponse {
+        status: opened.status,
+        headers: opened.headers,
+        body: Vec::new(),
+    })
+}
+
+/// 已收到答复头的请求：三个句柄要活到正文读完。字段按声明顺序丢弃，请求先于连接、连接先于会话关闭。
+struct Opened {
+    /// 请求句柄。
+    request: Handle,
+    /// 连接句柄。
+    _connection: Handle,
+    /// 会话句柄。
+    _session: Handle,
+    /// HTTP 状态码。
+    status: u16,
+    /// 小写名字的答复头。
+    headers: HashMap<String, String>,
+}
+
+/// 发请求并收答复头，正文留给调用方读。步骤见 send 的说明。
+fn open(request: &HttpRequest<'_>) -> Result<Opened, HttpError> {
     let parts = split_url(request.url, request.allows_http).ok_or(HttpError::InvalidUrl)?;
     // WinHTTP 的 User-Agent 只能在打开会话时给；附加请求头里再写一遍会出现两个，所以单独取出来。
     let user_agent = request
@@ -252,16 +305,12 @@ pub fn send(request: &HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
     // 状态码取不到说明答复不完整，按网络错误处理；答复头取不到时只是少了限流信息，照常往下走。
     let status = query_status(&handle)?;
     let headers = parse_headers(&query_raw_headers(&handle));
-    // 不读正文的状态码（如 ESI 的 4xx、5xx）直接关句柄，正文留在连接里由 WinHTTP 丢弃。
-    let body = if (request.reads_body)(status) {
-        read_body(&handle, request.max_response_bytes)?
-    } else {
-        Vec::new()
-    };
-    Ok(HttpResponse {
+    Ok(Opened {
+        request: handle,
+        _connection: connection,
+        _session: session,
         status,
         headers,
-        body,
     })
 }
 
@@ -371,38 +420,51 @@ fn query_raw_headers(handle: &Handle) -> String {
     String::from_utf16_lossy(&buffer)
 }
 
-/// 读正文，超过上限时报 TooLarge。
-/// 每轮先问「现在有多少字节可读」，再按这个数读；可读为 0 表示正文读完。
-/// 每轮之后检查总长度，超过上限立即停止，不会把一个异常大的答复整个读进内存。
+/// 读完整的正文，超过上限时报 TooLarge。
 fn read_body(handle: &Handle, limit: usize) -> Result<Vec<u8>, HttpError> {
     let mut body = Vec::new();
+    // 攒在一起的回调从不要求停下，所以这里不会出现 Cancelled。
+    read_chunks(handle, limit, &mut |chunk| {
+        body.extend_from_slice(chunk);
+        true
+    })?;
+    Ok(body)
+}
+
+/// 一段一段读正文交给 on_chunk；总长超过上限时报 TooLarge，on_chunk 返回 false 时报 Cancelled。
+/// 每轮先问「现在有多少字节可读」，再按这个数读（最多 64 KiB）；可读为 0 表示正文读完。
+/// 超过上限的那一段不交给 on_chunk，不会把一个异常大的答复整个读进内存。
+fn read_chunks(
+    handle: &Handle,
+    limit: usize,
+    on_chunk: &mut dyn FnMut(&[u8]) -> bool,
+) -> Result<(), HttpError> {
+    // 每段的上限：可读的字节数可能很大（整个缓冲区），分段读能让进度与取消更及时。
+    const CHUNK: u32 = 64 * 1024;
+    let mut buffer = vec![0u8; CHUNK as usize];
+    let mut total = 0usize;
     loop {
         let mut available: u32 = 0;
         // SAFETY: handle 有效且已收到答复；available 是一个 u32 的输出参数。
         unsafe { WinHttpQueryDataAvailable(handle.0, &mut available) }.map_err(|e| network("read", &e))?;
         if available == 0 {
-            return Ok(body);
+            return Ok(());
         }
-        let start = body.len();
-        body.resize(start + available as usize, 0);
+        let wanted = available.min(CHUNK);
         let mut read: u32 = 0;
-        // SAFETY: 缓冲区从 start 起有 available 个字节，调用期间有效；read 是输出参数。
-        unsafe {
-            WinHttpReadData(
-                handle.0,
-                body.as_mut_ptr().add(start).cast::<c_void>(),
-                available,
-                &mut read,
-            )
+        // SAFETY: 缓冲区有 CHUNK 个字节，wanted 不超过它，调用期间有效；read 是输出参数。
+        unsafe { WinHttpReadData(handle.0, buffer.as_mut_ptr().cast::<c_void>(), wanted, &mut read) }
+            .map_err(|e| network("read", &e))?;
+        if read == 0 {
+            return Ok(());
         }
-        .map_err(|e| network("read", &e))?;
-        // 实际读到的可能少于可读的字节数，按实际数截短，避免末尾留下一段 0。
-        body.truncate(start + read as usize);
-        if body.len() > limit {
+        total += read as usize;
+        if total > limit {
             return Err(HttpError::TooLarge);
         }
-        if read == 0 {
-            return Ok(body);
+        // 实际读到的可能少于要的字节数，只交出读到的部分。
+        if !on_chunk(&buffer[..read as usize]) {
+            return Err(HttpError::Cancelled);
         }
     }
 }

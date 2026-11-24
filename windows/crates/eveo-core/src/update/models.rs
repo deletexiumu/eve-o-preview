@@ -132,3 +132,30 @@ pub enum UpdateError {
     /// 用户取消。界面不显示。
     Cancelled,
 }
+
+impl UpdateError {
+    /// 写进 state.json 安装记录与日志的名称，与 macOS 的 `UpdateError` 用同样的小驼峰写法（如 `checksumMismatch`）。
+    /// 不含关联值：关联值可能带地址或文件名，日志与记录里只需要知道是哪一类错误。
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::Network(_) => "network",
+            Self::HttpStatus(_) => "httpStatus",
+            Self::RateLimited(_) => "rateLimited",
+            Self::MalformedFeed(_) => "malformedFeed",
+            Self::AssetMissing(_) => "assetMissing",
+            Self::InsufficientDiskSpace => "insufficientDiskSpace",
+            Self::DownloadTooLarge => "downloadTooLarge",
+            Self::ChecksumListInvalid => "checksumListInvalid",
+            Self::ChecksumEntryMissing(_) => "checksumEntryMissing",
+            Self::ChecksumMismatch => "checksumMismatch",
+            Self::SignatureInvalid => "signatureInvalid",
+            Self::ArchiveInvalid(_) => "archiveInvalid",
+            Self::VersionMismatch { .. } => "versionMismatch",
+            Self::NotNewer => "notNewer",
+            Self::ArchitectureMismatch => "architectureMismatch",
+            Self::Blocked(_) => "blocked",
+            Self::ReplaceFailed(_) => "replaceFailed",
+            Self::Cancelled => "cancelled",
+        }
+    }
+}

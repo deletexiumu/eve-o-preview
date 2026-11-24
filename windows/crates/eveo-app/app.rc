@@ -2,4 +2,5 @@
 //
 // exe 的资源：应用图标，编号 1。资源管理器与任务栏显示它，托盘图标也从这里加载（tray.rs 的 APP_ICON_ID）。
 // 图标由 shared/branding/make-icons.py 生成。
+// 版本信息（VERSIONINFO）由 build.rs 生成后接在这份内容后面，图标路径也由 build.rs 换成绝对路径。
 1 ICON "assets/app.ico"
