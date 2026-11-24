@@ -126,7 +126,7 @@ fn is_separator(c: char) -> bool {
 }
 
 /// 去掉路径末尾多余的分隔符；只剩分隔符或盘符根（`C:\`）时保留一个。
-fn trim_separators(path: &str) -> &str {
+pub(crate) fn trim_separators(path: &str) -> &str {
     let trimmed = path.trim_end_matches(is_separator);
     if trimmed.is_empty() || trimmed.ends_with(':') {
         // 根目录：保留原来的第一个分隔符。
@@ -138,13 +138,13 @@ fn trim_separators(path: &str) -> &str {
 }
 
 /// 拆出上一级与最后一段；没有分隔符时返回 `None`。
-fn split_last(path: &str) -> Option<(&str, &str)> {
+pub(crate) fn split_last(path: &str) -> Option<(&str, &str)> {
     let index = path.rfind(is_separator)?;
     Some((&path[..index], &path[index + 1..]))
 }
 
 /// 在目录后接一段名字，用反斜杠连接；目录已以分隔符结尾时不再加。
-fn join(directory: &str, name: &str) -> String {
+pub(crate) fn join(directory: &str, name: &str) -> String {
     if directory.ends_with(is_separator) {
         format!("{directory}{name}")
     } else {
