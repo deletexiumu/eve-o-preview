@@ -13,6 +13,7 @@
 
 pub mod activation;
 pub mod appearance;
+pub mod crash;
 pub mod credentials;
 pub mod discovery;
 pub mod esi;

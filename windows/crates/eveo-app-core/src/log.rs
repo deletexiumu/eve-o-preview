@@ -182,19 +182,43 @@ pub fn flush() {
     drop(sink());
 }
 
-/// 格式化一条记录（锁外），再在锁内写入。
-fn write(level: LogLevel, category: &str, text: &str) {
+/// 在不能等锁的地方（结构化异常的过滤器）写一条 fault：锁被占着时放弃这一条，不会卡住。
+pub fn try_fault(category: &str, text: &str) {
+    if !enabled(LogLevel::Fault) {
+        return;
+    }
+    let line = record(LogLevel::Fault, category, text).line();
+    if let Ok(mut guard) = SINK.try_lock()
+        && let Some(sink) = guard.as_mut()
+    {
+        let (time, uptime) = clock();
+        sink.write_line(&line, time, uptime);
+    }
+}
+
+/// 现在的墙上时间与限速用的单调时钟秒数。
+fn clock() -> (f64, f64) {
     let time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0.0, |d| d.as_secs_f64());
     let uptime = START.get_or_init(Instant::now).elapsed().as_secs_f64();
-    let record = LogRecord {
-        time,
+    (time, uptime)
+}
+
+/// 一条现在时刻的记录。
+fn record(level: LogLevel, category: &str, text: &str) -> LogRecord {
+    LogRecord {
+        time: clock().0,
         level,
         category: category.to_owned(),
         text: text.to_owned(),
-    };
-    let line = record.line();
+    }
+}
+
+/// 格式化一条记录（锁外），再在锁内写入。
+fn write(level: LogLevel, category: &str, text: &str) {
+    let line = record(level, category, text).line();
+    let (time, uptime) = clock();
     if let Some(sink) = sink().as_mut() {
         sink.write_line(&line, time, uptime);
     }
