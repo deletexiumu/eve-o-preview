@@ -43,6 +43,7 @@ pub fn resolve(names: &[String], app_version: &str) -> EsiResult {
         timeout_seconds: wire.timeout_seconds,
         max_response_bytes: MAX_RESPONSE_BYTES,
         reads_body: |status| status == 200,
+        allows_http: false,
     });
     let elapsed_ms = started.elapsed().as_millis();
     match outcome {

@@ -13,6 +13,7 @@
 
 pub mod activation;
 pub mod appearance;
+pub mod credentials;
 pub mod discovery;
 pub mod esi;
 pub mod events;
@@ -32,6 +33,7 @@ pub mod shell;
 pub mod single_instance;
 mod text;
 pub mod thumbnail;
+pub mod translation;
 pub mod tray;
 mod window_class;
 

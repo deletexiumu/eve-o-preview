@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 最小的 HTTPS 客户端（WinHTTP 同步调用），给 ESI 人名核对与之后的翻译用。对应 macOS 用 .ephemeral 的 URLSession：
-// - 只发 https；系统代理按「自动」取（WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY，Windows 8.1 起支持；不支持时退回默认代理）。
+// - 默认只发 https；调用方明确允许时也发 http（翻译服务的本机地址，如 Ollama，是否本机由调用方先检查）。
+// - 系统代理按「自动」取（WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY，Windows 8.1 起支持；不支持时退回默认代理）。
 // - 不跟随重定向（3xx 原样交回，调用方按「请求有问题」处理）、不用 Cookie、不读写缓存（WINHTTP_FLAG_REFRESH）。
 // - TLS 1.2 与 1.3；系统不支持 1.3 时只用 1.2。
 // - 解析、连接、发送、接收各一个超时，都取调用方给的秒数。
@@ -31,7 +32,7 @@ use windows::core::{HSTRING, PCWSTR};
 pub struct HttpRequest<'a> {
     /// 方法，如 `POST`。
     pub method: &'a str,
-    /// 完整的 https 地址。
+    /// 完整的地址，https；allows_http 为真时也可以是 http。
     pub url: &'a str,
     /// 请求头；User-Agent 交给 WinHttpOpen，其余作为附加请求头发出。
     pub headers: &'a [(&'a str, String)],
@@ -43,6 +44,8 @@ pub struct HttpRequest<'a> {
     pub max_response_bytes: usize,
     /// 哪些状态码要读正文（例如 ESI 只读 200 的正文）。
     pub reads_body: fn(u16) -> bool,
+    /// 是否允许明文 http。只有翻译服务的本机或局域网地址用它；ESI 总是 false。
+    pub allows_http: bool,
 }
 
 /// 一次答复。
@@ -87,12 +90,20 @@ pub(crate) struct UrlParts {
     pub port: u16,
     /// 路径加查询串，至少是 `/`。
     pub path: String,
+    /// 是否走 TLS（https）。
+    pub secure: bool,
 }
 
-/// 拆 https 地址：只接受 `https://主机[:端口][/路径]`，不接受用户名密码。
-/// 只用于本模块拼出的固定地址（ESI、翻译服务），所以不处理 IPv6 字面量与百分号编码。
-pub(crate) fn split_url(url: &str) -> Option<UrlParts> {
-    let rest = url.strip_prefix("https://")?;
+/// 拆地址：接受 `https://主机[:端口][/路径]`，allows_http 为真时也接受 `http://`（默认端口 80）；
+/// 不接受用户名密码。IPv6 字面量写在方括号里（`http://[::1]:11434/v1`），交给 WinHTTP 时去掉方括号。
+/// 地址来自本模块的固定地址（ESI）或已经检查过的翻译接口，不处理百分号编码。
+pub(crate) fn split_url(url: &str, allows_http: bool) -> Option<UrlParts> {
+    let (rest, secure) = match url.strip_prefix("https://") {
+        Some(rest) => (rest, true),
+        None if allows_http => (url.strip_prefix("http://")?, false),
+        None => return None,
+    };
+    let default_port = if secure { 443 } else { 80 };
     let (authority, path) = match rest.find('/') {
         Some(index) => (&rest[..index], &rest[index..]),
         None => (rest, "/"),
@@ -101,9 +112,19 @@ pub(crate) fn split_url(url: &str) -> Option<UrlParts> {
     if authority.is_empty() || authority.contains('@') {
         return None;
     }
-    let (host, port) = match authority.rsplit_once(':') {
-        Some((host, port)) => (host, port.parse().ok()?),
-        None => (authority, 443),
+    let (host, port) = if let Some(bracketed) = authority.strip_prefix('[') {
+        // IPv6：方括号里是地址，后面只能是空或 `:端口`。
+        let (host, after) = bracketed.split_once(']')?;
+        let port = match after {
+            "" => default_port,
+            _ => after.strip_prefix(':')?.parse().ok()?,
+        };
+        (host, port)
+    } else {
+        match authority.rsplit_once(':') {
+            Some((host, port)) => (host, port.parse().ok()?),
+            None => (authority, default_port),
+        }
     };
     if host.is_empty() {
         return None;
@@ -112,6 +133,7 @@ pub(crate) fn split_url(url: &str) -> Option<UrlParts> {
         host: host.to_owned(),
         port,
         path: path.to_owned(),
+        secure,
     })
 }
 
@@ -153,7 +175,7 @@ impl Drop for Handle {
 /// 任何一步失败都返回 Network，说明里带上失败的步骤名，便于从日志里看出卡在哪一步。
 /// 三个句柄按会话、连接、请求的顺序声明，离开函数时按相反顺序关闭。
 pub fn send(request: &HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
-    let parts = split_url(request.url).ok_or(HttpError::InvalidUrl)?;
+    let parts = split_url(request.url, request.allows_http).ok_or(HttpError::InvalidUrl)?;
     // WinHTTP 的 User-Agent 只能在打开会话时给；附加请求头里再写一遍会出现两个，所以单独取出来。
     let user_agent = request
         .headers
@@ -194,7 +216,12 @@ pub fn send(request: &HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
             PCWSTR::null(),
             PCWSTR::null(),
             std::ptr::null(),
-            WINHTTP_FLAG_SECURE | WINHTTP_FLAG_REFRESH,
+            // http 地址不加 SECURE（不走 TLS）；不读写缓存对两者都适用。
+            if parts.secure {
+                WINHTTP_FLAG_SECURE | WINHTTP_FLAG_REFRESH
+            } else {
+                WINHTTP_FLAG_REFRESH
+            },
         )
     })
     .ok_or_else(|| last_error("open request"))?;
@@ -407,23 +434,42 @@ mod tests {
     /// https 地址拆成主机、端口与路径；不是 https、带凭据或没有主机时不接受。
     #[test]
     fn splits_urls() {
-        let esi = split_url("https://esi.evetech.net/universe/ids").unwrap();
+        let esi = split_url("https://esi.evetech.net/universe/ids", false).unwrap();
         assert_eq!(
             esi,
             UrlParts {
                 host: "esi.evetech.net".into(),
                 port: 443,
-                path: "/universe/ids".into()
+                path: "/universe/ids".into(),
+                secure: true,
             }
         );
-        let custom = split_url("https://example.test:8443").unwrap();
+        let custom = split_url("https://example.test:8443", false).unwrap();
         assert_eq!((custom.port, custom.path.as_str()), (8443, "/"));
-        let query = split_url("https://example.test/a?b=1").unwrap();
+        let query = split_url("https://example.test/a?b=1", false).unwrap();
         assert_eq!(query.path, "/a?b=1");
-        assert_eq!(split_url("http://esi.evetech.net/"), None);
-        assert_eq!(split_url("https://user:pass@example.test/"), None);
-        assert_eq!(split_url("https:///path"), None);
-        assert_eq!(split_url("https://example.test:port/"), None);
+        // 不允许 http 时（ESI）拒绝明文地址。
+        assert_eq!(split_url("http://esi.evetech.net/", false), None);
+        assert_eq!(split_url("https://user:pass@example.test/", false), None);
+        assert_eq!(split_url("https:///path", false), None);
+        assert_eq!(split_url("https://example.test:port/", false), None);
+    }
+
+    /// 允许 http 时（翻译服务的本机地址）：默认端口 80；IPv6 字面量去掉方括号；方括号后面只能跟端口。
+    #[test]
+    fn splits_local_http_urls() {
+        let ollama = split_url("http://127.0.0.1:11434/v1/chat/completions", true).unwrap();
+        assert_eq!(
+            (ollama.host.as_str(), ollama.port, ollama.secure),
+            ("127.0.0.1", 11434, false)
+        );
+        assert_eq!(ollama.path, "/v1/chat/completions");
+        assert_eq!(split_url("http://nas/v1", true).unwrap().port, 80);
+        let v6 = split_url("http://[::1]:11434/v1", true).unwrap();
+        assert_eq!((v6.host.as_str(), v6.port), ("::1", 11434));
+        assert_eq!(split_url("https://[fe80::1]/v1", true).unwrap().port, 443);
+        assert_eq!(split_url("http://[::1]x/v1", true), None);
+        assert_eq!(split_url("ftp://example.test/", true), None);
     }
 
     /// 答复头：跳过状态行，名字转小写，值去掉两端空白，没有冒号的行忽略。
