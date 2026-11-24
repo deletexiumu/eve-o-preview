@@ -51,6 +51,7 @@ mod intel;
 mod profiles;
 mod shell;
 mod switching_page;
+mod translation;
 
 /// 定时器的周期：取窗口事件、检查轮询、唤醒与写盘。
 const TICK: Duration = Duration::from_millis(50);
@@ -95,6 +96,8 @@ enum Input {
     Alerts(alerts::AlertsInput),
     /// 「预警」与「翻译」页的输入。
     Chat(chat::ChatInput),
+    /// 「翻译」页的按钮（Key、测试、重试、清空缓存）。
+    Translation(translation::TranslationAction),
     /// 「环境检查」页的按钮。
     Environment(environment::EnvironmentInput),
 }
@@ -334,6 +337,7 @@ impl App {
             Input::General(input) => self.general_input(input, runtime),
             Input::Alerts(input) => self.alerts_input(input, runtime),
             Input::Chat(input) => self.chat_input(input, runtime),
+            Input::Translation(action) => self.translation_action(action),
             Input::Environment(input) => self.environment_input(input),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
@@ -724,6 +728,7 @@ impl App {
             general::connect(&window, runtime);
             alerts::connect(&window, runtime);
             chat::connect(&window, runtime);
+            translation::connect(&window, runtime);
             environment::connect(&window, runtime);
             self.settings = Some(window);
         }

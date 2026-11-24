@@ -9,7 +9,6 @@
 // 与 macOS 的差别：
 // - 拖动中的浮窗由应用层的浮窗管理器自己保持位置（不改正在拖动的浮窗的 frame），协调器不记交互状态，
 //   所以没有 OverlayDragBegan、OverlayDragCancelled 两个事件。
-// - 翻译功能还没有移植，规划结果里去掉翻译浮窗，免得用户打开翻译后看到一个永远空白的浮窗。
 // - 浮窗的内容不经过协调器：聊天日志的总控在应用层，内容变了直接交给浮窗，不触发重算。
 
 use eveo_core::geometry::{ScreenRect, ScreenSize, size_scale_at};
@@ -28,7 +27,7 @@ pub(super) type AppliedOverlays = (Vec<OverlayPresentation>, Option<String>);
 impl Coordinator {
     /// 规划浮窗；结果与上一次发出的不同时发 ApplyOverlays。返回浮窗规划的唤醒时刻。
     pub(super) fn replan_overlays(&mut self) -> Option<f64> {
-        let mut plan = planner::plan(&OverlayPlannerInput {
+        let plan = planner::plan(&OverlayPlannerInput {
             clients: self.registry.clients(),
             frontmost: self.frontmost,
             profile: self.profile(),
@@ -36,8 +35,6 @@ impl Coordinator {
             screens: &self.screens,
             now: self.now,
         });
-        // 翻译功能移植之前不显示翻译浮窗（见文件头）。
-        plan.presentations.retain(|p| p.kind != OverlayKind::Translation);
         let applied = (plan.presentations.clone(), plan.active_character.clone());
         if self.last_overlays.as_ref() != Some(&applied) {
             let (presentations, active_character) = applied.clone();

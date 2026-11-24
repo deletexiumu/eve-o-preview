@@ -12,8 +12,9 @@
 // - 任何影响内容的变化（配置、语言、活动角色、跟踪状态、星图数据）之后，把新上下文交给各功能。
 // - 按时间的刷新：可见浮窗的 next_refresh 里最早的时刻，应用层到时取一次内容。
 //
-// 与 macOS 的差别：翻译功能还没有移植，请求里暂时不含翻译的频道，翻译浮窗也不规划（见协调器）。
-// 移植后在 request_for 与 dispatch 里加上翻译，与 macOS 相同。
+// - 翻译：请求取两个功能的并集（频道去重；跟踪位置取预警的开关；补读取「预警的保留分钟数」与「翻译的 600 秒」里
+//   较大的一个）；消息两个功能都匹配时各给一份；跟踪的日志文件变了时也更新各功能（翻译据此提示 EVE 没写日志）。
+// 与 macOS 的差别：翻译控制器是可选的（测试里不接），没有时翻译浮窗给一份空内容。
 // 时钟：日志时间与「多久以前」用墙上时钟（1970 年以来的秒数），由调用方传入。
 
 //! 预警与翻译的总控。
@@ -27,9 +28,11 @@ use eveo_core::chat_log::{ChatLogEvent, ChatLogStatus, ChatMessage};
 use eveo_core::model::{AppConfig, AppLanguage, ChannelRef};
 use eveo_core::overlay::{OverlayContent, OverlayKind};
 use eveo_core::static_data::EveStaticData;
+use eveo_core::translation::rules::BACKFILL_QUEUE_SECONDS;
 
 use super::ChatFeedContext;
 use super::intel::IntelController;
+use crate::translation::TranslationController;
 
 /// 应用层对跟踪服务要做的事。
 #[derive(Debug, Clone, PartialEq)]
@@ -55,6 +58,8 @@ pub enum StaticDataLoad {
 pub struct ChatFeatures {
     /// 预警功能。
     intel: IntelController,
+    /// 翻译功能；测试里可以不接。
+    translation: Option<TranslationController>,
     /// 最近一次的完整配置；apply 之前为 None。
     config: Option<AppConfig>,
     /// 界面语言。
@@ -86,6 +91,7 @@ impl ChatFeatures {
     pub fn new(intel: IntelController, language: AppLanguage) -> Self {
         Self {
             intel,
+            translation: None,
             config: None,
             language,
             active_character: None,
@@ -99,6 +105,22 @@ impl ChatFeatures {
             static_data_request_pending: false,
             stopped: false,
         }
+    }
+
+    /// 接上翻译功能（应用启动时调用一次）。
+    pub fn with_translation(mut self, translation: TranslationController) -> Self {
+        self.translation = Some(translation);
+        self
+    }
+
+    /// 翻译功能（「翻译」页读状态、Key 与缓存条数）。
+    pub fn translation(&self) -> Option<&TranslationController> {
+        self.translation.as_ref()
+    }
+
+    /// 翻译功能的可变引用（「翻译」页的保存 Key、测试、重试、清空缓存）。
+    pub fn translation_mut(&mut self) -> Option<&mut TranslationController> {
+        self.translation.as_mut()
     }
 
     /// 预警功能（设置界面读位置、人名缓存等）。
@@ -141,8 +163,11 @@ impl ChatFeatures {
         if !restart {
             return None;
         }
-        // 先清空缓冲：跟踪服务重建后会补读最近的内容，不清空会出现重复的消息。位置记录与人名缓存不清。
+        // 先清空缓冲：跟踪服务重建后会补读最近的内容，不清空会出现重复的消息。位置记录、人名缓存与译文缓存不清。
         self.intel.clear(None);
+        if let Some(translation) = &mut self.translation {
+            translation.clear(None);
+        }
         Some(request.map_or(TailerCommand::Stop, TailerCommand::Start))
     }
 
@@ -199,15 +224,18 @@ impl ChatFeatures {
         self.visible = kinds;
     }
 
-    /// 某个浮窗当前的内容。翻译还没有移植，翻译浮窗不会被规划出来；这里给一份空内容兜底。
+    /// 某个浮窗当前的内容。没接翻译功能时翻译浮窗给一份空内容兜底。
     pub fn content(&mut self, kind: OverlayKind, now: f64) -> OverlayContent {
         match kind {
             OverlayKind::Intel => self.intel.content(now),
-            OverlayKind::Translation => OverlayContent {
-                context_key: "translation:".to_owned(),
-                title: eveo_l10n::settings(self.language).page_translation().to_owned(),
-                status: None,
-                lines: Vec::new(),
+            OverlayKind::Translation => match &self.translation {
+                Some(translation) => translation.content(now),
+                None => OverlayContent {
+                    context_key: "translation:".to_owned(),
+                    title: eveo_l10n::settings(self.language).page_translation().to_owned(),
+                    status: None,
+                    lines: Vec::new(),
+                },
             },
         }
     }
@@ -223,7 +251,13 @@ impl ChatFeatures {
                 self.intel.clear(Some(active));
                 true
             }
-            OverlayKind::Translation => false,
+            OverlayKind::Translation => match &mut self.translation {
+                Some(translation) => {
+                    translation.clear(Some(active));
+                    true
+                }
+                None => false,
+            },
         }
     }
 
@@ -237,16 +271,36 @@ impl ChatFeatures {
             return changed;
         }
         let intel = &profile.intel;
-        let intel_events: Vec<ChatLogEvent> = events
-            .into_iter()
-            .filter(|event| match event {
-                ChatLogEvent::Message(message) => Self::accepts(message, intel.enabled, &intel.channels),
+        let translation = &profile.translation;
+        let mut intel_events = Vec::new();
+        let mut translation_events = Vec::new();
+        for event in events {
+            match &event {
+                ChatLogEvent::Message(message) => {
+                    // 两个功能都匹配时各给一份（翻译的频道常常也是预警的频道，例如本地）。
+                    if Self::accepts(message, translation.enabled, &translation.channels) {
+                        translation_events.push(event.clone());
+                    }
+                    if Self::accepts(message, intel.enabled, &intel.channels) {
+                        intel_events.push(event);
+                    }
+                }
                 // 位置线索只有预警用；预警关着时丢掉（跟踪服务在那之前读到的线索）。
-                ChatLogEvent::LocationHint(_) => intel.enabled,
-            })
-            .collect();
+                ChatLogEvent::LocationHint(_) => {
+                    if intel.enabled {
+                        intel_events.push(event);
+                    }
+                }
+            }
+        }
         if !intel_events.is_empty() && self.intel.ingest(intel_events, now) {
             changed.insert(OverlayKind::Intel);
+        }
+        if !translation_events.is_empty()
+            && let Some(controller) = &mut self.translation
+            && controller.ingest(translation_events, now)
+        {
+            changed.insert(OverlayKind::Translation);
         }
         changed
     }
@@ -274,8 +328,17 @@ impl ChatFeatures {
     /// 在应用的定时器里调用：收人名核对的结果。返回内容变了的浮窗。
     pub fn tick(&mut self, now: f64) -> BTreeSet<OverlayKind> {
         let mut changed = BTreeSet::new();
-        if !self.stopped && self.intel.tick(now) {
+        if self.stopped {
+            return changed;
+        }
+        if self.intel.tick(now) {
             changed.insert(OverlayKind::Intel);
+        }
+        // 翻译：收答复、到时发下一批、满 30 秒存一次译文缓存。
+        if let Some(translation) = &mut self.translation
+            && translation.tick(now)
+        {
+            changed.insert(OverlayKind::Translation);
         }
         changed
     }
@@ -289,7 +352,8 @@ impl ChatFeatures {
             .iter()
             .filter_map(|kind| match kind {
                 OverlayKind::Intel => self.intel.next_refresh(now),
-                OverlayKind::Translation => None,
+                // 翻译浮窗只在等待重试时随时间变（倒计时）。
+                OverlayKind::Translation => self.translation.as_ref().and_then(|t| t.next_refresh(now)),
             })
             .min_by(f64::total_cmp)
     }
@@ -306,28 +370,56 @@ impl ChatFeatures {
         }
         self.current_request = None;
         self.intel.stop(now);
+        if let Some(translation) = &mut self.translation {
+            translation.stop();
+        }
     }
 
-    /// 由配置算出跟踪请求；预警关着时为 None。翻译移植后与 macOS 一样取两个功能的并集。
+    /// 由配置算出跟踪请求；两个功能都关着时为 None。与 macOS 一样取两个功能的并集。
     pub fn request_for(config: &AppConfig) -> Option<ChatLogRequest> {
         let profile = config.active_profile()?;
         let intel = &profile.intel;
-        if !intel.enabled {
+        let translation = &profile.translation;
+        if !intel.enabled && !translation.enabled {
             return None;
         }
-        // 去重并保持顺序：同一个频道在列表里出现两次时只跟踪一次。
+        // 去重并保持顺序：同一个频道在列表里出现两次（或两个功能都选了）时只跟踪一次。
         let mut channels: Vec<ChannelRef> = Vec::new();
-        for channel in &intel.channels {
+        let intel_channels = intel.enabled.then_some(&intel.channels).into_iter().flatten();
+        let translation_channels = translation
+            .enabled
+            .then_some(&translation.channels)
+            .into_iter()
+            .flatten();
+        for channel in intel_channels.chain(translation_channels) {
             if !channels.contains(channel) {
                 channels.push(channel.clone());
             }
         }
+        // 补读：预警按「保留最近」，翻译固定 600 秒（只排最近的消息），取较大的一个。
+        let intel_backfill = if intel.enabled {
+            intel.window_minutes as f64 * 60.0
+        } else {
+            0.0
+        };
+        let translation_backfill = if translation.enabled {
+            BACKFILL_QUEUE_SECONDS
+        } else {
+            0.0
+        };
+        let mut enabled_features = BTreeSet::new();
+        if intel.enabled {
+            enabled_features.insert(OverlayKind::Intel);
+        }
+        if translation.enabled {
+            enabled_features.insert(OverlayKind::Translation);
+        }
         Some(ChatLogRequest {
             log_directory: config.general.eve_log_directory.clone(),
             channels,
-            follows_location: true,
-            backfill_seconds: intel.window_minutes as f64 * 60.0,
-            enabled_features: BTreeSet::from([OverlayKind::Intel]),
+            follows_location: intel.enabled,
+            backfill_seconds: intel_backfill.max(translation_backfill),
+            enabled_features,
         })
     }
 
@@ -356,6 +448,9 @@ impl ChatFeatures {
             followed_channels: self.followed_channels.clone(),
             language: self.language,
         };
+        if let Some(translation) = &mut self.translation {
+            translation.update(context.clone(), now);
+        }
         self.intel.update(context, now);
     }
 }

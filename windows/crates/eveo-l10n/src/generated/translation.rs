@@ -18,8 +18,6 @@ pub trait TranslationStrings: Sync {
     fn enable_toggle(&self) -> &'static str;
     /// 状态行的标签。
     fn status_label(&self) -> &'static str;
-    /// Windows「翻译」页：状态行。翻译功能随 M6 加上之前显示。
-    fn not_available_yet(&self) -> &'static str;
     /// 状态：未启用。
     fn status_off(&self) -> &'static str;
     /// 状态：就绪。
@@ -91,8 +89,6 @@ pub trait TranslationStrings: Sync {
     fn model(&self) -> &'static str;
     /// 「API Key」。
     fn api_key(&self) -> &'static str;
-    /// Windows「翻译」页：API Key 一行。保存 Key 随翻译功能在 M6 加上之前显示。
-    fn api_key_not_available_yet(&self) -> &'static str;
     /// 「已保存在钥匙串」。
     fn api_key_stored(&self) -> &'static str;
     /// Key 输入框的占位文字。
@@ -155,9 +151,6 @@ impl TranslationStrings for TranslationStringsEn {
     fn status_label(&self) -> &'static str {
         "Status"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "The translation overlay arrives in a later test build; you can fill in the settings now"
-    }
     fn status_off(&self) -> &'static str {
         "Off"
     }
@@ -192,7 +185,7 @@ impl TranslationStrings for TranslationStringsEn {
         "No API key set"
     }
     fn failure_keychain(&self) -> &'static str {
-        "Cannot read the key from the keychain; save it again on the Translation page"
+        "Cannot read the key from Windows Credential Manager; save it again on the Translation page"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("The key was rejected (HTTP {})", status)
@@ -264,11 +257,8 @@ impl TranslationStrings for TranslationStringsEn {
     fn api_key(&self) -> &'static str {
         "API Key"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "The key will be stored in Windows Credential Manager; this arrives with translation in a later test build"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "Saved in the keychain"
+        "Saved in Windows Credential Manager"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "Paste the key, then click Save"
@@ -286,7 +276,7 @@ impl TranslationStrings for TranslationStringsEn {
         "Enter a key if the service needs one; otherwise leave it empty."
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("Keychain operation failed ({})", status)
+        format!("Windows Credential Manager operation failed ({})", status)
     }
     fn test(&self) -> &'static str {
         "Test"
@@ -351,9 +341,6 @@ impl TranslationStrings for TranslationStringsZh {
     fn status_label(&self) -> &'static str {
         "状态"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "翻译浮窗在后续测试版加上，现在可以先把设置填好"
-    }
     fn status_off(&self) -> &'static str {
         "未启用"
     }
@@ -388,7 +375,7 @@ impl TranslationStrings for TranslationStringsZh {
         "还没有填写 API Key"
     }
     fn failure_keychain(&self) -> &'static str {
-        "读不到钥匙串里的 Key，请在「翻译」页重新保存"
+        "读不到 Windows 凭据管理器里的 Key，请在「翻译」页重新保存"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("Key 无效（HTTP {}）", status)
@@ -460,11 +447,8 @@ impl TranslationStrings for TranslationStringsZh {
     fn api_key(&self) -> &'static str {
         "API Key"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "Key 将保存在 Windows 凭据管理器，随翻译功能在后续测试版加上"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "已保存在钥匙串"
+        "已保存在 Windows 凭据管理器"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "粘贴 Key 后点「保存」"
@@ -482,7 +466,7 @@ impl TranslationStrings for TranslationStringsZh {
         "接口要 Key 时填写，不要时留空。"
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("钥匙串操作失败（{}）", status)
+        format!("Windows 凭据管理器操作失败（{}）", status)
     }
     fn test(&self) -> &'static str {
         "测试"
@@ -544,9 +528,6 @@ impl TranslationStrings for TranslationStringsRu {
     fn status_label(&self) -> &'static str {
         "Состояние"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "Окно перевода появится в следующей тестовой сборке; настройки можно заполнить уже сейчас"
-    }
     fn status_off(&self) -> &'static str {
         "Выключено"
     }
@@ -581,7 +562,7 @@ impl TranslationStrings for TranslationStringsRu {
         "Не указан ключ API"
     }
     fn failure_keychain(&self) -> &'static str {
-        "Не удалось прочитать ключ из связки ключей; сохраните его снова на странице «Перевод»"
+        "Не удалось прочитать ключ из диспетчера учётных данных Windows; сохраните его снова на странице «Перевод»"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("Ключ отклонён (HTTP {})", status)
@@ -653,11 +634,8 @@ impl TranslationStrings for TranslationStringsRu {
     fn api_key(&self) -> &'static str {
         "Ключ API"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "Ключ будет храниться в диспетчере учётных данных Windows; это появится вместе с переводом в следующей тестовой сборке"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "Сохранён в связке ключей"
+        "Сохранён в диспетчере учётных данных Windows"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "Вставьте ключ и нажмите «Сохранить»"
@@ -675,7 +653,7 @@ impl TranslationStrings for TranslationStringsRu {
         "Укажите ключ, если сервис его требует; иначе оставьте поле пустым."
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("Ошибка связки ключей ({})", status)
+        format!("Ошибка диспетчера учётных данных Windows ({})", status)
     }
     fn test(&self) -> &'static str {
         "Проверить"
@@ -741,9 +719,6 @@ impl TranslationStrings for TranslationStringsJa {
     fn status_label(&self) -> &'static str {
         "状態"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "翻訳のオーバーレイは今後のテスト版で追加されます。設定は今のうちに入力できます"
-    }
     fn status_off(&self) -> &'static str {
         "オフ"
     }
@@ -778,7 +753,7 @@ impl TranslationStrings for TranslationStringsJa {
         "API キーが未入力です"
     }
     fn failure_keychain(&self) -> &'static str {
-        "キーチェーンからキーを読み取れません。「翻訳」ページで保存し直してください"
+        "Windows 資格情報マネージャーからキーを読み取れません。「翻訳」ページで保存し直してください"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("キーが拒否されました（HTTP {}）", status)
@@ -850,11 +825,8 @@ impl TranslationStrings for TranslationStringsJa {
     fn api_key(&self) -> &'static str {
         "API キー"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "キーは Windows 資格情報マネージャーに保存されます。翻訳機能とともに今後のテスト版で追加されます"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "キーチェーンに保存済み"
+        "Windows 資格情報マネージャーに保存済み"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "キーを貼り付けて「保存」をクリック"
@@ -872,7 +844,7 @@ impl TranslationStrings for TranslationStringsJa {
         "サービスがキーを必要とする場合に入力し、不要なら空欄のままにしてください。"
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("キーチェーンの操作に失敗しました（{}）", status)
+        format!("Windows 資格情報マネージャーの操作に失敗しました（{}）", status)
     }
     fn test(&self) -> &'static str {
         "テスト"
@@ -934,9 +906,6 @@ impl TranslationStrings for TranslationStringsKo {
     fn status_label(&self) -> &'static str {
         "상태"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "번역 오버레이는 이후 테스트 빌드에서 추가됩니다. 설정은 지금 미리 채울 수 있습니다"
-    }
     fn status_off(&self) -> &'static str {
         "꺼짐"
     }
@@ -971,7 +940,7 @@ impl TranslationStrings for TranslationStringsKo {
         "API 키가 입력되지 않았습니다"
     }
     fn failure_keychain(&self) -> &'static str {
-        "키체인에서 키를 읽을 수 없습니다. '번역' 페이지에서 다시 저장하세요"
+        "Windows 자격 증명 관리자에서 키를 읽을 수 없습니다. '번역' 페이지에서 다시 저장하세요"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("키가 거부되었습니다(HTTP {})", status)
@@ -1043,11 +1012,8 @@ impl TranslationStrings for TranslationStringsKo {
     fn api_key(&self) -> &'static str {
         "API 키"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "키는 Windows 자격 증명 관리자에 저장됩니다. 번역 기능과 함께 이후 테스트 빌드에서 추가됩니다"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "키체인에 저장됨"
+        "Windows 자격 증명 관리자에 저장됨"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "키를 붙여넣고 '저장'을 클릭하세요"
@@ -1065,7 +1031,7 @@ impl TranslationStrings for TranslationStringsKo {
         "서비스에 키가 필요하면 입력하고, 필요 없으면 비워 두세요."
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("키체인 작업 실패({})", status)
+        format!("Windows 자격 증명 관리자 작업 실패({})", status)
     }
     fn test(&self) -> &'static str {
         "테스트"
@@ -1127,9 +1093,6 @@ impl TranslationStrings for TranslationStringsFr {
     fn status_label(&self) -> &'static str {
         "État"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "La fenêtre de traduction arrivera dans une prochaine version de test ; vous pouvez déjà remplir les réglages"
-    }
     fn status_off(&self) -> &'static str {
         "Désactivé"
     }
@@ -1164,7 +1127,7 @@ impl TranslationStrings for TranslationStringsFr {
         "Aucune clé d'API indiquée"
     }
     fn failure_keychain(&self) -> &'static str {
-        "Impossible de lire la clé dans le trousseau ; enregistrez-la de nouveau dans la page Traduction"
+        "Impossible de lire la clé dans le Gestionnaire d'identification Windows ; enregistrez-la de nouveau dans la page Traduction"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("La clé a été refusée (HTTP {})", status)
@@ -1236,11 +1199,8 @@ impl TranslationStrings for TranslationStringsFr {
     fn api_key(&self) -> &'static str {
         "Clé d'API"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "La clé sera stockée dans le Gestionnaire d'identification Windows ; cela arrivera avec la traduction dans une prochaine version de test"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "Enregistrée dans le trousseau"
+        "Enregistrée dans le Gestionnaire d'identification Windows"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "Collez la clé, puis cliquez sur Enregistrer"
@@ -1258,7 +1218,7 @@ impl TranslationStrings for TranslationStringsFr {
         "Indiquez une clé si le service en demande une ; sinon laissez vide."
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("Échec de l'opération sur le trousseau ({})", status)
+        format!("Échec de l'opération dans le Gestionnaire d'identification Windows ({})", status)
     }
     fn test(&self) -> &'static str {
         "Tester"
@@ -1323,9 +1283,6 @@ impl TranslationStrings for TranslationStringsDe {
     fn status_label(&self) -> &'static str {
         "Status"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "Das Übersetzungsfenster kommt in einem späteren Testbuild; die Einstellungen können Sie schon jetzt ausfüllen"
-    }
     fn status_off(&self) -> &'static str {
         "Aus"
     }
@@ -1360,7 +1317,7 @@ impl TranslationStrings for TranslationStringsDe {
         "Kein API-Schlüssel angegeben"
     }
     fn failure_keychain(&self) -> &'static str {
-        "Der Schlüssel kann nicht aus dem Schlüsselbund gelesen werden; speichere ihn auf der Seite „Übersetzung“ erneut"
+        "Der Schlüssel kann nicht aus der Windows-Anmeldeinformationsverwaltung gelesen werden; speichere ihn auf der Seite „Übersetzung“ erneut"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("Der Schlüssel wurde abgelehnt (HTTP {})", status)
@@ -1432,11 +1389,8 @@ impl TranslationStrings for TranslationStringsDe {
     fn api_key(&self) -> &'static str {
         "API-Schlüssel"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "Der Schlüssel wird in der Windows-Anmeldeinformationsverwaltung gespeichert; das kommt mit der Übersetzung in einem späteren Testbuild"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "Im Schlüsselbund gespeichert"
+        "In der Windows-Anmeldeinformationsverwaltung gespeichert"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "Schlüssel einfügen und auf „Speichern“ klicken"
@@ -1454,7 +1408,7 @@ impl TranslationStrings for TranslationStringsDe {
         "Gib einen Schlüssel ein, wenn der Dienst einen verlangt; sonst leer lassen."
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("Schlüsselbund-Vorgang fehlgeschlagen ({})", status)
+        format!("Vorgang in der Windows-Anmeldeinformationsverwaltung fehlgeschlagen ({})", status)
     }
     fn test(&self) -> &'static str {
         "Testen"
@@ -1519,9 +1473,6 @@ impl TranslationStrings for TranslationStringsEs {
     fn status_label(&self) -> &'static str {
         "Estado"
     }
-    fn not_available_yet(&self) -> &'static str {
-        "La ventana de traducción llegará en una próxima versión de prueba; ya puedes rellenar los ajustes"
-    }
     fn status_off(&self) -> &'static str {
         "Desactivado"
     }
@@ -1556,7 +1507,7 @@ impl TranslationStrings for TranslationStringsEs {
         "No se ha indicado la clave de API"
     }
     fn failure_keychain(&self) -> &'static str {
-        "No se puede leer la clave del llavero; guárdala de nuevo en la página Traducción"
+        "No se puede leer la clave del Administrador de credenciales de Windows; vuelve a guardarla en la página Traducción"
     }
     fn failure_unauthorized(&self, status: i64) -> String {
         format!("La clave fue rechazada (HTTP {})", status)
@@ -1628,11 +1579,8 @@ impl TranslationStrings for TranslationStringsEs {
     fn api_key(&self) -> &'static str {
         "Clave de API"
     }
-    fn api_key_not_available_yet(&self) -> &'static str {
-        "La clave se guardará en el Administrador de credenciales de Windows; llegará con la traducción en una próxima versión de prueba"
-    }
     fn api_key_stored(&self) -> &'static str {
-        "Guardada en el llavero"
+        "Guardada en el Administrador de credenciales de Windows"
     }
     fn api_key_placeholder(&self) -> &'static str {
         "Pega la clave y haz clic en Guardar"
@@ -1650,7 +1598,7 @@ impl TranslationStrings for TranslationStringsEs {
         "Escribe una clave si el servicio la pide; si no, déjalo vacío."
     }
     fn keychain_error(&self, status: i32) -> String {
-        format!("Falló la operación del llavero ({})", status)
+        format!("Falló la operación del Administrador de credenciales de Windows ({})", status)
     }
     fn test(&self) -> &'static str {
         "Probar"

@@ -1,19 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 总控的用例，对应 macOS 的 ChatFeatureControllerTests：请求怎么由配置算出、什么时候要重建跟踪服务、
-// 事件按频道分发、星图数据只要求读一次、按时间刷新只看可见的浮窗。夹具与 tests.rs 共用。
+// 事件按频道分发、星图数据只要求读一次、按时间刷新只看可见的浮窗、接上翻译后的并集与分发。夹具与 tests.rs 共用。
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use eveo_core::chat_log::coverage::FollowedChatChannel;
 use eveo_core::chat_log::{ChatLogEvent, ChatLogStatus, ChatMessage};
 use eveo_core::model::{AppConfig, AppLanguage, ChannelRef};
 use eveo_core::overlay::OverlayKind;
+use eveo_core::translation::{HttpRequest, TransportError};
 
 use super::features::{ChatFeatures, StaticDataLoad, TailerCommand};
 use super::intel::IntelController;
 use super::tests::{ACTIVE, NOW, data, local, message};
 use crate::config_store::default_config;
+use crate::translation::store::TranslationCacheStore;
+use crate::translation::{SecretError, SecretStore, TranslationController, TranslationServices};
 
 /// 预警开着、选了 Intel.North 的默认配置。
 fn config() -> AppConfig {
@@ -113,7 +117,7 @@ fn events_are_routed_by_channel() {
     features.apply(&config(), NOW);
     features.static_data_loaded(StaticDataLoad::Loaded(data(), "bundle"), NOW);
     features.set_active_character(Some(ACTIVE.to_owned()), NOW);
-    // 军团频道的消息：跟踪服务不会读到它（请求里没有），但总控也要挡住，翻译移植后两个功能的频道不同。
+    // 军团频道的消息：跟踪服务不会读到它（请求里没有），但总控也要挡住：两个功能的频道可以不同。
     let elsewhere = ChatLogEvent::Message(ChatMessage {
         listener: ACTIVE.to_owned(),
         channel_id: "player_9".to_owned(),
@@ -157,7 +161,7 @@ fn active_character_and_status_changes() {
         features.content(OverlayKind::Intel, NOW).context_key,
         format!("intel:{ACTIVE}")
     );
-    // 清空：有活动角色时清它的缓冲。翻译没有移植，清空翻译浮窗什么也不做。
+    // 清空：有活动角色时清它的缓冲。这个总控没接翻译，清空翻译浮窗什么也不做。
     assert!(features.clear(OverlayKind::Intel));
     assert!(!features.clear(OverlayKind::Translation));
 }
@@ -174,7 +178,100 @@ fn next_refresh_only_for_visible_overlays() {
     features.set_visible(BTreeSet::from([OverlayKind::Intel]));
     let next = features.next_refresh(NOW).expect("年龄文字会变");
     assert!(next > NOW && next <= NOW + 60.0, "{next}");
+    // 停止后翻译的状态是 Off。
     features.stop(NOW);
     assert_eq!(features.next_refresh(NOW), None);
     assert_eq!(features.apply(&config(), NOW), None, "停止后不再要求跟踪");
+}
+
+/// 不联网的凭据管理器：永远没有 Key。
+struct NoSecrets;
+
+impl SecretStore for NoSecrets {
+    fn read(&self, _account: &str) -> Result<Option<String>, SecretError> {
+        Ok(None)
+    }
+
+    fn write(&self, _account: &str, _secret: &str) -> Result<(), SecretError> {
+        Ok(())
+    }
+
+    fn delete(&self, _account: &str) -> Result<(), SecretError> {
+        Ok(())
+    }
+}
+
+/// 接上翻译的总控：传输层一律答网络失败，缓存文件放在临时目录。
+fn features_with_translation(name: &str) -> ChatFeatures {
+    // 每个用例自己的缓存目录：并行运行的用例不会读到别人的缓存文件。
+    let dir = std::env::temp_dir().join(format!("eveo-features-{name}-{}", std::process::id()));
+    let translation = TranslationController::new(TranslationServices {
+        secrets: Box::new(NoSecrets),
+        transport: Arc::new(|_: &HttpRequest| Err(TransportError::Network("offline".into()))),
+        cache_store: TranslationCacheStore::in_dir(&dir),
+    });
+    features().with_translation(translation)
+}
+
+/// 预警与翻译都开着的配置：翻译选了本地与 Intel.North（和预警重复）。
+fn both_on() -> AppConfig {
+    let mut config = config();
+    let profile = config.active_profile_mut().expect("有方案");
+    profile.translation.enabled = true;
+    profile.translation.channels = vec![
+        ChannelRef::built_ins()[0].clone(),
+        ChannelRef::new("Intel.North", None),
+    ];
+    config
+}
+
+/// 请求取两个功能的并集：频道去重，补读取较大的一个；只开翻译时不跟踪位置、补读 600 秒。
+#[test]
+fn request_unions_both_features() {
+    // 两个功能都开着：并集。
+    let request = ChatFeatures::request_for(&both_on()).expect("两个都开着");
+    assert_eq!(request.channels.len(), 2, "Intel.North 只跟踪一次");
+    assert!(request.follows_location);
+    assert_eq!(
+        request.backfill_seconds, 1_800.0,
+        "预警默认保留 30 分钟，比 600 秒长"
+    );
+    assert_eq!(
+        request.enabled_features,
+        BTreeSet::from([OverlayKind::Intel, OverlayKind::Translation])
+    );
+    // 只开翻译：不读 Gamelogs 的位置线索，补读只要最近 10 分钟。
+    let only_translation = with_intel(&both_on(), |intel| intel.enabled = false);
+    let request = ChatFeatures::request_for(&only_translation).expect("翻译开着");
+    assert!(!request.follows_location);
+    assert_eq!(request.backfill_seconds, 600.0);
+    assert_eq!(
+        request.enabled_features,
+        BTreeSet::from([OverlayKind::Translation])
+    );
+}
+
+/// 两个功能都匹配的消息各给一份；翻译浮窗有了活动角色的内容；「清空列表」清掉翻译缓冲。
+#[test]
+fn messages_reach_translation() {
+    let mut features = features_with_translation("route");
+    features.apply(&both_on(), NOW);
+    features.set_active_character(Some(ACTIVE.to_owned()), NOW);
+    // 这条消息在 Intel.North：两个功能都选了这个频道，所以两个浮窗都要刷新。
+    let changed = features.events(vec![message(ACTIVE, "Jita clear", NOW)], NOW);
+    assert_eq!(
+        changed,
+        BTreeSet::from([OverlayKind::Intel, OverlayKind::Translation])
+    );
+    let content = features.content(OverlayKind::Translation, NOW);
+    assert_eq!(content.context_key, format!("translation:{ACTIVE}"));
+    assert_eq!(content.lines.len(), 1);
+    // 右键「清空列表」清掉活动角色的翻译缓冲，译文缓存不受影响。
+    assert!(features.clear(OverlayKind::Translation));
+    assert!(features.content(OverlayKind::Translation, NOW).lines.is_empty());
+    features.stop(NOW);
+    assert_eq!(
+        features.translation().map(|t| t.status().clone()),
+        Some(eveo_core::translation::TranslationStatus::Off)
+    );
 }

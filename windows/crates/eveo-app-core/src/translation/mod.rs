@@ -64,6 +64,8 @@ use crate::chat::ChatFeedContext;
 
 /// 两次存盘至少隔几秒：译文一批批到达，每批都写文件没有必要。
 pub const CACHE_SAVE_INTERVAL: f64 = 30.0;
+/// 至多攒几行日志：应用层没来取时丢掉最早的，内存不会无限增长。
+pub const MAX_LOG_LINES: usize = 200;
 
 /// 读写 API Key 的失败。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -267,6 +269,14 @@ impl TranslationController {
         std::mem::take(&mut self.log)
     }
 
+    /// 记一行日志；超过上限时丢掉最早的一行。
+    fn note(&mut self, line: impl Into<String>) {
+        if self.log.len() >= MAX_LOG_LINES {
+            self.log.remove(0);
+        }
+        self.log.push(line.into());
+    }
+
     /// 当前配置方案的翻译设置；还没有上下文时是默认值。
     fn settings(&self) -> TranslationSettings {
         self.context
@@ -427,6 +437,20 @@ impl TranslationController {
         std::mem::take(&mut self.changed)
     }
 
+    /// 翻译浮窗的内容下一次随时间变化的时刻：等待重试时状态行写着「N 秒后重试」，N 每过一秒少一。
+    /// 其余状态的内容不随时间变（时间戳是固定的 HH:mm），返回 None。
+    pub fn next_refresh(&self, now: f64) -> Option<f64> {
+        let TranslationStatus::Waiting { until, .. } = self.status else {
+            return None;
+        };
+        // 文字里的秒数是剩余时间向上取整；剩余时间降到下一个整数时文字才变。
+        let remaining = until - now;
+        if remaining <= 0.0 {
+            return None;
+        }
+        Some(until - (remaining.ceil() - 1.0))
+    }
+
     /// 下一次 tick 有事可做的时刻：队列的下一次尝试；没有时为 None。应用的定时器只用它在空闲时放慢。
     pub fn next_attempt(&self) -> Option<f64> {
         if self.is_enabled() {
@@ -452,7 +476,7 @@ impl TranslationController {
             && self.cache.is_dirty()
             && let Err(error) = self.cache_store.save(self.cache.snapshot())
         {
-            self.log.push(format!("译文缓存存盘失败：{:?}", error.kind()));
+            self.note(format!("译文缓存存盘失败：{:?}", error.kind()));
         }
         self.status = TranslationStatus::Off;
     }

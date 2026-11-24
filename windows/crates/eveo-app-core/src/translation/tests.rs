@@ -567,9 +567,16 @@ fn server_errors_wait_and_retry() {
     let line = h.controller.content(NOW + 11.5).status.expect("有状态行");
     assert_eq!(line.level, OverlayStatusLevel::Warning);
     assert!(line.text.contains("20"));
+    // 倒计时每秒变一次：剩 20 秒整时下一次是剩 19 秒；剩 19.7 秒（显示 20）时也是剩 19 秒。
+    let next = h.controller.next_refresh(NOW + 11.5).expect("等待中要按时刷新");
+    assert!((next - (NOW + 12.5)).abs() < 1e-6);
+    let next = h.controller.next_refresh(NOW + 11.8).expect("等待中要按时刷新");
+    assert!((next - (NOW + 12.5)).abs() < 1e-6);
     // 到时自动重试，这次成功。
     h.settle(NOW + 32.0, |c| c.cache_count() == 1);
     assert_eq!(h.controller.status(), &TranslationStatus::Idle);
+    // 不再等待时浮窗内容不随时间变。
+    assert_eq!(h.controller.next_refresh(NOW + 32.0), None);
     let log = h.controller.take_log_lines().join("\n");
     assert!(log.contains("server(500)"));
     assert!(!log.contains("secret detail"));
