@@ -28,6 +28,7 @@ pub mod combat_log;
 pub mod config;
 pub mod geometry;
 pub mod hotkeys;
+pub mod intel;
 pub mod layout;
 pub mod logging;
 pub mod model;
