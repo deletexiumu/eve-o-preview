@@ -41,6 +41,7 @@ use crate::option;
 
 mod app;
 mod event_loop;
+mod recorder;
 
 /// 一个假客户端的设定：标题、颜色（RRGGBB）、位置。
 struct FakeSpec {
@@ -143,6 +144,7 @@ pub fn run(args: &[String]) -> i32 {
         check_activation(&clients, &hooks, &mut report);
         check_hotkeys(&mut report);
         check_mouse_hotkeys(&mut report);
+        recorder::check(&mut report);
         event_loop::check(&clients, &hooks, &mut report);
         check_minimized(&clients, &thumbnails, &out, &mut report);
     }
