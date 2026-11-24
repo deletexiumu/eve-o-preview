@@ -7,12 +7,18 @@
 // - rules：是否已是目标语言、不用模型的原因、缓存键、分批、模型结果换成阶段、术语替换（7.6 节、7.8 节）。
 // - prompt：系统提示与用户消息（7.9 节）。
 // - wire：拼出 HTTP 请求、按状态码归类失败、从答复里取出译文（7.4 节、7.5 节）。
-// HTTP 的收发、API Key 的保存（Windows 凭据管理器）与队列的调度在别处，这里只描述数据。
+// - cache：译文缓存（最近用过的留下）与缓存文件的格式（7.8 节）。
+// - queue：按收听者分开的缓冲、分批发送、失败后的等待与重试（7.6 节）。
+// - presenter：翻译浮窗的一行（7.10 节）。
+// HTTP 的收发、API Key 的保存（Windows 凭据管理器）与定时调度在应用层，这里只有数据与纯规则。
 
 //! 聊天翻译的模型与规则：预设、判断、分批、提示词、请求与答复。
 
+pub mod cache;
+pub mod presenter;
 pub mod prompt;
 pub mod providers;
+pub mod queue;
 pub mod rules;
 pub mod wire;
 
