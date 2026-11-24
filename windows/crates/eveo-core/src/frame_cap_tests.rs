@@ -162,3 +162,22 @@ fn validator_clamps_fps_and_omits_missing_key() {
     assert_eq!(normalized.config.general.frame_cap.expect("设置").fps, 1000);
     assert!(normalized.clamped.contains(&"general.frameCap.fps".to_owned()));
 }
+
+/// 状态码与成功后的状态。
+#[test]
+fn status_from_results() {
+    assert_eq!(FrameCapStatus::from_error(-2), FrameCapStatus::NotNvidia);
+    assert_eq!(FrameCapStatus::from_error(-6), FrameCapStatus::NotNvidia);
+    assert_eq!(FrameCapStatus::from_error(-137), FrameCapStatus::NeedsAdmin);
+    assert_eq!(FrameCapStatus::from_error(-1), FrameCapStatus::Failed(-1));
+    let set = state("EVE Online", Some(60));
+    assert_eq!(
+        FrameCapStatus::after_success(Some(60), &set),
+        FrameCapStatus::Applied(60)
+    );
+    assert_eq!(
+        FrameCapStatus::after_success(Some(30), &set),
+        FrameCapStatus::Failed(-1)
+    );
+    assert_eq!(FrameCapStatus::after_success(None, &set), FrameCapStatus::Ready);
+}

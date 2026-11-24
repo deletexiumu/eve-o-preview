@@ -22,12 +22,11 @@ use windows::core::{s, w};
 
 /// NVAPI 的状态码：成功。
 pub const OK: i32 = 0;
-/// 找不到 NVAPI 的库（不是 NVIDIA 显卡或驱动没装）。
-pub const LIBRARY_NOT_FOUND: i32 = -2;
-/// 没有 NVIDIA 显卡驱动着显示器（例如只装了驱动没插卡）。
-pub const NVIDIA_DEVICE_NOT_FOUND: i32 = -6;
-/// 要管理员权限才能调用。
-pub const INVALID_USER_PRIVILEGE: i32 = -137;
+/// 找不到 NVAPI 的库、没有 NVIDIA 显卡与要管理员权限的状态码，与 Core 共用（Core 据此求设置页的状态）。
+pub use eveo_core::frame_cap::{
+    NVAPI_INVALID_USER_PRIVILEGE as INVALID_USER_PRIVILEGE, NVAPI_LIBRARY_NOT_FOUND as LIBRARY_NOT_FOUND,
+    NVAPI_NVIDIA_DEVICE_NOT_FOUND as NVIDIA_DEVICE_NOT_FOUND,
+};
 /// 设置项不存在（配置文件上没有这项设置）。
 const SETTING_NOT_FOUND: i32 = -160;
 /// 配置文件不存在。

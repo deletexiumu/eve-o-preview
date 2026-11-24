@@ -12,8 +12,10 @@
 // 诊断一组：详细日志、日志位置与「报告问题…」（M7）。
 // 「登录 Windows 时启动」（Windows 独有）：开关的状态来自注册表，不在配置里；用户拨动时交回应用写注册表，
 // 写完应用再按注册表的实际状态写回开关。被任务管理器禁用或写入失败时，说明换成对应的一句话。
+// 「游戏帧率」一组（Windows 独有）：开关与帧数在配置的 general.frameCap，改了照常读回整页；应用在后台线程里写
+// NVIDIA 驱动，结果（检测中、不是 NVIDIA、已设好、要管理员权限、失败）写回说明。不是 NVIDIA 时整组置灰。
 
-import { Button, ComboBox, Switch } from "std-widgets.slint";
+import { Button, ComboBox, SpinBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
 import { DiagnosticsText, SettingsText, UpdateText } from "generated/l10n.slint";
@@ -52,6 +54,14 @@ export global GeneralModel {
     in property <string> launch-at-login-note;
     // 用户拨动了开机启动的开关，参数是想要的新状态。
     callback launch-at-login-toggled(bool);
+    // general.frameCap.enabled。
+    in-out property <bool> frame-cap-enabled;
+    // general.frameCap.fps，范围同配置校验（10～1000）。
+    in-out property <int> frame-cap-fps: 60;
+    // 能不能拨开关：检测中与没有 NVIDIA 驱动时为假。
+    in property <bool> frame-cap-available;
+    // 开关下方的说明：空串时显示默认说明，否则显示这句（检测中、不是 NVIDIA、已设好、要管理员权限、失败）。
+    in property <string> frame-cap-note;
 }
 
 // 「通用」页。
@@ -91,6 +101,40 @@ export component GeneralPage inherits VerticalLayout {
                 GeneralModel.launch-at-login-toggled(self.checked);
             }
         }
+    }
+
+    // 游戏帧率：放在更新一组之前，和开机启动一样是对整台电脑生效的设置。
+    SectionHeader { text: SettingsText.frame-cap-section; }
+    SettingRow {
+        title: SettingsText.frame-cap-toggle;
+        description: GeneralModel.frame-cap-note != "" ? GeneralModel.frame-cap-note : SettingsText.frame-cap-help;
+        enabled: GeneralModel.frame-cap-available;
+        Switch {
+            checked <=> GeneralModel.frame-cap-enabled;
+            enabled: GeneralModel.frame-cap-available;
+            toggled => {
+                GeneralModel.edited();
+            }
+        }
+    }
+    RowGap { }
+    // 帧数只在开关打开时可改；关着时置灰，值照样保留。
+    SettingRow {
+        title: SettingsText.frame-cap-fps;
+        enabled: GeneralModel.frame-cap-available && GeneralModel.frame-cap-enabled;
+        SpinBox {
+            value <=> GeneralModel.frame-cap-fps;
+            minimum: 10;
+            maximum: 1000;
+            width: 120px;
+            enabled: GeneralModel.frame-cap-available && GeneralModel.frame-cap-enabled;
+            edited(v) => {
+                GeneralModel.edited();
+            }
+        }
+    }
+    Footnote {
+        text: SettingsText.frame-cap-note;
     }
 
     SectionHeader { text: UpdateText.section-header; }

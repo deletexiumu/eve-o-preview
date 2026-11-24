@@ -8,6 +8,7 @@
 
 use slint::ComponentHandle;
 
+use eveo_core::frame_cap::{FrameCapSettings, FrameCapStatus};
 use eveo_core::logging::LogLevel;
 use eveo_core::model::{GeneralSettings, LanguagePreference};
 use eveo_core::support::StringEnum;
@@ -38,6 +39,18 @@ pub fn show_general(ui: &SettingsWindow, general: &GeneralSettings, log_path: &s
     model.set_auto_install(general.auto_install_updates);
     model.set_verbose_log(general.log_level == LogLevel::Debug);
     model.set_log_path(log_path.into());
+    // 没有设置过限帧时按默认值显示（关闭、60 帧）。
+    let frame_cap = general.frame_cap.clone().unwrap_or_default();
+    model.set_frame_cap_enabled(frame_cap.enabled);
+    model.set_frame_cap_fps(i32::try_from(frame_cap.fps).unwrap_or(60));
+}
+
+/// 「游戏帧率」一组的状态：能不能拨开关，以及开关下方的说明（`note` 为空串时显示默认说明）。
+/// 说明由应用层按 [`FrameCapStatus`] 与界面语言拼好。
+pub fn show_frame_cap_status(ui: &SettingsWindow, status: FrameCapStatus, note: &str) {
+    let model = ui.global::<GeneralModel>();
+    model.set_frame_cap_available(status.is_available());
+    model.set_frame_cap_note(note.into());
 }
 
 /// 「通用」页更新一组的状态：当前版本、上次检查的时刻、一行状态、「立即检查」能否点。
@@ -81,6 +94,14 @@ pub fn read_general(ui: &SettingsWindow, general: &mut GeneralSettings) {
     } else if general.log_level == LogLevel::Debug {
         general.log_level = LogLevel::Info;
     }
+    // 限帧：页上的值与默认值相同且配置里本来没有这个键时保持 `None`，不往配置文件里多写一个键。
+    let frame_cap = FrameCapSettings {
+        enabled: model.get_frame_cap_enabled(),
+        fps: i64::from(model.get_frame_cap_fps()),
+    };
+    if general.frame_cap.is_some() || frame_cap != FrameCapSettings::default() {
+        general.frame_cap = Some(frame_cap);
+    }
 }
 
 /// 填「关于」页：版本号取工作区的版本（各 crate 共用一个版本号）。
@@ -121,6 +142,27 @@ pub(crate) mod tests {
         assert_eq!(edited.log_level, LogLevel::Info);
         assert!(edited.check_for_updates);
         assert_eq!(edited.poll_interval_ms, 700);
+
+        // 限帧：没设置过时读回仍是 None；打开开关、改帧数后写进配置。
+        assert_eq!(edited.frame_cap, None);
+        assert!(!model.get_frame_cap_enabled());
+        assert_eq!(model.get_frame_cap_fps(), 60);
+        model.set_frame_cap_enabled(true);
+        model.set_frame_cap_fps(75);
+        read_general(ui, &mut edited);
+        assert_eq!(
+            edited.frame_cap,
+            Some(FrameCapSettings {
+                enabled: true,
+                fps: 75
+            })
+        );
+        // 状态：不是 NVIDIA 时开关不能拨，说明换成对应的一句话。
+        show_frame_cap_status(ui, FrameCapStatus::NotNvidia, "x");
+        assert!(!model.get_frame_cap_available());
+        assert_eq!(model.get_frame_cap_note(), "x");
+        show_frame_cap_status(ui, FrameCapStatus::Applied(75), "");
+        assert!(model.get_frame_cap_available());
 
         // 「关于」页：版本号非空；只认列出的链接。
         show_about(ui);

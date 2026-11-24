@@ -147,6 +147,16 @@ macro_rules! fill {
     text.set_launch_at_login_help(settings.launch_at_login_help().into());
     text.set_launch_at_login_disabled_by_system(settings.launch_at_login_disabled_by_system().into());
     text.set_launch_at_login_failed(settings.launch_at_login_failed().into());
+    text.set_frame_cap_section(settings.frame_cap_section().into());
+    text.set_frame_cap_toggle(settings.frame_cap_toggle().into());
+    text.set_frame_cap_help(settings.frame_cap_help().into());
+    text.set_frame_cap_fps(settings.frame_cap_fps().into());
+    text.set_frame_cap_note(settings.frame_cap_note().into());
+    text.set_frame_cap_checking(settings.frame_cap_checking().into());
+    text.set_frame_cap_not_nvidia(settings.frame_cap_not_nvidia().into());
+    text.on_frame_cap_applied(move |fps| settings.frame_cap_applied(i64::from(fps)).into());
+    text.set_frame_cap_needs_admin(settings.frame_cap_needs_admin().into());
+    text.on_frame_cap_failed(move |code| settings.frame_cap_failed(i64::from(code)).into());
     text.set_permissions_subtitle(settings.permissions_subtitle().into());
     text.set_screen_recording(settings.screen_recording().into());
     text.set_screen_recording_detail(settings.screen_recording_detail().into());

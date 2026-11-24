@@ -24,6 +24,7 @@ pub mod config_store;
 pub mod coordinator;
 pub mod event;
 pub mod flash;
+pub mod frame_cap;
 pub mod game_log;
 pub mod gesture;
 pub mod log;

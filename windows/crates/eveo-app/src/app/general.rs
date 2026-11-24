@@ -188,6 +188,8 @@ impl App {
         let logs = self.logs_dir.display().to_string();
         general::show_general(window, &self.coordinator.config().general, &logs);
         self.show_launch_at_login(window, false);
+        // 「游戏帧率」的开关能否拨与说明来自限帧控制器的状态，不在配置里。
+        self.show_frame_cap(window);
         general::show_about(window);
     }
 }

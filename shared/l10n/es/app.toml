@@ -156,6 +156,16 @@ launchAtLogin = "Iniciar al iniciar sesión en Windows"
 launchAtLoginHelp = "EVE-O Preview se inicia en el área de notificación sin abrir Ajustes."
 launchAtLoginDisabledBySystem = "Deshabilitado en el Administrador de tareas, en Aplicaciones de arranque. Al activar esta opción se vuelve a habilitar."
 launchAtLoginFailed = "No se pudo cambiar la configuración de inicio."
+frameCapSection = "Velocidad de fotogramas del juego"
+frameCapToggle = "Limitar los FPS de los clientes de EVE"
+frameCapHelp = "Ajusta «Velocidad máxima de fotogramas» de exefile.exe en el controlador de NVIDIA, para todos los clientes. Al desactivarlo se restaura el ajuste anterior."
+frameCapFps = "FPS máximos"
+frameCapNote = "Al usar varios clientes, limitarlos todos a unos 60 FPS hace que cambiar entre ellos sea mucho más fluido y reduce la carga de la GPU. Los clientes que ya están abiertos lo aplican al reiniciarse. Es un ajuste del controlador, así que sigue activo aunque esta aplicación no esté en ejecución."
+frameCapChecking = "Comprobando el controlador gráfico…"
+frameCapNotNvidia = "No se encontró un controlador gráfico de NVIDIA, así que no está disponible. Con gráficos AMD o Intel, puedes limitar exefile.exe en los ajustes del controlador gráfico."
+frameCapApplied = "exefile.exe está limitado a {fps} FPS en el controlador de NVIDIA."
+frameCapNeedsAdmin = "El controlador de NVIDIA requiere permisos de administrador para cambiar este ajuste."
+frameCapFailed = "No se pudo cambiar el ajuste del controlador de NVIDIA (error {code})."
 
 # 权限页。系统设置的路径不加引号，与 Apple 西班牙文的说明文字一致；单独提到的权限名加引号。
 # 两项权限的名称与 macOS 西班牙文「隐私与安全性」里的条目名一致。

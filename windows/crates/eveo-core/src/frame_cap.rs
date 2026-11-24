@@ -187,6 +187,13 @@ pub fn plan_disable(state: &DriverState, record: Option<&OwnershipRecord>) -> Pl
     }
 }
 
+/// NVAPI 的状态码：找不到 NVAPI 的库（不是 NVIDIA 显卡或驱动没装）。
+pub const NVAPI_LIBRARY_NOT_FOUND: i32 = -2;
+/// NVAPI 的状态码：没有 NVIDIA 显卡驱动着显示器。
+pub const NVAPI_NVIDIA_DEVICE_NOT_FOUND: i32 = -6;
+/// NVAPI 的状态码：要管理员权限才能调用。
+pub const NVAPI_INVALID_USER_PRIVILEGE: i32 = -137;
+
 /// 设置页上这一项的状态，由应用层按检测与写入的结果求出。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FrameCapStatus {
@@ -205,6 +212,25 @@ pub enum FrameCapStatus {
 }
 
 impl FrameCapStatus {
+    /// 驱动操作失败时的状态：没有库或没有 NVIDIA 显卡是「不是 NVIDIA」，权限不够是「要管理员权限」。
+    pub fn from_error(code: i32) -> Self {
+        match code {
+            NVAPI_LIBRARY_NOT_FOUND | NVAPI_NVIDIA_DEVICE_NOT_FOUND => Self::NotNvidia,
+            NVAPI_INVALID_USER_PRIVILEGE => Self::NeedsAdmin,
+            _ => Self::Failed(code),
+        }
+    }
+
+    /// 驱动操作成功后的状态：想要限帧且驱动里确实是这个值时为「已设好」；
+    /// 想要限帧但读回的值不同（不应出现）时按失败处理；不限帧时为「可用」。
+    pub fn after_success(desired: Option<u32>, after: &DriverState) -> Self {
+        match desired {
+            Some(fps) if after.user_fps == Some(fps) => Self::Applied(fps),
+            Some(_) => Self::Failed(-1),
+            None => Self::Ready,
+        }
+    }
+
     /// 开关能不能拨：检测中与不是 NVIDIA 时不能。
     pub fn is_available(self) -> bool {
         !matches!(self, Self::Checking | Self::NotNvidia)

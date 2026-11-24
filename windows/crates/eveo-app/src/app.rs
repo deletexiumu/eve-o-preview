@@ -48,6 +48,7 @@ mod alerts;
 mod chat;
 mod diagnostics;
 mod environment;
+mod frame_cap;
 mod general;
 mod intel;
 mod intel_page;
@@ -205,6 +206,8 @@ struct App {
     update_launch: update_launch::UpdateLaunch,
     /// 自动更新。
     updates: updates::Updates,
+    /// NVIDIA 驱动限帧。
+    frame_cap: eveo_app_core::frame_cap::FrameCapController,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -303,6 +306,7 @@ pub fn run() -> ExitCode {
         quit_timer: None,
         update_launch,
         updates,
+        frame_cap: frame_cap::controller(&paths),
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -314,6 +318,8 @@ pub fn run() -> ExitCode {
     runtime.post(Input::Event(Event::Started));
     // 聊天日志按读入的配置开始（ConfigChanged 只在配置变化时才发，启动时要自己交一次）。
     runtime.app.borrow_mut().chat_config_changed();
+    // 限帧同理：启动时同步一次，顺带检测是不是 NVIDIA。
+    runtime.app.borrow_mut().frame_cap_config_changed();
     runtime.app.borrow_mut().start_updates(&runtime);
     if first_run && !background {
         runtime.post(Input::Event(Event::Tray(eveo_app_core::TrayAction::OpenSettings)));
@@ -522,6 +528,8 @@ impl App {
                 self.update_language();
                 // 预警的开关、频道与「保留最近」可能变了：聊天日志的跟踪与浮窗的内容跟着变。
                 self.chat_config_changed();
+                // 「游戏帧率」可能变了：写进 NVIDIA 驱动（后台线程，想要的值没变时跳过）。
+                self.frame_cap_config_changed();
                 // 「详细日志」可能变了：立即生效。
                 logging::apply_level(&config);
                 // 「通用」「提醒」「预警」「翻译」页同样只随配置变化；「环境检查」页的日志目录可能改了。
@@ -582,6 +590,7 @@ impl App {
         self.poll_crash_scan();
         self.report_tick();
         self.updates_tick(runtime);
+        self.frame_cap_tick();
         self.debug_panic_check();
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());

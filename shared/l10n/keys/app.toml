@@ -463,6 +463,48 @@ platforms = ["windows"]
 doc = "开关下方的说明：写注册表失败，开机启动没有改成功。"
 platforms = ["windows"]
 
+[SettingsStrings.frameCapSection]
+doc = "Windows「通用」页：限帧一组的分节标题。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapToggle]
+doc = "Windows「通用」页：「限制 EVE 客户端帧率」开关。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapHelp]
+doc = "开关下方的默认说明：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapFps]
+doc = "帧数输入框左边的标签。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapNote]
+doc = "限帧一组下方的脚注：为什么要限帧、何时生效、应用不运行时也有效。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapChecking]
+doc = "开关下方的说明：启动后正在检测显卡驱动。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapNotNvidia]
+doc = "开关下方的说明：没有 NVIDIA 显卡驱动，开关置灰；提示 AMD、Intel 用户在显卡驱动里手动限帧。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapApplied]
+doc = "开关下方的说明：驱动里已经设好了帧数。"
+params = ["_ fps: Int"]
+platforms = ["windows"]
+
+[SettingsStrings.frameCapNeedsAdmin]
+doc = "开关下方的说明：NVIDIA 驱动要求管理员权限才能写入。"
+platforms = ["windows"]
+
+[SettingsStrings.frameCapFailed]
+doc = "开关下方的说明：写驱动失败，带 NVAPI 的错误码。"
+params = ["_ code: Int"]
+platforms = ["windows"]
+
 [SettingsStrings.permissionsSubtitle]
 section = "权限页"
 doc = "页标题下的说明：两项权限在系统设置的哪里授予。"
