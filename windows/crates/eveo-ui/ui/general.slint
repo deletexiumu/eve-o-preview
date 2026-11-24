@@ -17,7 +17,7 @@
 
 import { Button, ComboBox, SpinBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { Footnote, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
+import { Footnote, Notice, PageHeader, RowGap, SectionHeader, SettingRow } from "components.slint";
 import { DiagnosticsText, SettingsText, UpdateText } from "generated/l10n.slint";
 
 // 本页的数据。字段对应配置的 general。
@@ -58,10 +58,14 @@ export global GeneralModel {
     in-out property <bool> frame-cap-enabled;
     // general.frameCap.fps，范围同配置校验（10～1000）。
     in-out property <int> frame-cap-fps: 60;
-    // 能不能拨开关：检测中与没有 NVIDIA 驱动时为假。
+    // 能不能拨开关：检测中与没有支持限帧的显卡驱动时为假。
     in property <bool> frame-cap-available;
-    // 开关下方的说明：空串时显示默认说明，否则显示这句（检测中、不是 NVIDIA、已设好、要管理员权限、失败）。
+    // 开关下方的说明（按状态与显卡厂商拼好）：空串时显示 NVIDIA 的默认说明（第一次检测完成之前）。
     in property <string> frame-cap-note;
+    // 开关下方的红字警告：AMD 只能全局限帧，会影响所有游戏；其他厂商为空串。
+    in property <string> frame-cap-warning;
+    // 是否显示「AMD、Intel 尚未实测，欢迎反馈」的脚注。
+    in property <bool> frame-cap-untested;
 }
 
 // 「通用」页。
@@ -117,6 +121,11 @@ export component GeneralPage inherits VerticalLayout {
             }
         }
     }
+    // AMD：开关下方用红字讲明会影响所有游戏（开关照样可以拨，用户知情后自己决定）。
+    Notice {
+        text: GeneralModel.frame-cap-warning;
+        danger: true;
+    }
     RowGap { }
     // 帧数只在开关打开时可改；关着时置灰，值照样保留。
     SettingRow {
@@ -135,6 +144,9 @@ export component GeneralPage inherits VerticalLayout {
     }
     Footnote {
         text: SettingsText.frame-cap-note;
+    }
+    if GeneralModel.frame-cap-untested: Footnote {
+        text: SettingsText.frame-cap-untested;
     }
 
     SectionHeader { text: UpdateText.section-header; }

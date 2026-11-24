@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 用 NVIDIA 驱动给 EVE 客户端限帧的规则。Windows 独有，macOS 版没有这一项。
+// 用显卡驱动给 EVE 客户端限帧的规则（这里是设置项与 NVIDIA 的部分，AMD、Intel 的在 value 子模块）。
+// Windows 独有，macOS 版没有这一项。
 //
 // 背景：多开时 EVE 会把不在前台的客户端降到每秒几帧，切过去时从几帧一下子跳到不限帧，画面会顿一下。
 // 把所有客户端都限在 60 帧左右能把这个跳变压小，也省显卡。精确限帧要注入客户端，有违反用户协议的风险，
 // 所以不注入，改为写显卡驱动的「按程序设置」：NVIDIA 驱动配置库（DRS）里 exefile.exe 所在的驱动配置文件
 // 的「最大帧速率」（设置项 FRL_FPS，0 表示不限）。这和用户在 NVIDIA 控制面板「程序设置」里手动设置是一回事，
-// 对所有 exefile.exe 生效，包括前台的客户端。AMD 与 Intel 没有可以调用的同类接口，界面上置灰。
+// 对所有 exefile.exe 生效，包括前台的客户端。没有 NVIDIA 时改用 AMD 或 Intel 驱动的同类设置（见 value 子模块）。
 //
 // 这里只有纯规则：打开与关闭时驱动里要做哪几步、要记下什么才能还原。读写驱动在平台层（eveo-platform-win 的
 // nvidia 模块），执行与记录的读写在应用层。
@@ -18,9 +19,14 @@
 // - 关闭时只在驱动里的值仍是我们写的值时才还原：用户之后在 NVIDIA 控制面板里自己改过，就尊重用户的改动，只丢掉记录。
 // - 记录在、驱动里 exefile.exe 却换了配置文件（驱动更新后归入了新的预置配置文件）时，按新配置文件重新接手。
 
-//! NVIDIA 驱动限帧（exefile.exe 的「最大帧速率」）的规则。
+//! 显卡驱动限帧：设置项、NVIDIA（exefile.exe 的「最大帧速率」）的规则与设置页的状态。
 
 use serde::{Deserialize, Serialize};
+
+#[path = "frame_cap_value.rs"]
+pub mod value;
+
+pub use value::{SyncError, SyncReport, Synced, Vendor};
 
 /// EVE 客户端的映像名。驱动按文件名匹配程序，与路径无关，多个安装目录都能覆盖到。
 pub const EXE_NAME: &str = "exefile.exe";
@@ -194,46 +200,62 @@ pub const NVAPI_NVIDIA_DEVICE_NOT_FOUND: i32 = -6;
 /// NVAPI 的状态码：要管理员权限才能调用。
 pub const NVAPI_INVALID_USER_PRIVILEGE: i32 = -137;
 
-/// 设置页上这一项的状态，由应用层按检测与写入的结果求出。
+/// NVAPI 的状态码归到三家共用的失败原因：没有库或没有 NVIDIA 显卡是「不支持」，权限不够是「要管理员权限」。
+pub fn nvapi_error(code: i32) -> SyncError {
+    match code {
+        NVAPI_LIBRARY_NOT_FOUND | NVAPI_NVIDIA_DEVICE_NOT_FOUND => SyncError::Unsupported,
+        NVAPI_INVALID_USER_PRIVILEGE => SyncError::NeedsAdmin,
+        _ => SyncError::Failed(code),
+    }
+}
+
+/// NVIDIA 驱动操作成功后的结果：想要限帧且读回的确实是这个值时为「已设好」；读回的值不同（不应出现）时
+/// 按失败处理；不限帧时为没有限帧。
+pub fn nvidia_synced(desired: Option<u32>, steps: usize, after: &DriverState) -> Result<Synced, SyncError> {
+    match desired {
+        Some(fps) if after.user_fps == Some(fps) => Ok(Synced {
+            steps,
+            applied: Some(fps),
+        }),
+        Some(_) => Err(SyncError::Failed(-1)),
+        None => Ok(Synced { steps, applied: None }),
+    }
+}
+
+/// 设置页上这一项的状态，由应用层按检测与写入的结果求出。用的是哪家显卡另外记（见 [`Vendor`]）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FrameCapStatus {
     /// 正在检测显卡驱动（启动后的第一秒左右）。
     Checking,
-    /// 没有 NVIDIA 驱动（AMD、Intel 显卡，或驱动没装好）：开关置灰。
-    NotNvidia,
+    /// 没有能用的显卡驱动（NVIDIA、AMD、Intel 都不行，或驱动太旧）：开关置灰。
+    Unsupported,
     /// 驱动可用，当前没有限帧（或刚还原）。
     Ready,
     /// 驱动里已经设好了帧数。
     Applied(u32),
     /// 驱动要求管理员权限才能写入。
     NeedsAdmin,
-    /// 其他错误，带 NVAPI 的状态码。
+    /// 其他错误，带驱动的错误码。
     Failed(i32),
 }
 
 impl FrameCapStatus {
-    /// 驱动操作失败时的状态：没有库或没有 NVIDIA 显卡是「不是 NVIDIA」，权限不够是「要管理员权限」。
-    pub fn from_error(code: i32) -> Self {
-        match code {
-            NVAPI_LIBRARY_NOT_FOUND | NVAPI_NVIDIA_DEVICE_NOT_FOUND => Self::NotNvidia,
-            NVAPI_INVALID_USER_PRIVILEGE => Self::NeedsAdmin,
-            _ => Self::Failed(code),
+    /// 一次同步的结果对应的状态。
+    pub fn from_result(result: &Result<Synced, SyncError>) -> Self {
+        match result {
+            Ok(Synced {
+                applied: Some(fps), ..
+            }) => Self::Applied(*fps),
+            Ok(_) => Self::Ready,
+            Err(SyncError::Unsupported) => Self::Unsupported,
+            Err(SyncError::NeedsAdmin) => Self::NeedsAdmin,
+            Err(SyncError::Failed(code)) => Self::Failed(*code),
         }
     }
 
-    /// 驱动操作成功后的状态：想要限帧且驱动里确实是这个值时为「已设好」；
-    /// 想要限帧但读回的值不同（不应出现）时按失败处理；不限帧时为「可用」。
-    pub fn after_success(desired: Option<u32>, after: &DriverState) -> Self {
-        match desired {
-            Some(fps) if after.user_fps == Some(fps) => Self::Applied(fps),
-            Some(_) => Self::Failed(-1),
-            None => Self::Ready,
-        }
-    }
-
-    /// 开关能不能拨：检测中与不是 NVIDIA 时不能。
+    /// 开关能不能拨：检测中与不支持时不能。
     pub fn is_available(self) -> bool {
-        !matches!(self, Self::Checking | Self::NotNvidia)
+        !matches!(self, Self::Checking | Self::Unsupported)
     }
 }
 

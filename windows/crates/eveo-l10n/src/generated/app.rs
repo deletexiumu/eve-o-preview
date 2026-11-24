@@ -291,22 +291,34 @@ pub trait SettingsStrings: Sync {
     fn frame_cap_section(&self) -> &'static str;
     /// Windows「通用」页：「限制 EVE 客户端帧率」开关。
     fn frame_cap_toggle(&self) -> &'static str;
-    /// 开关下方的默认说明：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。
+    /// 开关下方的默认说明（NVIDIA）：做法（写 NVIDIA 驱动里 exefile.exe 的「最大帧速率」）与关闭时还原。NVIDIA 控制面板里的名称用该语言的官方叫法。
     fn frame_cap_help(&self) -> &'static str;
+    /// 开关下方的默认说明（AMD）：打开 AMD 驱动的「帧率目标控制」（Frame Rate Target Control）并设为这个帧数，关闭时还原。
+    fn frame_cap_help_amd(&self) -> &'static str;
+    /// 开关下方的默认说明（Intel）：在 Intel 显卡驱动里给 exefile.exe 设帧数上限，关闭时还原。
+    fn frame_cap_help_intel(&self) -> &'static str;
     /// 帧数输入框左边的标签。
     fn frame_cap_fps(&self) -> &'static str;
     /// 限帧一组下方的脚注：为什么要限帧、何时生效、应用不运行时也有效。
     fn frame_cap_note(&self) -> &'static str;
     /// 开关下方的说明：启动后正在检测显卡驱动。
     fn frame_cap_checking(&self) -> &'static str;
-    /// 开关下方的说明：没有 NVIDIA 显卡驱动，开关置灰；提示 AMD、Intel 用户在显卡驱动里手动限帧。
-    fn frame_cap_not_nvidia(&self) -> &'static str;
-    /// 开关下方的说明：驱动里已经设好了帧数。
-    fn frame_cap_applied(&self, fps: i64) -> String;
-    /// 开关下方的说明：NVIDIA 驱动要求管理员权限才能写入。
-    fn frame_cap_needs_admin(&self) -> &'static str;
-    /// 开关下方的说明：写驱动失败，带 NVAPI 的错误码。
-    fn frame_cap_failed(&self, code: i64) -> String;
+    /// 开关下方的说明：没有支持限帧的显卡驱动（NVIDIA、AMD、Intel 都不行），开关置灰。
+    fn frame_cap_unsupported(&self) -> &'static str;
+    /// 开关下方的说明（NVIDIA、Intel）：驱动里已经给 exefile.exe 设好了帧数。vendor 是厂商名（NVIDIA 或 Intel）。
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String;
+    /// 开关下方的说明（AMD）：驱动里已经打开帧率目标控制，所有游戏都限为这个帧数。
+    fn frame_cap_applied_amd(&self, fps: i64) -> String;
+    /// 开关下方的说明：显卡驱动要求管理员权限才能写入。vendor 是厂商名（NVIDIA、AMD 或 Intel）。
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String;
+    /// 开关下方的说明：写驱动失败，带驱动的错误码。vendor 是厂商名（NVIDIA、AMD 或 Intel）。
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String;
+    /// 开关下方的说明：失败且不知道是哪家显卡（检测用的子进程异常结束），带错误码（子进程的退出码）。
+    fn frame_cap_failed_unknown(&self, code: i64) -> String;
+    /// AMD 显卡时开关下方的红字警告：AMD 只能全局限帧，打开后这台电脑上所有游戏都会被限帧。
+    fn frame_cap_amd_warning(&self) -> &'static str;
+    /// AMD、Intel 显卡时的脚注：这两家的支持还没有实测，不起作用时请反馈上面的提示或错误码。
+    fn frame_cap_untested(&self) -> &'static str;
     // 权限页
     /// 页标题下的说明：两项权限在系统设置的哪里授予。
     fn permissions_subtitle(&self) -> &'static str;
@@ -819,6 +831,12 @@ impl SettingsStrings for SettingsStringsEn {
     fn frame_cap_help(&self) -> &'static str {
         "Sets “Max Frame Rate” for exefile.exe in the NVIDIA driver, for every client. Turning it off restores the previous setting."
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "Turns on “Frame Rate Target Control” in the AMD driver at this frame rate. Turning it off restores the previous setting."
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Sets a frame rate limit for exefile.exe in the Intel graphics driver, for every client. Turning it off restores the previous setting."
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "Max frame rate"
     }
@@ -828,17 +846,29 @@ impl SettingsStrings for SettingsStringsEn {
     fn frame_cap_checking(&self) -> &'static str {
         "Checking the graphics driver…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "No NVIDIA graphics driver found, so this isn't available. With AMD or Intel graphics, you can limit exefile.exe in the graphics driver's settings."
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "No graphics driver with frame rate limiting found (NVIDIA, AMD or Intel), so this isn't available."
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("exefile.exe is limited to {} FPS in the NVIDIA driver.", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("exefile.exe is limited to {} FPS in the {} driver.", fps, vendor)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "The NVIDIA driver needs administrator rights to change this setting."
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("Frame Rate Target Control is on in the AMD driver: all games are limited to {} FPS.", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("Couldn't change the NVIDIA driver setting (error {}).", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("The {} driver needs administrator rights to change this setting.", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("Couldn't change the {} driver setting (error {}).", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("Couldn't change the graphics driver setting (error {}).", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "Note: the AMD driver can only limit the frame rate globally. While this is on, every game on this PC, not just EVE, is limited to this frame rate."
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "Support for AMD and Intel graphics hasn't been tested on real hardware yet. If it doesn't work, please send us the message or error code shown above."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Both permissions are granted in System Settings > Privacy & Security."
@@ -1398,6 +1428,12 @@ impl SettingsStrings for SettingsStringsZh {
     fn frame_cap_help(&self) -> &'static str {
         "在 NVIDIA 驱动里给 exefile.exe 设置「最大帧速率」，对所有客户端生效。关闭后还原原来的设置。"
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "在 AMD 驱动里打开「帧率目标控制」并设为这个帧数。关闭后还原原来的设置。"
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "在 Intel 显卡驱动里给 exefile.exe 设置帧数上限，对所有客户端生效。关闭后还原原来的设置。"
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "最高帧率"
     }
@@ -1407,17 +1443,29 @@ impl SettingsStrings for SettingsStringsZh {
     fn frame_cap_checking(&self) -> &'static str {
         "正在检测显卡驱动…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "没有检测到 NVIDIA 显卡驱动，不能使用。AMD 或 Intel 显卡可以在显卡驱动的设置里给 exefile.exe 限帧。"
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "没有检测到支持限帧的显卡驱动（NVIDIA、AMD 或 Intel），不能使用。"
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("已在 NVIDIA 驱动里把 exefile.exe 限制为 {} 帧。", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("已在 {} 驱动里把 exefile.exe 限制为 {} 帧。", vendor, fps)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "NVIDIA 驱动要求管理员权限才能更改这项设置。"
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("已在 AMD 驱动里打开帧率目标控制，所有游戏限制为 {} 帧。", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("无法更改 NVIDIA 驱动设置（错误码 {}）。", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("{} 驱动要求管理员权限才能更改这项设置。", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("无法更改 {} 驱动设置（错误码 {}）。", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("无法更改显卡驱动设置（错误码 {}）。", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "注意：AMD 驱动只能全局限帧。打开后，这台电脑上所有游戏（不只是 EVE）都会被限制在这个帧数。"
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "AMD 与 Intel 显卡的支持还没有经过实测。如果不起作用，欢迎把上面的提示或错误码反馈给我们。"
     }
     fn permissions_subtitle(&self) -> &'static str {
         "两项权限都在「系统设置 > 隐私与安全性」里授予。"
@@ -1974,6 +2022,12 @@ impl SettingsStrings for SettingsStringsRu {
     fn frame_cap_help(&self) -> &'static str {
         "Задаёт «Максимальную частоту кадров» для exefile.exe в драйвере NVIDIA для всех клиентов. При выключении прежняя настройка восстанавливается."
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "Включает «Frame Rate Target Control» в драйвере AMD с этой частотой кадров. При выключении прежняя настройка восстанавливается."
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Задаёт ограничение частоты кадров для exefile.exe в видеодрайвере Intel для всех клиентов. При выключении прежняя настройка восстанавливается."
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "Макс. частота кадров"
     }
@@ -1983,17 +2037,29 @@ impl SettingsStrings for SettingsStringsRu {
     fn frame_cap_checking(&self) -> &'static str {
         "Проверка видеодрайвера…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "Видеодрайвер NVIDIA не найден, функция недоступна. Для видеокарт AMD или Intel ограничьте exefile.exe в настройках видеодрайвера."
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "Видеодрайвер с ограничением частоты кадров (NVIDIA, AMD или Intel) не найден, функция недоступна."
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("В драйвере NVIDIA для exefile.exe задано ограничение {} кадров/с.", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("В драйвере {} для exefile.exe задано ограничение {} кадров/с.", vendor, fps)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "Драйвер NVIDIA требует права администратора для изменения этой настройки."
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("В драйвере AMD включён Frame Rate Target Control: все игры ограничены {} кадрами/с.", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("Не удалось изменить настройку драйвера NVIDIA (ошибка {}).", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("Драйвер {} требует права администратора для изменения этой настройки.", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("Не удалось изменить настройку драйвера {} (ошибка {}).", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("Не удалось изменить настройку видеодрайвера (ошибка {}).", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "Внимание: драйвер AMD может ограничивать частоту кадров только глобально. Пока функция включена, все игры на этом компьютере, а не только EVE, ограничены этой частотой."
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "Поддержка видеокарт AMD и Intel ещё не проверена на реальном оборудовании. Если не работает, пришлите нам сообщение или код ошибки, показанные выше."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Оба разрешения выдаются в разделе «Системные настройки» > «Конфиденциальность и безопасность»."
@@ -2554,6 +2620,12 @@ impl SettingsStrings for SettingsStringsJa {
     fn frame_cap_help(&self) -> &'static str {
         "NVIDIA ドライバーで exefile.exe の「最大フレームレート」を設定し、すべてのクライアントに適用します。オフにすると元の設定に戻します。"
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "AMD ドライバーで「Frame Rate Target Control」をオンにし、このフレームレートに設定します。オフにすると元の設定に戻します。"
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Intel グラフィックスドライバーで exefile.exe のフレームレート上限を設定し、すべてのクライアントに適用します。オフにすると元の設定に戻します。"
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "最大フレームレート"
     }
@@ -2563,17 +2635,29 @@ impl SettingsStrings for SettingsStringsJa {
     fn frame_cap_checking(&self) -> &'static str {
         "グラフィックスドライバーを確認しています…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "NVIDIA のグラフィックスドライバーが見つからないため使用できません。AMD や Intel の場合は、グラフィックスドライバーの設定で exefile.exe を制限してください。"
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "フレームレート制限に対応したグラフィックスドライバー（NVIDIA、AMD、Intel）が見つからないため使用できません。"
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("NVIDIA ドライバーで exefile.exe を {} fps に制限しています。", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("{} ドライバーで exefile.exe を {} fps に制限しています。", vendor, fps)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "この設定を変更するには、NVIDIA ドライバーが管理者権限を必要としています。"
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("AMD ドライバーで Frame Rate Target Control がオンになり、すべてのゲームを {} fps に制限しています。", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("NVIDIA ドライバーの設定を変更できませんでした（エラー {}）。", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("この設定を変更するには、{} ドライバーが管理者権限を必要としています。", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("{} ドライバーの設定を変更できませんでした（エラー {}）。", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("グラフィックスドライバーの設定を変更できませんでした（エラー {}）。", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "注意：AMD ドライバーはフレームレートを全体でしか制限できません。オンの間は、EVE だけでなくこの PC のすべてのゲームがこのフレームレートに制限されます。"
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "AMD と Intel のグラフィックスへの対応は、まだ実機で検証されていません。うまく動かない場合は、上に表示されたメッセージやエラーコードをお知らせください。"
     }
     fn permissions_subtitle(&self) -> &'static str {
         "どちらの権限も「システム設定」>「プライバシーとセキュリティ」で許可します。"
@@ -3130,6 +3214,12 @@ impl SettingsStrings for SettingsStringsKo {
     fn frame_cap_help(&self) -> &'static str {
         "NVIDIA 드라이버에서 exefile.exe의 ‘최대 프레임 속도’를 설정해 모든 클라이언트에 적용합니다. 끄면 이전 설정으로 되돌립니다."
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "AMD 드라이버에서 ‘Frame Rate Target Control’을 켜고 이 프레임 속도로 설정합니다. 끄면 이전 설정으로 되돌립니다."
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Intel 그래픽 드라이버에서 exefile.exe의 프레임 속도 상한을 설정해 모든 클라이언트에 적용합니다. 끄면 이전 설정으로 되돌립니다."
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "최대 프레임 속도"
     }
@@ -3139,17 +3229,29 @@ impl SettingsStrings for SettingsStringsKo {
     fn frame_cap_checking(&self) -> &'static str {
         "그래픽 드라이버를 확인하는 중…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "NVIDIA 그래픽 드라이버를 찾을 수 없어 사용할 수 없습니다. AMD 또는 Intel 그래픽은 그래픽 드라이버 설정에서 exefile.exe를 제한할 수 있습니다."
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "프레임 속도 제한을 지원하는 그래픽 드라이버(NVIDIA, AMD 또는 Intel)를 찾을 수 없어 사용할 수 없습니다."
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("NVIDIA 드라이버에서 exefile.exe를 {}fps로 제한했습니다.", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("{} 드라이버에서 exefile.exe를 {}fps로 제한했습니다.", vendor, fps)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "이 설정을 바꾸려면 NVIDIA 드라이버에 관리자 권한이 필요합니다."
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("AMD 드라이버에서 Frame Rate Target Control을 켜서 모든 게임을 {}fps로 제한했습니다.", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("NVIDIA 드라이버 설정을 변경하지 못했습니다(오류 {}).", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("이 설정을 바꾸려면 {} 드라이버에 관리자 권한이 필요합니다.", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("{} 드라이버 설정을 변경하지 못했습니다(오류 {}).", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("그래픽 드라이버 설정을 변경하지 못했습니다(오류 {}).", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "주의: AMD 드라이버는 프레임 속도를 전체적으로만 제한할 수 있습니다. 켜 두는 동안 EVE뿐 아니라 이 PC의 모든 게임이 이 프레임 속도로 제한됩니다."
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "AMD와 Intel 그래픽 지원은 아직 실제 하드웨어에서 테스트하지 않았습니다. 작동하지 않으면 위에 표시된 메시지나 오류 코드를 알려 주세요."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "두 권한 모두 ‘시스템 설정 > 개인정보 보호 및 보안’에서 허용합니다."
@@ -3706,6 +3808,12 @@ impl SettingsStrings for SettingsStringsFr {
     fn frame_cap_help(&self) -> &'static str {
         "Règle « Fréquence d'images max » pour exefile.exe dans le pilote NVIDIA, pour tous les clients. La désactivation rétablit le réglage précédent."
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "Active « Frame Rate Target Control » dans le pilote AMD à cette fréquence d'images. La désactivation rétablit le réglage précédent."
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Règle une limite de fréquence d'images pour exefile.exe dans le pilote graphique Intel, pour tous les clients. La désactivation rétablit le réglage précédent."
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "Fréquence d'images max"
     }
@@ -3715,17 +3823,29 @@ impl SettingsStrings for SettingsStringsFr {
     fn frame_cap_checking(&self) -> &'static str {
         "Vérification du pilote graphique…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "Aucun pilote graphique NVIDIA détecté : option indisponible. Avec une carte AMD ou Intel, limitez exefile.exe dans les réglages du pilote graphique."
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "Aucun pilote graphique capable de limiter la fréquence d'images détecté (NVIDIA, AMD ou Intel) : option indisponible."
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("exefile.exe est limité à {} i/s dans le pilote NVIDIA.", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("exefile.exe est limité à {} i/s dans le pilote {}.", fps, vendor)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "Le pilote NVIDIA exige des droits d'administrateur pour modifier ce réglage."
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("Frame Rate Target Control est activé dans le pilote AMD : tous les jeux sont limités à {} i/s.", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("Impossible de modifier le réglage du pilote NVIDIA (erreur {}).", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("Le pilote {} exige des droits d'administrateur pour modifier ce réglage.", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("Impossible de modifier le réglage du pilote {} (erreur {}).", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("Impossible de modifier le réglage du pilote graphique (erreur {}).", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "Attention : le pilote AMD ne peut limiter la fréquence d'images que globalement. Tant que l'option est active, tous les jeux de ce PC, pas seulement EVE, sont limités à cette fréquence."
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "La prise en charge des cartes AMD et Intel n'a pas encore été testée sur du vrai matériel. Si elle ne fonctionne pas, envoyez-nous le message ou le code d'erreur affiché ci-dessus."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Les deux autorisations s'accordent dans Réglages Système > Confidentialité et sécurité."
@@ -4285,6 +4405,12 @@ impl SettingsStrings for SettingsStringsDe {
     fn frame_cap_help(&self) -> &'static str {
         "Setzt „Max. Bildrate“ für exefile.exe im NVIDIA-Treiber, für alle Clients. Beim Ausschalten wird die vorherige Einstellung wiederhergestellt."
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "Aktiviert „Frame Rate Target Control“ im AMD-Treiber mit dieser Bildrate. Beim Ausschalten wird die vorherige Einstellung wiederhergestellt."
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Setzt im Intel-Grafiktreiber eine Bildratenbegrenzung für exefile.exe, für alle Clients. Beim Ausschalten wird die vorherige Einstellung wiederhergestellt."
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "Max. Bildrate"
     }
@@ -4294,17 +4420,29 @@ impl SettingsStrings for SettingsStringsDe {
     fn frame_cap_checking(&self) -> &'static str {
         "Grafiktreiber wird geprüft …"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "Kein NVIDIA-Grafiktreiber gefunden, daher nicht verfügbar. Mit AMD- oder Intel-Grafik lässt sich exefile.exe in den Einstellungen des Grafiktreibers begrenzen."
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "Kein Grafiktreiber mit Bildratenbegrenzung gefunden (NVIDIA, AMD oder Intel), daher nicht verfügbar."
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("exefile.exe ist im NVIDIA-Treiber auf {} FPS begrenzt.", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("exefile.exe ist im {}-Treiber auf {} FPS begrenzt.", vendor, fps)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "Der NVIDIA-Treiber verlangt Administratorrechte, um diese Einstellung zu ändern."
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("Frame Rate Target Control ist im AMD-Treiber aktiv: Alle Spiele sind auf {} FPS begrenzt.", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("Die NVIDIA-Treibereinstellung konnte nicht geändert werden (Fehler {}).", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("Der {}-Treiber verlangt Administratorrechte, um diese Einstellung zu ändern.", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("Die {}-Treibereinstellung konnte nicht geändert werden (Fehler {}).", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("Die Grafiktreibereinstellung konnte nicht geändert werden (Fehler {}).", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "Hinweis: Der AMD-Treiber kann die Bildrate nur global begrenzen. Solange dies aktiv ist, wird jedes Spiel auf diesem PC, nicht nur EVE, auf diese Bildrate begrenzt."
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "Die Unterstützung für AMD- und Intel-Grafik wurde noch nicht auf echter Hardware getestet. Falls es nicht funktioniert, schick uns bitte die oben angezeigte Meldung oder den Fehlercode."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Beide Berechtigungen werden unter „Systemeinstellungen“ > „Datenschutz & Sicherheit“ erteilt."
@@ -4864,6 +5002,12 @@ impl SettingsStrings for SettingsStringsEs {
     fn frame_cap_help(&self) -> &'static str {
         "Ajusta «Velocidad máxima de fotogramas» de exefile.exe en el controlador de NVIDIA, para todos los clientes. Al desactivarlo se restaura el ajuste anterior."
     }
+    fn frame_cap_help_amd(&self) -> &'static str {
+        "Activa «Frame Rate Target Control» en el controlador de AMD con estos FPS. Al desactivarlo se restaura el ajuste anterior."
+    }
+    fn frame_cap_help_intel(&self) -> &'static str {
+        "Ajusta un límite de FPS para exefile.exe en el controlador gráfico de Intel, para todos los clientes. Al desactivarlo se restaura el ajuste anterior."
+    }
     fn frame_cap_fps(&self) -> &'static str {
         "FPS máximos"
     }
@@ -4873,17 +5017,29 @@ impl SettingsStrings for SettingsStringsEs {
     fn frame_cap_checking(&self) -> &'static str {
         "Comprobando el controlador gráfico…"
     }
-    fn frame_cap_not_nvidia(&self) -> &'static str {
-        "No se encontró un controlador gráfico de NVIDIA, así que no está disponible. Con gráficos AMD o Intel, puedes limitar exefile.exe en los ajustes del controlador gráfico."
+    fn frame_cap_unsupported(&self) -> &'static str {
+        "No se encontró un controlador gráfico con limitación de FPS (NVIDIA, AMD o Intel), así que no está disponible."
     }
-    fn frame_cap_applied(&self, fps: i64) -> String {
-        format!("exefile.exe está limitado a {} FPS en el controlador de NVIDIA.", fps)
+    fn frame_cap_applied(&self, fps: i64, vendor: &str) -> String {
+        format!("exefile.exe está limitado a {} FPS en el controlador de {}.", fps, vendor)
     }
-    fn frame_cap_needs_admin(&self) -> &'static str {
-        "El controlador de NVIDIA requiere permisos de administrador para cambiar este ajuste."
+    fn frame_cap_applied_amd(&self, fps: i64) -> String {
+        format!("Frame Rate Target Control está activado en el controlador de AMD: todos los juegos están limitados a {} FPS.", fps)
     }
-    fn frame_cap_failed(&self, code: i64) -> String {
-        format!("No se pudo cambiar el ajuste del controlador de NVIDIA (error {}).", code)
+    fn frame_cap_needs_admin(&self, vendor: &str) -> String {
+        format!("El controlador de {} requiere permisos de administrador para cambiar este ajuste.", vendor)
+    }
+    fn frame_cap_failed(&self, code: i64, vendor: &str) -> String {
+        format!("No se pudo cambiar el ajuste del controlador de {} (error {}).", vendor, code)
+    }
+    fn frame_cap_failed_unknown(&self, code: i64) -> String {
+        format!("No se pudo cambiar el ajuste del controlador gráfico (error {}).", code)
+    }
+    fn frame_cap_amd_warning(&self) -> &'static str {
+        "Atención: el controlador de AMD solo puede limitar los FPS de forma global. Mientras esté activado, todos los juegos de este PC, no solo EVE, quedarán limitados a estos FPS."
+    }
+    fn frame_cap_untested(&self) -> &'static str {
+        "La compatibilidad con gráficos AMD e Intel aún no se ha probado en hardware real. Si no funciona, envíanos el mensaje o el código de error que aparece arriba."
     }
     fn permissions_subtitle(&self) -> &'static str {
         "Ambos permisos se conceden en Ajustes del Sistema > Privacidad y seguridad."

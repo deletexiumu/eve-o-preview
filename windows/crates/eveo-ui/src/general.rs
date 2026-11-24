@@ -6,11 +6,12 @@
 
 //! 「通用」页与「关于」页。
 
+use eveo_l10n::SettingsStrings;
 use slint::ComponentHandle;
 
-use eveo_core::frame_cap::{FrameCapSettings, FrameCapStatus};
+use eveo_core::frame_cap::{FrameCapSettings, FrameCapStatus, Vendor};
 use eveo_core::logging::LogLevel;
-use eveo_core::model::{GeneralSettings, LanguagePreference};
+use eveo_core::model::{AppLanguage, GeneralSettings, LanguagePreference};
 use eveo_core::support::StringEnum;
 
 use crate::{AboutModel, GeneralModel, SettingsWindow};
@@ -45,12 +46,70 @@ pub fn show_general(ui: &SettingsWindow, general: &GeneralSettings, log_path: &s
     model.set_frame_cap_fps(i32::try_from(frame_cap.fps).unwrap_or(60));
 }
 
-/// 「游戏帧率」一组的状态：能不能拨开关，以及开关下方的说明（`note` 为空串时显示默认说明）。
-/// 说明由应用层按 [`FrameCapStatus`] 与界面语言拼好。
-pub fn show_frame_cap_status(ui: &SettingsWindow, status: FrameCapStatus, note: &str) {
+/// 「游戏帧率」一组的状态：能不能拨开关、开关下方的说明、AMD 的红字警告，以及 AMD、Intel 的「尚未实测」脚注。
+/// 说明按 [`FrameCapStatus`]、显卡厂商与界面语言拼出。
+pub fn show_frame_cap_status(
+    ui: &SettingsWindow,
+    status: FrameCapStatus,
+    vendor: Option<Vendor>,
+    language: AppLanguage,
+) {
+    let view = frame_cap_view(eveo_l10n::settings(language), status, vendor);
     let model = ui.global::<GeneralModel>();
     model.set_frame_cap_available(status.is_available());
-    model.set_frame_cap_note(note.into());
+    model.set_frame_cap_note(view.note.into());
+    model.set_frame_cap_warning(view.warning.into());
+    model.set_frame_cap_untested(view.untested);
+}
+
+/// 「游戏帧率」一组要显示的文字。
+#[derive(Debug, PartialEq, Eq)]
+struct FrameCapView {
+    /// 开关下方的说明。
+    note: String,
+    /// 红字警告（AMD 是全局限帧）；没有时为空串。
+    warning: String,
+    /// 是否显示「AMD、Intel 尚未实测」的脚注。
+    untested: bool,
+}
+
+/// 按状态与厂商求出要显示的文字。没有限帧时显示这家的默认说明（做法与关闭时还原）。
+fn frame_cap_view(
+    text: &dyn SettingsStrings,
+    status: FrameCapStatus,
+    vendor: Option<Vendor>,
+) -> FrameCapView {
+    let name = match vendor {
+        Some(Vendor::Nvidia) | None => "NVIDIA",
+        Some(Vendor::Amd) => "AMD",
+        Some(Vendor::Intel) => "Intel",
+    };
+    let note = match (status, vendor) {
+        (FrameCapStatus::Checking, _) => text.frame_cap_checking().to_owned(),
+        (FrameCapStatus::Unsupported, _) => text.frame_cap_unsupported().to_owned(),
+        (FrameCapStatus::Ready, Some(Vendor::Amd)) => text.frame_cap_help_amd().to_owned(),
+        (FrameCapStatus::Ready, Some(Vendor::Intel)) => text.frame_cap_help_intel().to_owned(),
+        (FrameCapStatus::Ready, _) => text.frame_cap_help().to_owned(),
+        (FrameCapStatus::Applied(fps), Some(Vendor::Amd)) => text.frame_cap_applied_amd(i64::from(fps)),
+        (FrameCapStatus::Applied(fps), _) => text.frame_cap_applied(i64::from(fps), name),
+        (FrameCapStatus::NeedsAdmin, _) => text.frame_cap_needs_admin(name),
+        // 不知道是哪家（子进程异常结束）：不提厂商名。
+        (FrameCapStatus::Failed(code), None) => text.frame_cap_failed_unknown(i64::from(code)),
+        (FrameCapStatus::Failed(code), Some(_)) => text.frame_cap_failed(i64::from(code), name),
+    };
+    let amd = vendor == Some(Vendor::Amd);
+    FrameCapView {
+        note,
+        warning: if amd {
+            text.frame_cap_amd_warning().to_owned()
+        } else {
+            String::new()
+        },
+        // 检测失败但不知道厂商时也提示：没有 NVIDIA 才会走到 AMD、Intel 的检测。
+        untested: amd
+            || vendor == Some(Vendor::Intel)
+            || matches!((status, vendor), (FrameCapStatus::Failed(_), None)),
+    }
 }
 
 /// 「通用」页更新一组的状态：当前版本、上次检查的时刻、一行状态、「立即检查」能否点。
@@ -157,12 +216,28 @@ pub(crate) mod tests {
                 fps: 75
             })
         );
-        // 状态：不是 NVIDIA 时开关不能拨，说明换成对应的一句话。
-        show_frame_cap_status(ui, FrameCapStatus::NotNvidia, "x");
+        // 状态：不支持时开关不能拨；AMD 时有红字警告与「尚未实测」脚注，NVIDIA 没有。
+        show_frame_cap_status(ui, FrameCapStatus::Unsupported, None, AppLanguage::En);
         assert!(!model.get_frame_cap_available());
-        assert_eq!(model.get_frame_cap_note(), "x");
-        show_frame_cap_status(ui, FrameCapStatus::Applied(75), "");
+        assert!(model.get_frame_cap_warning().is_empty());
+        show_frame_cap_status(
+            ui,
+            FrameCapStatus::Applied(75),
+            Some(Vendor::Amd),
+            AppLanguage::En,
+        );
         assert!(model.get_frame_cap_available());
+        assert!(!model.get_frame_cap_warning().is_empty());
+        assert!(model.get_frame_cap_untested());
+        assert!(model.get_frame_cap_note().contains("75"));
+        show_frame_cap_status(
+            ui,
+            FrameCapStatus::Applied(75),
+            Some(Vendor::Nvidia),
+            AppLanguage::En,
+        );
+        assert!(model.get_frame_cap_warning().is_empty());
+        assert!(!model.get_frame_cap_untested());
 
         // 「关于」页：版本号非空；只认列出的链接。
         show_about(ui);

@@ -347,18 +347,22 @@ macOS 的协调器在 App 里，没有单元测试。Windows 版把协调器的�
 
 `reqwest` 用系统的 TLS（Schannel）与系统证书库，默认读取系统代理设置。不少用户访问模型服务要走代理，这一点要在 M6 验证。ESI 的请求头、翻译请求的拼装、错误分类都在 Core（`ESINameWire`、`TranslationWire`），与 macOS 共用测试用例。
 
-### 4.12 NVIDIA 驱动限帧
+### 4.12 显卡驱动限帧（NVIDIA、AMD、Intel）
 
-多开时 EVE 会把不在前台的客户端降到每秒几帧，切过去时从几帧跳到不限帧，画面会顿一下。「通用」页的「游戏帧率」一组把所有客户端限在同一个帧数（默认 60），把这个跳变压小。精确限帧要注入客户端，有违反用户协议的风险，所以只改显卡驱动的「按程序设置」，不碰客户端进程。
+多开时 EVE 会把不在前台的客户端降到每秒几帧，切过去时从几帧跳到不限帧，画面会顿一下。「通用」页的「游戏帧率」一组把所有客户端限在同一个帧数（默认 60），把这个跳变压小。精确限帧要注入客户端，有违反用户协议的风险，所以只改显卡驱动的设置，不碰客户端进程。
 
 | 项 | 设计 |
 | --- | --- |
-| 做法 | 从 System32 动态加载 `nvapi64.dll`，用 NVAPI 的驱动配置库（DRS）给 `exefile.exe` 所在的驱动配置文件设「最大帧速率」（`FRL_FPS`，0 表示不限），与 NVIDIA 控制面板里手动设置相同。驱动里没有登记 `exefile.exe` 时新建配置文件 `EVE-O Preview - EVE Online` |
-| 检测 | 启动时在后台线程同步一次。NVAPI 返回 -2（没有库）或 -6（没有 NVIDIA 显卡）时开关与帧数框置灰，说明里提示 AMD、Intel 用户到显卡驱动里手动限帧 |
-| 还原 | 第一次打开时把接手前的样子记在 `%LOCALAPPDATA%\EVE-O Preview\frame-cap.json`（配置文件名、原来的用户值、是否新建）。关闭时按记录还原；驱动里的值已被用户在 NVIDIA 控制面板里改过时不动驱动，只删记录 |
-| 写入时机 | 配置停止变化约 1 秒后才写（打字改帧数时只写最终值）。驱动每保存一次，运行中的客户端都会重新读设置（真机上看到画面闪成灰色）。应用退出时不还原：这是驱动设置，开关开着就一直有效 |
-| 权限 | 真机核对过（2026-11-24）：普通权限（Medium 完整性）就能写，不需要管理员。仍处理 -137（要管理员权限）并在说明里提示 |
-| 代码 | 规则 `eveo_core::frame_cap`，调度 `eveo_app_core::frame_cap`，驱动读写 `eveo_platform_win::nvidia`，真机核对 `eveo-probe nvidia` |
+| 选哪家 | 先试 NVIDIA（已实测）；没有 NVIDIA 时在 AMD 与 Intel 之间优先独显，其次核显（`eveo_core::frame_cap::value::choose_vendor`）。三家都不行时开关与帧数框置灰 |
+| NVIDIA | 从 System32 动态加载 `nvapi64.dll`，用 NVAPI 的驱动配置库（DRS）给 `exefile.exe` 所在的驱动配置文件设「最大帧速率」（`FRL_FPS`，0 表示不限），与 NVIDIA 控制面板里手动设置相同。驱动里没有登记 `exefile.exe` 时新建配置文件 `EVE-O Preview - EVE Online`。NVAPI 返回 -2（没有库）或 -6（没有 NVIDIA 显卡）时转去试 AMD、Intel |
+| AMD | 加载 `amdadlx64.dll`，用 ADLX 的「帧率目标控制」（`IADLX3DFrameRateTargetControl`，与 AMD Software 里的 Frame Rate Target Control 相同）。ADLX 没有按程序的接口，这是整块显卡的全局设置：设置页用红字讲明「所有游戏都会被限帧」，开关照样可以拨。帧数夹到驱动给的范围（一般 30～300） |
+| Intel | 加载 `ControlLib.dll`，用 IGCL 的 3D 特性 `CTL_3D_FEATURE_FRAME_LIMIT`，只给 `exefile.exe` 设。先用 `ctlGetSupported3DCapabilities` 确认这块显卡支持按程序限帧并取帧数范围；只支持全局时不用 |
+| 子进程 | AMD、Intel 的调用按 SDK 头文件写成，开发时没有这两种显卡，没有实测。驱动库里的崩溃在进程内拦不住，所以放在子进程里：应用以 `--frame-cap-helper <帧数\|off>` 再启动自己，子进程同步完往标准输出写一行 JSON 报告（`SyncReport`）就退出；崩溃或 30 秒超时按失败处理，设置页显示退出码。子进程最先判断，不开窗口、不走单实例检查。设置页对 AMD、Intel 加一行「尚未实测，欢迎反馈」的脚注 |
+| 还原 | 第一次打开时把接手前的样子记在 `%LOCALAPPDATA%\EVE-O Preview\` 下，每家一个文件：`frame-cap.json`（NVIDIA：配置文件名、原来的用户值、是否新建）、`frame-cap-amd.json`、`frame-cap-intel.json`（显卡标识与原来的开关与帧数）。关闭时按记录还原；驱动里的值已被用户在显卡软件里改过、或换了显卡时不动驱动，只删记录 |
+| 写入时机 | 启动时在后台线程同步一次（顺带检测）；配置停止变化约 1 秒后才写（打字改帧数时只写最终值）。驱动每保存一次，运行中的客户端都会重新读设置（NVIDIA 真机上看到画面闪成灰色）。应用退出时不还原：这是驱动设置，开关开着就一直有效 |
+| 权限 | NVIDIA 真机核对过（2026-11-24）：普通权限（Medium 完整性）就能写，不需要管理员。三家都处理「要管理员权限」（NVAPI -137、IGCL `INSUFFICIENT_PERMISSIONS`）并在说明里提示 |
+| 排查 | NVIDIA 用 `eveo-probe nvidia`；AMD、Intel 在 PowerShell 里运行 `& "EVE-O Preview.exe" --frame-cap-helper off \| Out-String` 看报告（off 只检测与还原，不会打开限帧） |
+| 代码 | 规则 `eveo_core::frame_cap`（含 `value` 子模块），调度与一次同步 `eveo_app_core::frame_cap`，驱动读写 `eveo_platform_win::{nvidia, amd, intel}`，子进程 `eveo-app` 的 `frame_cap_helper` |
 
 ## 5 与 macOS 的共享策略
 

@@ -217,10 +217,12 @@ export component Notice inherits VerticalLayout {
     in property <string> text;
     // 为真时用普通的次要文字颜色（成功的测试结果）。
     in property <bool> calm;
+    // 为真时用红色（后果较重的警告）。
+    in property <bool> danger;
     padding-top: text == "" ? 0px : 4px;
     if text != "": Text {
         text: root.text;
-        color: root.calm ? Theme.text-secondary : Theme.caution;
+        color: root.calm ? Theme.text-secondary : root.danger ? Theme.danger : Theme.caution;
         font-size: 12px;
         wrap: word-wrap;
     }
