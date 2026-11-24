@@ -54,6 +54,8 @@ blockerUnsupportedVolume = "应用所在的磁盘不是 APFS 格式，不能在�
 blockerAdHocSignature = "这个构建没有稳定的签名，无法核对新版本。"
 blockerDevelopmentSignature = "这是本机签名的开发构建。"
 blockerUnsigned = "这个构建没有签名。"
+blockerNoSigningKey = "这个构建没有内置核对更新所需的公钥。"
+blockerDevelopmentBuild = "这是开发构建。"
 
 errorNetwork = "无法连接 GitHub。请检查网络连接。"
 errorHTTPStatus = "GitHub 返回了错误（{code}）。"
@@ -65,3 +67,5 @@ errorDiskImage = "无法打开下载的磁盘映像。"
 errorVerification = "无法验证新版本，没有安装。"
 errorUnsupportedSystem = "这个版本需要 macOS {minimum} 或更高版本。"
 errorSwapFailed = "无法替换应用。"
+
+notificationBody = "点击查看新内容并安装。"

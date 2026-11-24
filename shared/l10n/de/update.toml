@@ -59,6 +59,8 @@ blockerUnsupportedVolume = "Die App liegt auf einem Volume, das nicht mit APFS f
 blockerAdHocSignature = "Dieser Build hat keine stabile Signatur, daher kann eine neue Version nicht damit abgeglichen werden."
 blockerDevelopmentSignature = "Dies ist ein lokal signierter Entwicklungs-Build."
 blockerUnsigned = "Dieser Build ist nicht signiert."
+blockerNoSigningKey = "Dieser Build enthält nicht den Schlüssel, der zum Prüfen von Updates nötig ist."
+blockerDevelopmentBuild = "Dies ist ein Entwicklungs-Build."
 
 errorNetwork = "GitHub ist nicht erreichbar. Internetverbindung prüfen."
 errorHTTPStatus = "GitHub hat mit einem Fehler geantwortet ({code})."
@@ -70,3 +72,5 @@ errorDiskImage = "Das geladene Festplattenimage konnte nicht geöffnet werden."
 errorVerification = "Die neue Version konnte nicht überprüft werden und wurde daher nicht installiert."
 errorUnsupportedSystem = "Diese Version erfordert macOS {minimum} oder neuer."
 errorSwapFailed = "Die App konnte nicht ersetzt werden."
+
+notificationBody = "Klicken Sie hier, um die Neuerungen zu sehen und zu installieren."

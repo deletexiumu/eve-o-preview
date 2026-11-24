@@ -69,6 +69,31 @@ pub fn local_timestamp() -> String {
     )
 }
 
+/// 本地时间与 UTC 的差（秒），含夏令时；用于把时刻写成本地时间（更新窗口的「请在 HH:mm 之后再试」等）。
+///
+/// 同时读本地时间与 UTC 时间，比较一天内的秒数；差值折到 -14～+14 小时之内（跨午夜时两者差一天）。
+/// 两次读取之间可能跨过一秒，误差不超过一秒，对显示到分钟的时刻没有影响。
+pub fn local_offset_seconds() -> f64 {
+    // SAFETY: 只读系统时钟。
+    let (local, utc) = unsafe {
+        (
+            GetLocalTime(),
+            windows::Win32::System::SystemInformation::GetSystemTime(),
+        )
+    };
+    let seconds = |t: &windows::Win32::Foundation::SYSTEMTIME| {
+        f64::from(t.wHour) * 3_600.0 + f64::from(t.wMinute) * 60.0 + f64::from(t.wSecond)
+    };
+    let mut offset = seconds(&local) - seconds(&utc);
+    // 时区最大是 +14（基里巴斯）与 -12；一天内的秒数相减可能差出 ±24 小时，折回来。
+    if offset > 14.0 * 3_600.0 {
+        offset -= 86_400.0;
+    } else if offset < -14.0 * 3_600.0 {
+        offset += 86_400.0;
+    }
+    offset
+}
+
 /// 一组 WinEvent 钩子。丢弃时全部摘掉。必须在有消息循环的线程上创建，事件在该线程上取。
 pub struct WindowEventHooks {
     hooks: Vec<HWINEVENTHOOK>,

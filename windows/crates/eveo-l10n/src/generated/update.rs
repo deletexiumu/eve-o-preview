@@ -115,6 +115,10 @@ pub trait UpdateStrings: Sync {
     fn blocker_development_signature(&self) -> &'static str;
     /// `unsigned`。
     fn blocker_unsigned(&self) -> &'static str;
+    /// Windows 的 `noSigningKey`：这个构建没有内置核对更新包签名的公钥（本机编译的构建）。
+    fn blocker_no_signing_key(&self) -> &'static str;
+    /// Windows 的 `developmentBuild`：调试版或 PR 构建，不自动安装正式版。
+    fn blocker_development_build(&self) -> &'static str;
     // 错误（UpdateError，按类合并）
     /// `network`。
     fn error_network(&self) -> &'static str;
@@ -136,6 +140,8 @@ pub trait UpdateStrings: Sync {
     fn error_unsupported_system(&self, minimum: &str) -> String;
     /// `swapFailed`。
     fn error_swap_failed(&self) -> &'static str;
+    /// Windows：自动检查发现新版本时托盘通知的正文（标题是 headline）。点通知会打开软件更新窗口。
+    fn notification_body(&self) -> &'static str;
 }
 
 /// 更新域的全部文字（en）。
@@ -292,6 +298,12 @@ impl UpdateStrings for UpdateStringsEn {
     fn blocker_unsigned(&self) -> &'static str {
         "This build isn't signed."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "This build doesn't include the key needed to verify updates."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "This is a development build."
+    }
     fn error_network(&self) -> &'static str {
         "Couldn't reach GitHub. Check your internet connection."
     }
@@ -321,6 +333,9 @@ impl UpdateStrings for UpdateStringsEn {
     }
     fn error_swap_failed(&self) -> &'static str {
         "The app couldn't be replaced."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Click to see what's new and install."
     }
 }
 
@@ -478,6 +493,12 @@ impl UpdateStrings for UpdateStringsZh {
     fn blocker_unsigned(&self) -> &'static str {
         "这个构建没有签名。"
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "这个构建没有内置核对更新所需的公钥。"
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "这是开发构建。"
+    }
     fn error_network(&self) -> &'static str {
         "无法连接 GitHub。请检查网络连接。"
     }
@@ -507,6 +528,9 @@ impl UpdateStrings for UpdateStringsZh {
     }
     fn error_swap_failed(&self) -> &'static str {
         "无法替换应用。"
+    }
+    fn notification_body(&self) -> &'static str {
+        "点击查看新内容并安装。"
     }
 }
 
@@ -664,6 +688,12 @@ impl UpdateStrings for UpdateStringsRu {
     fn blocker_unsigned(&self) -> &'static str {
         "Эта сборка не подписана."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "В этой сборке нет ключа для проверки обновлений."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Это сборка для разработки."
+    }
     fn error_network(&self) -> &'static str {
         "Не удалось подключиться к GitHub. Проверьте подключение к интернету."
     }
@@ -693,6 +723,9 @@ impl UpdateStrings for UpdateStringsRu {
     }
     fn error_swap_failed(&self) -> &'static str {
         "Не удалось заменить приложение."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Нажмите, чтобы узнать, что нового, и установить."
     }
 }
 
@@ -850,6 +883,12 @@ impl UpdateStrings for UpdateStringsJa {
     fn blocker_unsigned(&self) -> &'static str {
         "このビルドは署名されていません。"
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "このビルドには更新を検証するための鍵が含まれていません。"
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "これは開発用ビルドです。"
+    }
     fn error_network(&self) -> &'static str {
         "GitHub に接続できませんでした。インターネット接続を確認してください。"
     }
@@ -879,6 +918,9 @@ impl UpdateStrings for UpdateStringsJa {
     }
     fn error_swap_failed(&self) -> &'static str {
         "アプリを置き換えられませんでした。"
+    }
+    fn notification_body(&self) -> &'static str {
+        "クリックして新機能を確認し、インストールします。"
     }
 }
 
@@ -1036,6 +1078,12 @@ impl UpdateStrings for UpdateStringsKo {
     fn blocker_unsigned(&self) -> &'static str {
         "이 빌드는 서명되지 않았습니다."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "이 빌드에는 업데이트를 확인하는 데 필요한 키가 없습니다."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "개발용 빌드입니다."
+    }
     fn error_network(&self) -> &'static str {
         "GitHub에 연결할 수 없습니다. 인터넷 연결을 확인하십시오."
     }
@@ -1065,6 +1113,9 @@ impl UpdateStrings for UpdateStringsKo {
     }
     fn error_swap_failed(&self) -> &'static str {
         "앱을 교체할 수 없습니다."
+    }
+    fn notification_body(&self) -> &'static str {
+        "클릭하여 새로운 기능을 확인하고 설치하세요."
     }
 }
 
@@ -1222,6 +1273,12 @@ impl UpdateStrings for UpdateStringsFr {
     fn blocker_unsigned(&self) -> &'static str {
         "Cette copie de l'app n'est pas signée."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "Cette copie de l'app ne contient pas la clé nécessaire pour vérifier les mises à jour."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Il s'agit d'une version de développement."
+    }
     fn error_network(&self) -> &'static str {
         "Impossible de joindre GitHub. Vérifiez votre connexion Internet."
     }
@@ -1251,6 +1308,9 @@ impl UpdateStrings for UpdateStringsFr {
     }
     fn error_swap_failed(&self) -> &'static str {
         "Impossible de remplacer l'app."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Cliquez pour voir les nouveautés et installer."
     }
 }
 
@@ -1408,6 +1468,12 @@ impl UpdateStrings for UpdateStringsDe {
     fn blocker_unsigned(&self) -> &'static str {
         "Dieser Build ist nicht signiert."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "Dieser Build enthält nicht den Schlüssel, der zum Prüfen von Updates nötig ist."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Dies ist ein Entwicklungs-Build."
+    }
     fn error_network(&self) -> &'static str {
         "GitHub ist nicht erreichbar. Internetverbindung prüfen."
     }
@@ -1437,6 +1503,9 @@ impl UpdateStrings for UpdateStringsDe {
     }
     fn error_swap_failed(&self) -> &'static str {
         "Die App konnte nicht ersetzt werden."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Klicken Sie hier, um die Neuerungen zu sehen und zu installieren."
     }
 }
 
@@ -1594,6 +1663,12 @@ impl UpdateStrings for UpdateStringsEs {
     fn blocker_unsigned(&self) -> &'static str {
         "Esta compilación no está firmada."
     }
+    fn blocker_no_signing_key(&self) -> &'static str {
+        "Esta compilación no incluye la clave necesaria para verificar las actualizaciones."
+    }
+    fn blocker_development_build(&self) -> &'static str {
+        "Esta es una compilación de desarrollo."
+    }
     fn error_network(&self) -> &'static str {
         "No se ha podido conectar con GitHub. Comprueba tu conexión a internet."
     }
@@ -1623,6 +1698,9 @@ impl UpdateStrings for UpdateStringsEs {
     }
     fn error_swap_failed(&self) -> &'static str {
         "No se ha podido sustituir la app."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Haz clic para ver las novedades e instalar."
     }
 }
 

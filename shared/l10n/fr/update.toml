@@ -60,6 +60,8 @@ blockerUnsupportedVolume = "L'app se trouve sur un disque qui n'est pas au forma
 blockerAdHocSignature = "Cette copie de l'app n'a pas de signature stable ; une nouvelle version ne peut donc pas être vérifiée."
 blockerDevelopmentSignature = "Il s'agit d'une version de développement signée localement."
 blockerUnsigned = "Cette copie de l'app n'est pas signée."
+blockerNoSigningKey = "Cette copie de l'app ne contient pas la clé nécessaire pour vérifier les mises à jour."
+blockerDevelopmentBuild = "Il s'agit d'une version de développement."
 
 # 「无法……」统一写 Impossible de …，与 macOS 法文的错误提示一致。
 errorNetwork = "Impossible de joindre GitHub. Vérifiez votre connexion Internet."
@@ -73,3 +75,5 @@ errorDiskImage = "Impossible d'ouvrir l'image disque téléchargée."
 errorVerification = "La nouvelle version n'a pas pu être vérifiée ; elle n'a donc pas été installée."
 errorUnsupportedSystem = "Cette version nécessite macOS {minimum} ou une version ultérieure."
 errorSwapFailed = "Impossible de remplacer l'app."
+
+notificationBody = "Cliquez pour voir les nouveautés et installer."

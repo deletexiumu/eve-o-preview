@@ -63,10 +63,12 @@ pub fn download(
             allows_http: feed.is_test_feed,
         };
         let mut body = Vec::new();
+        // 总长取答复头的 Content-Length（收到头时就知道），读完后用它让进度条走满。
         let mut total = None;
-        let response = http::stream(&request, &mut |chunk| {
+        let response = http::stream(&request, &mut |chunk, length| {
             body.extend_from_slice(chunk);
-            on_progress(body.len() as u64, total)
+            total = length;
+            on_progress(body.len() as u64, length)
         });
         let response = response.map_err(|error| match error {
             HttpError::TooLarge => UpdateError::DownloadTooLarge,
@@ -76,10 +78,6 @@ pub fn download(
         match response.status {
             200 => {
                 // 总长只用来显示进度；读完之后再报一次，让进度条走满。
-                total = response
-                    .headers
-                    .get("content-length")
-                    .and_then(|v| v.trim().parse().ok());
                 on_progress(body.len() as u64, total.or(Some(body.len() as u64)));
                 return Ok(body);
             }
@@ -268,6 +266,9 @@ pub fn clean_up(exe: &Path) -> usize {
         .count()
 }
 
+/// 调试构建里覆盖版本标签的环境变量（见 eveo-app 的 update_launch::version_label）。
+pub const DEBUG_VERSION_LABEL_ENV: &str = "EVEO_DEBUG_VERSION_LABEL";
+
 /// 启动 exe（带参数），返回新进程的编号。
 ///
 /// 不等新进程，也不保留它的句柄（Child 丢弃时不会结束进程）。新进程从 exe 所在的位置启动，
@@ -275,6 +276,8 @@ pub fn clean_up(exe: &Path) -> usize {
 pub fn launch(exe: &Path, args: &[String]) -> Result<u32, u32> {
     std::process::Command::new(exe)
         .args(args)
+        // 调试构建的版本标签覆盖（测试自动更新时让旧进程自称旧版本）不能传给新版，否则新版也自称旧版本。
+        .env_remove(DEBUG_VERSION_LABEL_ENV)
         .spawn()
         .map(|child| child.id())
         .map_err(|e| code(&e))

@@ -40,6 +40,22 @@ pub fn show_general(ui: &SettingsWindow, general: &GeneralSettings, log_path: &s
     model.set_log_path(log_path.into());
 }
 
+/// 「通用」页更新一组的状态：当前版本、上次检查的时刻、一行状态、「立即检查」能否点。
+/// 由应用层每秒调用一次；值没变时 Slint 不重画。
+pub fn show_update_status(
+    ui: &SettingsWindow,
+    version: &str,
+    last_checked: &str,
+    status: &str,
+    can_check: bool,
+) {
+    let model = ui.global::<GeneralModel>();
+    model.set_update_version(version.into());
+    model.set_update_last_checked(last_checked.into());
+    model.set_update_status(status.into());
+    model.set_update_can_check(can_check);
+}
+
 /// 从「通用」页读回 general。没有出现在页上的字段（轮询间隔、日志目录等）保持不变。
 pub fn read_general(ui: &SettingsWindow, general: &mut GeneralSettings) {
     let model = ui.global::<GeneralModel>();

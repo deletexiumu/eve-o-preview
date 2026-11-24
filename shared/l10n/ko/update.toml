@@ -54,6 +54,8 @@ blockerUnsupportedVolume = "앱이 APFS 형식이 아닌 디스크에 있어 앱
 blockerAdHocSignature = "이 빌드에는 고정된 서명이 없어 새 버전을 검증할 수 없습니다."
 blockerDevelopmentSignature = "로컬에서 서명한 개발용 빌드입니다."
 blockerUnsigned = "이 빌드는 서명되지 않았습니다."
+blockerNoSigningKey = "이 빌드에는 업데이트를 확인하는 데 필요한 키가 없습니다."
+blockerDevelopmentBuild = "개발용 빌드입니다."
 
 errorNetwork = "GitHub에 연결할 수 없습니다. 인터넷 연결을 확인하십시오."
 errorHTTPStatus = "GitHub가 오류를 반환했습니다({code})."
@@ -65,3 +67,5 @@ errorDiskImage = "다운로드한 디스크 이미지를 열 수 없습니다."
 errorVerification = "새 버전을 검증할 수 없어 설치하지 않았습니다."
 errorUnsupportedSystem = "이 버전에는 macOS {minimum} 이상이 필요합니다."
 errorSwapFailed = "앱을 교체할 수 없습니다."
+
+notificationBody = "클릭하여 새로운 기능을 확인하고 설치하세요."

@@ -5,6 +5,7 @@
 // 菜单项编号与动作一一对应；托盘菜单里的配置方案从 PROFILE_BASE 起按配置里的顺序编号。
 // 文字按界面语言取自 eveo-l10n，与 macOS 的菜单栏菜单、缩略图右键菜单同一份文案。
 
+use eveo_app_core::update::machine::MenuHint;
 use eveo_app_core::{ContextMenuAction, ContextMenuModel, OverlayMenuAction, TrayAction, TrayModel};
 use eveo_core::model::AppLanguage;
 use eveo_core::overlay::{OverlayLine, OverlayLink};
@@ -35,6 +36,10 @@ const TRAY_QUIT: u32 = 104;
 const TRAY_REPORT: u32 = 105;
 /// 托盘菜单顶部的崩溃提示项。
 const TRAY_CRASH: u32 = 106;
+/// 托盘菜单顶部的更新提示项（「有可用更新…」或「重新启动以更新」）。
+const TRAY_UPDATE_HINT: u32 = 107;
+/// 托盘菜单「检查更新…」。
+const TRAY_CHECK_UPDATES: u32 = 108;
 /// 托盘菜单里第一个配置方案的编号。
 const PROFILE_BASE: u32 = 1000;
 
@@ -100,8 +105,20 @@ pub fn context_action(id: u32) -> Option<ContextMenuAction> {
     })
 }
 
-/// 托盘菜单：（上次崩溃时的提示项、）全部隐藏、最小化全部、配置方案（单选）、设置、报告问题、退出。
-pub fn tray_menu(model: &TrayModel, crash_pending: bool, language: AppLanguage) -> Vec<MenuEntry> {
+/// 托盘菜单里随应用状态出现的项（协调器不知道的那部分）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrayExtras {
+    /// 上次崩溃且还没报告或选「不报告」。
+    pub crash_pending: bool,
+    /// 更新的提示项。
+    pub update: MenuHint,
+    /// 是否显示「检查更新…」（更新功能停用的构建没有这一项）。
+    pub check_updates: bool,
+}
+
+/// 托盘菜单：（上次崩溃时的提示项、更新的提示项、）全部隐藏、最小化全部、配置方案（单选）、设置、
+/// 报告问题、（检查更新、）退出。
+pub fn tray_menu(model: &TrayModel, extras: &TrayExtras, language: AppLanguage) -> Vec<MenuEntry> {
     let text = eveo_l10n::menu(language);
     let diagnostics = eveo_l10n::diagnostics(language);
     // 配置方案的编号按列表下标给，选中后再按同一份列表换回 id；弹菜单期间配置不会变（菜单是模态的）。
@@ -117,9 +134,27 @@ pub fn tray_menu(model: &TrayModel, crash_pending: bool, language: AppLanguage) 
         })
         .collect();
     // 上次崩溃且还没报告或选「不报告」时，菜单顶部多一项提示，与 macOS 的菜单栏菜单相同。
+    // 顶部的提示项按紧急程度排：崩溃提示在前（用户可能想先报告），更新提示在后。
+    // 两者都是「有事要你处理」的项，与常规项之间只放一条分隔线。
+    let updates = eveo_l10n::updates(language);
     let mut entries = Vec::new();
-    if crash_pending {
+    if extras.crash_pending {
         entries.push(MenuEntry::item(TRAY_CRASH, diagnostics.menu_crash_pending()));
+    }
+    // 有新版本时顶部多一项，与 macOS 的菜单栏菜单相同：已下载好时点了立即重新启动，否则显示更新窗口。
+    match &extras.update {
+        MenuHint::Available(version) => entries.push(MenuEntry::item(
+            TRAY_UPDATE_HINT,
+            updates.menu_update_available(version),
+        )),
+        MenuHint::Ready(version) => entries.push(MenuEntry::item(
+            TRAY_UPDATE_HINT,
+            updates.menu_restart_to_update(version),
+        )),
+        MenuHint::None => {}
+    }
+    // 提示项与常规项之间用一条分隔线隔开。
+    if !entries.is_empty() {
         entries.push(MenuEntry::Separator);
     }
     // 其余各项与之前相同；「报告问题…」放在「设置」之后，与 macOS 的菜单栏菜单顺序一致。
@@ -138,13 +173,20 @@ pub fn tray_menu(model: &TrayModel, crash_pending: bool, language: AppLanguage) 
         },
         MenuEntry::item(TRAY_SETTINGS, text.settings()),
         MenuEntry::item(TRAY_REPORT, diagnostics.menu_report_problem()),
-        MenuEntry::Separator,
-        MenuEntry::item(TRAY_QUIT, text.quit()),
     ]);
+    // 「检查更新…」放在「报告问题…」之后、「退出」之前，与 macOS 菜单栏菜单的位置一致；
+    // 更新功能停用的构建（没有检查地址）不显示，免得点了没有反应。
+    if extras.check_updates {
+        entries.push(MenuEntry::item(
+            TRAY_CHECK_UPDATES,
+            updates.menu_check_for_updates(),
+        ));
+    }
+    entries.extend([MenuEntry::Separator, MenuEntry::item(TRAY_QUIT, text.quit())]);
     entries
 }
 
-/// 托盘菜单选中的项：交给协调器的动作，或由应用自己处理的报告窗口。
+/// 托盘菜单选中的项：交给协调器的动作，或由应用自己处理的报告窗口与更新。
 #[derive(Debug, Clone, PartialEq)]
 pub enum TrayChoice {
     /// 交给协调器。
@@ -154,12 +196,29 @@ pub enum TrayChoice {
         /// 是否为崩溃情境。
         crash: bool,
     },
+    /// 更新的提示项：ready 为真时是「重新启动以更新」，否则是「有可用更新…」。
+    UpdateHint {
+        /// 新版是否已下载好。
+        ready: bool,
+    },
+    /// 「检查更新…」。
+    CheckUpdates,
 }
 
 /// 托盘菜单的编号换回动作。配置方案按弹出菜单时的列表换回 id。
-pub fn tray_action(id: u32, model: &TrayModel) -> Option<TrayChoice> {
-    // 报告窗口由应用自己开，不经协调器：它不改配置，也不影响缩略图。
+pub fn tray_action(id: u32, model: &TrayModel, extras: &TrayExtras) -> Option<TrayChoice> {
+    // 报告窗口与更新由应用自己处理，不经协调器：它们不改配置，也不影响缩略图。
     let action = match id {
+        // 提示项的编号只有一个，含义取决于弹菜单时的提示：菜单是模态的，弹出期间提示不会变，
+        // 但为了稳妥仍按同一份 extras 换回，没有提示时什么都不做。
+        TRAY_UPDATE_HINT => {
+            return match extras.update {
+                MenuHint::Available(_) => Some(TrayChoice::UpdateHint { ready: false }),
+                MenuHint::Ready(_) => Some(TrayChoice::UpdateHint { ready: true }),
+                MenuHint::None => None,
+            };
+        }
+        TRAY_CHECK_UPDATES => return Some(TrayChoice::CheckUpdates),
         TRAY_REPORT => return Some(TrayChoice::Report { crash: false }),
         TRAY_CRASH => return Some(TrayChoice::Report { crash: true }),
         TRAY_HIDE_ALL => TrayAction::ToggleHideAll,
@@ -291,8 +350,9 @@ mod tests {
             hide_all: false,
             client_count: 0,
         };
+        let plain_extras = plain_extras();
         // 没有崩溃：第一项是「隐藏全部缩略图」。
-        let plain = tray_menu(&model, false, AppLanguage::En);
+        let plain = tray_menu(&model, &plain_extras, AppLanguage::En);
         assert!(matches!(
             plain[0],
             MenuEntry::Item {
@@ -301,25 +361,99 @@ mod tests {
             }
         ));
         // 有崩溃：提示项在最前，后面跟一条分隔线，其余项整体后移两格。
-        let pending = tray_menu(&model, true, AppLanguage::En);
+        let crash = extras(true, MenuHint::None, false);
+        let pending = tray_menu(&model, &crash, AppLanguage::En);
         assert!(matches!(pending[0], MenuEntry::Item { id: TRAY_CRASH, .. }));
         assert!(matches!(pending[1], MenuEntry::Separator));
         assert_eq!(pending.len(), plain.len() + 2);
         // 编号换回：两种报告情境，以及交给协调器的「退出」。
         assert_eq!(
-            tray_action(TRAY_CRASH, &model),
+            tray_action(TRAY_CRASH, &model, &crash),
             Some(TrayChoice::Report { crash: true })
         );
         assert_eq!(
-            tray_action(TRAY_REPORT, &model),
+            tray_action(TRAY_REPORT, &model, &plain_extras),
             Some(TrayChoice::Report { crash: false })
         );
         assert_eq!(
-            tray_action(TRAY_QUIT, &model),
+            tray_action(TRAY_QUIT, &model, &plain_extras),
             Some(TrayChoice::Coordinator(TrayAction::Quit))
         );
         // 没有配置方案时，配置方案的编号换不回任何动作。
-        assert_eq!(tray_action(PROFILE_BASE, &model), None);
+        assert_eq!(tray_action(PROFILE_BASE, &model, &plain_extras), None);
+    }
+
+    /// 托盘菜单的更新项：提示项在最前（崩溃提示之后），两种提示换回不同的操作；
+    /// 「检查更新…」只在更新功能可用时出现，排在「报告问题…」之后。
+    #[test]
+    fn tray_update_items() {
+        let model = TrayModel {
+            profiles: Vec::new(),
+            active_profile_id: String::new(),
+            hide_all: false,
+            client_count: 0,
+        };
+        let plain = tray_menu(&model, &extras(false, MenuHint::None, false), AppLanguage::En);
+        // 有可用更新且能检查：多提示项、分隔线与「检查更新…」三项。
+        let available = extras(false, MenuHint::Available("1.0.0".into()), true);
+        let entries = tray_menu(&model, &available, AppLanguage::En);
+        assert_eq!(entries.len(), plain.len() + 3);
+        assert!(
+            matches!(&entries[0], MenuEntry::Item { id: TRAY_UPDATE_HINT, text, .. } if text.contains("1.0.0"))
+        );
+        let check = entries.iter().position(|e| {
+            matches!(
+                e,
+                MenuEntry::Item {
+                    id: TRAY_CHECK_UPDATES,
+                    ..
+                }
+            )
+        });
+        let report = entries
+            .iter()
+            .position(|e| matches!(e, MenuEntry::Item { id: TRAY_REPORT, .. }));
+        assert_eq!(check, report.map(|index| index + 1));
+        assert_eq!(
+            tray_action(TRAY_UPDATE_HINT, &model, &available),
+            Some(TrayChoice::UpdateHint { ready: false })
+        );
+        // 已下载好：同一编号换回「重新启动以更新」。
+        let ready = extras(true, MenuHint::Ready("1.0.0".into()), true);
+        let entries = tray_menu(&model, &ready, AppLanguage::En);
+        assert!(matches!(entries[0], MenuEntry::Item { id: TRAY_CRASH, .. }));
+        assert!(matches!(
+            entries[1],
+            MenuEntry::Item {
+                id: TRAY_UPDATE_HINT,
+                ..
+            }
+        ));
+        assert!(matches!(entries[2], MenuEntry::Separator));
+        assert_eq!(
+            tray_action(TRAY_UPDATE_HINT, &model, &ready),
+            Some(TrayChoice::UpdateHint { ready: true })
+        );
+        // 菜单弹出后提示消失（例如检查结果刚好到达）：编号换不回任何操作。
+        assert_eq!(tray_action(TRAY_UPDATE_HINT, &model, &plain_extras()), None);
+        assert_eq!(
+            tray_action(TRAY_CHECK_UPDATES, &model, &available),
+            Some(TrayChoice::CheckUpdates)
+        );
+    }
+
+    /// 托盘菜单的附加项。
+    fn extras(crash_pending: bool, update: MenuHint, check_updates: bool) -> TrayExtras {
+        TrayExtras {
+            crash_pending,
+            update,
+            check_updates,
+        }
+    }
+
+    /// 没有任何附加项。
+    fn plain_extras() -> TrayExtras {
+        extras(false, MenuHint::None, false)
     }
 
     /// 只放行 https 且有主机名的地址。

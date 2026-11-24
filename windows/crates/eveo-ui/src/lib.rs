@@ -31,3 +31,4 @@ pub mod report;
 pub mod screenshot;
 pub mod switching;
 pub mod translation;
+pub mod update;

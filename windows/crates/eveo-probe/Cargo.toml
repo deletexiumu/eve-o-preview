@@ -18,6 +18,7 @@ serde_json.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 eveo-core.workspace = true
+ed25519-dalek.workspace = true
 eveo-platform-win.workspace = true
 windows.workspace = true
 raw-window-handle.workspace = true

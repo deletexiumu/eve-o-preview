@@ -21,12 +21,15 @@ import { TranslationModel, TranslationPage } from "translation.slint";
 import { EnvironmentModel, EnvironmentPage } from "environment.slint";
 import { OverlayRowData, OverlayWindow } from "overlay.slint";
 import { ProblemReportWindow, ReportFileRow, ReportModel } from "report.slint";
+import { NotesBlock, UpdateModel, UpdateWindow } from "update.slint";
 import { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText } from "generated/l10n.slint";
 
 // 浮窗是另一个窗口，与设置窗口一起编译，共用主题与字体的约定。
 export { OverlayRowData, OverlayWindow }
 // 问题报告窗口也是另一个窗口（M7b2）。
 export { ProblemReportWindow, ReportFileRow, ReportModel }
+// 软件更新窗口（M7c3）。
+export { NotesBlock, UpdateModel, UpdateWindow }
 export { AboutModel, AlertsModel, CharacterRow, ClientsModel, CycleGroupData, EnvironmentModel, GeneralModel, HotkeyRow, HotkeySlotData, IntelLocationRow, IntelModel, MemberRow, PreviewsModel, ProfileRow, ProfilesModel, SwitchingModel, TranslationModel }
 // 界面文字的全局，由 Rust 的 l10n::apply 按界面语言填值。
 export { CombatText, DiagnosticsText, HotkeyText, IntelText, OverlayText, SettingsText, TranslationText, UpdateText }

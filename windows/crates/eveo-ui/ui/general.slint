@@ -6,7 +6,9 @@
 //
 // 与「预览与布局」页的约定相同：控件的 toggled、selected 只在用户操作时触发，触发后 Rust 读回整页组成新配置；
 // Rust 用 set_* 写值不会触发它们，不会形成循环。
-// 界面语言立即生效；更新的功能在后续里程碑接上（架构文档第 9 节），现在先把选择记进配置，页上写明这一点。
+// 界面语言立即生效。更新一组（M7c3）：两个开关、当前版本、上次检查的时刻、一行状态与「立即检查」按钮；
+// 版本、时刻与状态由应用层按更新状态机算好写进来，按钮交回应用。更新功能停用的构建（本机编译、版本号解析不了）
+// 按钮不可用，状态写「这个构建不能使用更新功能」。
 // 诊断一组：详细日志、日志位置与「报告问题…」（M7）。
 
 import { Button, ComboBox, Switch } from "std-widgets.slint";
@@ -32,6 +34,16 @@ export global GeneralModel {
     callback reveal-logs();
     // 打开问题报告窗口。
     callback report-problem();
+    // 当前版本（构建标签）。
+    in property <string> update-version;
+    // 上次检查的时刻（本地时间），从没检查过时是「从未检查」。
+    in property <string> update-last-checked;
+    // 一行状态：检查中、已是最新、有新版本、已下载、被限流、不能使用更新功能；空串表示不显示。
+    in property <string> update-status;
+    // 「立即检查」能否点（更新功能停用或正在下载安装时不能）。
+    in property <bool> update-can-check: true;
+    // 「立即检查」。
+    callback check-updates-now();
 }
 
 // 「通用」页。
@@ -84,8 +96,36 @@ export component GeneralPage inherits VerticalLayout {
             }
         }
     }
-    Footnote {
-        text: UpdateText.not-available-yet;
+    RowGap { }
+    SettingRow {
+        title: UpdateText.current-version-label;
+        Text {
+            text: GeneralModel.update-version;
+            color: Theme.text-secondary;
+            vertical-alignment: center;
+        }
+    }
+    RowGap { }
+    // 上次检查与「立即检查」放在一行：按钮就在时刻旁边，点完能看到时刻变化。
+    SettingRow {
+        title: UpdateText.last-checked-label;
+        description: GeneralModel.update-status;
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: end;
+            Text {
+                text: GeneralModel.update-last-checked;
+                color: Theme.text-secondary;
+                vertical-alignment: center;
+            }
+            Button {
+                text: UpdateText.check-now-button;
+                enabled: GeneralModel.update-can-check;
+                clicked => {
+                    GeneralModel.check-updates-now();
+                }
+            }
+        }
     }
 
     SectionHeader { text: DiagnosticsText.section-header; }

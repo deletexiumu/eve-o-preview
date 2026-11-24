@@ -65,6 +65,12 @@ impl DataPaths {
     pub fn cache_dir(&self) -> PathBuf {
         self.local.join("cache")
     }
+
+    /// 自动更新的缓存目录：下载、核对后解出的新 exe 放在这里等待安装。
+    /// 删文件前要核对路径在这个目录下（state.json 里的路径可能被改过）。
+    pub fn updates_dir(&self) -> PathBuf {
+        self.local.join("updates")
+    }
 }
 
 #[cfg(test)]

@@ -214,6 +214,8 @@ impl App {
         if recorded {
             let text = eveo_l10n::diagnostics(self.language);
             // 记下结果：系统不显示通知时（真机上遇到过），日志能说明是调用失败还是被系统压下。
+            // 点这条通知打开崩溃报告，不是更新窗口。
+            self.updates.last_notification = false;
             match self.tray.notify("EVE-O Preview", text.menu_crash_pending()) {
                 Ok(()) => LOG.info("已请求系统显示崩溃通知"),
                 Err(code) => LOG.error(format_args!("崩溃通知没有发出：错误码 {code}")),
