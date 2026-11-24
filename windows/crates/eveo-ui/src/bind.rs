@@ -404,7 +404,7 @@ mod tests {
         profile
     }
 
-    /// Slint 的平台每个进程只能设一次，所以全部断言放在一个用例里，按场景分段。
+    /// 全部断言放在一个用例里，按场景分段：各段共用一个窗口，后一段从前一段改过的状态继续。
     #[test]
     fn previews_page_round_trips_and_reads_edits() {
         crate::screenshot::ensure_platform().expect("软件渲染平台");

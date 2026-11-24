@@ -2,7 +2,8 @@
 //
 // 无窗口截图（架构文档 8.4 节的界面截图回归）：用 Slint 的软件渲染器把界面画进内存，再编码成 PNG。
 // 不需要显示器，Linux 容器与 CI 都能跑；云端改界面时直接看图。
-// Slint 的平台每个进程只能设一次，所以这里的窗口放在线程局部变量里，各次截图共用。
+// Slint 的平台存在线程局部的上下文里，每个线程只能设一次，所以这里的窗口也放在线程局部变量里，同一线程的各次截图共用。
+// 单元测试各跑在自己的线程上，各自设一次平台，互不影响。
 
 //! 用软件渲染器把界面画成 PNG。
 
@@ -16,7 +17,9 @@ use slint::{ComponentHandle, PhysicalSize, PlatformError};
 use eveo_core::geometry::ScreenRect;
 use eveo_core::model::{ChannelRef, ClientIdentity, EveClient, Pid, Profile, WindowId};
 
-use crate::SettingsWindow;
+use crate::{OverlayWindow, SettingsWindow};
+
+mod overlay_sample;
 
 /// 一次截图的设定。
 #[derive(Debug, Clone)]
@@ -52,7 +55,7 @@ thread_local! {
 }
 
 /// 取（或创建）软件渲染窗口。
-fn window() -> Result<Rc<MinimalSoftwareWindow>, String> {
+pub(crate) fn window() -> Result<Rc<MinimalSoftwareWindow>, String> {
     WINDOW.with(|cell| {
         if let Some(window) = cell.borrow().as_ref() {
             return Ok(window.clone());
@@ -67,7 +70,7 @@ fn window() -> Result<Rc<MinimalSoftwareWindow>, String> {
     })
 }
 
-/// 设好软件渲染平台（每个进程一次），单元测试建窗口前调用。
+/// 设好软件渲染平台（每个线程一次），单元测试建窗口前调用。
 #[cfg(test)]
 pub(crate) fn ensure_platform() -> Result<(), String> {
     window().map(|_| ())
@@ -153,6 +156,43 @@ pub fn settings_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
         renderer.render(&mut pixels, width as usize);
     });
     // 隐藏后组件释放，下一次截图从干净的状态开始。
+    ui.hide().map_err(|e| e.to_string())?;
+    encode(&pixels, width, height)
+}
+
+/// 把预警浮窗画成 PNG：示例内容画在深灰的底色上（浮窗背景半透明，底色代替游戏画面）。
+/// 只用 options 的尺寸、缩放、字体与语言。
+///
+/// 内容经 OverlayView 显示，与应用里走同一条路：富文本的拼法、说明与新消息条的规则都在截图里看得到。
+/// 背景不透明度与字号取默认值（0.85、12），与新配置第一次打开时一样。
+pub fn overlay_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
+    let window = window()?;
+    window.dispatch_event(WindowEvent::ScaleFactorChanged {
+        scale_factor: options.scale,
+    });
+    let ui = OverlayWindow::new().map_err(|e| e.to_string())?;
+    ui.set_ui_font(options.font.as_str().into());
+    let width = (options.size.0 as f32 * options.scale).round() as u32;
+    let height = (options.size.1 as f32 * options.scale).round() as u32;
+    window.set_size(PhysicalSize::new(width, height));
+    ui.show().map_err(|e| e.to_string())?;
+    let view = crate::overlay::OverlayView::attach(ui.clone_strong(), options.language);
+    view.borrow().set_appearance(0.85, 12.0);
+    view.borrow_mut().set_content(&overlay_sample::content());
+    // 推进一次定时器，让 changed 回调（贴住底部时滚到底部）生效。
+    slint::platform::update_timers_and_animations();
+    // 底色：接近游戏里太空背景的深灰蓝，预乘后不透明。
+    let backdrop = PremultipliedRgbaColor {
+        red: 0x2a,
+        green: 0x30,
+        blue: 0x3a,
+        alpha: 0xff,
+    };
+    let mut pixels = vec![backdrop; width as usize * height as usize];
+    window.request_redraw();
+    window.draw_if_needed(|renderer| {
+        renderer.render(&mut pixels, width as usize);
+    });
     ui.hide().map_err(|e| e.to_string())?;
     encode(&pixels, width, height)
 }
