@@ -246,3 +246,52 @@ fn view_placeholder_status_and_language() {
     );
     assert_eq!(view.window().get_status_text(), "");
 }
+
+/// 离屏宿主：第一次渲染给出整幅画面，之后没有变化时不再画；四角透明、背景半透明。
+#[test]
+fn host_renders_premultiplied_bgra() {
+    crate::screenshot::ensure_platform().expect("软件渲染平台");
+    let mut host = host::OverlayHost::new(AppLanguage::En).expect("建宿主");
+    host.resize(380, 260, 1.0);
+    host.view()
+        .borrow_mut()
+        .set_content(&content("intel:Pilot Alpha", 1..=3));
+    let frame = host.render().expect("第一帧").to_vec();
+    assert_eq!(frame.len(), 380 * 260 * 4);
+    // 左上角在圆角外面：完全透明。
+    assert_eq!(&frame[..4], &[0, 0, 0, 0]);
+    // 中间偏下（列表下方的空白）：黑色背景，alpha 约为 0.85。
+    let center = ((200 * 380) + 190) * 4;
+    assert!(
+        (200..=225).contains(&frame[center + 3]),
+        "alpha {}",
+        frame[center + 3]
+    );
+    assert!(host.render().is_none(), "没有变化时不重画");
+    // 改尺寸后整幅重画，缓冲区跟着变大。
+    host.resize(570, 390, 1.5);
+    assert_eq!(host.render().map(<[u8]>::len), Some(570 * 390 * 4));
+}
+
+/// 鼠标输入：悬停在第一行上时 hovered-row 是 0，离开后回到 None；滚轮让列表离开底部。
+#[test]
+fn host_forwards_pointer_and_wheel() {
+    crate::screenshot::ensure_platform().expect("软件渲染平台");
+    let mut host = host::OverlayHost::new(AppLanguage::En).expect("建宿主");
+    host.resize(380, 260, 1.0);
+    host.view()
+        .borrow_mut()
+        .set_content(&content("intel:Pilot Alpha", 1..=40));
+    host.render();
+    slint::platform::update_timers_and_animations();
+    host.render();
+    // 贴住底部时最后一行在列表底部；悬停在列表底部附近，应落在最后几行之一。
+    host.pointer_moved(100.0, 240.0);
+    let row = host.hovered_row().expect("光标在某一行上");
+    assert!(row >= 35, "悬停的行 {row}");
+    host.pointer_exited();
+    assert_eq!(host.hovered_row(), None);
+    // 向前滚三格：往上翻，离开底部。
+    host.wheel(100.0, 150.0, 360);
+    assert!(!host.view().borrow().scroll_state().is_pinned_to_bottom);
+}

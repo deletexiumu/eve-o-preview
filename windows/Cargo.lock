@@ -991,6 +991,8 @@ dependencies = [
  "eveo-l10n",
  "eveo-platform-win",
  "eveo-ui",
+ "i-slint-backend-winit",
+ "i-slint-core",
  "raw-window-handle",
  "slint",
  "windows",

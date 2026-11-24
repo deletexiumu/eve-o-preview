@@ -495,7 +495,7 @@ fn erase(hwnd: HWND, dc: HDC) {
 }
 
 /// 请求在鼠标离开窗口时收到 `WM_MOUSELEAVE`。
-fn track_leave(hwnd: HWND) {
+pub(crate) fn track_leave(hwnd: HWND) {
     let mut request = TRACKMOUSEEVENT {
         cbSize: size_of::<TRACKMOUSEEVENT>() as u32,
         dwFlags: TME_LEAVE,
@@ -515,7 +515,7 @@ pub fn cursor_position() -> ScreenPoint {
 }
 
 /// 当前按着的修饰键。`GetKeyState` 读的是本线程消息队列里的状态，与正在处理的消息同步。
-fn modifiers() -> KeyModifiers {
+pub(crate) fn modifiers() -> KeyModifiers {
     // SAFETY: 只读键盘状态。
     let down = |key| unsafe { GetKeyState(i32::from(key)) } < 0;
     KeyModifiers {
@@ -526,7 +526,7 @@ fn modifiers() -> KeyModifiers {
 }
 
 /// 设置光标形状。
-fn set_cursor(shape: CursorShape) {
+pub(crate) fn set_cursor(shape: CursorShape) {
     let id = match shape {
         CursorShape::Arrow => IDC_ARROW,
         CursorShape::SizeWestEast => IDC_SIZEWE,

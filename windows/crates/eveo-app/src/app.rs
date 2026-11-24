@@ -183,6 +183,8 @@ struct App {
 pub fn run() -> ExitCode {
     // 先声明每显示器 DPI 感知：之后取到的屏幕、窗口与光标坐标都是物理像素，与 Core 的约定一致（4.6 节）。
     screens::enable_per_monitor_dpi();
+    // 在第一次用 Slint 之前装好应用的平台（浮窗用离屏渲染）；装不上时 Slint 自己选默认后端，照常运行。
+    let _ = crate::slint_platform::install();
     // 已有实例在运行：让它打开设置窗口，本实例退出。
     let Some(_guard) = single_instance::acquire() else {
         single_instance::notify_primary();
@@ -799,7 +801,7 @@ impl App {
 }
 
 /// 平台层的鼠标按键换成手势状态机的按键。两边各自定义，是因为 app-core 不依赖平台层。
-fn gesture_button(button: MouseButton) -> Button {
+pub(crate) fn gesture_button(button: MouseButton) -> Button {
     match button {
         MouseButton::Left => Button::Left,
         MouseButton::Right => Button::Right,
@@ -807,7 +809,7 @@ fn gesture_button(button: MouseButton) -> Button {
 }
 
 /// 缩放边对应的光标形状。
-fn cursor_for(edges: ResizeEdges) -> CursorShape {
+pub(crate) fn cursor_for(edges: ResizeEdges) -> CursorShape {
     let horizontal = edges.contains(ResizeEdges::LEFT) || edges.contains(ResizeEdges::RIGHT);
     let vertical = edges.contains(ResizeEdges::TOP) || edges.contains(ResizeEdges::BOTTOM);
     let main_diagonal = (edges.contains(ResizeEdges::LEFT) && edges.contains(ResizeEdges::TOP))
