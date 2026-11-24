@@ -40,6 +40,7 @@ publish = false
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+unicode-normalization = "0.1"
 unicode-segmentation = "1"
 uuid = { version = "1", features = ["v4"] }
 raw-window-handle = "0.6"
@@ -56,6 +57,7 @@ windows = { version = "0.62", features = [
     "Win32_Graphics_Direct2D_Common",
     "Win32_Graphics_DirectWrite",
     "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi",
     "Win32_Graphics_Dxgi_Common",
     "Win32_Graphics_Gdi",
     "Win32_Networking_WinHttp",

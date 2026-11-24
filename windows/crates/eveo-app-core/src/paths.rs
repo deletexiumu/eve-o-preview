@@ -56,6 +56,11 @@ impl DataPaths {
         self.local.join("logs")
     }
 
+    /// 问题报告的压缩包所在的目录（只留最新的 3 个）。
+    pub fn reports_dir(&self) -> PathBuf {
+        self.local.join("Reports")
+    }
+
     /// 缓存目录（译文缓存、人名缓存）。
     pub fn cache_dir(&self) -> PathBuf {
         self.local.join("cache")

@@ -15,7 +15,7 @@ use eveo_platform_win::recorder::{HotkeyRecorder, RecordOutcome};
 use eveo_ui::switching;
 use slint::ComponentHandle;
 
-use super::{App, Input, Runtime, post, settings_hwnd};
+use super::{App, Input, Runtime, post, window_hwnd};
 
 /// 接上「切换与热键」页的回调：每个回调都转成输入排队，不在 Slint 的事件处理中途借用应用。
 pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
@@ -155,7 +155,7 @@ impl App {
         let settings_foreground = self
             .settings
             .as_ref()
-            .and_then(settings_hwnd)
+            .and_then(|window| window_hwnd(window.window()))
             .is_some_and(|hwnd| foreground_window() == Some(eveo_platform_win::window_id(hwnd)));
         if outcome.is_none() && settings_foreground {
             return;

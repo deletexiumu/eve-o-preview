@@ -9,13 +9,12 @@ verboseLoggingToggle = "Journalisation détaillée"
 verboseLoggingHelp = "Écrit plus de détails dans le fichier journal. Activez-la avant de reproduire un problème."
 logLocationLabel = "Fichiers journaux"
 showLogsButton = { macos = "Afficher les journaux dans le Finder", windows = "Afficher les journaux dans l'Explorateur de fichiers" }
-fileLogNotAvailableYet = "La journalisation dans un fichier arrivera dans une prochaine version de test."
 reportButton = "Signaler un problème…"
 
 windowTitle = "Signaler un problème"
 intro = "Un fichier zip contenant les éléments ci-dessous va être créé. Rien n'est envoyé automatiquement : vous joignez vous-même le fichier à une issue GitHub."
 crashIntro = "EVE-O Preview a quitté inopinément la dernière fois. Un rapport aide à en corriger la cause."
-redactionNote = "Votre nom d'utilisateur macOS, le nom de l'ordinateur et les noms de vos personnages EVE sont remplacés par des marqueurs."
+redactionNote = { macos = "Votre nom d'utilisateur macOS, le nom de l'ordinateur et les noms de vos personnages EVE sont remplacés par des marqueurs.", windows = "Votre nom d'utilisateur Windows, le nom de l'ordinateur et les noms de vos personnages EVE sont remplacés par des marqueurs." }
 
 itemsHeader = "Contenu du rapport"
 itemSummary = "Résumé de l'environnement"
@@ -35,8 +34,8 @@ notNowButton = "Plus tard"
 dontReportButton = "Ne pas signaler"
 
 doneTitle = "Rapport créé"
-doneHelp = "Le Finder affiche le fichier zip. Faites-le glisser dans la page de l'issue dans votre navigateur, décrivez ce qui s'est passé, puis envoyez."
-revealButton = "Afficher dans le Finder"
+doneHelp = { macos = "Le Finder affiche le fichier zip. Faites-le glisser dans la page de l'issue dans votre navigateur, décrivez ce qui s'est passé, puis envoyez.", windows = "L'Explorateur de fichiers affiche le fichier zip. Faites-le glisser dans la page de l'issue dans votre navigateur, décrivez ce qui s'est passé, puis envoyez." }
+revealButton = { macos = "Afficher dans le Finder", windows = "Afficher dans l'Explorateur de fichiers" }
 openIssueButton = "Rouvrir GitHub"
 closeButton = "Fermer"
 

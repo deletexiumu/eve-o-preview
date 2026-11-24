@@ -31,6 +31,10 @@ const TRAY_MINIMIZE_ALL: u32 = 102;
 const TRAY_SETTINGS: u32 = 103;
 /// 托盘菜单「退出」。
 const TRAY_QUIT: u32 = 104;
+/// 托盘菜单「报告问题…」。
+const TRAY_REPORT: u32 = 105;
+/// 托盘菜单顶部的崩溃提示项。
+const TRAY_CRASH: u32 = 106;
 /// 托盘菜单里第一个配置方案的编号。
 const PROFILE_BASE: u32 = 1000;
 
@@ -96,9 +100,10 @@ pub fn context_action(id: u32) -> Option<ContextMenuAction> {
     })
 }
 
-/// 托盘菜单：全部隐藏、最小化全部、配置方案（单选）、设置、退出。
-pub fn tray_menu(model: &TrayModel, language: AppLanguage) -> Vec<MenuEntry> {
+/// 托盘菜单：（上次崩溃时的提示项、）全部隐藏、最小化全部、配置方案（单选）、设置、报告问题、退出。
+pub fn tray_menu(model: &TrayModel, crash_pending: bool, language: AppLanguage) -> Vec<MenuEntry> {
     let text = eveo_l10n::menu(language);
+    let diagnostics = eveo_l10n::diagnostics(language);
     // 配置方案的编号按列表下标给，选中后再按同一份列表换回 id；弹菜单期间配置不会变（菜单是模态的）。
     let profiles = model
         .profiles
@@ -111,7 +116,14 @@ pub fn tray_menu(model: &TrayModel, language: AppLanguage) -> Vec<MenuEntry> {
             checked: *id == model.active_profile_id,
         })
         .collect();
-    vec![
+    // 上次崩溃且还没报告或选「不报告」时，菜单顶部多一项提示，与 macOS 的菜单栏菜单相同。
+    let mut entries = Vec::new();
+    if crash_pending {
+        entries.push(MenuEntry::item(TRAY_CRASH, diagnostics.menu_crash_pending()));
+        entries.push(MenuEntry::Separator);
+    }
+    // 其余各项与之前相同；「报告问题…」放在「设置」之后，与 macOS 的菜单栏菜单顺序一致。
+    entries.extend([
         MenuEntry::Item {
             id: TRAY_HIDE_ALL,
             text: text.hide_all().to_owned(),
@@ -125,14 +137,31 @@ pub fn tray_menu(model: &TrayModel, language: AppLanguage) -> Vec<MenuEntry> {
             entries: profiles,
         },
         MenuEntry::item(TRAY_SETTINGS, text.settings()),
+        MenuEntry::item(TRAY_REPORT, diagnostics.menu_report_problem()),
         MenuEntry::Separator,
         MenuEntry::item(TRAY_QUIT, text.quit()),
-    ]
+    ]);
+    entries
+}
+
+/// 托盘菜单选中的项：交给协调器的动作，或由应用自己处理的报告窗口。
+#[derive(Debug, Clone, PartialEq)]
+pub enum TrayChoice {
+    /// 交给协调器。
+    Coordinator(TrayAction),
+    /// 打开报告窗口；crash 为真时是崩溃情境。
+    Report {
+        /// 是否为崩溃情境。
+        crash: bool,
+    },
 }
 
 /// 托盘菜单的编号换回动作。配置方案按弹出菜单时的列表换回 id。
-pub fn tray_action(id: u32, model: &TrayModel) -> Option<TrayAction> {
-    Some(match id {
+pub fn tray_action(id: u32, model: &TrayModel) -> Option<TrayChoice> {
+    // 报告窗口由应用自己开，不经协调器：它不改配置，也不影响缩略图。
+    let action = match id {
+        TRAY_REPORT => return Some(TrayChoice::Report { crash: false }),
+        TRAY_CRASH => return Some(TrayChoice::Report { crash: true }),
         TRAY_HIDE_ALL => TrayAction::ToggleHideAll,
         TRAY_MINIMIZE_ALL => TrayAction::MinimizeAll,
         TRAY_SETTINGS => TrayAction::OpenSettings,
@@ -141,7 +170,8 @@ pub fn tray_action(id: u32, model: &TrayModel) -> Option<TrayAction> {
             let index = id.checked_sub(PROFILE_BASE)? as usize;
             TrayAction::SwitchProfile(model.profiles.get(index)?.0.clone())
         }
-    })
+    };
+    Some(TrayChoice::Coordinator(action))
 }
 
 /// 托盘图标的提示文字。
@@ -247,9 +277,50 @@ pub fn browser_url(link: &OverlayLink) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    //! 浮窗菜单的链接检查与编号换回。
+    //! 浮窗菜单的链接检查与编号换回；托盘菜单的崩溃提示项与报告项。
 
     use super::*;
+
+    /// 托盘菜单：有待报告的崩溃时顶部多一项提示与分隔线；报告项与提示项换回报告窗口的两种情境，
+    /// 其余项仍交给协调器。
+    #[test]
+    fn tray_report_items() {
+        let model = TrayModel {
+            profiles: Vec::new(),
+            active_profile_id: String::new(),
+            hide_all: false,
+            client_count: 0,
+        };
+        // 没有崩溃：第一项是「隐藏全部缩略图」。
+        let plain = tray_menu(&model, false, AppLanguage::En);
+        assert!(matches!(
+            plain[0],
+            MenuEntry::Item {
+                id: TRAY_HIDE_ALL,
+                ..
+            }
+        ));
+        // 有崩溃：提示项在最前，后面跟一条分隔线，其余项整体后移两格。
+        let pending = tray_menu(&model, true, AppLanguage::En);
+        assert!(matches!(pending[0], MenuEntry::Item { id: TRAY_CRASH, .. }));
+        assert!(matches!(pending[1], MenuEntry::Separator));
+        assert_eq!(pending.len(), plain.len() + 2);
+        // 编号换回：两种报告情境，以及交给协调器的「退出」。
+        assert_eq!(
+            tray_action(TRAY_CRASH, &model),
+            Some(TrayChoice::Report { crash: true })
+        );
+        assert_eq!(
+            tray_action(TRAY_REPORT, &model),
+            Some(TrayChoice::Report { crash: false })
+        );
+        assert_eq!(
+            tray_action(TRAY_QUIT, &model),
+            Some(TrayChoice::Coordinator(TrayAction::Quit))
+        );
+        // 没有配置方案时，配置方案的编号换不回任何动作。
+        assert_eq!(tray_action(PROFILE_BASE, &model), None);
+    }
 
     /// 只放行 https 且有主机名的地址。
     #[test]

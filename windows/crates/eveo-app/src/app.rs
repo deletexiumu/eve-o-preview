@@ -53,6 +53,7 @@ mod intel;
 mod intel_page;
 mod logging;
 mod profiles;
+mod report;
 mod shell;
 mod switching_page;
 mod translation;
@@ -106,6 +107,8 @@ enum Input {
     IntelPage(intel_page::IntelAction),
     /// 「环境检查」页的按钮。
     Environment(environment::EnvironmentInput),
+    /// 问题报告窗口的操作。
+    Report(report::ReportInput),
 }
 
 /// 应用与它的输入队列。回调持有它的弱引用。
@@ -363,6 +366,8 @@ impl App {
             Input::Tray(TrayEvent::LeftClick | TrayEvent::ActivateRequested) => {
                 self.open_settings(SettingsPage::General, runtime);
             }
+            // 点了崩溃后的通知：打开崩溃情境的报告窗口。
+            Input::Tray(TrayEvent::NotificationClicked) => self.open_report(true, runtime),
             Input::Tick => self.tick(runtime),
             Input::SettingsEdited => self.settings_edited(false, runtime),
             Input::UnifySizes => self.settings_edited(true, runtime),
@@ -377,6 +382,7 @@ impl App {
             Input::Translation(action) => self.translation_action(action),
             Input::IntelPage(action) => self.intel_action(action),
             Input::Environment(input) => self.environment_input(input),
+            Input::Report(input) => self.report_input(input),
             // 「全部隐藏」是协调器里的会话状态，只有切换动作；与现状相同时（例如热键刚切过）不再切。
             Input::HideAll(hide) => {
                 if hide != self.coordinator.tray().hide_all {
@@ -542,6 +548,7 @@ impl App {
         self.chat_tick(runtime);
         // 上一次崩溃的检测结果（后台线程找完后交回）。
         self.poll_crash_scan();
+        self.report_tick();
         self.debug_panic_check();
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());
@@ -716,17 +723,16 @@ impl App {
     /// 在光标处弹出托盘菜单。
     fn tray_menu(&mut self, runtime: &Rc<Runtime>) {
         let model = self.coordinator.tray();
-        let chosen = menu::popup(
-            self.tray.hwnd(),
-            cursor_point(),
-            &menus::tray_menu(&model, self.language),
-        );
-        if let Some(action) = chosen
+        let entries = menus::tray_menu(&model, self.crash_pending(), self.language);
+        let chosen = menu::popup(self.tray.hwnd(), cursor_point(), &entries);
+        match chosen
             .ok()
             .flatten()
             .and_then(|id| menus::tray_action(id, &model))
         {
-            self.send(Event::Tray(action), runtime);
+            Some(menus::TrayChoice::Coordinator(action)) => self.send(Event::Tray(action), runtime),
+            Some(menus::TrayChoice::Report { crash }) => self.open_report(crash, runtime),
+            None => {}
         }
     }
 
@@ -796,7 +802,7 @@ impl App {
         // 第一次显示前放到主屏可用区域的正中：缩略图总在最前，多半排在屏幕左上，
         // 放在系统默认的左上位置会被它们挡住导航（真机测试发现）。之后保留用户拖到的位置。
         if !window.window().is_visible() && !self.settings_placed {
-            if let Some(position) = centered_position(&self.screens) {
+            if let Some(position) = centered_position(&self.screens, SETTINGS_SIZE) {
                 window.window().set_position(position);
             }
             self.settings_placed = true;
@@ -821,8 +827,8 @@ impl App {
             return;
         };
         // 句柄拿不到或窗口还没显示出来：下一轮定时器再试。
-        let Some(hwnd) =
-            settings_hwnd(window).filter(|&hwnd| activation::is_visible(eveo_platform_win::window_id(hwnd)))
+        let Some(hwnd) = window_hwnd(window.window())
+            .filter(|&hwnd| activation::is_visible(eveo_platform_win::window_id(hwnd)))
         else {
             return;
         };
@@ -900,23 +906,20 @@ fn cursor_point() -> eveo_core::geometry::ScreenPoint {
 }
 
 /// 设置窗口首次显示的位置：主屏可用区域（去掉任务栏）的正中，物理像素。
-/// 窗口大小按 settings.slint 的首选尺寸与主屏的缩放算；屏幕比窗口小时贴左上角。
-fn centered_position(screens: &[ScreenInfo]) -> Option<slint::PhysicalPosition> {
+/// 窗口大小按 .slint 里的首选尺寸（size，逻辑像素）与主屏的缩放算；屏幕比窗口小时贴左上角。
+fn centered_position(screens: &[ScreenInfo], size: (f64, f64)) -> Option<slint::PhysicalPosition> {
     let screen = eveo_core::geometry::main_screen(screens)?;
     let area = screen.visible_frame;
-    let (width, height) = (
-        SETTINGS_SIZE.0 * screen.size_scale,
-        SETTINGS_SIZE.1 * screen.size_scale,
-    );
+    let (width, height) = (size.0 * screen.size_scale, size.1 * screen.size_scale);
     let x = area.x + ((area.width - width) / 2.0).max(0.0);
     let y = area.y + ((area.height - height) / 2.0).max(0.0);
     Some(slint::PhysicalPosition::new(x.round() as i32, y.round() as i32))
 }
 
-/// 设置窗口的 Win32 句柄；窗口还没显示或不是 Win32 窗口时返回 `None`。
-fn settings_hwnd(window: &eveo_ui::SettingsWindow) -> Option<HWND> {
+/// Slint 窗口的 Win32 句柄；窗口还没显示或不是 Win32 窗口时返回 `None`。
+fn window_hwnd(window: &slint::Window) -> Option<HWND> {
     // Slint 经 raw-window-handle 交出底层窗口；窗口还没显示时可能拿不到句柄，这时返回 None。
-    let handle = window.window().window_handle();
+    let handle = window.window_handle();
     let raw = handle.window_handle().ok()?;
     // 在 Windows 上只会是 Win32 句柄；其他变体只为让 match 完整。
     match raw.as_raw() {

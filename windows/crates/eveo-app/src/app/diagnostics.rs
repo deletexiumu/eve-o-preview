@@ -5,8 +5,9 @@
 //   上一个进程是否还在：标记里的 PID 取得到进程信息，且映像文件名与本进程相同。
 // - 上一次异常结束：后台线程在启动后 5 秒找一次崩溃的证据（WER 报告目录、日志里那次会话的 fault 行），
 //   没找到时 30 秒再找一次。结果经通道交回主线程，在定时器里取。
-// - 找到证据、且那次会话不在「不报告」的名单里：写进 state.json 的 diagnostics.pendingCrash，记一行日志。
-//   提示用户（托盘菜单与报告窗口）在问题报告那一步接上（M7b2）。没找到证据（断电、强制结束）只记日志。
+// - 找到证据、且那次会话不在「不报告」的名单里：写进 state.json 的 diagnostics.pendingCrash，记一行日志，
+//   并弹一条托盘通知；托盘菜单顶部也多一项提示，点了打开崩溃情境的报告窗口（report 模块）。
+//   没找到证据（断电、强制结束）只记日志。
 // - 正常退出：收尾时（销毁缩略图之后、释放热键与托盘之前）把标记改成已结束。
 // 日志只有会话编号的前 8 位、WER 报告的个数与 fault 行的条数，不写路径。
 // 调试版另有一个测试入口：环境变量 EVEO_DEBUG_PANIC_AFTER=<秒> 时，启动这么多秒后在主线程上 panic，
@@ -45,6 +46,8 @@ pub(super) struct Diagnostics {
     tracker: SessionTracker,
     /// 后台找证据的结果；没有在找时为 None。
     scan: Option<Receiver<Option<CrashEvidence>>>,
+    /// 打开着的问题报告窗口。
+    pub(super) report: Option<super::report::ReportSession>,
 }
 
 impl Diagnostics {
@@ -79,7 +82,16 @@ impl Diagnostics {
             PreviousRunOutcome::Abnormal(marker) => spawn_scan(marker, logs_dir),
             _ => None,
         };
-        Self { tracker, scan }
+        Self {
+            tracker,
+            scan,
+            report: None,
+        }
+    }
+
+    /// 上一次运行的归类名（问题报告的运行时摘要用）。
+    pub(super) fn previous_run(&self) -> &'static str {
+        self.tracker.previous().raw()
     }
 
     /// 把本次运行记为正常结束（退出收尾的最后一步）。
@@ -99,13 +111,13 @@ fn is_this_app(pid: u32) -> bool {
 }
 
 /// 本进程的可执行文件名，如 `eve-o-preview.exe`。
-fn executable_name() -> Option<String> {
+pub(super) fn executable_name() -> Option<String> {
     let path = std::env::current_exe().ok()?;
     Some(path.file_name()?.to_string_lossy().into_owned())
 }
 
 /// WER 的报告目录：当前用户与全机的 ReportArchive、ReportQueue。
-fn wer_directories() -> Vec<PathBuf> {
+pub(super) fn wer_directories() -> Vec<PathBuf> {
     ["LOCALAPPDATA", "PROGRAMDATA"]
         .into_iter()
         .filter_map(std::env::var_os)
@@ -186,14 +198,26 @@ impl App {
             detected_at: wall_clock(),
             report_file_names: evidence.reports,
         };
+        // 记下这次是否真的写进了 pendingCrash（被「不报告」挡掉时不弹通知）。
+        let mut recorded = false;
         let result = self.chat.state.update_diagnostics(|diagnostics| {
             // 用户对这次会话选过「不报告」时不再记。
             if !diagnostics.dismissed_session_ids.contains(&pending.session_id) {
                 diagnostics.pending_crash = Some(pending);
+                recorded = true;
             }
         });
         if let Err(error) = result {
             LOG.error(format_args!("写 state.json 失败：{:?}", error.kind()));
+        }
+        // 通知只在这次新记下时弹；专注助手与全屏游戏时系统不弹，托盘菜单的提示项仍在。
+        if recorded {
+            let text = eveo_l10n::diagnostics(self.language);
+            // 记下结果：系统不显示通知时（真机上遇到过），日志能说明是调用失败还是被系统压下。
+            match self.tray.notify("EVE-O Preview", text.menu_crash_pending()) {
+                Ok(()) => LOG.info("已请求系统显示崩溃通知"),
+                Err(code) => LOG.error(format_args!("崩溃通知没有发出：错误码 {code}")),
+            }
         }
     }
 }

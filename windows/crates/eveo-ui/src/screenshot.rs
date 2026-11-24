@@ -251,6 +251,70 @@ pub fn overlay_png(options: &ShotOptions) -> Result<Vec<u8>, String> {
     encode(&pixels, width, height)
 }
 
+/// 把问题报告窗口画成 PNG：崩溃情境，示例的文件列表，选中 summary.md。只用 options 的明暗、尺寸、缩放、字体与语言。
+/// done 为真时画完成页。
+pub fn report_png(options: &ShotOptions, done: bool) -> Result<Vec<u8>, String> {
+    use crate::report::{FileKind, FileView, ReportState};
+    // 与设置窗口的截图同一个软件渲染窗口：先设缩放比例，再按物理像素设大小。
+    let window = window()?;
+    window.dispatch_event(WindowEvent::ScaleFactorChanged {
+        scale_factor: options.scale,
+    });
+    // 每次新建组件，明暗与语言互不影响。
+    let ui = crate::ProblemReportWindow::new().map_err(|e| e.to_string())?;
+    ui.set_dark(options.dark);
+    ui.set_ui_font(options.font.as_str().into());
+    crate::report::set_language(&ui, options.language);
+    // 示例：环境摘要、设置摘要、两个日志文件（一个取消了勾选）、一个崩溃报告与清单。
+    let file = |kind, bytes, optional, included| FileView {
+        kind,
+        bytes,
+        optional,
+        included,
+    };
+    let files = [
+        file(FileKind::Summary, 1_234, false, true),
+        file(FileKind::Config, 3_456, true, true),
+        file(FileKind::Log("eve-o-preview.log".into()), 182_345, true, true),
+        file(
+            FileKind::Log("eve-o-preview.1.log".into()),
+            1_048_576,
+            true,
+            false,
+        ),
+        file(FileKind::Crash(1), 9_876, true, true),
+        file(FileKind::Manifest, 812, false, true),
+    ];
+    // 选中第一行（环境摘要），预览显示它的开头；内容是虚构的，CPU 一行示意脱敏后的占位符。
+    crate::report::show_files(&ui, &files, 0, options.language);
+    let preview = "# EVE-O Preview diagnostics\n\nGenerated: 2026-11-24T06:30:00Z\n\n## App\n\n- Version: 0.9.0\n\
+                   - Build label: release\n\n## System\n\n- Windows: Windows 11 Pro 24H2 (build 26100.2314)\n\
+                   - Architecture: x86_64\n- CPU: [host] workstation CPU\n- Memory: 32.0 GiB\n";
+    crate::report::show_preview(&ui, preview, 1);
+    // 崩溃情境：底部多出「不报告」，「取消」换成「以后再说」，四个按钮都在图里。
+    let state = ReportState {
+        crash: true,
+        done,
+        ..ReportState::default()
+    };
+    crate::report::show_state(&ui, &state);
+    let width = (options.size.0 as f32 * options.scale).round() as u32;
+    let height = (options.size.1 as f32 * options.scale).round() as u32;
+    window.set_size(PhysicalSize::new(width, height));
+    ui.show().map_err(|e| e.to_string())?;
+    // 推进一次定时器，让 init 里设的明暗配色生效。
+    slint::platform::update_timers_and_animations();
+    // 整幅重画；窗口背景不透明（没有 Mica），像素不需要底色。
+    let mut pixels = vec![PremultipliedRgbaColor::default(); width as usize * height as usize];
+    window.request_redraw();
+    window.draw_if_needed(|renderer| {
+        renderer.render(&mut pixels, width as usize);
+    });
+    // 隐藏后组件释放，下一张截图从干净的状态开始。
+    ui.hide().map_err(|e| e.to_string())?;
+    encode(&pixels, width, height)
+}
+
 /// 截图用的配置方案与在线客户端：两个在线角色（一个设了自己的高亮颜色）、一个离线且隐藏的角色、一个登录界面。
 /// 角色名是虚构的。
 fn sample() -> (Profile, Vec<EveClient>) {

@@ -33,10 +33,6 @@ doc = "日志文件位置一行的标签。"
 [DiagnosticsStrings.showLogsButton]
 doc = "「在访达中显示日志」按钮。"
 
-[DiagnosticsStrings.fileLogNotAvailableYet]
-doc = "Windows 测试版：文件日志还没做，诊断一组下的说明。"
-platforms = ["windows"]
-
 [DiagnosticsStrings.reportButton]
 doc = "「报告问题…」按钮。"
 

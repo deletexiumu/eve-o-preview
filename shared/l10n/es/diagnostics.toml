@@ -9,13 +9,12 @@ verboseLoggingToggle = "Registro detallado"
 verboseLoggingHelp = "Escribe más detalles en el archivo de registro. Actívalo antes de reproducir un problema."
 logLocationLabel = "Archivos de registro"
 showLogsButton = { macos = "Mostrar registros en Finder", windows = "Mostrar registros en el Explorador de archivos" }
-fileLogNotAvailableYet = "El registro en archivo llegará en una próxima versión de prueba."
 reportButton = "Informar de un problema…"
 
 windowTitle = "Informar de un problema"
 intro = "Se creará un archivo zip con los elementos siguientes. No se envía nada automáticamente: eres tú quien adjunta el archivo a un issue de GitHub."
 crashIntro = "EVE-O Preview se cerró inesperadamente la última vez. Un informe ayuda a corregir la causa."
-redactionNote = "Tu nombre de usuario de macOS, el nombre del ordenador y los nombres de los personajes de EVE se sustituyen por marcadores."
+redactionNote = { macos = "Tu nombre de usuario de macOS, el nombre del ordenador y los nombres de los personajes de EVE se sustituyen por marcadores.", windows = "Tu nombre de usuario de Windows, el nombre del equipo y los nombres de los personajes de EVE se sustituyen por marcadores." }
 
 itemsHeader = "Incluido en el informe"
 itemSummary = "Resumen del entorno"
@@ -35,8 +34,8 @@ notNowButton = "Ahora no"
 dontReportButton = "No informar"
 
 doneTitle = "Informe creado"
-doneHelp = "Finder muestra el archivo zip. Arrástralo a la página del issue en tu navegador, describe lo ocurrido y envíalo."
-revealButton = "Mostrar en Finder"
+doneHelp = { macos = "Finder muestra el archivo zip. Arrástralo a la página del issue en tu navegador, describe lo ocurrido y envíalo.", windows = "El Explorador de archivos muestra el archivo zip. Arrástralo a la página del issue en tu navegador, describe lo ocurrido y envíalo." }
+revealButton = { macos = "Mostrar en Finder", windows = "Mostrar en el Explorador de archivos" }
 openIssueButton = "Volver a abrir GitHub"
 closeButton = "Cerrar"
 

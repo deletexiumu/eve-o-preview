@@ -115,7 +115,7 @@ pub fn find_crash_evidence(
 }
 
 /// 一个 WER 目录下的子目录与它们的修改时间；目录不存在或读不了时为空。
-fn wer_reports(dir: &Path) -> Vec<WerReport> {
+pub(crate) fn wer_reports(dir: &Path) -> Vec<WerReport> {
     let Ok(entries) = fs::read_dir(dir) else {
         return Vec::new();
     };
