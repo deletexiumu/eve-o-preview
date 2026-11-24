@@ -60,6 +60,33 @@ fn main() {
             std::process::exit(1);
         }
     }
+    // 问题报告窗口（崩溃情境），明暗各一张，另加完成页。
+    for (name, dark, done) in [
+        ("report-light.png", false, false),
+        ("report-dark.png", true, false),
+        ("report-done-light.png", false, true),
+    ] {
+        let options = ShotOptions {
+            dark,
+            size: (800, 560),
+            scale,
+            font: font.clone(),
+            page: 0,
+            language,
+        };
+        // 文件名加上语言代码，与浮窗的截图相同；尺寸是 report.slint 的首选尺寸。
+        let name = name.replace(".png", &format!(".{code}.png"));
+        // 写不出来时立即退出，不留下半套截图。
+        match eveo_ui::screenshot::report_png(&options, done)
+            .and_then(|png| std::fs::write(out.join(&name), png).map_err(|e| e.to_string()))
+        {
+            Ok(()) => println!("{}", out.join(&name).display()),
+            Err(error) => {
+                eprintln!("{name}：{error}");
+                std::process::exit(1);
+            }
+        }
+    }
     // 「预览与布局」页：首屏（窗口默认大小）与整页（内容全部展开）各一张，明暗两套；「客户端」页明暗各一张；「切换与热键」页整页一张、暗色首屏一张。
     let shots = [
         ("settings-previews-light.png", false, 1, (1040, 760)),

@@ -52,6 +52,7 @@ pub fn set_language(window: &ProblemReportWindow, language: AppLanguage) {
 
 /// 显示的名称：种类的名字，日志另加文件名。
 pub fn file_name(kind: &FileKind, language: AppLanguage) -> String {
+    // 名称随界面语言；文件名（日志）不翻译。
     let text = eveo_l10n::diagnostics(language);
     match kind {
         FileKind::Summary => text.item_summary().to_owned(),
@@ -74,6 +75,7 @@ pub fn format_size(bytes: usize) -> String {
 
 /// 预览的文字：超过上限时只留开头，第二项为真。
 pub fn preview(text: &str) -> (String, bool) {
+    // 第 PREVIEW_LIMIT 个字符的字节位置就是截断处；没有这么多字符时原样返回。
     match text.char_indices().nth(PREVIEW_LIMIT) {
         Some((cut, _)) => (text[..cut].to_owned(), true),
         None => (text.to_owned(), false),
@@ -82,6 +84,7 @@ pub fn preview(text: &str) -> (String, bool) {
 
 /// 显示文件列表。selected 是选中的行。
 pub fn show_files(window: &ProblemReportWindow, files: &[FileView], selected: usize, language: AppLanguage) {
+    // 每次整份替换：列表最多十来行，不值得逐行更新。
     let rows: Vec<ReportFileRow> = files
         .iter()
         .map(|file| ReportFileRow {
@@ -98,6 +101,7 @@ pub fn show_files(window: &ProblemReportWindow, files: &[FileView], selected: us
 
 /// 显示选中文件的预览与替换次数。
 pub fn show_preview(window: &ProblemReportWindow, text: &str, replacements: usize) {
+    // 太长的文字只显示开头：TextEdit 一次排版几 MiB 的文字会卡住界面。
     let (shown, truncated) = preview(text);
     let model = window.global::<ReportModel>();
     model.set_preview(shown.into());

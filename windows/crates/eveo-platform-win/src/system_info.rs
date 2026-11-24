@@ -41,6 +41,7 @@ const WINDOWS_11_BUILD: u32 = 22_000;
 
 /// 读系统信息。
 pub fn system_info() -> SystemInfo {
+    // 构建号决定 Windows 10 与 11 的区分；UBR 是累积更新的修订号，排查时很有用。
     let build: u32 = registry_string(HKEY_LOCAL_MACHINE, VERSION_KEY, "CurrentBuildNumber")
         .and_then(|text| text.trim().parse().ok())
         .unwrap_or(0);
@@ -93,6 +94,7 @@ fn emulated_on_arm64() -> bool {
 
 /// 物理内存的字节数；读不到时为 0。
 fn physical_memory() -> u64 {
+    // 结构的第一个字段要先填上自身的大小，系统据此判断版本。
     let mut status = MEMORYSTATUSEX {
         dwLength: size_of::<MEMORYSTATUSEX>() as u32,
         ..MEMORYSTATUSEX::default()
@@ -121,6 +123,7 @@ fn gpu_names() -> Vec<String> {
     let Ok(factory) = (unsafe { CreateDXGIFactory1::<IDXGIFactory1>() }) else {
         return Vec::new();
     };
+    // 同一块显卡在多显示器、混合显卡的机器上可能出现多次，按名字去重。
     let mut names: Vec<String> = Vec::new();
     // 枚举到 DXGI_ERROR_NOT_FOUND 为止；上限防止异常的驱动让循环停不下来。
     for index in 0..16 {
@@ -152,7 +155,9 @@ fn gpu_names() -> Vec<String> {
 
 /// 本机名字的词表（不含角色名）：用户名、计算机名与用户目录。
 pub fn sensitive_names() -> RedactionTerms {
+    // 用户名取环境变量：与用户目录的最后一段多半相同，但微软账户登录时两者可能不同，所以两样都给。
     let user_names: Vec<String> = std::env::var("USERNAME").ok().into_iter().collect();
+    // 计算机名的几种写法可能只有大小写不同，不区分大小写地去重（脱敏本来就不区分大小写）。
     let mut host_names: Vec<String> = Vec::new();
     for format in [
         ComputerNameDnsFullyQualified,
@@ -191,6 +196,7 @@ fn computer_name(format: COMPUTER_NAME_FORMAT) -> Option<String> {
 
 /// 读注册表里的字符串值；不存在或类型不对时为 None。
 fn registry_string(root: HKEY, key: &str, value: &str) -> Option<String> {
+    // HSTRING 以 0 结尾，可以直接当 PCWSTR 用。
     let (key, value) = (HSTRING::from(key), HSTRING::from(value));
     let mut size = 0u32;
     // 第一次调用只取字节数（含结尾的 0）。
@@ -208,6 +214,7 @@ fn registry_string(root: HKEY, key: &str, value: &str) -> Option<String> {
     }
     .ok()
     .ok()?;
+    // size 是字节数，换成 u16 的个数（向上取整）。
     let mut buffer = vec![0u16; (size as usize).div_ceil(2)];
     // SAFETY: 缓冲区的字节数如实给出；函数写入以 0 结尾的字符串并更新 size。
     unsafe {

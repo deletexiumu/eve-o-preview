@@ -124,7 +124,9 @@ const PROFILE_PARENTS: [&str; 3] = ["\\users\\", "\\\\users\\\\", "/users/"];
 impl Redactor {
     /// 用词表建脱敏器。空白的词被忽略；同一个词（不区分大小写）出现在多个类别时，按用户名、计算机名、角色名的顺序取第一个。
     pub fn new(terms: &RedactionTerms) -> Self {
+        // seen 按折叠后的字符去重：同一个词的大小写、规范化写法只留一份，先到的类别为准。
         let mut seen: HashSet<Vec<char>> = HashSet::new();
+        // list 是全部要匹配的词，最后按开头的字符分桶。
         let mut list: Vec<Term> = Vec::new();
         // 用户目录：原样、JSON 转义、`/` 分隔三种写法。
         if let Some(home) = terms.home_directory.as_deref().map(str::trim)
@@ -176,6 +178,7 @@ impl Redactor {
             );
             character_placeholders.insert(key, placeholder);
         }
+        // 分桶：每个位置只试开头两个字符相同的词；只有一个字符的词另放一桶（只可能是路径里的短用户名）。
         let mut pair_buckets: HashMap<(char, char), Vec<Term>> = HashMap::new();
         let mut single_buckets: HashMap<char, Vec<Term>> = HashMap::new();
         for term in list {
@@ -185,6 +188,7 @@ impl Redactor {
                 [] => {}
             }
         }
+        // 桶内从长到短：找到的第一个就是最长的匹配。
         for bucket in pair_buckets.values_mut() {
             bucket.sort_by_key(|t| std::cmp::Reverse(t.folded.len()));
         }
@@ -280,6 +284,7 @@ fn append(
     list: &mut Vec<Term>,
     seen: &mut HashSet<Vec<char>>,
 ) {
+    // 首尾空白不算词的一部分（配置里的名字可能带空格）。
     let word = raw.trim();
     if !is_eligible(word) {
         return;
@@ -390,6 +395,7 @@ fn fold(c: char) -> char {
     if c.is_ascii() {
         return c.to_ascii_lowercase();
     }
+    // 例如土耳其语的 İ 小写是两个字符，保持原样；这类字符在名字里极少见。
     let mut lower = c.to_lowercase();
     match (lower.next(), lower.next()) {
         (Some(only), None) => only,

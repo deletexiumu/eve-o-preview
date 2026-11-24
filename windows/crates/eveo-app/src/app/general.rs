@@ -25,6 +25,8 @@ pub(super) enum GeneralInput {
     Edited,
     /// 在资源管理器里显示日志文件夹。
     RevealLogs,
+    /// 打开问题报告窗口。
+    ReportProblem,
     /// 「关于」页的链接。
     OpenUrl(String),
 }
@@ -49,6 +51,8 @@ pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
     let send = sender(runtime);
     model.on_reveal_logs(move || send(GeneralInput::RevealLogs));
     let send = sender(runtime);
+    model.on_report_problem(move || send(GeneralInput::ReportProblem));
+    let send = sender(runtime);
     // 地址在处理时再核对，回调里只转交。
     window
         .global::<eveo_ui::AboutModel>()
@@ -61,6 +65,7 @@ impl App {
         match input {
             GeneralInput::Edited => self.general_edited(runtime),
             GeneralInput::RevealLogs => shell::reveal(&self.logs_dir),
+            GeneralInput::ReportProblem => self.open_report(false, runtime),
             // 只打开「关于」页上列出的地址。
             GeneralInput::OpenUrl(url) if general::is_about_link(&url) => shell::open_url(&url),
             GeneralInput::OpenUrl(_) => {}

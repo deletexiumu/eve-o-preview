@@ -129,6 +129,7 @@ pub fn collect(request: &CollectRequest) -> Vec<ReportItem> {
         ),
     ];
     // 日志：按 2 MiB 的预算从最新的文件起取。
+    // 取每个日志文件的大小；读不到元数据的文件（刚被轮转掉）跳过。
     let sizes: Vec<(String, u64)> = request
         .logs
         .existing()
@@ -161,6 +162,7 @@ pub fn collect(request: &CollectRequest) -> Vec<ReportItem> {
 
 /// 要带上的崩溃报告的 Report.wer 位置，最新的在前，最多 3 个。
 fn crash_report_files(request: &CollectRequest) -> Vec<PathBuf> {
+    // 先定下要哪几个报告的目录名，再去各 WER 目录里找它们的 Report.wer。
     let names: Vec<String> = match &request.crashes {
         CrashSource::Named(names) => names.iter().take(MAX_REPORTS).cloned().collect(),
         CrashSource::Recent => {
@@ -207,6 +209,7 @@ fn read_tail(path: &Path, bytes: u64) -> io::Result<String> {
 
 /// 读一个 Report.wer 的开头 1 MiB。WER 写的是带 BOM 的 UTF-16LE；没有 BOM 时按 UTF-8 读。
 fn read_report(path: &Path) -> io::Result<String> {
+    // 只读开头：Report.wer 的开头是异常码、模块与版本，排查最需要的部分。
     let mut buffer = Vec::new();
     fs::File::open(path)?
         .take(MAX_CRASH_REPORT_BYTES)
@@ -247,6 +250,7 @@ pub struct ManifestInfo {
 
 /// manifest.json 的全文：列出勾选的项。
 pub fn manifest_text(items: &[ReportItem], info: &ManifestInfo) -> String {
+    // 大小按脱敏后的 UTF-8 字节数，与压缩包里的文件一致。
     let manifest = DiagnosticsManifest {
         app_version: info.app_version.clone(),
         build_label: info.build_label.clone(),
@@ -280,6 +284,7 @@ pub fn write_archive(
         .filter(|item| item.included || !item.optional())
         .map(|item| (format!("{name}/{}", item.path), item.text.as_bytes().to_vec()))
         .collect();
+    // 清单放在最后，列出前面写进去的各项。
     files.push((
         format!("{name}/{MANIFEST_PATH}"),
         manifest_text(items, info).into_bytes(),

@@ -162,6 +162,7 @@ fn encoded_url(draft: &IssueDraft) -> String {
 
 /// 查询参数的百分号编码：非保留字符原样，其余按 UTF-8 字节编码成 `%XX`（大写）。
 pub fn percent_encode(text: &str) -> String {
+    // 按字节编码：多字节的 UTF-8 字符每个字节各写一个 %XX，浏览器与 GitHub 都按 UTF-8 解回。
     let mut out = String::with_capacity(text.len());
     for byte in text.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
@@ -218,6 +219,7 @@ pub fn problem_report_draft(
         os = format!("{os} {}", system.os_display_version);
     }
     let title = format!("{prefix}: EVE-O Preview {} on {os}", environment.app.version);
+    // 「What happened」与「Diagnostics」必留；「Previous run」是可选的，超长时先丢它。
     let mut sections = vec![
         IssueSection::new(
             "What happened",

@@ -211,6 +211,8 @@ pub struct EnvironmentReport {
 impl EnvironmentReport {
     /// 压缩包里 `summary.md` 的全文（英文）。generated_at 是生成时刻（1970 年以来的秒数）。
     pub fn markdown(&self, generated_at: f64) -> String {
+        // 三节：应用、系统、运行时。顺序与 macOS 版相同，维护者看两端的报告时找得到同一项。
+        // Windows 没有签名类别、Rosetta 与权限三项；多了显卡与缩略图的状态计数。
         let (app, system, runtime) = (&self.app, &self.system, &self.runtime);
         let lines = vec![
             "# EVE-O Preview diagnostics".to_owned(),
@@ -393,6 +395,7 @@ pub struct DiagnosticsManifest {
 impl DiagnosticsManifest {
     /// 编码成 `manifest.json` 的内容（键名与 macOS 相同）。
     pub fn to_json(&self) -> String {
+        // 每个文件一项：路径、大小与四类替换次数（维护者据此判断脱敏是否起了作用）。
         let files: Vec<Value> = self
             .files
             .iter()
