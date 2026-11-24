@@ -135,6 +135,10 @@ followSystem = "跟随系统"
 machineTranslationNote = "部分译文由机器生成，欢迎指正。"
 showDockIcon = "在 Dock 中显示图标"
 showDockIconHelp = "关掉后只在菜单栏显示图标。"
+launchAtLogin = "登录 Windows 时启动"
+launchAtLoginHelp = "启动后只在通知区域显示图标，不打开设置窗口。"
+launchAtLoginDisabledBySystem = "已在任务管理器的「启动应用」里禁用。打开此开关会重新启用。"
+launchAtLoginFailed = "无法更改开机启动设置。"
 
 # 权限页。
 permissionsSubtitle = "两项权限都在「系统设置 > 隐私与安全性」里授予。"

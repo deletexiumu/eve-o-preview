@@ -195,7 +195,7 @@ fn computer_name(format: COMPUTER_NAME_FORMAT) -> Option<String> {
 }
 
 /// 读注册表里的字符串值；不存在或类型不对时为 None。
-fn registry_string(root: HKEY, key: &str, value: &str) -> Option<String> {
+pub(crate) fn registry_string(root: HKEY, key: &str, value: &str) -> Option<String> {
     // HSTRING 以 0 结尾，可以直接当 PCWSTR 用。
     let (key, value) = (HSTRING::from(key), HSTRING::from(value));
     let mut size = 0u32;

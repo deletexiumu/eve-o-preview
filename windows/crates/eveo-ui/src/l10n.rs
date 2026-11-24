@@ -143,6 +143,10 @@ macro_rules! fill {
     text.set_machine_translation_note(settings.machine_translation_note().into());
     text.set_show_dock_icon(settings.show_dock_icon().into());
     text.set_show_dock_icon_help(settings.show_dock_icon_help().into());
+    text.set_launch_at_login(settings.launch_at_login().into());
+    text.set_launch_at_login_help(settings.launch_at_login_help().into());
+    text.set_launch_at_login_disabled_by_system(settings.launch_at_login_disabled_by_system().into());
+    text.set_launch_at_login_failed(settings.launch_at_login_failed().into());
     text.set_permissions_subtitle(settings.permissions_subtitle().into());
     text.set_screen_recording(settings.screen_recording().into());
     text.set_screen_recording_detail(settings.screen_recording_detail().into());

@@ -13,6 +13,7 @@
 
 pub mod activation;
 pub mod appearance;
+pub mod autostart;
 pub mod crash;
 pub mod credentials;
 pub mod discovery;

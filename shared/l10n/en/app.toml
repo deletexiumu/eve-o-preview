@@ -135,6 +135,10 @@ followSystem = "Follow System"
 machineTranslationNote = "Some translations are machine-generated. Corrections are welcome."
 showDockIcon = "Show icon in Dock"
 showDockIconHelp = "When off, EVE-O Preview shows only its menu bar icon."
+launchAtLogin = "Start when I sign in to Windows"
+launchAtLoginHelp = "EVE-O Preview starts in the notification area without opening Settings."
+launchAtLoginDisabledBySystem = "Disabled in Task Manager under Startup apps. Turning this on enables it again."
+launchAtLoginFailed = "Couldn't change the startup setting."
 
 # 权限页。
 permissionsSubtitle = "Both permissions are granted in System Settings > Privacy & Security."

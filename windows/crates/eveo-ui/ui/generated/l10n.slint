@@ -257,6 +257,14 @@ export global SettingsText {
     in property <string> show-dock-icon: "Show icon in Dock";
     // 开关下方的说明。
     in property <string> show-dock-icon-help: "When off, EVE-O Preview shows only its menu bar icon.";
+    // Windows「通用」页：「登录 Windows 时启动」开关。
+    in property <string> launch-at-login: "Start when I sign in to Windows";
+    // 开关下方的说明：开机启动时不打开设置窗口。
+    in property <string> launch-at-login-help: "EVE-O Preview starts in the notification area without opening Settings.";
+    // 开关下方的说明：用户在任务管理器的「启动应用」里禁用了本应用；打开开关会重新启用。
+    in property <string> launch-at-login-disabled-by-system: "Disabled in Task Manager under Startup apps. Turning this on enables it again.";
+    // 开关下方的说明：写注册表失败，开机启动没有改成功。
+    in property <string> launch-at-login-failed: "Couldn't change the startup setting.";
     // 页标题下的说明：两项权限在系统设置的哪里授予。
     in property <string> permissions-subtitle: "Both permissions are granted in System Settings > Privacy & Security.";
     // 屏幕录制权限的名称。

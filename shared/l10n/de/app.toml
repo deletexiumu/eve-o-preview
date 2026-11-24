@@ -148,6 +148,10 @@ followSystem = "Systemsprache"
 machineTranslationNote = "Einige Übersetzungen sind maschinell erstellt. Korrekturen sind willkommen."
 showDockIcon = "Symbol im Dock anzeigen"
 showDockIconHelp = "Wenn deaktiviert, erscheint EVE-O Preview nur in der Menüleiste."
+launchAtLogin = "Beim Anmelden bei Windows starten"
+launchAtLoginHelp = "EVE-O Preview startet im Infobereich, ohne die Einstellungen zu öffnen."
+launchAtLoginDisabledBySystem = "Im Task-Manager unter „Autostart-Apps“ deaktiviert. Wenn Sie diese Option einschalten, wird es wieder aktiviert."
+launchAtLoginFailed = "Die Autostart-Einstellung konnte nicht geändert werden."
 
 # 权限页。
 permissionsSubtitle = "Beide Berechtigungen werden unter „Systemeinstellungen“ > „Datenschutz & Sicherheit“ erteilt."

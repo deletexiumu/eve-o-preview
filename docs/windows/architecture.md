@@ -338,7 +338,7 @@ macOS 的协调器在 App 里，没有单元测试。Windows 版把协调器的�
 | 项 | 设计 |
 | --- | --- |
 | 单实例 | 启动时建命名互斥量 `Local\EVE-O-Preview-<固定 GUID>`。已存在时用 `FindWindowW` 找到第一个实例的消息窗口，发一条注册消息让它打开设置窗口，然后退出 |
-| 开机启动 | 写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 下的一个值，命令行带 `--background`。不需要管理员权限。用户在任务管理器里禁用启动项时，设置页显示为「被系统禁用」 |
+| 开机启动 | 写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 下的一个值，命令行带 `--background`。不需要管理员权限。用户在任务管理器里禁用启动项时（`StartupApproved\Run` 下同名值的第一个字节是奇数），设置页显示为「被系统禁用」，重新打开开关会删掉这个标记。值名是 `EVE-O Preview`，调试构建用 `EVE-O Preview (Debug)`。登记的 exe 不在了（挪了文件夹）时，正式文件名运行的应用启动时改成自己的路径 |
 | 配置 | `%APPDATA%\EVE-O Preview\config.json`、`state.json`、`session.json`，含义与 macOS 相同 |
 | 日志与缓存 | `%LOCALAPPDATA%\EVE-O Preview\logs\`、`cache\`（译文缓存、人名缓存） |
 | 崩溃检测 | 沿用会话标记的做法（`session.json`）。Rust 的 panic 用钩子写进文件日志 |
