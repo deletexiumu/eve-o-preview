@@ -9,13 +9,12 @@ verboseLoggingToggle = "Verbose logging"
 verboseLoggingHelp = "Writes more detail to the log file. Turn it on before you reproduce a problem."
 logLocationLabel = "Log files"
 showLogsButton = { macos = "Show Logs in Finder", windows = "Show Logs in File Explorer" }
-fileLogNotAvailableYet = "File logging arrives in a later test build."
 reportButton = "Report a Problem…"
 
 windowTitle = "Report a Problem"
 intro = "This creates a zip file with the items below. Nothing is sent automatically: you attach the file to a GitHub issue yourself."
 crashIntro = "EVE-O Preview quit unexpectedly last time. A report helps to fix the cause."
-redactionNote = "Your macOS user name, computer name and EVE character names are replaced with placeholders."
+redactionNote = { macos = "Your macOS user name, computer name and EVE character names are replaced with placeholders.", windows = "Your Windows user name, computer name and EVE character names are replaced with placeholders." }
 
 itemsHeader = "Included in the report"
 itemSummary = "Environment summary"
@@ -34,8 +33,8 @@ notNowButton = "Not Now"
 dontReportButton = "Don't Report"
 
 doneTitle = "Report created"
-doneHelp = "Finder shows the zip file. Drag it into the issue page in your browser, describe what happened, then submit."
-revealButton = "Show in Finder"
+doneHelp = { macos = "Finder shows the zip file. Drag it into the issue page in your browser, describe what happened, then submit.", windows = "File Explorer shows the zip file. Drag it into the issue page in your browser, describe what happened, then submit." }
+revealButton = { macos = "Show in Finder", windows = "Show in File Explorer" }
 openIssueButton = "Open GitHub Again"
 closeButton = "Close"
 

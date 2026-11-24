@@ -6,7 +6,8 @@
 //
 // 与「预览与布局」页的约定相同：控件的 toggled、selected 只在用户操作时触发，触发后 Rust 读回整页组成新配置；
 // Rust 用 set_* 写值不会触发它们，不会形成循环。
-// 界面语言立即生效；更新与文件日志的功能在后续里程碑接上（架构文档第 9 节），现在先把选择记进配置，页上写明这一点。
+// 界面语言立即生效；更新的功能在后续里程碑接上（架构文档第 9 节），现在先把选择记进配置，页上写明这一点。
+// 诊断一组：详细日志、日志位置与「报告问题…」（M7）。
 
 import { Button, ComboBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
@@ -29,6 +30,8 @@ export global GeneralModel {
     callback edited();
     // 在资源管理器里显示日志文件夹。
     callback reveal-logs();
+    // 打开问题报告窗口。
+    callback report-problem();
 }
 
 // 「通用」页。
@@ -108,8 +111,16 @@ export component GeneralPage inherits VerticalLayout {
             }
         }
     }
-    Footnote {
-        text: DiagnosticsText.file-log-not-available-yet;
+    // 报告问题：打开问题报告窗口（手动情境），与托盘菜单的同名项相同。按钮单独一行，靠左。
+    HorizontalLayout {
+        alignment: start;
+        padding-top: 12px;
+        Button {
+            text: DiagnosticsText.report-button;
+            clicked => {
+                GeneralModel.report-problem();
+            }
+        }
     }
     // 页底留白，滚到底时最后一行不贴着窗口边。
     Rectangle { height: 24px; }

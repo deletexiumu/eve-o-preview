@@ -9,13 +9,12 @@ verboseLoggingToggle = "詳細ログ"
 verboseLoggingHelp = "ログファイルにより詳しい情報を書き込みます。問題を再現する前にオンにしてください。"
 logLocationLabel = "ログファイル"
 showLogsButton = { macos = "Finder でログを表示", windows = "エクスプローラーでログを表示" }
-fileLogNotAvailableYet = "ファイルへのログ出力は今後のテスト版で追加されます。"
 reportButton = "問題を報告…"
 
 windowTitle = "問題を報告"
 intro = "以下の項目を含む zip ファイルを作成します。自動では何も送信されません。ファイルはご自身で GitHub の Issue に添付してください。"
 crashIntro = "前回 EVE-O Preview が予期せず終了しました。レポートは原因の解明に役立ちます。"
-redactionNote = "macOS のユーザ名、コンピュータ名、EVE のキャラクター名はプレースホルダに置き換えられます。"
+redactionNote = { macos = "macOS のユーザ名、コンピュータ名、EVE のキャラクター名はプレースホルダに置き換えられます。", windows = "Windows のユーザ名、コンピュータ名、EVE のキャラクター名はプレースホルダに置き換えられます。" }
 
 itemsHeader = "レポートに含まれる項目"
 itemSummary = "環境の概要"
@@ -34,8 +33,8 @@ notNowButton = "あとで"
 dontReportButton = "報告しない"
 
 doneTitle = "レポートを作成しました"
-doneHelp = "Finder に zip ファイルが表示されています。ブラウザの Issue ページにドラッグし、何が起きたかを書いてから送信してください。"
-revealButton = "Finder で表示"
+doneHelp = { macos = "Finder に zip ファイルが表示されています。ブラウザの Issue ページにドラッグし、何が起きたかを書いてから送信してください。", windows = "エクスプローラーに zip ファイルが表示されています。ブラウザの Issue ページにドラッグし、何が起きたかを書いてから送信してください。" }
+revealButton = { macos = "Finder で表示", windows = "エクスプローラーで表示" }
 openIssueButton = "GitHub をもう一度開く"
 closeButton = "閉じる"
 

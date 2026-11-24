@@ -1,0 +1,317 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// 问题报告窗口，对应 macOS 的 ProblemReportView（v1.1 设计 7.4 节）：
+// - 顶部：手动情境是说明文字 intro，崩溃情境是 crash-intro；下面一行是脱敏的说明。
+// - 左栏：文件列表，每行有勾选框、名称、大小。summary.md 与 manifest.json 的勾选框不可用。
+// - 右栏：选中文件脱敏后的文字，等宽字体，只读，可以选中复制。太长时只显示开头，下方注明；再下面是替换次数。
+// - 底部按钮：手动情境是「取消」「只生成报告」「生成报告并打开 GitHub」；崩溃情境把「取消」换成「不报告」与「以后再说」。
+// - 收集期间显示进度，按钮不可用。生成失败时在按钮上方显示原因。
+// - 完成页：说明文字，按钮「在资源管理器中显示」「再次打开 GitHub」「关闭」。
+// 列表与预览的内容由 Rust 填（eveo-ui 的 report 模块）；这里只管布局与把操作交回去。
+
+import { Button, CheckBox, Palette, ScrollView, Spinner, TextEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { DiagnosticsText } from "generated/l10n.slint";
+
+// 文件列表的一行。
+export struct ReportFileRow {
+    // 显示的名称（如「应用日志」加文件名）。
+    name: string,
+    // 大小，如「12.3 KB」。
+    size: string,
+    // 能否取消勾选。
+    optional: bool,
+    // 是否勾选。
+    included: bool,
+}
+
+// 报告窗口的数据与操作。
+export global ReportModel {
+    // 崩溃情境。
+    in property <bool> crash;
+    // 正在收集：显示进度，按钮不可用。
+    in property <bool> collecting: true;
+    // 正在写压缩包：按钮不可用。
+    in property <bool> busy;
+    // 已生成：显示完成页。
+    in property <bool> done;
+    // 文件列表。
+    in property <[ReportFileRow]> files;
+    // 选中的行。
+    in-out property <int> selected;
+    // 选中文件的预览文字（可能只是开头）。
+    in property <string> preview;
+    // 预览是否只显示了开头。
+    in property <bool> preview-truncated;
+    // 选中文件的替换次数。
+    in property <int> replacements;
+    // 生成失败的原因；空串表示没有失败。
+    in property <string> error;
+    // 勾选或取消勾选一行。
+    callback toggled(int, bool);
+    // 选中一行。
+    callback select(int);
+    // 生成报告；参数为真时随后打开 GitHub。
+    callback create(bool);
+    // 取消（手动情境）或以后再说（崩溃情境）：关掉窗口，崩溃的提示保留。
+    callback dismiss();
+    // 不报告（崩溃情境）：关掉窗口，这次崩溃不再提示。
+    callback dont-report();
+    // 完成页：在资源管理器中显示压缩包。
+    callback reveal();
+    // 完成页：再次打开 GitHub。
+    callback open-issue();
+    // 完成页：关闭。
+    callback close();
+}
+
+// 文件列表的一行：勾选框、名称、大小；点整行选中它。
+component FileRowView inherits Rectangle {
+    in property <ReportFileRow> file;
+    in property <bool> selected;
+    callback clicked();
+    callback toggled(bool);
+    height: 40px;
+    border-radius: 4px;
+    background: selected ? Theme.nav-selected : (touch.has-hover ? Theme.nav-hover : transparent);
+    touch := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 12px;
+        spacing: 8px;
+        alignment: stretch;
+        // 勾选框没有文字，名称另用 Text 显示，点名称只选中不改勾选。
+        CheckBox {
+            checked: file.included;
+            enabled: file.optional && !ReportModel.busy;
+            width: 28px;
+            toggled => {
+                root.toggled(self.checked);
+            }
+        }
+        Text {
+            text: file.name;
+            color: Theme.text;
+            vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+        Text {
+            text: file.size;
+            color: Theme.text-secondary;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// 问题报告窗口。
+export component ProblemReportWindow inherits Window {
+    // 暗色外观，见 Theme.dark。
+    in-out property <bool> dark <=> Theme.dark;
+    // 已设 Mica 背景，见 Theme.mica。
+    in-out property <bool> mica <=> Theme.mica;
+    // 界面字体，与设置窗口相同。
+    in property <string> ui-font: "Segoe UI Variable Text";
+    title: DiagnosticsText.window-title;
+    icon: @image-url("images/app-icon.png");
+    preferred-width: 800px;
+    preferred-height: 560px;
+    min-width: 640px;
+    min-height: 420px;
+    background: Theme.window-background;
+    default-font-family: ui-font;
+    default-font-size: 14px;
+
+    // std-widgets 的控件按 Palette.color-scheme 选明暗配色，要与 Theme.dark 一致。
+    init => {
+        Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light;
+    }
+    changed dark => {
+        Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light;
+    }
+
+    // 报告页。
+    if !ReportModel.done: VerticalLayout {
+        padding: 20px;
+        spacing: 12px;
+        Text {
+            text: ReportModel.crash ? DiagnosticsText.crash-intro : DiagnosticsText.intro;
+            color: Theme.text;
+            wrap: word-wrap;
+        }
+        Text {
+            text: DiagnosticsText.redaction-note;
+            color: Theme.text-secondary;
+            font-size: 12px;
+            wrap: word-wrap;
+        }
+
+        // 收集期间：进度与说明占满中间。
+        if ReportModel.collecting: HorizontalLayout {
+            alignment: center;
+            vertical-stretch: 1;
+            spacing: 12px;
+            Spinner {
+                indeterminate: true;
+                width: 24px;
+                height: 24px;
+                y: (parent.height - self.height) / 2;
+            }
+            Text {
+                text: DiagnosticsText.collecting;
+                color: Theme.text-secondary;
+                vertical-alignment: center;
+            }
+        }
+
+        // 收集完：左栏文件列表，右栏预览。
+        if !ReportModel.collecting: HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 12px;
+            Rectangle {
+                width: 280px;
+                background: Theme.card;
+                border-color: Theme.card-border;
+                border-width: 1px;
+                border-radius: 6px;
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 4px;
+                    Text {
+                        text: DiagnosticsText.items-header;
+                        color: Theme.text-secondary;
+                        font-size: 12px;
+                        font-weight: 600;
+                    }
+                    ScrollView {
+                        VerticalLayout {
+                            alignment: start;
+                            spacing: 2px;
+                            for row[index] in ReportModel.files: FileRowView {
+                                file: row;
+                                selected: index == ReportModel.selected;
+                                clicked => {
+                                    ReportModel.selected = index;
+                                    ReportModel.select(index);
+                                }
+                                toggled(checked) => {
+                                    ReportModel.toggled(index, checked);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 6px;
+                // 只读的文本框：能选中复制，自带滚动条。
+                TextEdit {
+                    text: ReportModel.preview;
+                    read-only: true;
+                    wrap: no-wrap;
+                    font-size: 12px;
+                    vertical-stretch: 1;
+                }
+                if ReportModel.preview-truncated: Text {
+                    text: DiagnosticsText.preview-truncated;
+                    color: Theme.text-secondary;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: DiagnosticsText.replacements(ReportModel.replacements);
+                    color: Theme.text-secondary;
+                    font-size: 12px;
+                }
+            }
+        }
+
+        if ReportModel.error != "": Text {
+            text: DiagnosticsText.create-failed(ReportModel.error);
+            color: Theme.caution;
+            wrap: word-wrap;
+        }
+
+        // 底部按钮：靠右，主操作在最右。
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+            if ReportModel.crash: Button {
+                text: DiagnosticsText.dont-report-button;
+                enabled: !ReportModel.busy;
+                clicked => {
+                    ReportModel.dont-report();
+                }
+            }
+            Button {
+                text: ReportModel.crash ? DiagnosticsText.not-now-button : DiagnosticsText.cancel-button;
+                enabled: !ReportModel.busy;
+                clicked => {
+                    ReportModel.dismiss();
+                }
+            }
+            Button {
+                text: DiagnosticsText.create-only-button;
+                enabled: !ReportModel.collecting && !ReportModel.busy;
+                clicked => {
+                    ReportModel.create(false);
+                }
+            }
+            Button {
+                text: DiagnosticsText.create-and-open-button;
+                primary: true;
+                enabled: !ReportModel.collecting && !ReportModel.busy;
+                clicked => {
+                    ReportModel.create(true);
+                }
+            }
+        }
+    }
+
+    // 完成页。
+    if ReportModel.done: VerticalLayout {
+        padding: 28px;
+        spacing: 16px;
+        alignment: start;
+        Text {
+            text: DiagnosticsText.done-title;
+            color: Theme.text;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        Text {
+            text: DiagnosticsText.done-help;
+            color: Theme.text-secondary;
+            wrap: word-wrap;
+        }
+        HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            Button {
+                text: DiagnosticsText.reveal-button;
+                clicked => {
+                    ReportModel.reveal();
+                }
+            }
+            Button {
+                text: DiagnosticsText.open-issue-button;
+                clicked => {
+                    ReportModel.open-issue();
+                }
+            }
+            Button {
+                text: DiagnosticsText.close-button;
+                primary: true;
+                clicked => {
+                    ReportModel.close();
+                }
+            }
+        }
+    }
+}

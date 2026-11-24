@@ -757,14 +757,16 @@ def slint_file(domains: list[Domain]) -> str:
 
 
 def slint_rust_file(domains: list[Domain]) -> str:
-    """把某种语言的文字填进设置窗口的各个 Slint 全局。"""
+    """把某种语言的文字填进 Slint 全局。每个窗口有自己的一份全局，所以写成宏，设置窗口与问题报告窗口各展开一次。"""
     globals_ = [slint_global(p) for _, p, _ in slint_protos(domains)]
     lines = [f"// {GENERATED}", "",
-             "//! 按界面语言把文字填进设置窗口的 Slint 全局（ui/generated/l10n.slint）。", "",
+             "//! 按界面语言把文字填进各窗口的 Slint 全局（ui/generated/l10n.slint）。", "",
              "use eveo_core::model::AppLanguage;", "use slint::ComponentHandle;", "",
-             f"use crate::{{SettingsWindow, {', '.join(globals_)}}};", "",
-             "/// 按语言填设置窗口的全部文字。切换语言后再调一次即可，属性变化会让界面重画。",
-             "pub fn apply(ui: &SettingsWindow, language: AppLanguage) {"]
+             f"use crate::{{ProblemReportWindow, SettingsWindow, {', '.join(globals_)}}};", "",
+             "/// 填一个窗口的全部全局。",
+             "macro_rules! fill {",
+             "    ($ui:expr, $language:expr) => {{",
+             "    let (ui, language) = ($ui, $language);"]
     for domain, proto, info in slint_protos(domains):
         var = snake(info.accessor)
         lines.append(f"    let {var} = eveo_l10n::{var}(language);")
@@ -783,7 +785,15 @@ def slint_rust_file(domains: list[Domain]) -> str:
             params = [snake(p.name) for p in key.params]
             args = ", ".join(SLINT_TO_RUST[p.type].format(v=v) for p, v in zip(key.params, params))
             lines.append(f"    text.on_{name}(move |{', '.join(params)}| {var}.{name}({args}).into());")
-    lines += ["}", ""]
+    lines += ["    }};", "}", "",
+              "/// 按语言填设置窗口的全部文字。切换语言后再调一次即可，属性变化会让界面重画。",
+              "pub fn apply(ui: &SettingsWindow, language: AppLanguage) {",
+              "    fill!(ui, language);",
+              "}", "",
+              "/// 按语言填问题报告窗口的文字（与设置窗口同一套全局，各窗口各有一份）。",
+              "pub fn apply_report(ui: &ProblemReportWindow, language: AppLanguage) {",
+              "    fill!(ui, language);",
+              "}", ""]
     return "\n".join(lines)
 
 

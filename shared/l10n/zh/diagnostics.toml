@@ -9,13 +9,12 @@ verboseLoggingToggle = "详细日志"
 verboseLoggingHelp = "在日志文件里写入更多细节。重现问题之前打开它。"
 logLocationLabel = "日志文件"
 showLogsButton = { macos = "在访达中显示日志", windows = "在资源管理器中显示日志" }
-fileLogNotAvailableYet = "文件日志在后续测试版加上。"
 reportButton = "报告问题…"
 
 windowTitle = "报告问题"
 intro = "将生成一个 zip 文件，包含下列各项。不会自动发送任何内容：由你自己把文件附到 GitHub Issue 上。"
 crashIntro = "EVE-O Preview 上次意外退出。提交报告有助于找到原因。"
-redactionNote = "你的 macOS 用户名、电脑名称和 EVE 角色名已替换成占位符。"
+redactionNote = { macos = "你的 macOS 用户名、电脑名称和 EVE 角色名已替换成占位符。", windows = "你的 Windows 用户名、计算机名和 EVE 角色名已替换成占位符。" }
 
 itemsHeader = "报告包含的内容"
 itemSummary = "环境摘要"
@@ -34,8 +33,8 @@ notNowButton = "以后再说"
 dontReportButton = "不报告"
 
 doneTitle = "报告已生成"
-doneHelp = "访达里已选中 zip 文件。把它拖进浏览器里的 Issue 页面，写下经过，然后提交。"
-revealButton = "在访达中显示"
+doneHelp = { macos = "访达里已选中 zip 文件。把它拖进浏览器里的 Issue 页面，写下经过，然后提交。", windows = "资源管理器里已选中 zip 文件。把它拖进浏览器里的 Issue 页面，写下经过，然后提交。" }
+revealButton = { macos = "在访达中显示", windows = "在资源管理器中显示" }
 openIssueButton = "再次打开 GitHub"
 closeButton = "关闭"
 

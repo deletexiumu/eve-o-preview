@@ -26,8 +26,6 @@ pub trait DiagnosticsStrings: Sync {
     fn log_location_label(&self) -> &'static str;
     /// 「在访达中显示日志」按钮。
     fn show_logs_button(&self) -> &'static str;
-    /// Windows 测试版：文件日志还没做，诊断一组下的说明。
-    fn file_log_not_available_yet(&self) -> &'static str;
     /// 「报告问题…」按钮。
     fn report_button(&self) -> &'static str;
     // 报告窗口的说明
@@ -110,9 +108,6 @@ impl DiagnosticsStrings for DiagnosticsStringsEn {
     fn show_logs_button(&self) -> &'static str {
         "Show Logs in File Explorer"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "File logging arrives in a later test build."
-    }
     fn report_button(&self) -> &'static str {
         "Report a Problem…"
     }
@@ -126,7 +121,7 @@ impl DiagnosticsStrings for DiagnosticsStringsEn {
         "EVE-O Preview quit unexpectedly last time. A report helps to fix the cause."
     }
     fn redaction_note(&self) -> &'static str {
-        "Your macOS user name, computer name and EVE character names are replaced with placeholders."
+        "Your Windows user name, computer name and EVE character names are replaced with placeholders."
     }
     fn items_header(&self) -> &'static str {
         "Included in the report"
@@ -177,10 +172,10 @@ impl DiagnosticsStrings for DiagnosticsStringsEn {
         "Report created"
     }
     fn done_help(&self) -> &'static str {
-        "Finder shows the zip file. Drag it into the issue page in your browser, describe what happened, then submit."
+        "File Explorer shows the zip file. Drag it into the issue page in your browser, describe what happened, then submit."
     }
     fn reveal_button(&self) -> &'static str {
-        "Show in Finder"
+        "Show in File Explorer"
     }
     fn open_issue_button(&self) -> &'static str {
         "Open GitHub Again"
@@ -218,9 +213,6 @@ impl DiagnosticsStrings for DiagnosticsStringsZh {
     fn show_logs_button(&self) -> &'static str {
         "在资源管理器中显示日志"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "文件日志在后续测试版加上。"
-    }
     fn report_button(&self) -> &'static str {
         "报告问题…"
     }
@@ -234,7 +226,7 @@ impl DiagnosticsStrings for DiagnosticsStringsZh {
         "EVE-O Preview 上次意外退出。提交报告有助于找到原因。"
     }
     fn redaction_note(&self) -> &'static str {
-        "你的 macOS 用户名、电脑名称和 EVE 角色名已替换成占位符。"
+        "你的 Windows 用户名、计算机名和 EVE 角色名已替换成占位符。"
     }
     fn items_header(&self) -> &'static str {
         "报告包含的内容"
@@ -282,10 +274,10 @@ impl DiagnosticsStrings for DiagnosticsStringsZh {
         "报告已生成"
     }
     fn done_help(&self) -> &'static str {
-        "访达里已选中 zip 文件。把它拖进浏览器里的 Issue 页面，写下经过，然后提交。"
+        "资源管理器里已选中 zip 文件。把它拖进浏览器里的 Issue 页面，写下经过，然后提交。"
     }
     fn reveal_button(&self) -> &'static str {
-        "在访达中显示"
+        "在资源管理器中显示"
     }
     fn open_issue_button(&self) -> &'static str {
         "再次打开 GitHub"
@@ -323,9 +315,6 @@ impl DiagnosticsStrings for DiagnosticsStringsRu {
     fn show_logs_button(&self) -> &'static str {
         "Показать журналы в Проводнике"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "Запись журнала в файл появится в одной из следующих тестовых сборок."
-    }
     fn report_button(&self) -> &'static str {
         "Сообщить о проблеме…"
     }
@@ -339,7 +328,7 @@ impl DiagnosticsStrings for DiagnosticsStringsRu {
         "В прошлый раз EVE-O Preview неожиданно завершилась. Отчёт поможет найти причину."
     }
     fn redaction_note(&self) -> &'static str {
-        "Имя пользователя macOS, имя компьютера и имена персонажей EVE заменены заполнителями."
+        "Имя пользователя Windows, имя компьютера и имена персонажей EVE заменены заполнителями."
     }
     fn items_header(&self) -> &'static str {
         "Содержимое отчёта"
@@ -391,10 +380,10 @@ impl DiagnosticsStrings for DiagnosticsStringsRu {
         "Отчёт создан"
     }
     fn done_help(&self) -> &'static str {
-        "В Finder выделен zip-файл. Перетащите его на страницу issue в браузере, опишите, что произошло, и отправьте."
+        "В Проводнике выделен zip-файл. Перетащите его на страницу issue в браузере, опишите, что произошло, и отправьте."
     }
     fn reveal_button(&self) -> &'static str {
-        "Показать в Finder"
+        "Показать в Проводнике"
     }
     fn open_issue_button(&self) -> &'static str {
         "Снова открыть GitHub"
@@ -432,9 +421,6 @@ impl DiagnosticsStrings for DiagnosticsStringsJa {
     fn show_logs_button(&self) -> &'static str {
         "エクスプローラーでログを表示"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "ファイルへのログ出力は今後のテスト版で追加されます。"
-    }
     fn report_button(&self) -> &'static str {
         "問題を報告…"
     }
@@ -448,7 +434,7 @@ impl DiagnosticsStrings for DiagnosticsStringsJa {
         "前回 EVE-O Preview が予期せず終了しました。レポートは原因の解明に役立ちます。"
     }
     fn redaction_note(&self) -> &'static str {
-        "macOS のユーザ名、コンピュータ名、EVE のキャラクター名はプレースホルダに置き換えられます。"
+        "Windows のユーザ名、コンピュータ名、EVE のキャラクター名はプレースホルダに置き換えられます。"
     }
     fn items_header(&self) -> &'static str {
         "レポートに含まれる項目"
@@ -496,10 +482,10 @@ impl DiagnosticsStrings for DiagnosticsStringsJa {
         "レポートを作成しました"
     }
     fn done_help(&self) -> &'static str {
-        "Finder に zip ファイルが表示されています。ブラウザの Issue ページにドラッグし、何が起きたかを書いてから送信してください。"
+        "エクスプローラーに zip ファイルが表示されています。ブラウザの Issue ページにドラッグし、何が起きたかを書いてから送信してください。"
     }
     fn reveal_button(&self) -> &'static str {
-        "Finder で表示"
+        "エクスプローラーで表示"
     }
     fn open_issue_button(&self) -> &'static str {
         "GitHub をもう一度開く"
@@ -537,9 +523,6 @@ impl DiagnosticsStrings for DiagnosticsStringsKo {
     fn show_logs_button(&self) -> &'static str {
         "파일 탐색기에서 로그 보기"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "파일 로그는 이후 테스트 빌드에서 추가됩니다."
-    }
     fn report_button(&self) -> &'static str {
         "문제 신고…"
     }
@@ -553,7 +536,7 @@ impl DiagnosticsStrings for DiagnosticsStringsKo {
         "지난번에 EVE-O Preview가 예기치 않게 종료되었습니다. 보고서는 원인을 찾는 데 도움이 됩니다."
     }
     fn redaction_note(&self) -> &'static str {
-        "macOS 사용자 이름, 컴퓨터 이름, EVE 캐릭터 이름은 자리 표시자로 바뀝니다."
+        "Windows 사용자 이름, 컴퓨터 이름, EVE 캐릭터 이름은 자리 표시자로 바뀝니다."
     }
     fn items_header(&self) -> &'static str {
         "보고서에 포함되는 항목"
@@ -601,10 +584,10 @@ impl DiagnosticsStrings for DiagnosticsStringsKo {
         "보고서를 만들었습니다"
     }
     fn done_help(&self) -> &'static str {
-        "Finder에 zip 파일이 표시되어 있습니다. 브라우저의 이슈 페이지로 끌어다 놓고, 무슨 일이 있었는지 적은 다음 제출하십시오."
+        "파일 탐색기에 zip 파일이 표시되어 있습니다. 브라우저의 이슈 페이지로 끌어다 놓고, 무슨 일이 있었는지 적은 다음 제출하십시오."
     }
     fn reveal_button(&self) -> &'static str {
-        "Finder에서 보기"
+        "파일 탐색기에서 보기"
     }
     fn open_issue_button(&self) -> &'static str {
         "GitHub 다시 열기"
@@ -642,9 +625,6 @@ impl DiagnosticsStrings for DiagnosticsStringsFr {
     fn show_logs_button(&self) -> &'static str {
         "Afficher les journaux dans l'Explorateur de fichiers"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "La journalisation dans un fichier arrivera dans une prochaine version de test."
-    }
     fn report_button(&self) -> &'static str {
         "Signaler un problème…"
     }
@@ -658,7 +638,7 @@ impl DiagnosticsStrings for DiagnosticsStringsFr {
         "EVE-O Preview a quitté inopinément la dernière fois. Un rapport aide à en corriger la cause."
     }
     fn redaction_note(&self) -> &'static str {
-        "Votre nom d'utilisateur macOS, le nom de l'ordinateur et les noms de vos personnages EVE sont remplacés par des marqueurs."
+        "Votre nom d'utilisateur Windows, le nom de l'ordinateur et les noms de vos personnages EVE sont remplacés par des marqueurs."
     }
     fn items_header(&self) -> &'static str {
         "Contenu du rapport"
@@ -709,10 +689,10 @@ impl DiagnosticsStrings for DiagnosticsStringsFr {
         "Rapport créé"
     }
     fn done_help(&self) -> &'static str {
-        "Le Finder affiche le fichier zip. Faites-le glisser dans la page de l'issue dans votre navigateur, décrivez ce qui s'est passé, puis envoyez."
+        "L'Explorateur de fichiers affiche le fichier zip. Faites-le glisser dans la page de l'issue dans votre navigateur, décrivez ce qui s'est passé, puis envoyez."
     }
     fn reveal_button(&self) -> &'static str {
-        "Afficher dans le Finder"
+        "Afficher dans l'Explorateur de fichiers"
     }
     fn open_issue_button(&self) -> &'static str {
         "Rouvrir GitHub"
@@ -750,9 +730,6 @@ impl DiagnosticsStrings for DiagnosticsStringsDe {
     fn show_logs_button(&self) -> &'static str {
         "Protokolle im Explorer zeigen"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "Die Protokollierung in eine Datei kommt in einem späteren Testbuild."
-    }
     fn report_button(&self) -> &'static str {
         "Problem melden …"
     }
@@ -766,7 +743,7 @@ impl DiagnosticsStrings for DiagnosticsStringsDe {
         "EVE-O Preview wurde beim letzten Mal unerwartet beendet. Ein Bericht hilft, die Ursache zu beheben."
     }
     fn redaction_note(&self) -> &'static str {
-        "macOS-Benutzername, Computername und EVE-Charakternamen werden durch Platzhalter ersetzt."
+        "Windows-Benutzername, Computername und EVE-Charakternamen werden durch Platzhalter ersetzt."
     }
     fn items_header(&self) -> &'static str {
         "Im Bericht enthalten"
@@ -817,10 +794,10 @@ impl DiagnosticsStrings for DiagnosticsStringsDe {
         "Bericht erstellt"
     }
     fn done_help(&self) -> &'static str {
-        "Der Finder zeigt die ZIP-Datei. Diese in die Issue-Seite im Browser ziehen, das Geschehen beschreiben und absenden."
+        "Der Explorer zeigt die ZIP-Datei. Diese in die Issue-Seite im Browser ziehen, das Geschehen beschreiben und absenden."
     }
     fn reveal_button(&self) -> &'static str {
-        "Im Finder zeigen"
+        "Im Explorer zeigen"
     }
     fn open_issue_button(&self) -> &'static str {
         "GitHub erneut öffnen"
@@ -858,9 +835,6 @@ impl DiagnosticsStrings for DiagnosticsStringsEs {
     fn show_logs_button(&self) -> &'static str {
         "Mostrar registros en el Explorador de archivos"
     }
-    fn file_log_not_available_yet(&self) -> &'static str {
-        "El registro en archivo llegará en una próxima versión de prueba."
-    }
     fn report_button(&self) -> &'static str {
         "Informar de un problema…"
     }
@@ -874,7 +848,7 @@ impl DiagnosticsStrings for DiagnosticsStringsEs {
         "EVE-O Preview se cerró inesperadamente la última vez. Un informe ayuda a corregir la causa."
     }
     fn redaction_note(&self) -> &'static str {
-        "Tu nombre de usuario de macOS, el nombre del ordenador y los nombres de los personajes de EVE se sustituyen por marcadores."
+        "Tu nombre de usuario de Windows, el nombre del equipo y los nombres de los personajes de EVE se sustituyen por marcadores."
     }
     fn items_header(&self) -> &'static str {
         "Incluido en el informe"
@@ -925,10 +899,10 @@ impl DiagnosticsStrings for DiagnosticsStringsEs {
         "Informe creado"
     }
     fn done_help(&self) -> &'static str {
-        "Finder muestra el archivo zip. Arrástralo a la página del issue en tu navegador, describe lo ocurrido y envíalo."
+        "El Explorador de archivos muestra el archivo zip. Arrástralo a la página del issue en tu navegador, describe lo ocurrido y envíalo."
     }
     fn reveal_button(&self) -> &'static str {
-        "Mostrar en Finder"
+        "Mostrar en el Explorador de archivos"
     }
     fn open_issue_button(&self) -> &'static str {
         "Volver a abrir GitHub"
