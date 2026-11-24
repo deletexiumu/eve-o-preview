@@ -122,10 +122,16 @@ export component UpdateWindow inherits Window {
     in property <string> ui-font: "Segoe UI Variable Text";
     title: UpdateText.window-title;
     icon: @image-url("images/app-icon.png");
-    preferred-width: 640px;
-    preferred-height: 540px;
+    // 有没有更新说明。没有说明时（检查中、已是最新、出错）窗口里只有两三行字和按钮：高度固定成内容的高度、
+    // 宽度固定成最小宽度。最小与最大尺寸相同，窗口就不能缩放，Slint 建窗口时也会去掉最大化按钮，看起来像个对话框，
+    // 而不是一大片空白的普通窗口。有说明时照常可以缩放，说明框分走多出来的高度。
+    property <bool> has-notes: UpdateModel.notes.length > 0;
+    preferred-width: has-notes ? 640px : 520px;
+    preferred-height: has-notes ? 540px : content.min-height;
     min-width: 520px;
-    min-height: 360px;
+    min-height: has-notes ? 360px : content.min-height;
+    max-width: has-notes ? 100000px : 520px;
+    max-height: has-notes ? 100000px : content.min-height;
     background: Theme.window-background;
     default-font-family: ui-font;
     default-font-size: 14px;
@@ -138,7 +144,7 @@ export component UpdateWindow inherits Window {
         Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light;
     }
 
-    VerticalLayout {
+    content := VerticalLayout {
         padding: 24px;
         spacing: 12px;
 
@@ -218,8 +224,8 @@ export component UpdateWindow inherits Window {
                 }
             }
         }
-        // 没有说明时用一个弹性空白把按钮推到底部。
-        if UpdateModel.notes.length == 0: Rectangle {
+        // 没有说明时用一个弹性空白把按钮推到底部（窗口高度固定成内容高度时它是 0 高）。
+        if !has-notes: Rectangle {
             vertical-stretch: 1;
         }
 
