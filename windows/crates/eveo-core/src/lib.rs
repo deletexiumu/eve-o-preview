@@ -18,6 +18,7 @@
 //! - [`config`]：配置的迁移、校验与配置方案的增删改。
 //! - [`diagnostics`]：会话标记与上一次运行的归类、崩溃的证据。
 //! - [`translation`]：聊天翻译的接口解析、判断与分批、提示词、请求与答复。
+//! - [`update`]：自动更新的版本号、Release 列表、发布说明、决策规则与更新包的核对。
 //! - [`support`]：字符串枚举与宽松解码、十六进制颜色、与 Foundation 对齐的文本处理。
 
 // 声明宏要在使用它们的模块之前引入，所以 support 放在最前面。
@@ -40,3 +41,4 @@ pub mod planning;
 pub mod static_data;
 pub mod switching;
 pub mod translation;
+pub mod update;
