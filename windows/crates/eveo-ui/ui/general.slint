@@ -80,6 +80,8 @@ export component GeneralPage inherits VerticalLayout {
     }
 
     // 开机启动：与语言一样对整个应用生效，放在更新一组之前。
+    // 上面的脚注属于语言卡片；这里多留 12 像素，让脚注明显跟着上面的卡片，不像夹在两张卡片之间。
+    Rectangle { height: 12px; }
     SettingRow {
         title: SettingsText.launch-at-login;
         description: GeneralModel.launch-at-login-note != "" ? GeneralModel.launch-at-login-note : SettingsText.launch-at-login-help;
