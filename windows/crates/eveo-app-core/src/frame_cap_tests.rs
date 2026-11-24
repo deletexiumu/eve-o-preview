@@ -53,7 +53,7 @@ fn record_path(name: &str) -> PathBuf {
 fn settle(controller: &mut FrameCapController) {
     let deadline = Instant::now() + Duration::from_secs(5);
     while controller.running.is_some() && Instant::now() < deadline {
-        controller.tick();
+        controller.tick(Instant::now());
         std::thread::sleep(Duration::from_millis(5));
     }
     assert!(controller.running.is_none(), "同步没有跑完");
@@ -135,4 +135,23 @@ fn record_file_round_trip() {
     save_record(&path, None).expect("删");
     assert!(load_record(&path).is_none());
     save_record(&path, None).expect("再删");
+}
+
+/// 推迟同步：期间多次改动只写最后的值；到期之前不碰驱动。
+#[test]
+fn sync_later_writes_only_final_value() {
+    let mut controller = FrameCapController::new(needs_admin, record_path("later"));
+    let start = Instant::now();
+    controller.sync_later(Some(10), start);
+    controller.sync_later(Some(45), start + Duration::from_millis(200));
+    controller.sync_later(Some(450), start + Duration::from_millis(400));
+    controller.tick(start + Duration::from_millis(900));
+    assert!(controller.running.is_none());
+    controller.tick(start + Duration::from_millis(1400));
+    assert!(controller.running.is_some());
+    assert_eq!(controller.requested, Some(Some(450)));
+    settle(&mut controller);
+    // 与上一次想要的值相同：不再推迟。
+    controller.sync_later(Some(450), start);
+    assert!(controller.deferred.is_none());
 }

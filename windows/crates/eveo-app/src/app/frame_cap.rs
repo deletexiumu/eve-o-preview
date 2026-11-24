@@ -3,7 +3,7 @@
 // 「通用」页「游戏帧率」一组与应用之间的连接：用 NVIDIA 驱动给 exefile.exe 限帧。
 // 调度在 eveo_app_core::frame_cap（后台线程、排队、还原记录），规则在 eveo_core::frame_cap，
 // 读写驱动在平台层 nvidia 模块；这里只把三者接起来：
-// - 启动时与配置变化时把配置里想要的帧数交给控制器（值没变时控制器自己跳过）；
+// - 启动时把配置里想要的帧数立即交给控制器；配置变化时推迟约 1 秒再交（打字时只写最终值，值没变时控制器自己跳过）；
 // - 定时器里取走同步结果，状态变了就刷新设置页的开关能否拨与说明。
 // 应用退出时不还原：这是驱动设置，开关开着就一直有效，本工具没有运行时也一样；用户关掉开关才还原。
 
@@ -28,21 +28,31 @@ fn driver(planner: &mut dyn FnMut(&DriverState) -> Plan) -> Result<(Plan, Driver
 }
 
 impl App {
-    /// 配置里想要的帧数交给控制器：启动时调一次（顺带检测是不是 NVIDIA），之后每次配置变化都调。
+    /// 启动时把配置里想要的帧数立即交给控制器（顺带检测是不是 NVIDIA）。
+    pub(super) fn frame_cap_start(&mut self) {
+        let desired = self.desired_frame_cap();
+        self.frame_cap.sync(desired);
+    }
+
+    /// 配置变化后：推迟一会儿再同步，连续的改动只写最后的值。
     pub(super) fn frame_cap_config_changed(&mut self) {
-        let desired = self
-            .coordinator
+        let desired = self.desired_frame_cap();
+        self.frame_cap.sync_later(desired, std::time::Instant::now());
+    }
+
+    /// 配置里想要的帧数：打开时是夹到范围内的帧数，关闭或没设置过时为 `None`。
+    fn desired_frame_cap(&self) -> Option<u32> {
+        self.coordinator
             .config()
             .general
             .frame_cap
             .as_ref()
-            .and_then(|settings| settings.desired_fps());
-        self.frame_cap.sync(desired);
+            .and_then(|settings| settings.desired_fps())
     }
 
     /// 定时器里调用：同步跑完且状态变了时刷新设置页。
     pub(super) fn frame_cap_tick(&mut self) {
-        if self.frame_cap.tick()
+        if self.frame_cap.tick(std::time::Instant::now())
             && let Some(window) = &self.settings
         {
             self.show_frame_cap(window);

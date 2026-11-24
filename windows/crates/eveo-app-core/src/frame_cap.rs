@@ -8,6 +8,9 @@
 // - 还原记录（frame-cap.json）只在后台线程里读写，同步是串行的，不会两个线程同时改。
 // - 想要的值没变就不再同步：配置每次变化（拖动缩略图等）都会调到这里，失败后不会反复去碰驱动；
 //   用户拨一下开关或改帧数就会重试。
+// - 配置变化时推迟 DEBOUNCE 再同步（sync_later）：在帧数框里打字时每个键都会改配置，打「450」会先后得到
+//   4（夹成 10）、45、450。驱动每保存一次，正在运行的客户端都会重新读设置（真机上看到画面闪成灰色），
+//   所以只写停下来之后的最终值。启动时的同步不用等。
 // 这个模块不依赖 windows crate，用假的驱动函数在 Linux 上测试。
 
 //! NVIDIA 驱动限帧的控制器。
@@ -16,10 +19,14 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use eveo_core::frame_cap::{self, DriverState, FrameCapStatus, OwnershipRecord, Plan};
 
 use crate::log::Logger;
+
+/// 配置变化后等多久再写驱动：用户停止输入后约 1 秒。
+pub const DEBOUNCE: Duration = Duration::from_millis(1000);
 
 /// 限帧的日志。
 const LOG: Logger = Logger::new("FrameCap");
@@ -50,6 +57,8 @@ pub struct FrameCapController {
     requested: Option<Option<u32>>,
     /// 跑着时又变了的、最后想要的值。
     queued: Option<Option<u32>>,
+    /// 推迟同步的值与到期时刻（见 sync_later）。
+    deferred: Option<(Option<u32>, Instant)>,
 }
 
 impl FrameCapController {
@@ -62,6 +71,7 @@ impl FrameCapController {
             running: None,
             requested: None,
             queued: None,
+            deferred: None,
         }
     }
 
@@ -89,6 +99,14 @@ impl FrameCapController {
         self.start(desired);
     }
 
+    /// 推迟到 `now + DEBOUNCE` 再同步：期间又调用时以最后一次的值与时刻为准。值与上一次想要的相同时取消推迟。
+    pub fn sync_later(&mut self, desired: Option<u32>, now: Instant) {
+        if self.deferred.is_none() && self.running.is_none() && self.requested == Some(desired) {
+            return;
+        }
+        self.deferred = Some((desired, now + DEBOUNCE));
+    }
+
     /// 在后台线程里同步一次。线程建不起来（系统资源耗尽）时按失败处理。
     fn start(&mut self, desired: Option<u32>) {
         self.requested = Some(desired);
@@ -111,8 +129,14 @@ impl FrameCapController {
         }
     }
 
-    /// 在主循环的定时器里调用：取走跑完的同步，状态变了时返回 true（调用方刷新设置页）。
-    pub fn tick(&mut self) -> bool {
+    /// 在主循环的定时器里调用：到期的推迟同步发出去，取走跑完的同步；状态变了时返回 true（调用方刷新设置页）。
+    pub fn tick(&mut self, now: Instant) -> bool {
+        if let Some((desired, due)) = self.deferred
+            && now >= due
+        {
+            self.deferred = None;
+            self.sync(desired);
+        }
         let Some(receiver) = &self.running else {
             return false;
         };

@@ -319,7 +319,7 @@ pub fn run() -> ExitCode {
     // 聊天日志按读入的配置开始（ConfigChanged 只在配置变化时才发，启动时要自己交一次）。
     runtime.app.borrow_mut().chat_config_changed();
     // 限帧同理：启动时同步一次，顺带检测是不是 NVIDIA。
-    runtime.app.borrow_mut().frame_cap_config_changed();
+    runtime.app.borrow_mut().frame_cap_start();
     runtime.app.borrow_mut().start_updates(&runtime);
     if first_run && !background {
         runtime.post(Input::Event(Event::Tray(eveo_app_core::TrayAction::OpenSettings)));
@@ -528,7 +528,7 @@ impl App {
                 self.update_language();
                 // 预警的开关、频道与「保留最近」可能变了：聊天日志的跟踪与浮窗的内容跟着变。
                 self.chat_config_changed();
-                // 「游戏帧率」可能变了：写进 NVIDIA 驱动（后台线程，想要的值没变时跳过）。
+                // 「游戏帧率」可能变了：约 1 秒后写进 NVIDIA 驱动（后台线程，想要的值没变时跳过）。
                 self.frame_cap_config_changed();
                 // 「详细日志」可能变了：立即生效。
                 logging::apply_level(&config);
