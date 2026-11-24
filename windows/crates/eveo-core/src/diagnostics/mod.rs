@@ -9,4 +9,5 @@
 //! 会话标记与崩溃的证据。
 
 pub mod crash;
+pub mod redactor;
 pub mod session;
