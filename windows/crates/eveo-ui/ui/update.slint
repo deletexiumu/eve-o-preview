@@ -143,7 +143,10 @@ export component UpdateWindow inherits Window {
         spacing: 12px;
 
         // 标题行：检查中、核对中、安装中与重新启动中前面有一个转圈。
+        // 除了说明框（或没有说明时的空白），各行都不参与纵向的弹性分配（vertical-stretch: 0）：
+        // 没有子元素的布局（例如安装中没有按钮的按钮行）默认也会分走剩余空间，说明框会被挤成一行高。
         HorizontalLayout {
+            vertical-stretch: 0;
             spacing: 10px;
             alignment: start;
             if UpdateModel.phase == 0 || UpdateModel.phase == 4 || UpdateModel.phase == 6 || (UpdateModel.phase == 7 && !UpdateModel.relaunch-failed): Spinner {
@@ -193,6 +196,8 @@ export component UpdateWindow inherits Window {
         }
         if UpdateModel.notes.length > 0: Rectangle {
             vertical-stretch: 1;
+            // 至少露出几行说明，窗口缩到最小时也不会只剩一条缝。
+            min-height: 120px;
             border-width: 1px;
             border-color: Theme.card-border;
             border-radius: 6px;
@@ -220,6 +225,7 @@ export component UpdateWindow inherits Window {
 
         // 进度：下载中有确定的进度条，核对、安装、重新启动时不定。
         if UpdateModel.phase >= 3 && UpdateModel.phase != 5 && UpdateModel.phase <= 7 && !UpdateModel.relaunch-failed: VerticalLayout {
+            vertical-stretch: 0;
             spacing: 4px;
             ProgressIndicator {
                 indeterminate: UpdateModel.progress < 0;
@@ -241,6 +247,7 @@ export component UpdateWindow inherits Window {
 
         // 底部按钮：靠右，主操作在最右。
         HorizontalLayout {
+            vertical-stretch: 0;
             alignment: end;
             spacing: 8px;
             // 可用：跳过此版本、稍后、安装更新（或打开发布页）。

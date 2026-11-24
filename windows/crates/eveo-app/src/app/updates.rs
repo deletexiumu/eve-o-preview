@@ -418,8 +418,10 @@ impl App {
                 Command::Relaunch => self.relaunch(runtime),
                 Command::ShowWindow { activate } => self.show_update_window(activate, runtime),
                 Command::Notify(version) => {
-                    let text = eveo_l10n::updates(self.language).status_available(&version);
-                    match self.tray.notify("EVE-O Preview", &text) {
+                    // 标题写哪个版本可用，正文告诉用户点通知能做什么；应用名由通知来源一栏显示，不再重复。
+                    let strings = eveo_l10n::updates(self.language);
+                    let title = strings.headline(&version);
+                    match self.tray.notify(&title, strings.notification_body()) {
                         Ok(()) => LOG.info(format_args!("已通知新版本 {version}")),
                         Err(code) => LOG.error(format_args!("更新通知没有发出：错误码 {code}")),
                     }

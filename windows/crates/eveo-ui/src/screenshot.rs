@@ -315,6 +315,68 @@ pub fn report_png(options: &ShotOptions, done: bool) -> Result<Vec<u8>, String> 
     encode(&pixels, width, height)
 }
 
+/// 更新窗口的截图：示例发布说明（含一个中间版本），按给定的阶段显示。
+/// 用来核对各阶段的排版，尤其是没有按钮的安装中与重新启动中（按钮行为空时说明框不能被挤小）。
+pub fn update_png(options: &ShotOptions, phase: crate::update::PhaseKind) -> Result<Vec<u8>, String> {
+    use crate::update::{PhaseKind, UpdateView};
+    let window = window()?;
+    window.dispatch_event(WindowEvent::ScaleFactorChanged {
+        scale_factor: options.scale,
+    });
+    let ui = crate::UpdateWindow::new().map_err(|e| e.to_string())?;
+    ui.set_dark(options.dark);
+    ui.set_ui_font(options.font.as_str().into());
+    crate::update::set_language(&ui, options.language);
+    // 说明是虚构的：最新版两条列表与一段代码，中间版本一条列表。
+    let notes = crate::update::notes_blocks(
+        options.language,
+        &[
+            (
+                "0.9.1",
+                "## Improvements\n\n- Faster thumbnail updates.\n- Clearer tray menu.\n\n```\nEVEO_LOG_DIR=D:\\logs\n```",
+            ),
+            ("0.9.0", "- First public beta."),
+        ],
+        |version| format!("Version {version}"),
+    );
+    // 只有下载中有确定的进度（42%）；核对、安装时进度条是不定的，可用时不显示进度。
+    // 标题、副标题与进度文字直接写死：截图只核对排版，各语言的长度差别由 set_language 设的按钮文字体现。
+    // test_feed 打开，让「测试地址」标记也出现在图里，核对它在标题行里的位置与明暗两套颜色。
+    let downloading = phase == PhaseKind::Downloading;
+    let view = UpdateView {
+        phase,
+        headline: "EVE-O Preview 0.9.1".to_owned(),
+        subtitle: "0.9.0".to_owned(),
+        notify_only: String::new(),
+        test_feed: true,
+        notes,
+        more_on_release_page: false,
+        progress: downloading.then_some(0.42),
+        progress_text: if phase == PhaseKind::Available {
+            String::new()
+        } else {
+            "18.4 MB / 43.8 MB".to_owned()
+        },
+        has_release: true,
+        relaunch_failed: false,
+    };
+    crate::update::apply(&ui, &view);
+    // 以下与其他窗口的截图相同：按缩放算出物理像素，显示、推进定时器、画进内存，再编码成 PNG。
+    let width = (options.size.0 as f32 * options.scale).round() as u32;
+    let height = (options.size.1 as f32 * options.scale).round() as u32;
+    window.set_size(PhysicalSize::new(width, height));
+    ui.show().map_err(|e| e.to_string())?;
+    // 推进一次定时器，让 init 里设的明暗配色生效。
+    slint::platform::update_timers_and_animations();
+    let mut pixels = vec![PremultipliedRgbaColor::default(); width as usize * height as usize];
+    window.request_redraw();
+    window.draw_if_needed(|renderer| {
+        renderer.render(&mut pixels, width as usize);
+    });
+    ui.hide().map_err(|e| e.to_string())?;
+    encode(&pixels, width, height)
+}
+
 /// 截图用的配置方案与在线客户端：两个在线角色（一个设了自己的高亮颜色）、一个离线且隐藏的角色、一个登录界面。
 /// 角色名是虚构的。
 fn sample() -> (Profile, Vec<EveClient>) {

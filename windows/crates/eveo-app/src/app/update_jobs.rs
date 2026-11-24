@@ -168,6 +168,8 @@ pub(super) fn prepare(
         MAX_ARCHIVE_BYTES,
         TIMEOUT_SECONDS,
         &mut |received, total| {
+            // 答复没带 Content-Length 时用发布列表里附件的大小，进度条照样能显示比例。
+            let total = total.or(asset.size);
             on_progress(Progress { received, total });
             !cancel.load(Ordering::Relaxed)
         },

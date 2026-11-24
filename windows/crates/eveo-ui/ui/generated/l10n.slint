@@ -1035,4 +1035,6 @@ export global UpdateText {
     pure callback error-unsupported-system(minimum: string) -> string;
     // `swapFailed`。
     in property <string> error-swap-failed: "The app couldn't be replaced.";
+    // Windows：自动检查发现新版本时托盘通知的正文（标题是 headline）。点通知会打开软件更新窗口。
+    in property <string> notification-body: "Click to see what's new and install.";
 }

@@ -67,3 +67,5 @@ errorDiskImage = "Не удалось открыть загруженный об
 errorVerification = "Не удалось проверить новую версию, поэтому она не установлена."
 errorUnsupportedSystem = "Для этой версии требуется macOS {minimum} или новее."
 errorSwapFailed = "Не удалось заменить приложение."
+
+notificationBody = "Нажмите, чтобы узнать, что нового, и установить."

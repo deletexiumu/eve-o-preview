@@ -216,3 +216,7 @@ params = ["_ minimum: String"]
 
 [UpdateStrings.errorSwapFailed]
 doc = "`swapFailed`。"
+
+[UpdateStrings.notificationBody]
+doc = "Windows：自动检查发现新版本时托盘通知的正文（标题是 headline）。点通知会打开软件更新窗口。"
+platforms = ["windows"]

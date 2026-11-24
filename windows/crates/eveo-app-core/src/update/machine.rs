@@ -422,8 +422,31 @@ impl UpdateMachine {
             self.next_wake_at = now + WAKE_INTERVAL;
             let at_launch = std::mem::replace(&mut self.wake_at_launch, false);
             commands.extend(self.automatic_check_if_due(state, now, at_launch));
+            // 只在启动后的第一次醒来补一次：之后每小时的醒来要么到时检查（检查完成时自己决定是否下载），
+            // 要么什么都不做；已经在检查或下载时 commands 非空或 is_checking 为真，不会重复发 Prepare。
+            if at_launch && commands.is_empty() && !self.is_checking {
+                commands.extend(self.resume_cached_download(state));
+            }
         }
         commands
+    }
+
+    /// 启动后第一次醒来、距上次检查不到 1 小时而不检查时：缓存里的版本仍该提示、两个开关都打开、能安装、
+    /// 没装失败过，就接着在后台下载。否则上次运行检查到新版本但没下完就退出的话，要等下一次检查（最长 24 小时）
+    /// 才会开始下载。条件与检查完成时自动下载的条件相同（evaluate）。
+    fn resume_cached_download(&mut self, state: &mut UpdateState) -> Vec<Command> {
+        let UpdatePhase::Available(release) = &self.phase else {
+            return Vec::new();
+        };
+        if !(self.switches.check
+            && self.switches.auto_install
+            && self.capability == InstallCapability::CanInstall
+            && !Self::has_failed_install(state, &release.version))
+        {
+            return Vec::new();
+        }
+        let release = release.clone();
+        self.prepare_in_background(state, release)
     }
 
     /// 自动检查：开关打开、没有在忙、到时才检查。
@@ -940,57 +963,10 @@ impl UpdateMachine {
         };
         self.begin_install(prepared, job)
     }
-
-    // MARK: 窗口按钮
-
-    /// 「跳过此版本」：只影响自动检查。已下载的同一版本一并丢掉。
-    ///
-    /// 不关窗口（窗口自己关）。下载或安装进行中不能跳过：先取消，或等它结束。
-    pub fn skip(&mut self, state: &mut UpdateState) -> Vec<Command> {
-        let Some(release) = self.current_release().cloned() else {
-            return Vec::new();
-        };
-        if self.is_busy() {
-            return Vec::new();
-        }
-        state.skipped_version = Some(release.version.clone());
-        let mut commands = Vec::new();
-        if let Some(prepared) = state
-            .prepared
-            .take_if(|p| SemanticVersion::parse(&p.version) == SemanticVersion::parse(&release.version))
-        {
-            commands.push(Command::DeleteFile(prepared.exe_path));
-        }
-        self.phase = UpdatePhase::Idle;
-        commands
-    }
-
-    /// 「稍后」或关窗口：失败的阶段按记录重新定出（缓存的新版本仍在时回到「可用」）；别的阶段不变。
-    /// 「已是最新」与检查中的结果看过就回到空闲。
-    ///
-    /// 可以连续调用两次（按钮一次、窗口关闭时一次），第二次不改任何状态。
-    pub fn later(&mut self, state: &UpdateState) {
-        match self.phase {
-            UpdatePhase::Failed(..) | UpdatePhase::UpToDate(_) => self.rederive(state),
-            _ => {}
-        }
-    }
-
-    /// 「打开发布页」：当前版本的发布页，没有或地址不合格时打开发布列表。
-    pub fn open_release_page(&self, state: &UpdateState) -> Vec<Command> {
-        vec![self.release_page_command(state)]
-    }
-
-    /// 打开发布页的命令。
-    fn release_page_command(&self, state: &UpdateState) -> Command {
-        let candidate = self
-            .current_release()
-            .or(state.cached_release.as_ref())
-            .map(|release| release.page_url.clone())
-            .filter(|url| self.feed.accepts(url));
-        Command::OpenUrl(candidate.unwrap_or_else(|| RELEASES_PAGE_URL.to_owned()))
-    }
 }
+
+#[path = "machine_buttons.rs"]
+mod buttons;
 
 #[cfg(test)]
 #[path = "machine_tests.rs"]

@@ -72,3 +72,5 @@ errorDiskImage = "Das geladene Festplattenimage konnte nicht geöffnet werden."
 errorVerification = "Die neue Version konnte nicht überprüft werden und wurde daher nicht installiert."
 errorUnsupportedSystem = "Diese Version erfordert macOS {minimum} oder neuer."
 errorSwapFailed = "Die App konnte nicht ersetzt werden."
+
+notificationBody = "Klicken Sie hier, um die Neuerungen zu sehen und zu installieren."

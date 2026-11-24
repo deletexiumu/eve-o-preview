@@ -140,6 +140,8 @@ pub trait UpdateStrings: Sync {
     fn error_unsupported_system(&self, minimum: &str) -> String;
     /// `swapFailed`。
     fn error_swap_failed(&self) -> &'static str;
+    /// Windows：自动检查发现新版本时托盘通知的正文（标题是 headline）。点通知会打开软件更新窗口。
+    fn notification_body(&self) -> &'static str;
 }
 
 /// 更新域的全部文字（en）。
@@ -331,6 +333,9 @@ impl UpdateStrings for UpdateStringsEn {
     }
     fn error_swap_failed(&self) -> &'static str {
         "The app couldn't be replaced."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Click to see what's new and install."
     }
 }
 
@@ -524,6 +529,9 @@ impl UpdateStrings for UpdateStringsZh {
     fn error_swap_failed(&self) -> &'static str {
         "无法替换应用。"
     }
+    fn notification_body(&self) -> &'static str {
+        "点击查看新内容并安装。"
+    }
 }
 
 /// 更新域的全部文字（ru）。
@@ -715,6 +723,9 @@ impl UpdateStrings for UpdateStringsRu {
     }
     fn error_swap_failed(&self) -> &'static str {
         "Не удалось заменить приложение."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Нажмите, чтобы узнать, что нового, и установить."
     }
 }
 
@@ -908,6 +919,9 @@ impl UpdateStrings for UpdateStringsJa {
     fn error_swap_failed(&self) -> &'static str {
         "アプリを置き換えられませんでした。"
     }
+    fn notification_body(&self) -> &'static str {
+        "クリックして新機能を確認し、インストールします。"
+    }
 }
 
 /// 更新域的全部文字（ko）。
@@ -1099,6 +1113,9 @@ impl UpdateStrings for UpdateStringsKo {
     }
     fn error_swap_failed(&self) -> &'static str {
         "앱을 교체할 수 없습니다."
+    }
+    fn notification_body(&self) -> &'static str {
+        "클릭하여 새로운 기능을 확인하고 설치하세요."
     }
 }
 
@@ -1292,6 +1309,9 @@ impl UpdateStrings for UpdateStringsFr {
     fn error_swap_failed(&self) -> &'static str {
         "Impossible de remplacer l'app."
     }
+    fn notification_body(&self) -> &'static str {
+        "Cliquez pour voir les nouveautés et installer."
+    }
 }
 
 /// 更新域的全部文字（de）。
@@ -1484,6 +1504,9 @@ impl UpdateStrings for UpdateStringsDe {
     fn error_swap_failed(&self) -> &'static str {
         "Die App konnte nicht ersetzt werden."
     }
+    fn notification_body(&self) -> &'static str {
+        "Klicken Sie hier, um die Neuerungen zu sehen und zu installieren."
+    }
 }
 
 /// 更新域的全部文字（es）。
@@ -1675,6 +1698,9 @@ impl UpdateStrings for UpdateStringsEs {
     }
     fn error_swap_failed(&self) -> &'static str {
         "No se ha podido sustituir la app."
+    }
+    fn notification_body(&self) -> &'static str {
+        "Haz clic para ver las novedades e instalar."
     }
 }
 
