@@ -52,8 +52,12 @@ export global PreviewsModel {
     // 用户改了本页的任何一项。不带参数：Rust 读回整页，比逐项回调简单，
     // 一次读回的开销也可以忽略（几十个属性）。
     callback edited();
-    // 「统一尺寸」按钮：清掉各角色单独调过的尺寸。
-    callback unify-sizes();
+    // 活动客户端的角色名（高亮的那个缩略图），Rust 随前台变化更新；没有活动的角色客户端时为空串。
+    in property <string> active-character;
+    // 「统一尺寸」的两个按钮：全部改成活动客户端的尺寸（带按下时显示的角色名，
+    // 与界面上看到的一致），或全部改回默认尺寸。
+    callback unify-sizes-to-active(string);
+    callback unify-sizes-to-default();
 }
 
 // 预览区里的一个缩略图示意，按本页的设置实时变化：不透明度、标题、高亮与边框。
@@ -162,14 +166,25 @@ export component PreviewsPage inherits VerticalLayout {
         }
     }
     RowGap { }
-    // 清掉 layouts 里各角色的宽高，回到默认尺寸，对应 macOS 的 unifyThumbnailSizes。
+    // 统一 layouts 里各角色的宽高，对应 macOS 的 unifyThumbnailSizes。两种用法：
+    // 调好一个缩略图后让其余的都跟它一样（按活动客户端，即高亮的那个），或全部改回上面的默认尺寸。
+    // 说明文字带上活动角色名，用户按之前就知道会照谁的尺寸改；没有活动的角色客户端时按钮变灰。
     // 按钮不改本页的值，由 Rust 直接改配置；不需要确认框：位置不变，改回去只要再拖一下边缘。
     SettingRow {
         title: SettingsText.unify-sizes;
-        description: SettingsText.unify-sizes-help;
+        description: PreviewsModel.active-character == ""
+            ? SettingsText.unify-sizes-help
+            : SettingsText.unify-sizes-help-active(PreviewsModel.active-character);
+        // 说明在长语言里会折成两三行，行高跟着加，按钮仍竖直居中。
+        min-height: 84px;
         Button {
-            text: SettingsText.unify-sizes-button;
-            clicked => { PreviewsModel.unify-sizes(); }
+            text: SettingsText.unify-sizes-to-active;
+            enabled: PreviewsModel.active-character != "";
+            clicked => { PreviewsModel.unify-sizes-to-active(PreviewsModel.active-character); }
+        }
+        Button {
+            text: SettingsText.unify-sizes-to-default;
+            clicked => { PreviewsModel.unify-sizes-to-default(); }
         }
     }
 

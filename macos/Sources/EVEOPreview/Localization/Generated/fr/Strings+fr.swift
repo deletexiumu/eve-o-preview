@@ -63,7 +63,11 @@ struct SettingsStringsFR: SettingsStrings {
     var defaultSize: String { "Taille par défaut" }
     var minimumSize: String { "Taille minimale" }
     var maximumSize: String { "Taille maximale" }
-    var unifySizes: String { "Remettre toutes les vignettes à la taille par défaut" }
+    var unifySizes: String { "Même taille pour toutes les vignettes" }
+    var unifySizesHelp: String { "Les vignettes redimensionnées reprennent la taille par défaut ; leur position ne change pas. Passez au client d'un personnage pour utiliser plutôt la taille de sa vignette" }
+    func unifySizesHelpActive(_ name: String) -> String { "Toutes les vignettes prennent la taille de celle du client actif \(name) (en surbrillance) ou la taille par défaut ci-dessus ; leur position ne change pas" }
+    var unifySizesToActive: String { "Comme le client actif" }
+    var unifySizesToDefault: String { "Taille par défaut" }
     var appearanceHeader: String { "Apparence" }
     var opacity: String { "Opacité" }
     var showTitle: String { "Afficher le nom du personnage" }

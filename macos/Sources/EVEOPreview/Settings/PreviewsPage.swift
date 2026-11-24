@@ -18,10 +18,7 @@ struct PreviewsPage: View {
                 SizeField(label: L10n.settings.defaultSize, size: model.binding(\.thumbnail.defaultSize))
                 SizeField(label: L10n.settings.minimumSize, size: model.binding(\.thumbnail.minimumSize))
                 SizeField(label: L10n.settings.maximumSize, size: model.binding(\.thumbnail.maximumSize))
-                // 「统一尺寸」只清尺寸记录，位置保留，各缩略图回到默认尺寸。
-                LabeledContent("") {
-                    Button(L10n.settings.unifySizes) { model.unifyThumbnailSizes() }
-                }
+                UnifySizesRow(model: model)
             } header: {
                 PageHeader(title: L10n.settings.pagePreviews, subtitle: L10n.settings.previewsSubtitle)
             }
@@ -31,6 +28,31 @@ struct PreviewsPage: View {
             CaptureSection(model: model)
         }
         .formStyle(.grouped)
+    }
+}
+
+/// 「统一全部缩略图尺寸」：调好一个缩略图后让其余的都跟它一样（按活动客户端，即高亮的那个），
+/// 或全部改回上面的默认尺寸。两种都只改尺寸记录，位置保留；不需要确认框，改回去只要再拖一下边缘。
+private struct UnifySizesRow: View {
+    /// 视图模型。
+    let model: SettingsViewModel
+
+    var body: some View {
+        LabeledContent {
+            HStack {
+                // 带上按下时显示的角色名，即使之后前台变了也照用户看到的那个改。
+                Button(L10n.settings.unifySizesToActive) {
+                    if let name = model.activeCharacter { model.unifyThumbnailSizes(to: .character(name)) }
+                }
+                .disabled(model.activeCharacter == nil)
+                Button(L10n.settings.unifySizesToDefault) { model.unifyThumbnailSizes(to: .defaultSize) }
+            }
+        } label: {
+            // 说明带上活动角色名，用户按之前就知道会照谁的尺寸改。
+            Text(L10n.settings.unifySizes)
+            Text(model.activeCharacter.map { L10n.settings.unifySizesHelpActive($0) } ?? L10n.settings.unifySizesHelp)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

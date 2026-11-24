@@ -121,12 +121,47 @@ pub fn read_previews(ui: &SettingsWindow, profile: &mut Profile) {
     behavior.lock_layout = model.get_lock_layout();
 }
 
-/// 「统一尺寸」：清掉各角色单独调过的宽高，位置保留，缩略图回到默认尺寸（同 macOS）。
-pub fn unify_sizes(profile: &mut Profile) {
-    // 只清尺寸，不删条目：条目里还记着位置与所在显示器。
+/// 「统一尺寸」统一到哪个尺寸。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnifyTarget {
+    /// 全部改回上面的默认尺寸（清掉各角色单独调过的宽高）。
+    Default,
+    /// 全部改成这个角色（按下按钮时的活动客户端）的缩略图尺寸。
+    Character(String),
+}
+
+/// 「统一尺寸」：只改各角色记录里的宽高，位置保留（同 macOS）。
+///
+/// - [`UnifyTarget::Default`]：宽高清成 None，缩略图回到默认尺寸。
+/// - [`UnifyTarget::Character`]：宽高都抄那个角色的记录。它没单独调过大小（宽高为 None）时，
+///   结果与改回默认尺寸相同；配置里没有它的记录（例如刚改名）时什么也不改。
+///
+/// 抄的是配置里的逻辑尺寸，不是屏幕上的像素：各缩略图再按自己所在屏幕的缩放换算，
+/// 不同缩放的显示器上看起来大小一致。
+pub fn unify_sizes(profile: &mut Profile, target: &UnifyTarget) {
+    let (width, height) = match target {
+        UnifyTarget::Default => (None, None),
+        UnifyTarget::Character(name) => match profile.layouts.get(name) {
+            Some(source) => (source.width, source.height),
+            // 没有来源就不动，免得误把全部缩略图改回默认尺寸。
+            None => return,
+        },
+    };
+    // 只改尺寸，不删条目：条目里还记着位置与所在显示器。
     for layout in profile.layouts.values_mut() {
-        layout.width = None;
-        layout.height = None;
+        layout.width = width;
+        layout.height = height;
+    }
+}
+
+/// 设「预览与布局」页上的活动角色名：「按活动客户端」按钮与说明文字据它变化。
+/// 没有活动的角色客户端（没有客户端、活动的是登录界面）时传 None，按钮变灰。
+pub fn show_active_character(ui: &SettingsWindow, name: Option<&str>) {
+    let model = ui.global::<PreviewsModel>();
+    let name = SharedString::from(name.unwrap_or_default());
+    // 每处理一个事件都会调到这里：值没变就不写，免得界面无谓地重排。
+    if model.get_active_character() != name {
+        model.set_active_character(name);
     }
 }
 
@@ -592,25 +627,73 @@ mod tests {
         assert_eq!(hotkey_text(&profile, &[]), "");
     }
 
-    /// 统一尺寸只清宽高，位置不动。
-    #[test]
-    fn unify_sizes_keeps_positions() {
+    /// 统一尺寸用的样例：Aria 调过大小，Kade 没调过（宽高为 None），Lin 调成另一个大小。
+    fn sized_layouts() -> Profile {
         let mut profile = sample();
-        profile.layouts.insert(
-            "Aria".to_owned(),
-            ThumbnailLayout {
-                x: 10.0,
-                y: 20.0,
-                width: Some(500.0),
-                height: Some(280.0),
-            },
-        );
-        unify_sizes(&mut profile);
-        let layout = &profile.layouts["Aria"];
-        assert_eq!(
-            (layout.x, layout.y, layout.width, layout.height),
-            (10.0, 20.0, None, None)
-        );
+        // 三条记录的位置各不相同，用来确认统一尺寸不碰位置。
+        let entries = [
+            ("Aria", 10.0, Some((500.0, 280.0))),
+            ("Kade", 600.0, None),
+            ("Lin", 1200.0, Some((320.0, 180.0))),
+        ];
+        for (name, x, size) in entries {
+            profile.layouts.insert(
+                name.to_owned(),
+                ThumbnailLayout {
+                    x,
+                    y: 20.0,
+                    width: size.map(|s| s.0),
+                    height: size.map(|s| s.1),
+                },
+            );
+        }
+        profile
+    }
+
+    /// 取一条记录的 (x, y, 宽, 高)，断言写起来短一些。
+    fn layout_of(profile: &Profile, name: &str) -> (f64, f64, Option<f64>, Option<f64>) {
+        let layout = &profile.layouts[name];
+        (layout.x, layout.y, layout.width, layout.height)
+    }
+
+    /// 按默认尺寸：只清宽高，位置不动。
+    #[test]
+    fn unify_sizes_to_default_keeps_positions() {
+        let mut profile = sized_layouts();
+        unify_sizes(&mut profile, &UnifyTarget::Default);
+        assert_eq!(layout_of(&profile, "Aria"), (10.0, 20.0, None, None));
+        assert_eq!(layout_of(&profile, "Lin"), (1200.0, 20.0, None, None));
+    }
+
+    /// 按活动客户端：全部抄它的宽高，位置不动；它自己不变。
+    #[test]
+    fn unify_sizes_to_character_copies_its_size() {
+        let mut profile = sized_layouts();
+        unify_sizes(&mut profile, &UnifyTarget::Character("Aria".to_owned()));
+        let size = (Some(500.0), Some(280.0));
+        assert_eq!(layout_of(&profile, "Aria"), (10.0, 20.0, size.0, size.1));
+        assert_eq!(layout_of(&profile, "Kade"), (600.0, 20.0, size.0, size.1));
+        assert_eq!(layout_of(&profile, "Lin"), (1200.0, 20.0, size.0, size.1));
+    }
+
+    /// 活动客户端没调过大小：等于全部改回默认尺寸。
+    #[test]
+    fn unify_sizes_to_unsized_character_means_default() {
+        let mut profile = sized_layouts();
+        unify_sizes(&mut profile, &UnifyTarget::Character("Kade".to_owned()));
+        for name in ["Aria", "Kade", "Lin"] {
+            assert_eq!(profile.layouts[name].width, None, "{name}");
+            assert_eq!(profile.layouts[name].height, None, "{name}");
+        }
+    }
+
+    /// 配置里没有那个角色的记录：什么也不改。
+    #[test]
+    fn unify_sizes_to_unknown_character_is_noop() {
+        let mut profile = sized_layouts();
+        let before = profile.clone();
+        unify_sizes(&mut profile, &UnifyTarget::Character("Nobody".to_owned()));
+        assert_eq!(profile, before);
     }
 
     /// 颜色写法：首尾空白去掉、补上 #、统一大写；不完整或不合法的返回 None。

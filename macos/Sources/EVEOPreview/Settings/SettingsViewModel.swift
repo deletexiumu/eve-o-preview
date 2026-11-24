@@ -24,6 +24,9 @@ final class SettingsViewModel {
     private(set) var config: AppConfig
     /// 在线客户端。
     private(set) var clients: [EVEClient] = []
+    /// 活动客户端（缩略图加高亮的那个）的角色名；活动的是登录界面或没有客户端时为 nil。
+    /// 「预览与布局」页的「按活动客户端」统一尺寸据它启用。
+    private(set) var activeCharacter: String?
     /// 当前生效的热键规划。
     private(set) var hotkeyPlan = HotkeyPlan(bindings: [], issues: [])
     /// 热键注册失败项。
@@ -59,6 +62,11 @@ final class SettingsViewModel {
     func refreshRuntime() {
         let source = coordinator
         if clients != source.registry.clients { clients = source.registry.clients }
+        // 与规划器挑高亮同一条规则（前台客户端，否则最近一次处于前台的），切到设置窗口后仍是刚才那个角色。
+        let active = source.activePID.flatMap { pid in
+            source.registry.clients.first { $0.pid == pid && $0.characterName != nil }?.characterName
+        }
+        if activeCharacter != active { activeCharacter = active }
         if hotkeyPlan != source.hotkeyPlan { hotkeyPlan = source.hotkeyPlan }
         if hotkeyFailures != source.hotkeyFailures { hotkeyFailures = source.hotkeyFailures }
         if permissions != source.permissions { permissions = source.permissions }
@@ -197,13 +205,9 @@ final class SettingsViewModel {
                 set: { hex in self.updateProfile { $0.highlightColors[name] = hex } })
     }
 
-    /// 「统一全部缩略图尺寸」：清掉各角色的尺寸记录，位置保留。
-    func unifyThumbnailSizes() {
-        updateProfile { profile in
-            for name in profile.layouts.keys {
-                profile.layouts[name]?.width = nil
-                profile.layouts[name]?.height = nil
-            }
-        }
+    /// 「统一全部缩略图尺寸」：按默认尺寸（清掉各角色的尺寸记录）或按某个角色的尺寸，位置保留。
+    /// 规则在 Core 的 Profile.unifyThumbnailSizes(to:)，与 Windows 版相同。
+    func unifyThumbnailSizes(to target: ThumbnailSizeTarget) {
+        updateProfile { $0.unifyThumbnailSizes(to: target) }
     }
 }

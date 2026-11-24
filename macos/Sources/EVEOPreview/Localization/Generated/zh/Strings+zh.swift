@@ -64,6 +64,10 @@ struct SettingsStringsZH: SettingsStrings {
     var minimumSize: String { "最小尺寸" }
     var maximumSize: String { "最大尺寸" }
     var unifySizes: String { "统一全部缩略图尺寸" }
+    var unifySizesHelp: String { "把单独调过大小的缩略图都改回默认尺寸，位置不变。切到某个角色的客户端后，还可以让全部缩略图都用它的尺寸" }
+    func unifySizesHelpActive(_ name: String) -> String { "让全部缩略图都用活动客户端 \(name)（高亮的那个）的尺寸，或都改回上面的默认尺寸；位置不变" }
+    var unifySizesToActive: String { "按活动客户端" }
+    var unifySizesToDefault: String { "按默认尺寸" }
     var appearanceHeader: String { "外观" }
     var opacity: String { "透明度" }
     var showTitle: String { "显示角色名" }

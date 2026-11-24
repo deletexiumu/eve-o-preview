@@ -113,8 +113,16 @@ protocol SettingsStrings: Sendable {
     var minimumSize: String { get }
     /// 缩略图的最大尺寸。
     var maximumSize: String { get }
-    /// 清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。
+    /// 「统一全部缩略图尺寸」的标题：Windows 是「预览与布局」页一行的标题，macOS 是两个按钮前的标签。
     var unifySizes: String { get }
+    /// 统一尺寸的说明：没有活动的角色客户端时显示（只能改回默认尺寸）。
+    var unifySizesHelp: String { get }
+    /// 统一尺寸的说明：有活动的角色客户端时显示，参数是它的角色名。
+    func unifySizesHelpActive(_ name: String) -> String
+    /// 统一尺寸：让全部缩略图都用活动客户端缩略图尺寸的按钮，宜短。
+    var unifySizesToActive: String { get }
+    /// 统一尺寸：全部改回默认尺寸的按钮，宜短。
+    var unifySizesToDefault: String { get }
     /// 「外观」组的标题。
     var appearanceHeader: String { get }
     /// 未悬停时缩略图的不透明度。

@@ -63,7 +63,11 @@ struct SettingsStringsRU: SettingsStrings {
     var defaultSize: String { "Размер по умолчанию" }
     var minimumSize: String { "Минимальный размер" }
     var maximumSize: String { "Максимальный размер" }
-    var unifySizes: String { "Вернуть всем миниатюрам размер по умолчанию" }
+    var unifySizes: String { "Один размер для всех миниатюр" }
+    var unifySizesHelp: String { "Миниатюры с изменённым размером вернутся к размеру по умолчанию; положение не изменится. Переключитесь на клиент персонажа, чтобы взять размер его миниатюры" }
+    func unifySizesHelpActive(_ name: String) -> String { "Всем миниатюрам — размер миниатюры активного клиента \(name) (подсвеченной) или размер по умолчанию выше; положение не изменится" }
+    var unifySizesToActive: String { "Как у активного" }
+    var unifySizesToDefault: String { "По умолчанию" }
     var appearanceHeader: String { "Внешний вид" }
     var opacity: String { "Непрозрачность" }
     var showTitle: String { "Показывать имя персонажа" }

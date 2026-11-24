@@ -143,12 +143,16 @@ pub trait SettingsStrings: Sync {
     fn minimum_size(&self) -> &'static str;
     /// 缩略图的最大尺寸。
     fn maximum_size(&self) -> &'static str;
-    /// 清掉各缩略图的自定义尺寸、全部回到默认尺寸的按钮。
+    /// 「统一全部缩略图尺寸」的标题：Windows 是「预览与布局」页一行的标题，macOS 是两个按钮前的标签。
     fn unify_sizes(&self) -> &'static str;
-    /// Windows「预览与布局」页：统一尺寸一行的说明。
+    /// 统一尺寸的说明：没有活动的角色客户端时显示（只能改回默认尺寸）。
     fn unify_sizes_help(&self) -> &'static str;
-    /// Windows「预览与布局」页：统一尺寸一行的按钮，宜短。
-    fn unify_sizes_button(&self) -> &'static str;
+    /// 统一尺寸的说明：有活动的角色客户端时显示，参数是它的角色名。
+    fn unify_sizes_help_active(&self, name: &str) -> String;
+    /// 统一尺寸：让全部缩略图都用活动客户端缩略图尺寸的按钮，宜短。
+    fn unify_sizes_to_active(&self) -> &'static str;
+    /// 统一尺寸：全部改回默认尺寸的按钮，宜短。
+    fn unify_sizes_to_default(&self) -> &'static str;
     /// 「外观」组的标题。
     fn appearance_header(&self) -> &'static str;
     /// 未悬停时缩略图的不透明度。
@@ -600,13 +604,19 @@ impl SettingsStrings for SettingsStringsEn {
         "Maximum size"
     }
     fn unify_sizes(&self) -> &'static str {
-        "Reset all thumbnails to default size"
+        "Make all thumbnails the same size"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "Thumbnails you resized go back to the default size; positions stay the same"
+        "Thumbnails you resized go back to the default size; positions stay the same. Switch to a character's client to match its thumbnail size instead"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "Reset sizes"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("Give every thumbnail the size of the active client {} (the highlighted one), or the default size above; positions stay the same", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "Match active client"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "Use default size"
     }
     fn appearance_header(&self) -> &'static str {
         "Appearance"
@@ -1200,10 +1210,16 @@ impl SettingsStrings for SettingsStringsZh {
         "统一全部缩略图尺寸"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "把单独调过大小的缩略图都改回默认尺寸，位置不变"
+        "把单独调过大小的缩略图都改回默认尺寸，位置不变。切到某个角色的客户端后，还可以让全部缩略图都用它的尺寸"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "统一尺寸"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("让全部缩略图都用活动客户端 {}（高亮的那个）的尺寸，或都改回上面的默认尺寸；位置不变", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "按活动客户端"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "按默认尺寸"
     }
     fn appearance_header(&self) -> &'static str {
         "外观"
@@ -1791,13 +1807,19 @@ impl SettingsStrings for SettingsStringsRu {
         "Максимальный размер"
     }
     fn unify_sizes(&self) -> &'static str {
-        "Вернуть всем миниатюрам размер по умолчанию"
+        "Один размер для всех миниатюр"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "Миниатюры с изменённым размером вернутся к размеру по умолчанию; положение не изменится"
+        "Миниатюры с изменённым размером вернутся к размеру по умолчанию; положение не изменится. Переключитесь на клиент персонажа, чтобы взять размер его миниатюры"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "Сбросить"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("Всем миниатюрам — размер миниатюры активного клиента {} (подсвеченной) или размер по умолчанию выше; положение не изменится", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "Как у активного"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "По умолчанию"
     }
     fn appearance_header(&self) -> &'static str {
         "Внешний вид"
@@ -2389,13 +2411,19 @@ impl SettingsStrings for SettingsStringsJa {
         "最大サイズ"
     }
     fn unify_sizes(&self) -> &'static str {
-        "すべてのサムネイルをデフォルトのサイズに戻す"
+        "すべてのサムネイルのサイズを揃える"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "個別にサイズを変えたサムネイルをデフォルトのサイズに戻します。位置は変わりません"
+        "個別にサイズを変えたサムネイルをデフォルトのサイズに戻します。位置は変わりません。キャラクターのクライアントに切り替えると、そのサムネイルのサイズに揃えることもできます"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "サイズを揃える"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("すべてのサムネイルを、アクティブなクライアント {}（ハイライト中）と同じサイズ、または上のデフォルトのサイズにします。位置は変わりません", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "アクティブに揃える"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "デフォルトに戻す"
     }
     fn appearance_header(&self) -> &'static str {
         "外観"
@@ -2983,13 +3011,19 @@ impl SettingsStrings for SettingsStringsKo {
         "최대 크기"
     }
     fn unify_sizes(&self) -> &'static str {
-        "모든 썸네일을 기본 크기로 되돌리기"
+        "모든 썸네일 크기 맞추기"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "따로 크기를 바꾼 썸네일을 기본 크기로 되돌립니다. 위치는 그대로입니다"
+        "따로 크기를 바꾼 썸네일을 기본 크기로 되돌립니다. 위치는 그대로입니다. 캐릭터 클라이언트로 전환하면 그 썸네일 크기에 맞출 수도 있습니다"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "크기 맞추기"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("모든 썸네일을 활성 클라이언트 {}(강조 표시된 것)의 크기나 위의 기본 크기로 맞춥니다. 위치는 그대로입니다", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "활성 클라이언트에 맞추기"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "기본 크기로"
     }
     fn appearance_header(&self) -> &'static str {
         "모양"
@@ -3577,13 +3611,19 @@ impl SettingsStrings for SettingsStringsFr {
         "Taille maximale"
     }
     fn unify_sizes(&self) -> &'static str {
-        "Remettre toutes les vignettes à la taille par défaut"
+        "Même taille pour toutes les vignettes"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "Les vignettes redimensionnées reprennent la taille par défaut ; leur position ne change pas"
+        "Les vignettes redimensionnées reprennent la taille par défaut ; leur position ne change pas. Passez au client d'un personnage pour utiliser plutôt la taille de sa vignette"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "Réinitialiser"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("Toutes les vignettes prennent la taille de celle du client actif {} (en surbrillance) ou la taille par défaut ci-dessus ; leur position ne change pas", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "Comme le client actif"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "Taille par défaut"
     }
     fn appearance_header(&self) -> &'static str {
         "Apparence"
@@ -4174,13 +4214,19 @@ impl SettingsStrings for SettingsStringsDe {
         "Maximalgröße"
     }
     fn unify_sizes(&self) -> &'static str {
-        "Alle Miniaturen auf Standardgröße zurücksetzen"
+        "Alle Miniaturen gleich groß"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "Einzeln skalierte Miniaturen erhalten wieder die Standardgröße; die Position bleibt"
+        "Einzeln skalierte Miniaturen erhalten wieder die Standardgröße; die Position bleibt. Wechseln Sie zum Client eines Charakters, um stattdessen dessen Miniaturgröße zu übernehmen"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "Zurücksetzen"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("Alle Miniaturen erhalten die Größe der Miniatur des aktiven Clients {} (hervorgehoben) oder die Standardgröße oben; die Position bleibt", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "Wie aktiver Client"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "Standardgröße"
     }
     fn appearance_header(&self) -> &'static str {
         "Darstellung"
@@ -4771,13 +4817,19 @@ impl SettingsStrings for SettingsStringsEs {
         "Tamaño máximo"
     }
     fn unify_sizes(&self) -> &'static str {
-        "Restablecer todas las miniaturas al tamaño predeterminado"
+        "Mismo tamaño para todas las miniaturas"
     }
     fn unify_sizes_help(&self) -> &'static str {
-        "Las miniaturas redimensionadas vuelven al tamaño predeterminado; la posición no cambia"
+        "Las miniaturas redimensionadas vuelven al tamaño predeterminado; la posición no cambia. Cambia al cliente de un personaje para usar el tamaño de su miniatura"
     }
-    fn unify_sizes_button(&self) -> &'static str {
-        "Restablecer"
+    fn unify_sizes_help_active(&self, name: &str) -> String {
+        format!("Todas las miniaturas toman el tamaño de la del cliente activo {} (resaltada) o el tamaño predeterminado de arriba; la posición no cambia", name)
+    }
+    fn unify_sizes_to_active(&self) -> &'static str {
+        "Igual que el activo"
+    }
+    fn unify_sizes_to_default(&self) -> &'static str {
+        "Tamaño predeterminado"
     }
     fn appearance_header(&self) -> &'static str {
         "Aspecto"

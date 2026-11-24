@@ -63,7 +63,11 @@ struct SettingsStringsDE: SettingsStrings {
     var defaultSize: String { "Standardgröße" }
     var minimumSize: String { "Mindestgröße" }
     var maximumSize: String { "Maximalgröße" }
-    var unifySizes: String { "Alle Miniaturen auf Standardgröße zurücksetzen" }
+    var unifySizes: String { "Alle Miniaturen gleich groß" }
+    var unifySizesHelp: String { "Einzeln skalierte Miniaturen erhalten wieder die Standardgröße; die Position bleibt. Wechseln Sie zum Client eines Charakters, um stattdessen dessen Miniaturgröße zu übernehmen" }
+    func unifySizesHelpActive(_ name: String) -> String { "Alle Miniaturen erhalten die Größe der Miniatur des aktiven Clients \(name) (hervorgehoben) oder die Standardgröße oben; die Position bleibt" }
+    var unifySizesToActive: String { "Wie aktiver Client" }
+    var unifySizesToDefault: String { "Standardgröße" }
     var appearanceHeader: String { "Darstellung" }
     var opacity: String { "Deckkraft" }
     var showTitle: String { "Charaktername anzeigen" }

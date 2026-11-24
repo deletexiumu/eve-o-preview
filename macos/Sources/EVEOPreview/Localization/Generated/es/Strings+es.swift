@@ -63,7 +63,11 @@ struct SettingsStringsES: SettingsStrings {
     var defaultSize: String { "Tamaño predeterminado" }
     var minimumSize: String { "Tamaño mínimo" }
     var maximumSize: String { "Tamaño máximo" }
-    var unifySizes: String { "Restablecer todas las miniaturas al tamaño predeterminado" }
+    var unifySizes: String { "Mismo tamaño para todas las miniaturas" }
+    var unifySizesHelp: String { "Las miniaturas redimensionadas vuelven al tamaño predeterminado; la posición no cambia. Cambia al cliente de un personaje para usar el tamaño de su miniatura" }
+    func unifySizesHelpActive(_ name: String) -> String { "Todas las miniaturas toman el tamaño de la del cliente activo \(name) (resaltada) o el tamaño predeterminado de arriba; la posición no cambia" }
+    var unifySizesToActive: String { "Igual que el activo" }
+    var unifySizesToDefault: String { "Tamaño predeterminado" }
     var appearanceHeader: String { "Aspecto" }
     var opacity: String { "Opacidad" }
     var showTitle: String { "Mostrar nombre del personaje" }

@@ -63,7 +63,11 @@ struct SettingsStringsJA: SettingsStrings {
     var defaultSize: String { "デフォルトのサイズ" }
     var minimumSize: String { "最小サイズ" }
     var maximumSize: String { "最大サイズ" }
-    var unifySizes: String { "すべてのサムネイルをデフォルトのサイズに戻す" }
+    var unifySizes: String { "すべてのサムネイルのサイズを揃える" }
+    var unifySizesHelp: String { "個別にサイズを変えたサムネイルをデフォルトのサイズに戻します。位置は変わりません。キャラクターのクライアントに切り替えると、そのサムネイルのサイズに揃えることもできます" }
+    func unifySizesHelpActive(_ name: String) -> String { "すべてのサムネイルを、アクティブなクライアント \(name)（ハイライト中）と同じサイズ、または上のデフォルトのサイズにします。位置は変わりません" }
+    var unifySizesToActive: String { "アクティブに揃える" }
+    var unifySizesToDefault: String { "デフォルトに戻す" }
     var appearanceHeader: String { "外観" }
     var opacity: String { "不透明度" }
     var showTitle: String { "キャラクター名を表示" }

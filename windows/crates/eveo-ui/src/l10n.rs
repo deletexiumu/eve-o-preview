@@ -70,7 +70,9 @@ macro_rules! fill {
     text.set_maximum_size(settings.maximum_size().into());
     text.set_unify_sizes(settings.unify_sizes().into());
     text.set_unify_sizes_help(settings.unify_sizes_help().into());
-    text.set_unify_sizes_button(settings.unify_sizes_button().into());
+    text.on_unify_sizes_help_active(move |name| settings.unify_sizes_help_active(&name).into());
+    text.set_unify_sizes_to_active(settings.unify_sizes_to_active().into());
+    text.set_unify_sizes_to_default(settings.unify_sizes_to_default().into());
     text.set_appearance_header(settings.appearance_header().into());
     text.set_opacity(settings.opacity().into());
     text.set_opacity_help(settings.opacity_help().into());
