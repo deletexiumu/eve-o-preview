@@ -333,28 +333,6 @@ impl InfoOverlays {
         }
     }
 
-    /// 可见浮窗的 frame（吸附目标），不含 excluding。
-    pub fn visible_frames(&self, excluding: Option<OverlayKind>) -> Vec<ScreenRect> {
-        self.panels
-            .borrow()
-            .iter()
-            .map(|p| p.borrow())
-            .filter(|p| Some(p.kind) != excluding && p.window.is_shown())
-            .map(|p| p.frame)
-            .collect()
-    }
-
-    /// 正在拖动的浮窗。
-    pub fn interacting(&self) -> Vec<OverlayKind> {
-        self.panels
-            .borrow()
-            .iter()
-            .map(|p| p.borrow())
-            .filter(|p| p.gesture.is_dragging())
-            .map(|p| p.kind)
-            .collect()
-    }
-
     /// 找浮窗。
     fn panel(&self, kind: OverlayKind) -> Option<Rc<RefCell<Panel>>> {
         self.panels

@@ -6,6 +6,7 @@
 // - IntelFormatter：用 eveo-l10n 的预警文字实现 Core 的 IntelLineFormatting（时间、跳数、数量与用语）。
 // - intel：预警功能的控制器（6.8 节）。
 // - features：预警与翻译的总控（9.2 节）：算跟踪请求、分发日志事件、按时间刷新。
+// - static_file：星图数据的来源（环境变量、用户覆盖文件、嵌进 exe 的数据）与读取（4.4 节）。
 // 时钟：日志里的时间与「多久以前」用墙上时钟（1970 年以来的秒数），由调用方传入 now，测试里可以随意给。
 // 这里不写日志：消息正文、说话人与人名都不该进诊断日志。
 
@@ -21,6 +22,7 @@ use eveo_core::static_data::jumps::JumpDistance;
 
 pub mod features;
 pub mod intel;
+pub mod static_file;
 
 #[cfg(test)]
 mod features_tests;

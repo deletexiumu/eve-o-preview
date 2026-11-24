@@ -9,14 +9,16 @@
 // - 配置由协调器自己持有（macOS 是 ConfigController），改动后发 ConfigChanged，由执行者延迟写盘。
 // - 激活与最小化是效果，结果以前台事件与下一轮轮询回来；协调器不追踪激活的序号。
 //
-// 分成四个文件：这里是状态、事件分发与重算；actions.rs 是缩略图、右键菜单与托盘的动作；
-// hotkeys.rs 是热键的规划与执行；combat.rs 是战斗提醒（游戏日志的启停与受击事件）。
+// 分成五个文件：这里是状态、事件分发与重算；actions.rs 是缩略图、右键菜单与托盘的动作；
+// hotkeys.rs 是热键的规划与执行；combat.rs 是战斗提醒（游戏日志的启停与受击事件）；
+// overlays.rs 是预警与翻译浮窗的规划、拖动与右键菜单。
 
 //! 事件驱动的协调器。
 
 mod actions;
 mod combat;
 mod hotkeys;
+mod overlays;
 #[cfg(test)]
 mod tests;
 
@@ -33,6 +35,8 @@ use eveo_core::planning::{
 };
 
 use crate::event::{Effect, Event, ForegroundOwner};
+use eveo_core::overlay::planner::OverlayPresentation;
+use overlays::AppliedOverlays;
 
 /// 上一次发给缩略图窗口管理器的内容，用来跳过没有变化的 `ApplyPresentations`。
 type Applied = (Vec<ThumbnailPresentation>, Vec<WindowId>, HashSet<WindowId>);
@@ -74,6 +78,10 @@ pub struct Coordinator {
     effects: Vec<Effect>,
     /// 最近一次要求的游戏日志跟踪：`None` 是没在跟踪，`Some(目录)` 是按这个目录设置跟踪。
     game_log: Option<Option<String>>,
+    /// 最近一次规划的浮窗呈现，供拖动上下文查询。
+    overlay_plan: Vec<OverlayPresentation>,
+    /// 最近一次发给浮窗管理器的内容，没变时不再发。
+    last_overlays: Option<AppliedOverlays>,
 }
 
 impl Coordinator {
@@ -97,6 +105,8 @@ impl Coordinator {
             now: 0.0,
             effects: Vec::new(),
             game_log: None,
+            overlay_plan: Vec::new(),
+            last_overlays: Some((Vec::new(), None)),
         }
     }
 
@@ -213,6 +223,8 @@ impl Coordinator {
             Event::ConfigEdited(config) => self.update_config(|draft| *draft = config),
             Event::TestCombatAlert => self.test_combat_alert(),
             Event::CombatEvents(events) => self.combat_events(&events),
+            Event::OverlayDragEnded { kind, frame } => self.overlay_drag_ended(kind, frame),
+            Event::OverlayMenu { kind, action } => self.overlay_menu_action(kind, action),
         }
     }
 
@@ -348,8 +360,14 @@ impl Coordinator {
         }
         // 先存下规划，再写自动布局：写配置会读当前配置方案，不能同时借着规划。
         let to_persist = plan.layouts_to_persist.clone();
-        let wake = plan.next_wake_at;
+        let thumbnail_wake = plan.next_wake_at;
         self.last_plan = plan;
+        // 浮窗在缩略图之后规划：拖动上下文要用到这一轮缩略图的 frame。唤醒取两者中较早的一个。
+        let overlay_wake = self.replan_overlays();
+        let wake = match (thumbnail_wake, overlay_wake) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
         self.persist_auto_layouts(to_persist);
         if wake != self.scheduled_wake {
             self.scheduled_wake = wake;

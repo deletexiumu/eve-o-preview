@@ -12,6 +12,8 @@ use super::Coordinator;
 
 // 战斗提醒（游戏日志的启停与受击事件）的用例放在子模块里，共用这里的夹具。
 mod combat;
+// 预警与翻译浮窗的规划、拖动与右键菜单。
+mod overlays;
 use crate::event::{ContextMenuAction, Effect, Event, ForegroundOwner, SettingsPage, TrayAction};
 
 // MARK: 夹具

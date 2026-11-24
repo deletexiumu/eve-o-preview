@@ -47,6 +47,7 @@ mod alerts;
 mod chat;
 mod environment;
 mod general;
+mod intel;
 mod profiles;
 mod shell;
 mod switching_page;
@@ -177,6 +178,8 @@ struct App {
     game_log: Option<GameLogTailer>,
     /// 跟踪服务最近报告的状态（「提醒」页的状态行）。
     combat_status: CombatLogStatus,
+    /// 预警浮窗与聊天日志。
+    chat: intel::ChatRuntime,
 }
 
 /// 启动应用，跑主循环直到退出。
@@ -241,6 +244,7 @@ pub fn run() -> ExitCode {
         elevated_pids: Vec::new(),
         game_log: None,
         combat_status: CombatLogStatus::Stopped,
+        chat: intel::ChatRuntime::new(&paths, language),
     };
     let runtime = Rc::new(Runtime {
         queue: RefCell::new(VecDeque::new()),
@@ -250,6 +254,8 @@ pub fn run() -> ExitCode {
 
     // 启动：注册热键、第一次规划，并要求立即轮询（下一次定时器就会枚举窗口）。
     runtime.post(Input::Event(Event::Started));
+    // 聊天日志按读入的配置开始（ConfigChanged 只在配置变化时才发，启动时要自己交一次）。
+    runtime.app.borrow_mut().chat_config_changed();
     if first_run && !background {
         runtime.post(Input::Event(Event::Tray(eveo_app_core::TrayAction::OpenSettings)));
     }
@@ -268,6 +274,7 @@ pub fn run() -> ExitCode {
     // 退出：等待中的配置立即写盘，再销毁缩略图窗口（Drop 注销 DWM 缩略图）。热键与钩子随 App 释放。
     let mut app = runtime.app.borrow_mut();
     app.flush();
+    app.chat_stop();
     app.thumbnails.clear();
     if result.is_ok() {
         ExitCode::SUCCESS
@@ -413,7 +420,13 @@ impl App {
                 drop(queue);
                 self.tray
                     .set_tooltip(&menus::tray_tooltip(&self.coordinator.tray(), self.language));
+                // 浮窗吸附到缩略图：缩略图的位置变了，浮窗的拖动上下文跟着更新。
+                self.update_overlay_drag_contexts();
             }
+            Effect::ApplyOverlays {
+                presentations,
+                active_character,
+            } => self.apply_overlays(&presentations, active_character),
             // 热键服务自己处理代数与作用范围，这里只转交。
             Effect::RegisterHotkeys(bindings) => self.hotkeys.replace(bindings),
             Effect::SetGameForeground(game) => self.hotkeys.set_game_foreground(game),
@@ -428,6 +441,8 @@ impl App {
                 }
                 // 界面语言可能变了（「通用」页的选项）：设置窗口的文字立即换成新语言。
                 self.update_language();
+                // 预警的开关、频道与「保留最近」可能变了：聊天日志的跟踪与浮窗的内容跟着变。
+                self.chat_config_changed();
                 // 「通用」「提醒」「预警」「翻译」页同样只随配置变化；「环境检查」页的日志目录可能改了。
                 if let Some(window) = &self.settings {
                     self.show_general(window);
@@ -454,6 +469,7 @@ impl App {
             // 退出：先写盘，再让主循环返回到 run() 的收尾。
             Effect::Quit => {
                 self.flush();
+                self.chat_stop();
                 let _ = slint::quit_event_loop();
             }
         }
@@ -479,6 +495,8 @@ impl App {
         self.check_recording(runtime);
         // 游戏日志的受击事件与状态：后台线程只放进通道，这里取走。
         self.drain_game_log(runtime);
+        // 聊天日志、星图数据、人名核对与浮窗的事件，以及浮窗按时间的刷新。
+        self.chat_tick(runtime);
         // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
         self.thumbnails.animate(self.now());
         let now = Instant::now();
@@ -719,6 +737,8 @@ impl App {
             SettingsPage::Clients => 0,
             SettingsPage::Previews | SettingsPage::General => 1,
             SettingsPage::Switching => 2,
+            SettingsPage::Intel => 4,
+            SettingsPage::Translation => 5,
             SettingsPage::Profiles => 6,
             SettingsPage::About => 8,
         });
