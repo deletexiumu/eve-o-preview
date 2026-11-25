@@ -14,7 +14,7 @@ struct UpdateStringsFR: UpdateStrings {
     // MARK: 「通用」页的更新一组
     var sectionHeader: String { "Mises à jour" }
     var autoCheckToggle: String { "Rechercher automatiquement les mises à jour" }
-    var autoCheckHelp: String { "Contacte GitHub une fois par jour. Aucune donnée personnelle n'est envoyée." }
+    var autoCheckHelp: String { "Recherche les mises à jour une fois par jour (via Cloudflare, avec GitHub en secours). Aucune donnée personnelle n'est envoyée." }
     var autoInstallToggle: String { "Installer automatiquement les mises à jour" }
     var autoInstallHelp: String { "Télécharge en arrière-plan. Installe et redémarre quand aucun client EVE n'a tourné depuis une minute, ou installe quand vous quittez EVE-O Preview." }
     var currentVersionLabel: String { "Version actuelle" }
@@ -64,8 +64,8 @@ struct UpdateStringsFR: UpdateStrings {
     var blockerDevelopmentSignature: String { "Il s'agit d'une version de développement signée localement." }
     var blockerUnsigned: String { "Cette copie de l'app n'est pas signée." }
     // MARK: 错误（UpdateError，按类合并）
-    var errorNetwork: String { "Impossible de joindre GitHub. Vérifiez votre connexion Internet." }
-    func errorHTTPStatus(_ code: Int) -> String { "GitHub a répondu par une erreur (\(code))." }
+    var errorNetwork: String { "Impossible de joindre le serveur de mises à jour. Vérifiez votre connexion Internet." }
+    func errorHTTPStatus(_ code: Int) -> String { "Le serveur de mises à jour a répondu par une erreur (\(code))." }
     var errorMalformedFeed: String { "Impossible de lire les informations de la version." }
     var errorAssetMissing: String { "Cette version ne contient pas de programme d'installation pour les mises à jour automatiques." }
     var errorDiskSpace: String { "Espace disque insuffisant pour le téléchargement." }

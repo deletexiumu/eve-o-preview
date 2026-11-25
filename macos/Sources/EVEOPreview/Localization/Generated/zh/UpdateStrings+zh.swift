@@ -14,7 +14,7 @@ struct UpdateStringsZH: UpdateStrings {
     // MARK: 「通用」页的更新一组
     var sectionHeader: String { "更新" }
     var autoCheckToggle: String { "自动检查更新" }
-    var autoCheckHelp: String { "每天访问一次 GitHub，不发送个人数据。" }
+    var autoCheckHelp: String { "每天检查一次更新（经 Cloudflare，GitHub 作为后备），不发送个人数据。" }
     var autoInstallToggle: String { "自动安装更新" }
     var autoInstallHelp: String { "在后台下载。没有 EVE 客户端运行满 1 分钟时安装并重新启动；也会在退出 EVE-O Preview 时安装。" }
     var currentVersionLabel: String { "当前版本" }
@@ -64,8 +64,8 @@ struct UpdateStringsZH: UpdateStrings {
     var blockerDevelopmentSignature: String { "这是本机签名的开发构建。" }
     var blockerUnsigned: String { "这个构建没有签名。" }
     // MARK: 错误（UpdateError，按类合并）
-    var errorNetwork: String { "无法连接 GitHub。请检查网络连接。" }
-    func errorHTTPStatus(_ code: Int) -> String { "GitHub 返回了错误（\(code)）。" }
+    var errorNetwork: String { "无法连接更新服务器。请检查网络连接。" }
+    func errorHTTPStatus(_ code: Int) -> String { "更新服务器返回了错误（\(code)）。" }
     var errorMalformedFeed: String { "无法读取发布信息。" }
     var errorAssetMissing: String { "这个版本没有供自动更新使用的安装包。" }
     var errorDiskSpace: String { "磁盘空间不足，无法下载。" }

@@ -158,7 +158,7 @@ struct SettingsStringsFR: SettingsStrings {
     var disclaimerHeader: String { "Remarques" }
     var focusOnlyText: String { "Cet outil ne fait que changer le focus des fenêtres. Il ne diffuse jamais d'entrées vers plusieurs clients et ne lit ni ne modifie jamais la mémoire du jeu." }
     var gameLogText: String { "Les alertes de combat lisent uniquement les journaux de jeu écrits par le client EVE. Elles ne lisent jamais la mémoire du jeu, ne modifient aucun fichier et n'envoient aucune entrée." }
-    var networkText: String { "EVE-O Preview ne contacte GitHub que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement." }
+    var networkText: String { "EVE-O Preview ne contacte les serveurs de mises à jour (Cloudflare et GitHub) que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement." }
     var eveIPText: String { "EVE Online et les logos associés sont des marques de CCP ehf. Ce projet n'est ni affilié à CCP ni approuvé par CCP." }
     var aboutChatLogsNote: String { "Le renseignement et la traduction lisent uniquement les journaux de discussion et les journaux de jeu. La traduction envoie le texte des discussions au service de modèle que vous choisissez. Lorsque la vérification des noms en ligne est activée, les noms de pilotes qui se suivent dans les messages de renseignement sont envoyés à l'API ESI de CCP." }
     // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）

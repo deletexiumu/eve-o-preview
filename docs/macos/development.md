@@ -59,7 +59,7 @@ Run the `swift` commands in `macos/` and the others from the repository root.
 | `swift run EVEOProbe update feed [url]` | Fetch and parse the release feed |
 | `swift run EVEOProbe update verify <new app> <base app>` | Check whether a new app satisfies the base app's designated requirement |
 | `swift run EVEOProbe update prepare <url> [--cache dir]` | Download and verify an update without installing it |
-| `macos/scripts/make-update-test-feed.sh [version]` | Write a `feed.json` for a local update test from `dist/release/` |
+| `macos/scripts/make-update-test-feed.sh [version]` | Write a signed test `update-manifest.json` for a local update test from `dist/release/` |
 | `swift run EVEOProbe staticdata` | Show where the map data file was found, its SDE build, record counts and the time for one 15-jump distance table |
 | `swift run EVEOProbe chatlog [dir] [--follow seconds]` | Show the chat log folder, channel kinds, message and location line counts, without names or message text |
 | `swift run EVEOProbe intel [dir] [--resolve-sample] [--resolve]` | Count intel messages, systems, ships and pilot names in recent chat logs; `--resolve-sample` sends three made-up names to ESI, `--resolve` sends the pilot names from your logs to ESI |

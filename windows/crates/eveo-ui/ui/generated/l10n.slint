@@ -346,7 +346,7 @@ export global SettingsText {
     // 战斗提醒只读游戏日志（反馈文档 R17）。
     in property <string> game-log-text: "Combat alerts only read the game log files that the EVE client writes. They never read game memory, modify files or send input.";
     // 联网说明：只在检查和下载更新时访问 GitHub，可在「通用」页关闭；问题报告不会自动发送（v1.1 设计 10.1 节）。
-    in property <string> network-text: "EVE-O Preview contacts GitHub only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically.";
+    in property <string> network-text: "EVE-O Preview contacts the update servers (Cloudflare and GitHub) only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically.";
     // CCP 的商标声明。
     in property <string> eve-ip-text: "EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP.";
     // 预警与翻译只读聊天日志和游戏日志；翻译会把聊天内容发给用户选择的模型服务（R32、R38）；
@@ -972,7 +972,7 @@ export global UpdateText {
     // 「自动检查更新」开关。
     in property <string> auto-check-toggle: "Check for updates automatically";
     // 「自动检查更新」的说明。
-    in property <string> auto-check-help: "Contacts GitHub once a day. No personal data is sent.";
+    in property <string> auto-check-help: "Checks for updates once a day (via Cloudflare, with GitHub as the fallback). No personal data is sent.";
     // 「自动安装更新」开关。
     in property <string> auto-install-toggle: "Install updates automatically";
     // 「自动安装更新」的说明。
@@ -1062,7 +1062,7 @@ export global UpdateText {
     // Windows 的 `developmentBuild`：调试版或 PR 构建，不自动安装正式版。
     in property <string> blocker-development-build: "This is a development build.";
     // `network`。
-    in property <string> error-network: "Couldn't reach GitHub. Check your internet connection.";
+    in property <string> error-network: "Couldn't reach the update server. Check your internet connection.";
     // `httpStatus`，参数是状态码。
     pure callback error-http-status(code: int) -> string;
     // `malformedFeed`。

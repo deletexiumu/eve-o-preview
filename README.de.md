@@ -216,7 +216,7 @@ EVE-O Preview zeigt sein Symbol auch im Dock; ein Klick darauf öffnet das Einst
 
 ### Updates
 
-EVE-O Preview sucht beim Start und einmal täglich auf GitHub nach einem neuen Release. Zum Abschalten deaktivieren Sie „Automatisch nach Updates suchen“ unter Einstellungen > Allgemein > Updates; „Nach Updates suchen …“ im Menü der Menüleiste sucht weiterhin auf Anfrage.
+EVE-O Preview sucht beim Start und einmal täglich nach einem neuen Release, anhand einer signierten Update-Liste, die über das CDN von Cloudflare verteilt wird; GitHub dient als Ausweichquelle. Releases, die nur die Windows-App ändern, werden nicht angeboten, und die Versionshinweise zeigen nur die macOS-Teile. Zum Abschalten deaktivieren Sie „Automatisch nach Updates suchen“ unter Einstellungen > Allgemein > Updates; „Nach Updates suchen …“ im Menü der Menüleiste sucht weiterhin auf Anfrage.
 
 Ist eine neue Version verfügbar, zeigt ein Fenster die Release-Notes in Ihrer Oberflächensprache (Englisch, wenn es keine Übersetzung gibt) und bietet „Update installieren“, „Diese Version überspringen“ und „Später“ an. Solange ein EVE-Client im Vordergrund ist, wartet das Fenster, bis Sie zu einer anderen App wechseln, und es übernimmt nie von sich aus den Tastaturfokus; ein Punkt auf dem Menüleistensymbol zeigt an, dass ein Update wartet. „Diese Version überspringen“ beendet nur die automatischen Erinnerungen für diese Version; „Nach Updates suchen …“ zeigt sie weiterhin an.
 
@@ -234,13 +234,12 @@ Die App behält bis zu 5 Protokolldateien zu je 1 MiB in `~/Library/Logs/EVE-O P
 
 ## Datenschutz
 
-Die App verbindet sich für Updates mit GitHub und stellt keine weiteren Verbindungen her, solange Sie keine der nach dieser Liste beschriebenen optionalen Funktionen einschalten:
+Die App verbindet sich für Updates mit Cloudflare und GitHub und stellt keine weiteren Verbindungen her, solange Sie keine der nach dieser Liste beschriebenen optionalen Funktionen einschalten:
 
-- Die Suche nach Updates fragt `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` beim Start und einmal täglich ab, solange „Automatisch nach Updates suchen“ aktiviert ist, sowie jedes Mal, wenn Sie „Nach Updates suchen …“ wählen.
-- Wird eine neue Version angeboten, fragt die App außerdem einmal die Release-Liste `api.github.com/repos/deletexiumu/eve-o-preview/releases` mit denselben Headern ab, um die Änderungen übersprungener Versionen anzuzeigen.
-- Die Installation eines Updates lädt `SHA256SUMS.txt` und das dmg aus dem Release herunter.
+- Die Suche nach Updates lädt die signierte Update-Liste `eveo.deepai.wiki/update-manifest.json` (verteilt von Cloudflare), bei einem Fehler `github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json`, beim Start und einmal täglich, solange „Automatisch nach Updates suchen“ aktiviert ist, sowie jedes Mal, wenn Sie „Nach Updates suchen …“ wählen. Die Liste enthält auch die Hinweise früherer Versionen, daher braucht die Anzeige übersprungener Versionen keine weitere Anfrage.
+- Die Installation eines Updates lädt `SHA256SUMS.txt` und das dmg von `eveo.deepai.wiki` herunter, bei einem Fehler aus dem GitHub-Release. Jede Datei wird mit der signierten Liste abgeglichen.
 
-Die Anfragen enthalten nur die App-Version im Header `User-Agent`, ein festes `Accept-Language: en` und ein Cache-Tag; es werden keine Charakternamen, Einstellungen, Protokolle, Hardwaredetails, Systemversion oder Kennungen gesendet, und es werden keine Cookies verwendet. GitHub sieht Ihre IP-Adresse und den Zeitpunkt der Anfrage. Es gibt keine Telemetrie und keinen automatischen Upload von Abstürzen: „Problem melden …“ erstellt nur eine ZIP-Datei auf Ihrem Mac und öffnet eine Webseite, auf der Sie selbst entscheiden, ob Sie absenden.
+Die Anfragen enthalten nur die App-Version im Header `User-Agent`, ein festes `Accept-Language: en` und `Cache-Control: no-cache`; es werden keine Charakternamen, Einstellungen, Protokolle, Hardwaredetails, Systemversion oder Kennungen gesendet, und es werden keine Cookies verwendet. Cloudflare und GitHub sehen Ihre IP-Adresse und den Zeitpunkt der Anfrage. Es gibt keine Telemetrie und keinen automatischen Upload von Abstürzen: „Problem melden …“ erstellt nur eine ZIP-Datei auf Ihrem Mac und öffnet eine Webseite, auf der Sie selbst entscheiden, ob Sie absenden.
 
 Aufklärungs- und Übersetzungs-Overlay lesen nur die Chat- und Spielprotokolle; sie schreiben nie hinein, und private Unterhaltungen werden nie gelesen. Zwei optionale Funktionen verbinden sich mit anderen Diensten:
 

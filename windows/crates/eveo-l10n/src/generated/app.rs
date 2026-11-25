@@ -947,7 +947,7 @@ impl SettingsStrings for SettingsStringsEn {
         "Combat alerts only read the game log files that the EVE client writes. They never read game memory, modify files or send input."
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview contacts GitHub only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically."
+        "EVE-O Preview contacts the update servers (Cloudflare and GitHub) only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically."
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP."
@@ -1550,7 +1550,7 @@ impl SettingsStrings for SettingsStringsZh {
         "战斗提醒只读取 EVE 客户端自己写出的游戏日志文件，不读游戏内存、不改文件、不发送输入。"
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview 只在检查和下载更新时访问 GitHub，可在「通用」页关闭。问题报告不会自动发送。"
+        "EVE-O Preview 只在检查和下载更新时访问更新服务器（Cloudflare 与 GitHub），可在「通用」页关闭。问题报告不会自动发送。"
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online 及相关标志是 CCP ehf. 的商标。本项目与 CCP 没有关联，也未获其认可。"
@@ -2150,7 +2150,7 @@ impl SettingsStrings for SettingsStringsRu {
         "Боевые оповещения только читают файлы игрового журнала, которые пишет клиент EVE. Они не читают память игры, не изменяют файлы и не отправляют ввод."
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview обращается к GitHub только для проверки и загрузки обновлений; это можно отключить в разделе «Общие». Отчёты о проблемах никогда не отправляются автоматически."
+        "EVE-O Preview обращается к серверам обновлений (Cloudflare и GitHub) только для проверки и загрузки обновлений; это можно отключить в разделе «Общие». Отчёты о проблемах никогда не отправляются автоматически."
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online и связанные с ней логотипы являются товарными знаками CCP ehf. Этот проект не связан с CCP и не одобрен ею."
@@ -2754,7 +2754,7 @@ impl SettingsStrings for SettingsStringsJa {
         "戦闘アラートは、EVEクライアントが書き出すゲームログのファイルを読むだけです。ゲームのメモリは読まず、ファイルを変更せず、入力も送りません。"
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O PreviewがGitHubに接続するのは、アップデートの確認とダウンロードのときだけです。「一般」でオフにできます。問題のレポートが自動で送信されることはありません。"
+        "EVE-O Previewがアップデートサーバー（Cloudflare と GitHub）に接続するのは、アップデートの確認とダウンロードのときだけです。「一般」でオフにできます。問題のレポートが自動で送信されることはありません。"
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Onlineおよび関連するロゴはCCP ehf.の商標です。このプロジェクトはCCPとは関係がなく、CCPの承認も受けていません。"
@@ -3354,7 +3354,7 @@ impl SettingsStrings for SettingsStringsKo {
         "전투 알림은 EVE 클라이언트가 직접 기록한 게임 로그 파일만 읽습니다. 게임 메모리를 읽지 않고, 파일을 수정하지 않으며, 입력을 보내지 않습니다."
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview는 업데이트를 확인하고 다운로드할 때만 GitHub에 연결합니다. '일반'에서 끌 수 있습니다. 문제 보고서는 자동으로 전송되지 않습니다."
+        "EVE-O Preview는 업데이트를 확인하고 다운로드할 때만 업데이트 서버(Cloudflare와 GitHub)에 연결합니다. '일반'에서 끌 수 있습니다. 문제 보고서는 자동으로 전송되지 않습니다."
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online 및 관련 로고는 CCP ehf.의 상표입니다. 이 프로젝트는 CCP와 관련이 없으며 CCP의 승인을 받지 않았습니다."
@@ -3954,7 +3954,7 @@ impl SettingsStrings for SettingsStringsFr {
         "Les alertes de combat lisent uniquement les journaux de jeu écrits par le client EVE. Elles ne lisent jamais la mémoire du jeu, ne modifient aucun fichier et n'envoient aucune entrée."
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview ne contacte GitHub que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement."
+        "EVE-O Preview ne contacte les serveurs de mises à jour (Cloudflare et GitHub) que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement."
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online et les logos associés sont des marques de CCP ehf. Ce projet n'est ni affilié à CCP ni approuvé par CCP."
@@ -4557,7 +4557,7 @@ impl SettingsStrings for SettingsStringsDe {
         "Kampfwarnungen lesen nur die Spielprotokolle, die der EVE-Client schreibt. Sie lesen nie den Spielspeicher, ändern keine Dateien und senden keine Eingaben."
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview kontaktiert GitHub nur, um nach Updates zu suchen und sie zu laden; abschaltbar unter „Allgemein“. Problemberichte werden nie automatisch gesendet."
+        "EVE-O Preview kontaktiert die Update-Server (Cloudflare und GitHub) nur, um nach Updates zu suchen und sie zu laden; abschaltbar unter „Allgemein“. Problemberichte werden nie automatisch gesendet."
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online und zugehörige Logos sind Marken von CCP ehf. Dieses Projekt steht in keiner Verbindung zu CCP und wird nicht von CCP unterstützt."
@@ -5160,7 +5160,7 @@ impl SettingsStrings for SettingsStringsEs {
         "Las alertas de combate solo leen los archivos de registro que escribe el cliente de EVE. Nunca leen la memoria del juego, modifican archivos ni envían entradas."
     }
     fn network_text(&self) -> &'static str {
-        "EVE-O Preview solo se conecta a GitHub para buscar y descargar actualizaciones; puedes desactivarlo en General. Los informes de problemas nunca se envían automáticamente."
+        "EVE-O Preview solo se conecta a los servidores de actualizaciones (Cloudflare y GitHub) para buscar y descargar actualizaciones; puedes desactivarlo en General. Los informes de problemas nunca se envían automáticamente."
     }
     fn eve_ip_text(&self) -> &'static str {
         "EVE Online y los logotipos relacionados son marcas comerciales de CCP ehf. Este proyecto no está afiliado a CCP ni cuenta con su respaldo."

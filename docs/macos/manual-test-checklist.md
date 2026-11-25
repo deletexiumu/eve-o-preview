@@ -330,7 +330,7 @@
 
 ### 第 4 组：更新检查
 
-1. 用 1.1.0 的正式构建启动并等 10 秒。预期：日志里有一次检查；`state.json` 里有 `lastCheckAt` 与 `etag`。
+1. 用正式构建启动并等 10 秒。预期：日志里有一次检查；`state.json` 里有 `lastCheckAt` 与 `manifestSequence`（1.5.0 起读更新清单，不再有 `etag`）。
 2. 1 小时内重启。预期：不再请求。
 3. 点「检查更新…」。预期：显示「已是最新版本」或更新窗口。
 4. 关掉「自动检查更新」后重启。预期：没有请求；「检查更新…」仍可用。
@@ -341,12 +341,12 @@
 ### 第 5 组：本地端到端安装（要用户配合；先退出正在运行的应用）
 
 1. 用 `SIGN_IDENTITY="EVEO Preview Dev"` 构建 `VERSION=1.1.0` 的应用 A，拷贝到 `~/Applications/`。从访达打开 A，给它授予屏幕录制与辅助功能权限，确认缩略图有画面，然后退出。再构建并打包 `VERSION=1.1.1` 的应用 B，得到 dmg 与 `SHA256SUMS.txt`。
-2. 写 `feed.json`（`tag_name` 是 `v1.1.1`，附件地址指向 `http://127.0.0.1:8123/`），在 `dist/release/` 下运行 `python3 -m http.server 8123 --bind 127.0.0.1`。
-3. 运行 `open --env EVEO_UPDATE_FEED_URL=http://127.0.0.1:8123/feed.json "$HOME/Applications/EVE-O Preview.app"`。不直接运行包里的可执行文件：那样权限记在终端名下（架构文档 9.2 节）。第 4 项就比不出权限是否保留。预期：出现更新窗口，带「测试地址」字样，发布说明按界面语言显示（V20）。
+2. 用 `LABEL=1.1.1 macos/scripts/make-update-test-feed.sh 1.1.1` 生成签名的测试清单 `update-manifest.json`（附件地址指向 `http://127.0.0.1:8123/`），在 `dist/release/` 下运行 `python3 -m http.server 8123 --bind 127.0.0.1`。
+3. 运行脚本最后打印的命令：`open --env EVEO_UPDATE_FEED_URL=http://127.0.0.1:8123/update-manifest.json --env EVEO_UPDATE_TEST_PUBLIC_KEY=<脚本打印的公钥> "$HOME/Applications/EVE-O Preview.app"`。不直接运行包里的可执行文件：那样权限记在终端名下（架构文档 9.2 节）。第 4 项就比不出权限是否保留。预期：出现更新窗口，带「测试地址」字样，发布说明按界面语言显示（V20）。
 4. 点「安装更新」。预期：进度依次是下载、核对、安装、重新启动；新实例的「关于」页显示 1.1.1；不用重新授权，缩略图有画面，最小化可用（V22、V23）。
 5. 改 dmg 的一个字节后重做。预期：报校验和不符，A 没有变化。
 6. 把 B 改用 ad-hoc 签名后重新打包（校验和文件随之更新）再重做。预期：报无法验证，A 没有变化，`codesign --verify` 对 A 仍通过。
-7. 把 `feed.json` 的版本改成 `v1.2.0`，附件仍是 1.1.1 的 dmg。预期：报版本不符，A 没有变化。
+7. 用 `LABEL=1.1.1 macos/scripts/make-update-test-feed.sh 1.2.0` 重新生成清单（版本 1.2.0，附件仍是 1.1.1 的 dmg）。预期：报版本不符，A 没有变化。
 8. 下载途中停掉 HTTP 服务。预期：报网络错误，缓存目录里没有 `.partial` 文件。
 9. 打开「自动安装更新」，用测试地址启动 A。预期：不出现窗口；菜单出现「重新启动以更新到 1.1.1」；退出应用后再打开是 1.1.1。
 10. 把 A 所在的文件夹改成只读后启动。预期：窗口说明没有权限，只有「打开发布页」。
@@ -377,9 +377,10 @@
   4. 不设 `EVEO_LANG` 启动，打开更新窗口后在「通用」页切换语言。预期：窗口标题与内容立即换成新语言。
   5. 点发布说明里的链接。预期：只有 https 链接可点，用默认浏览器打开。
   6. 用 `EVEO_FAKE=1 EVEO_UPDATE_UI_STATE=available` 启动（各语言）。预期：发布说明分两段，「版本 1.1.1」在前、「版本 1.1.0」在后，段间有分隔线，最后一行是「更早版本的更新内容请到发布页查看。」；1.1.0 一段在中英文以外的语言下显示英文。
-  7. 用本地测试地址（`make-update-test-feed.sh` 生成 feed.json 与 releases.json）从比 feed 旧两个版本以上的版本打开应用。预期：窗口列出 feed 版本与中间各版本的说明，新版在前；删掉 releases.json 后重新打开（或断网），只显示 feed 版本的说明，更新照常可装。
+  7. 用本地测试地址（`make-update-test-feed.sh` 生成的清单里含中间版本的说明）从比清单版本旧两个版本以上的版本打开应用。预期：窗口列出清单版本与中间各版本的说明，新版在前；只改了 Windows 的版本（如 1.4.1）不列出，各段里没有「Windows」小节。
+  8. 不设 `EVEO_UPDATE_TEST_PUBLIC_KEY`，或改动 `update-manifest.json` 的一个字节后检查。预期：报发布信息无法读取，不提示更新。
 - 第 5 组补充：
-  1. 安装前用探针预检：`.build/debug/EVEOProbe update verify "<B 的应用>" "<A 的应用>"` 应打印 0；`update prepare http://127.0.0.1:8123/feed.json` 应打印 dmg 的位置与 SHA-256。`feed.json` 可用 `macos/scripts/make-update-test-feed.sh` 生成。
+  1. 安装前用探针预检：`.build/debug/EVEOProbe update verify "<B 的应用>" "<A 的应用>"` 应打印 0；设好 `EVEO_UPDATE_TEST_PUBLIC_KEY` 后 `update prepare http://127.0.0.1:8123/update-manifest.json` 应打印 dmg 的位置与 SHA-256。清单用 `macos/scripts/make-update-test-feed.sh` 生成。
   2. 让新实例在 15 秒内起不来（例如安装后立即把新应用改名）。预期：更新窗口显示「更新已安装。请退出并重新打开 EVE-O Preview。」，按钮是「关闭」与「退出 EVE-O Preview」；「通用」页的状态行是同一句。关掉窗口后它应重新弹出。
   3. 从菜单点「重新启动以更新到 X」。预期：先打开更新窗口并显示安装进度。
   4. 让一次「重新启动以更新」失败后关掉窗口。预期：恢复为普通的「有可用更新」提示与圆点，不是「重新启动以更新」。

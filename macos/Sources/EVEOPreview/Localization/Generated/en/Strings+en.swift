@@ -158,7 +158,7 @@ struct SettingsStringsEN: SettingsStrings {
     var disclaimerHeader: String { "Notes" }
     var focusOnlyText: String { "This tool only switches window focus. It never broadcasts input to multiple clients and never reads or modifies game memory." }
     var gameLogText: String { "Combat alerts only read the game log files that the EVE client writes. They never read game memory, modify files or send input." }
-    var networkText: String { "EVE-O Preview contacts GitHub only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically." }
+    var networkText: String { "EVE-O Preview contacts the update servers (Cloudflare and GitHub) only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically." }
     var eveIPText: String { "EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP." }
     var aboutChatLogsNote: String { "Intel and translation only read chat logs and game logs. Translation sends chat text to the model service you choose. When online name checking is on, pilot names that run together in intel messages are sent to CCP's ESI API." }
     // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）

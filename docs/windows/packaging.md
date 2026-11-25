@@ -54,21 +54,27 @@
 1. 开一个发版 PR：
    - 改 `macos/VERSION`、`windows/VERSION` 与 `windows/Cargo.toml` 的 `[workspace.package] version`，三者必须相同（`scripts/check_versions.py`，CI 核对）。只改了一个平台也一起升版本号；
    - 写发布说明 `docs/release-notes/v<版本>.md`，格式见下；
-   - 版本号带 `-`（如 `1.5.0-beta.1`）时 Release 标为预发布、不标 latest，只推给正在运行预发布版的 Windows 用户。
+   - 版本号带 `-`（如 `1.5.0-beta.1`）时 Release 标为预发布、不标 latest。1.5.0 起预发布版不写进更新清单，应用不会提示它。
 2. 合并后在 main 上打 tag 并推送：`git tag -a v<版本> -m v<版本> && git push origin v<版本>`。
-3. 看 Actions 里这次 `release.yml` 的运行：成功后 Release 页面有 7 个附件（dmg、Windows zip、两个源码包、`SHA256SUMS.txt` 与它的签名），`/releases/latest` 指向这个 tag。
+3. 看 Actions 里这次 `release.yml` 的运行：成功后 Release 页面有 8 个附件（dmg、Windows zip、两个源码包、`SHA256SUMS.txt`、它的签名与
+   更新清单 `update-manifest.json`），`/releases/latest` 指向这个 tag。之后的 `cdn` 任务把清单与安装包传到 Cloudflare R2
+   （[更新清单与分发](../update-manifest.md) 第 5、6 节），失败时可以单独重跑这个任务。
 
 Release 已存在时 `publish` 任务失败，不覆盖附件。发错了要删掉 Release 与 tag，改版本号重发。
 
 ### 4.1 发布说明
 
-一个版本一份，两个平台共用，英文在前、其余 7 种语言各一个折叠块，语言块的标记与 macOS 原来的相同（`scripts/check_release_notes.py` 核对）。每个语言块里按平台分小节：两端都有的改动写在最前面，然后是「macOS」「Windows」两个小标题，某个平台没有改动就省掉它的小标题。两个平台的应用都显示整份说明里对应语言的那一块。
+一个版本一份，两个平台共用，英文在前、其余 7 种语言各一个折叠块，语言块的标记与 macOS 原来的相同（`scripts/check_release_notes.py` 核对）。
+第一行是平台标记 `<!-- platforms: macos windows -->`，写这个版本改动了哪些平台：只改了一个平台时只写它，另一个平台的应用就不会提示这个版本。
+每个语言块里按平台分小节：两端都有的改动写在最前面（标题不要正好是平台名），然后是「macOS」「Windows」两个小标题，某个平台没有改动就省掉它的小标题。
+1.5.0 起两个平台的应用只显示对应语言块里本平台的部分（[更新清单与分发](../update-manifest.md) 第 1 节）。
 
 1.4.0 以前的说明留在 `docs/release-notes/macos/` 与 `docs/release-notes/windows/`，不再新增。
 
 ### 4.2 与旧版本的兼容
 
-- macOS：旧版本读 `/releases/latest`，按名字取 dmg 与 `SHA256SUMS.txt`，校验和文件里多出的 Windows 行不影响它。不需要别的措施。
+- 1.5.0 起两个平台都读更新清单。1.4.x 及更早的版本仍读 GitHub 的 Release 接口、不认平台标记，所以只改了一个平台的版本仍会提示它们一次。
+- macOS：1.4.x 及更早的版本读 `/releases/latest`，按名字取 dmg 与 `SHA256SUMS.txt`，校验和文件里多出的 Windows 行不影响它。不需要别的措施。
 - Windows：1.4.0 以前的版本只认 `win-v` 开头的 tag。`release.yml` 的 `WINDOWS_LEGACY_TAG_VERSIONS` 列出的版本，`publish` 会另建一个 tag 为 `win-v<版本>` 的 Release（不标 latest），只放 Windows 的 4 个附件与单独签名的校验和，让旧版本能自动更新上来。现在列表里只有 1.4.0：装上 1.4.0 之后客户端就认 `v` 开头的 tag 了。
 - Windows 1.4.0 起两种 tag 都认；`v` 开头的 Release 必须带这个版本的 Windows zip 才算数，所以只有 macOS 附件的旧 Release（1.3.2 及以前）会被跳过。
 

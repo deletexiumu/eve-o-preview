@@ -8,7 +8,7 @@ menuRestartToUpdate = "Reiniciar para actualizar a {version}"
 
 sectionHeader = "Actualizaciones"
 autoCheckToggle = "Buscar actualizaciones automáticamente"
-autoCheckHelp = "Se conecta a GitHub una vez al día. No se envían datos personales."
+autoCheckHelp = "Busca actualizaciones una vez al día (a través de Cloudflare, con GitHub como respaldo). No se envían datos personales."
 autoInstallToggle = "Instalar actualizaciones automáticamente"
 autoInstallHelp = "Descarga en segundo plano. Instala y reinicia cuando no se ha ejecutado ningún cliente de EVE durante un minuto, o instala al salir de EVE-O Preview."
 notAvailableYet = "Las actualizaciones llegarán en una próxima versión de prueba. Mientras tanto, descarga las nuevas versiones desde la página de versiones de GitHub."
@@ -65,8 +65,8 @@ blockerNoSigningKey = "Esta compilación no incluye la clave necesaria para veri
 blockerDevelopmentBuild = "Esta es una compilación de desarrollo."
 
 # 错误说明都是完整的句子，以句号结尾。
-errorNetwork = "No se ha podido conectar con GitHub. Comprueba tu conexión a internet."
-errorHTTPStatus = "GitHub respondió con un error ({code})."
+errorNetwork = "No se ha podido conectar con el servidor de actualizaciones. Comprueba tu conexión a internet."
+errorHTTPStatus = "El servidor de actualizaciones respondió con un error ({code})."
 errorMalformedFeed = "No se ha podido leer la información de la versión."
 errorAssetMissing = "Esta versión no incluye un instalador para actualizaciones automáticas."
 errorDiskSpace = "No hay suficiente espacio libre en el disco para la descarga."

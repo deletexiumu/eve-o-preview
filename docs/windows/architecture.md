@@ -525,10 +525,14 @@ exe 的版本资源里写入版本号、构建标签与提交号。CI 在发布�
 
 规则（多久检查一次、跳过的版本、何时可以安装、发布说明按语言取哪一块、中间版本的说明）全部来自 Core 的 `UpdatePolicy`、`ReleaseHistory`、`ReleaseNotes`，从 Swift 移植，与 macOS 行为一致。平台层只做下面这些：
 
-1. 取 `https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=100`，只看不是草稿的条目，按语义化版本取最高的正式版。tag 可以是 `v<版本>` 或旧的 `win-v<版本>`；`v` 开头的条目必须带 `EVE-O-Preview-<版本>-windows-x64.zip`，否则跳过（1.3.2 及以前的 macOS Release 没有它）。不用 `/releases/latest`：1.4.0 以前它指向 macOS 版，以后也不应让 Windows 依赖它（7.4 节）。
-   测试版的渠道：正在运行的是预发布版（`win-v0.x` 的测试版或 CI 构建）时，也提示更新的预发布版；正在运行正式版时只提示正式版。中间版本的发布说明从同一页列表里挑，不再另请求。
-2. 附件地址必须在本仓库的 `/releases/` 路径下，校验规则移植 `UpdateFeed.accepts`。
-3. 下载 zip、`SHA256SUMS.txt` 与 `.sig`。先用内置的 ed25519 公钥验签校验和文件，再核对 zip 的 SHA-256。签名文件是对 `SHA256SUMS.txt` 原始字节的 ed25519 签名的 base64（一行）。
+1. 1.5.0 起读签名的更新清单 `update-manifest.json`（[更新清单与分发](../update-manifest.md)），依次试 R2 的 CDN 与 GitHub 两个源，
+   验签、核对序号后取 `latest.windows`：改动了 Windows 的最新正式版。只改了 macOS 的版本不提示，中间版本的说明也只取
+   改动了 Windows 的版本，显示时去掉 macOS 的小节。预发布渠道随之结束：清单只含正式版。
+   1.4.x 及更早的版本取 GitHub 的 Release 列表（`/releases?per_page=100`），那部分已去掉。
+2. 发布页地址必须在本仓库的 `/releases/` 路径下，校验规则移植 `UpdateFeed.accepts`；清单里附件的地址只要求是干净的 https
+   （`accepts_asset`），真伪由清单里的 SHA-256 保证。
+3. 下载 zip、`SHA256SUMS.txt` 与 `.sig`，每个文件按清单里的地址顺序尝试（R2 在前），先核对清单里的 SHA-256。再用内置的
+   ed25519 公钥验签校验和文件，核对 zip 的 SHA-256。签名文件是对 `SHA256SUMS.txt` 原始字节的 ed25519 签名的 base64（一行）。
 4. exe 带 Authenticode 签名时，用 `WinVerifyTrust` 核对，并要求签名者与当前运行的 exe 相同。没有签名的阶段只靠第 3 步。
 5. 安装：把新 exe 解到同目录的临时文件名（`*.new`）；把正在运行的 exe 改名为 `*.old`（Windows 允许给运行中的 exe 改名）；把新文件改成正式名字；在 `state.json` 的 `updates.pendingSwap` 记下新旧版本，带 `--after-update <旧进程编号>` 启动新进程并退出。新进程先等旧进程退出再做单实例检查。
    下载自己跟重定向（最多 5 次，WinHTTP 的自动重定向是关掉的）：GitHub 的附件会重定向到存放文件的主机，正式地址下只跟到 https，测试地址下只跟同源。解出 exe 后读它的版本资源（`ProductVersion` 与 `BuildLabel`，由 build.rs 写入）与 PE 头的机器类型，交给 Core 的 `validate` 核对。
@@ -757,7 +761,7 @@ M2 可以与 M1 并行开始（Rust 代码先在分支上写），M8 与 M2～M6
 | R7 | `SetForegroundWindow` 在某些系统设置或客户端状态下不可靠 | 中 | 高 | 多级升级步骤；逐步核对与日志；W5 实测 |
 | R8 | 低级鼠标钩子被安全软件拦截或被系统摘除 | 中 | 低 | 只在有鼠标绑定时安装；定期重装；键盘热键不受影响 |
 | R9 | CI 的 Windows 运行器不能跑集成探针 | 低 | 中 | M3 最先验证；不行就把探针移到用户机器 |
-| R10 | GitHub 接口限流影响 Windows 的更新检查（列表接口比 latest 响应大） | 低 | 低 | 沿用 ETag 与每天一次的频率；限流的处理规则已在 Core |
+| R10 | GitHub 接口限流影响 Windows 的更新检查（1.5.0 起读 CDN 上的更新清单，不再经 GitHub 接口）（列表接口比 latest 响应大） | 低 | 低 | 沿用 ETag 与每天一次的频率；限流的处理规则已在 Core |
 | R11 | 工作量：Core 约 1.5 万行、测试约 1.3 万行、平台与界面约 3 万行要重写 | 确定 | 高 | 分里程碑交付，M4 就有可用的预览；日志类功能（M6）可以晚于首个测试版 |
 | R12 | CCP 对第三方工具的政策 | 低 | 高 | 与上游一样只做预览与窗口切换，不注入、不广播输入、不读内存；README 写明 |
 

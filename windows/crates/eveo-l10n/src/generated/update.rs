@@ -164,7 +164,7 @@ impl UpdateStrings for UpdateStringsEn {
         "Check for updates automatically"
     }
     fn auto_check_help(&self) -> &'static str {
-        "Contacts GitHub once a day. No personal data is sent."
+        "Checks for updates once a day (via Cloudflare, with GitHub as the fallback). No personal data is sent."
     }
     fn auto_install_toggle(&self) -> &'static str {
         "Install updates automatically"
@@ -305,10 +305,10 @@ impl UpdateStrings for UpdateStringsEn {
         "This is a development build."
     }
     fn error_network(&self) -> &'static str {
-        "Couldn't reach GitHub. Check your internet connection."
+        "Couldn't reach the update server. Check your internet connection."
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub answered with an error ({}).", code)
+        format!("The update server answered with an error ({}).", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "The release information couldn't be read."
@@ -359,7 +359,7 @@ impl UpdateStrings for UpdateStringsZh {
         "自动检查更新"
     }
     fn auto_check_help(&self) -> &'static str {
-        "每天访问一次 GitHub，不发送个人数据。"
+        "每天检查一次更新（经 Cloudflare，GitHub 作为后备），不发送个人数据。"
     }
     fn auto_install_toggle(&self) -> &'static str {
         "自动安装更新"
@@ -500,10 +500,10 @@ impl UpdateStrings for UpdateStringsZh {
         "这是开发构建。"
     }
     fn error_network(&self) -> &'static str {
-        "无法连接 GitHub。请检查网络连接。"
+        "无法连接更新服务器。请检查网络连接。"
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub 返回了错误（{}）。", code)
+        format!("更新服务器返回了错误（{}）。", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "无法读取发布信息。"
@@ -554,7 +554,7 @@ impl UpdateStrings for UpdateStringsRu {
         "Автоматически проверять наличие обновлений"
     }
     fn auto_check_help(&self) -> &'static str {
-        "Обращается к GitHub раз в день. Личные данные не передаются."
+        "Проверяет обновления раз в день (через Cloudflare, запасной источник — GitHub). Личные данные не передаются."
     }
     fn auto_install_toggle(&self) -> &'static str {
         "Автоматически устанавливать обновления"
@@ -695,10 +695,10 @@ impl UpdateStrings for UpdateStringsRu {
         "Это сборка для разработки."
     }
     fn error_network(&self) -> &'static str {
-        "Не удалось подключиться к GitHub. Проверьте подключение к интернету."
+        "Не удалось подключиться к серверу обновлений. Проверьте подключение к интернету."
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub вернул ошибку ({}).", code)
+        format!("Сервер обновлений вернул ошибку ({}).", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "Не удалось прочитать сведения о выпуске."
@@ -749,7 +749,7 @@ impl UpdateStrings for UpdateStringsJa {
         "アップデートを自動的に確認"
     }
     fn auto_check_help(&self) -> &'static str {
-        "1 日に 1 回 GitHub に接続します。個人データは送信されません。"
+        "1 日に 1 回アップデートを確認します（Cloudflare 経由、予備は GitHub）。個人データは送信されません。"
     }
     fn auto_install_toggle(&self) -> &'static str {
         "アップデートを自動的にインストール"
@@ -890,10 +890,10 @@ impl UpdateStrings for UpdateStringsJa {
         "これは開発用ビルドです。"
     }
     fn error_network(&self) -> &'static str {
-        "GitHub に接続できませんでした。インターネット接続を確認してください。"
+        "アップデートサーバーに接続できませんでした。インターネット接続を確認してください。"
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub がエラーを返しました（{}）。", code)
+        format!("アップデートサーバーがエラーを返しました（{}）。", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "リリース情報を読み取れませんでした。"
@@ -944,7 +944,7 @@ impl UpdateStrings for UpdateStringsKo {
         "자동으로 업데이트 확인"
     }
     fn auto_check_help(&self) -> &'static str {
-        "하루에 한 번 GitHub에 접속합니다. 개인 정보는 전송되지 않습니다."
+        "하루에 한 번 업데이트를 확인합니다(Cloudflare 경유, 예비는 GitHub). 개인 정보는 전송되지 않습니다."
     }
     fn auto_install_toggle(&self) -> &'static str {
         "자동으로 업데이트 설치"
@@ -1085,10 +1085,10 @@ impl UpdateStrings for UpdateStringsKo {
         "개발용 빌드입니다."
     }
     fn error_network(&self) -> &'static str {
-        "GitHub에 연결할 수 없습니다. 인터넷 연결을 확인하십시오."
+        "업데이트 서버에 연결할 수 없습니다. 인터넷 연결을 확인하십시오."
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub가 오류를 반환했습니다({}).", code)
+        format!("업데이트 서버가 오류를 반환했습니다({}).", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "릴리스 정보를 읽을 수 없습니다."
@@ -1139,7 +1139,7 @@ impl UpdateStrings for UpdateStringsFr {
         "Rechercher automatiquement les mises à jour"
     }
     fn auto_check_help(&self) -> &'static str {
-        "Contacte GitHub une fois par jour. Aucune donnée personnelle n'est envoyée."
+        "Recherche les mises à jour une fois par jour (via Cloudflare, avec GitHub en secours). Aucune donnée personnelle n'est envoyée."
     }
     fn auto_install_toggle(&self) -> &'static str {
         "Installer automatiquement les mises à jour"
@@ -1280,10 +1280,10 @@ impl UpdateStrings for UpdateStringsFr {
         "Il s'agit d'une version de développement."
     }
     fn error_network(&self) -> &'static str {
-        "Impossible de joindre GitHub. Vérifiez votre connexion Internet."
+        "Impossible de joindre le serveur de mises à jour. Vérifiez votre connexion Internet."
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub a répondu par une erreur ({}).", code)
+        format!("Le serveur de mises à jour a répondu par une erreur ({}).", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "Impossible de lire les informations de la version."
@@ -1334,7 +1334,7 @@ impl UpdateStrings for UpdateStringsDe {
         "Automatisch nach Updates suchen"
     }
     fn auto_check_help(&self) -> &'static str {
-        "Kontaktiert GitHub einmal täglich. Es werden keine persönlichen Daten gesendet."
+        "Sucht einmal täglich nach Updates (über Cloudflare, GitHub als Ausweichquelle). Es werden keine persönlichen Daten gesendet."
     }
     fn auto_install_toggle(&self) -> &'static str {
         "Updates automatisch installieren"
@@ -1475,10 +1475,10 @@ impl UpdateStrings for UpdateStringsDe {
         "Dies ist ein Entwicklungs-Build."
     }
     fn error_network(&self) -> &'static str {
-        "GitHub ist nicht erreichbar. Internetverbindung prüfen."
+        "Der Update-Server ist nicht erreichbar. Internetverbindung prüfen."
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub hat mit einem Fehler geantwortet ({}).", code)
+        format!("Der Update-Server hat mit einem Fehler geantwortet ({}).", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "Die Release-Informationen konnten nicht gelesen werden."
@@ -1529,7 +1529,7 @@ impl UpdateStrings for UpdateStringsEs {
         "Buscar actualizaciones automáticamente"
     }
     fn auto_check_help(&self) -> &'static str {
-        "Se conecta a GitHub una vez al día. No se envían datos personales."
+        "Busca actualizaciones una vez al día (a través de Cloudflare, con GitHub como respaldo). No se envían datos personales."
     }
     fn auto_install_toggle(&self) -> &'static str {
         "Instalar actualizaciones automáticamente"
@@ -1670,10 +1670,10 @@ impl UpdateStrings for UpdateStringsEs {
         "Esta es una compilación de desarrollo."
     }
     fn error_network(&self) -> &'static str {
-        "No se ha podido conectar con GitHub. Comprueba tu conexión a internet."
+        "No se ha podido conectar con el servidor de actualizaciones. Comprueba tu conexión a internet."
     }
     fn error_http_status(&self, code: i64) -> String {
-        format!("GitHub respondió con un error ({}).", code)
+        format!("El servidor de actualizaciones respondió con un error ({}).", code)
     }
     fn error_malformed_feed(&self) -> &'static str {
         "No se ha podido leer la información de la versión."

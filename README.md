@@ -214,7 +214,7 @@ EVE-O Preview also shows its icon in the Dock; clicking it opens the settings wi
 
 ### Updates
 
-EVE-O Preview checks GitHub for a new release at launch and once a day. To turn this off, clear "Check for updates automatically" under Settings > General > Updates; "Check for Updates…" in the menu bar menu still checks on demand.
+EVE-O Preview checks for a new release at launch and once a day, using a signed update list on Cloudflare's CDN, with GitHub as the fallback. Releases that only change the Windows app are not offered, and the release notes show only the macOS parts. To turn this off, clear "Check for updates automatically" under Settings > General > Updates; "Check for Updates…" in the menu bar menu still checks on demand.
 
 When a new version is available, a window shows the release notes in your interface language (English if there is no translation) and offers Install Update, Skip This Version and Later. While an EVE client is in front, the window waits until you switch away, and it never takes keyboard focus on its own; a dot on the menu bar icon shows that an update is waiting. "Skip This Version" only stops automatic reminders for that version; "Check for Updates…" still shows it.
 
@@ -232,13 +232,12 @@ The app keeps up to 5 log files of 1 MiB each in `~/Library/Logs/EVE-O Preview/`
 
 ## Privacy
 
-The app connects to GitHub for updates, and makes no other connections unless you turn on one of the optional features described after this list:
+The app connects to Cloudflare and GitHub for updates, and makes no other connections unless you turn on one of the optional features described after this list:
 
-- Checking for updates requests `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…".
-- When a newer version is offered, the app also requests the release list `api.github.com/repos/deletexiumu/eve-o-preview/releases` once, with the same headers, to show the notes of any versions you skipped.
-- Installing an update downloads `SHA256SUMS.txt` and the dmg from the release.
+- Checking for updates downloads the signed update list `eveo.deepai.wiki/update-manifest.json` (served by Cloudflare), or `github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json` if that fails, at launch and once a day while "Check for updates automatically" is on, and whenever you choose "Check for Updates…". The list also holds the notes of earlier versions, so showing versions you skipped needs no extra request.
+- Installing an update downloads `SHA256SUMS.txt` and the dmg from `eveo.deepai.wiki`, or from the GitHub release if that fails. Each file is checked against the signed list.
 
-The requests carry only the app version in the `User-Agent` header, a fixed `Accept-Language: en` and a cache tag; no character names, settings, logs, hardware details, system version or identifiers are sent, and no cookies are used. GitHub sees your IP address and the time of the request. There is no telemetry and no automatic crash upload: "Report a Problem…" only creates a zip on your Mac and opens a web page that you choose whether to submit.
+The requests carry only the app version in the `User-Agent` header, a fixed `Accept-Language: en` and `Cache-Control: no-cache`; no character names, settings, logs, hardware details, system version or identifiers are sent, and no cookies are used. Cloudflare and GitHub see your IP address and the time of the request. There is no telemetry and no automatic crash upload: "Report a Problem…" only creates a zip on your Mac and opens a web page that you choose whether to submit.
 
 The intel and translation overlays read the chat logs and game logs only; they never write to them, and private conversations are never read. Two optional features connect to other services:
 

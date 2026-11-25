@@ -201,7 +201,7 @@ disclaimerHeader = "Remarques"
 focusOnlyText = "Cet outil ne fait que changer le focus des fenêtres. Il ne diffuse jamais d'entrées vers plusieurs clients et ne lit ni ne modifie jamais la mémoire du jeu."
 gameLogText = "Les alertes de combat lisent uniquement les journaux de jeu écrits par le client EVE. Elles ne lisent jamais la mémoire du jeu, ne modifient aucun fichier et n'envoient aucune entrée."
 # 「通用」用通用页的页名 Général（pageGeneral）。
-networkText = "EVE-O Preview ne contacte GitHub que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement."
+networkText = "EVE-O Preview ne contacte les serveurs de mises à jour (Cloudflare et GitHub) que pour rechercher et télécharger les mises à jour ; vous pouvez le désactiver dans « Général ». Les rapports de problème ne sont jamais envoyés automatiquement."
 eveIPText = "EVE Online et les logos associés sont des marques de CCP ehf. Ce projet n'est ni affilié à CCP ni approuvé par CCP."
 aboutChatLogsNote = "Le renseignement et la traduction lisent uniquement les journaux de discussion et les journaux de jeu. La traduction envoie le texte des discussions au service de modèle que vous choisissez. Lorsque la vérification des noms en ligne est activée, les noms de pilotes qui se suivent dans les messages de renseignement sont envoyés à l'API ESI de CCP."
 
