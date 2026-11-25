@@ -138,7 +138,12 @@ impl App {
         self.stop_recording();
         // 钩子装不上（极少见）时不进入录制状态，按钮保持原样，原因记进日志。
         if !same {
-            match HotkeyRecorder::start() {
+            // 设置窗口作为第二个来源：安全软件把实体按键挡在全局钩子外时，窗口自己的按键消息照样能录上。
+            let window = self
+                .settings
+                .as_ref()
+                .and_then(|settings| window_hwnd(settings.window()));
+            match HotkeyRecorder::start(window) {
                 Ok(recorder) => {
                     LOG.info(format_args!("开始录制 {slot:?}（原文「{text}」）"));
                     self.hotkeys.set_suspended(true);

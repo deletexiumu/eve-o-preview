@@ -64,7 +64,7 @@ pub(super) fn check(report: &mut Report) {
 /// 开一个录制器，送一次组合键，本线程睡 `BUSY` 不取消息，再在 `SETTLE` 内取结果。
 /// 录制器装不上时返回错误；到时没有结果时返回 `Ok(None)`。
 fn record_once(modifiers: &[u16], key: u8) -> Result<Option<RecordOutcome>, String> {
-    let recorder = HotkeyRecorder::start()?;
+    let recorder = HotkeyRecorder::start(None)?;
     send_chord(modifiers, key);
     // 模拟忙碌的主线程：既不睡在消息循环里，也不取任何消息。
     std::thread::sleep(BUSY);

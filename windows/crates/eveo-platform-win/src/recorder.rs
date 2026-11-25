@@ -26,7 +26,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 
 use eveo_core::hotkeys::{Hotkey, HotkeyModifiers};
-use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_BACK, VK_CONTROL, VK_DELETE, VK_ESCAPE, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_MENU,
@@ -39,7 +39,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WM_XBUTTONDOWN, WM_XBUTTONUP, XBUTTON1, XBUTTON2,
 };
 
-use crate::{activation, mouse_hook, window_class};
+use crate::{activation, mouse_hook, recorder_window, window_class};
 
 /// 录制的结果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,9 +52,9 @@ pub enum RecordOutcome {
     Cancelled,
 }
 
-/// 录制中的状态，钩子线程的回调写、主线程的定时器读，由锁保护。
+/// 录制中的状态，钩子线程的回调与主线程的窗口子类过程写、主线程的定时器读，由锁保护。
 #[derive(Default)]
-struct State {
+pub(crate) struct State {
     /// 已有结果；之后的按键都放行（吞掉的那个键的松开除外）。
     outcome: Option<RecordOutcome>,
     /// 吞掉了按下的键盘键，它的松开也要吞掉，否则窗口会收到一个没有按下的松开。
@@ -63,6 +63,8 @@ struct State {
     swallowed_button: Option<u8>,
     /// 诊断：钩子回调收到的键盘事件数（含修饰键与松开），用来判断钩子是否真的在工作。
     keys_seen: u32,
+    /// 诊断：设置窗口收到的键盘消息数（钩子没收到的键会出现在这里）。
+    window_keys_seen: u32,
     /// 诊断：钩子回调收到的中键、侧键事件数。
     buttons_seen: u32,
     /// 诊断：最近几次键盘事件的简写（如 `↓A2 C`、`↓4A CS 吞`），录制结束时写进日志。
@@ -74,15 +76,28 @@ const TRACE_LIMIT: usize = 16;
 
 impl State {
     /// 记一次键盘事件：计数，并把简写放进最近事件的记录里。
-    fn note_key(&mut self, down: bool, vk: u32, modifiers: HotkeyModifiers, action: KeyAction) {
-        self.keys_seen = self.keys_seen.saturating_add(1);
+    pub(crate) fn note_key(
+        &mut self,
+        source: Source,
+        down: bool,
+        vk: u32,
+        modifiers: HotkeyModifiers,
+        action: KeyAction,
+    ) {
+        let counter = match source {
+            Source::Hook => &mut self.keys_seen,
+            Source::Window => &mut self.window_keys_seen,
+        };
+        *counter = counter.saturating_add(1);
         if self.trace.len() == TRACE_LIMIT {
             self.trace.remove(0);
         }
+        // 窗口来源的事件前面加「窗」，钩子来源的不加。
+        let origin = if source == Source::Window { "窗" } else { "" };
         let arrow = if down { '↓' } else { '↑' };
         let swallowed = if action == KeyAction::Swallow { " 吞" } else { "" };
         self.trace.push(format!(
-            "{arrow}{vk:02X} {}{swallowed}",
+            "{origin}{arrow}{vk:02X} {}{swallowed}",
             modifier_letters(modifiers)
         ));
     }
@@ -104,7 +119,16 @@ fn modifier_letters(modifiers: HotkeyModifiers) -> String {
 }
 
 /// 两个线程共用的录制状态。
-type SharedState = Arc<Mutex<State>>;
+pub(crate) type SharedState = Arc<Mutex<State>>;
+
+/// 一次键盘事件从哪里来，诊断日志用。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Source {
+    /// 低级键盘钩子。
+    Hook,
+    /// 设置窗口自己的键盘消息（见 recorder_window）。
+    Window,
+}
 
 thread_local! {
     /// 钩子线程上的录制状态。回调没有上下文参数，只能放在线程局部变量里；只有钩子线程会设置它。
@@ -125,14 +149,18 @@ pub struct HotkeyRecorder {
     hook_thread: u32,
     /// 下一次「录制中仍无结果」诊断日志的时刻（录制开始后的秒数），每 5 秒一次。
     next_report: std::cell::Cell<u64>,
+    /// 装了子类过程的设置窗口；没有窗口或装不上时为 `None`，录制只靠钩子。
+    window: Option<HWND>,
 }
 
 /// 「录制中仍无结果」诊断日志的间隔（秒）。
 const REPORT_INTERVAL: u64 = 5;
 
 impl HotkeyRecorder {
-    /// 开始录制：启动钩子线程，两个钩子都装好后才返回。已有录制器时先丢弃旧的再调用（同一时刻只有一个）。
-    pub fn start() -> Result<Self, String> {
+    /// 开始录制：启动钩子线程，两个钩子都装好后才返回；再在设置窗口上装子类过程作为第二个来源。
+    /// `window` 是设置窗口（要在它所在的线程上调用）；传 `None` 时只靠钩子（探针用）。
+    /// 已有录制器时先丢弃旧的再调用（同一时刻只有一个）。
+    pub fn start(window: Option<HWND>) -> Result<Self, String> {
         let state = SharedState::default();
         let (ready_tx, ready_rx) = mpsc::channel::<Result<u32, String>>();
         let thread_state = Arc::clone(&state);
@@ -142,14 +170,19 @@ impl HotkeyRecorder {
             .map_err(|e| format!("启动录制线程失败：{e}"))?;
         // 等线程报告就绪：装钩子失败时线程已经退出，这里收回线程再返回错误。
         match ready_rx.recv() {
-            Ok(Ok(thread_id)) => Ok(Self {
-                thread_id,
-                join: Some(join),
-                state,
-                started: std::time::Instant::now(),
-                hook_thread: thread_id,
-                next_report: std::cell::Cell::new(REPORT_INTERVAL),
-            }),
+            Ok(Ok(thread_id)) => {
+                // 子类过程装不上（极少见）时照样录，只是少了窗口这个来源。
+                let window = window.filter(|&hwnd| recorder_window::install(hwnd, Arc::clone(&state)));
+                Ok(Self {
+                    thread_id,
+                    join: Some(join),
+                    state,
+                    started: std::time::Instant::now(),
+                    hook_thread: thread_id,
+                    next_report: std::cell::Cell::new(REPORT_INTERVAL),
+                    window,
+                })
+            }
             Ok(Err(message)) => {
                 let _ = join.join();
                 Err(message)
@@ -186,9 +219,15 @@ impl HotkeyRecorder {
     pub fn summary(&self) -> String {
         let state = lock(&self.state);
         format!(
-            "钩子线程 {}，键盘事件 {}，鼠标按键 {}，最近：{}",
+            "钩子线程 {}，钩子键盘事件 {}，窗口键盘消息 {}（{}），鼠标按键 {}，最近：{}",
             self.hook_thread,
             state.keys_seen,
+            state.window_keys_seen,
+            if self.window.is_some() {
+                "已接上"
+            } else {
+                "未接上"
+            },
             state.buttons_seen,
             if state.trace.is_empty() {
                 "（无）".into()
@@ -201,6 +240,10 @@ impl HotkeyRecorder {
 
 impl Drop for HotkeyRecorder {
     fn drop(&mut self) {
+        // 先拆窗口的子类过程（主线程上），再停钩子线程。
+        if let Some(window) = self.window {
+            recorder_window::remove(window);
+        }
         // SAFETY: 线程编号来自钩子线程自己，消息队列在报告就绪前已建立。线程收到 WM_QUIT 后摘掉钩子并退出。
         let _ = unsafe { PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0)) };
         if let Some(join) = self.join.take() {
@@ -210,7 +253,7 @@ impl Drop for HotkeyRecorder {
 }
 
 /// 加锁；另一个线程拿着锁时崩溃（不应出现）也照常取出状态，录制不因此卡住。
-fn lock(state: &SharedState) -> std::sync::MutexGuard<'_, State> {
+pub(crate) fn lock(state: &SharedState) -> std::sync::MutexGuard<'_, State> {
     state.lock().unwrap_or_else(|e| e.into_inner())
 }
 
@@ -280,7 +323,7 @@ const MODIFIER_KEYS: [u16; 10] = [
 
 /// 一次按键的处理结果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum KeyAction {
+pub(crate) enum KeyAction {
     /// 放行。
     Pass,
     /// 吞掉。
@@ -288,7 +331,7 @@ enum KeyAction {
 }
 
 /// 按下一个键：修饰键放行；还没有结果时按规则得出结果并吞掉这个键。纯逻辑，单元测试用。
-fn on_key_down(state: &mut State, vk: u32, modifiers: HotkeyModifiers) -> KeyAction {
+pub(crate) fn on_key_down(state: &mut State, vk: u32, modifiers: HotkeyModifiers) -> KeyAction {
     // 修饰键本身、已有结果后的按键、吞掉的键还没松开时的按键，都原样放行。
     let is_modifier = MODIFIER_KEYS.contains(&(vk as u16)) || vk == u32::from(VK_RWIN.0);
     if is_modifier || state.outcome.is_some() || state.swallowed_key.is_some() {
@@ -313,7 +356,7 @@ fn on_key_down(state: &mut State, vk: u32, modifiers: HotkeyModifiers) -> KeyAct
 
 /// 松开一个键：是吞掉的那个键就也吞掉。
 /// 只跟踪吞掉的那一个键；修饰键的松开一律放行，系统的按键状态保持一致。
-fn on_key_up(state: &mut State, vk: u32) -> KeyAction {
+pub(crate) fn on_key_up(state: &mut State, vk: u32) -> KeyAction {
     if state.swallowed_key == Some(vk) {
         state.swallowed_key = None;
         KeyAction::Swallow
@@ -346,7 +389,7 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
                     _ => KeyAction::Pass,
                 };
                 // 诊断：每个事件都记下，录制结束时由应用写进日志。
-                state.note_key(down, info.vkCode, modifiers, action);
+                state.note_key(Source::Hook, down, info.vkCode, modifiers, action);
                 action
             })
             .unwrap_or(KeyAction::Pass)

@@ -33,6 +33,7 @@ pub mod overlay;
 pub mod panel;
 pub mod process;
 pub mod recorder;
+mod recorder_window;
 pub mod screens;
 pub mod screenshot;
 pub mod shell;
