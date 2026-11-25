@@ -53,7 +53,7 @@
       "pageURL": "https://github.com/deletexiumu/eve-o-preview/releases/tag/v1.5.0",
       "files": [
         {"name": "EVE-O-Preview-1.5.0.dmg", "size": 12345678, "sha256": "…",
-         "urls": ["https://<R2 域名>/v1.5.0/EVE-O-Preview-1.5.0.dmg",
+         "urls": ["https://eveo.deepai.wiki/v1.5.0/EVE-O-Preview-1.5.0.dmg",
                   "https://github.com/deletexiumu/eve-o-preview/releases/download/v1.5.0/EVE-O-Preview-1.5.0.dmg"]},
         {"name": "SHA256SUMS.txt", "size": 600, "sha256": "…", "urls": ["…", "…"]},
         {"name": "SHA256SUMS.txt.sig", "size": 89, "sha256": "…", "urls": ["…", "…"]}
@@ -88,7 +88,7 @@
 
 | 源 | 地址 | 说明 |
 | --- | --- | --- |
-| R2（经 Cloudflare CDN） | `<R2 公开地址>/update-manifest.json` | `Cache-Control: max-age=300` |
+| R2（经 Cloudflare CDN） | `https://eveo.deepai.wiki/update-manifest.json` | `Cache-Control: max-age=300` |
 | GitHub | `https://github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json` | 清单也作为附件放进每个 Release；`latest` 总是最新的 Release，它的清单覆盖两个平台 |
 
 R2 里的布局：`update-manifest.json` 在根目录，各版本的文件在 `v<版本>/` 下，只写一次（已存在就不覆盖），
@@ -141,16 +141,17 @@ R2 里的布局：`update-manifest.json` 在根目录，各版本的文件在 `v
 
 ## 6 R2 的配置
 
-在 Cloudflare 建一个 R2 存储桶，绑定自定义域名（经 CDN 缓存，全球都快；`r2.dev` 的地址有限速、不走缓存，不用），
-建一个只对这个桶有读写权限的 API 令牌。然后在仓库的 Actions 设置里填：
-
-| 名字 | 类型 | 内容 |
+| 项 | 值 | 在哪里 |
 | --- | --- | --- |
-| `R2_ACCOUNT_ID` | variable | Cloudflare 账号 ID |
-| `R2_BUCKET` | variable | 存储桶名 |
-| `R2_PUBLIC_BASE_URL` | variable | 自定义域名，如 `https://dl.example.com`（不带结尾的 `/`） |
-| `R2_ACCESS_KEY_ID` | secret | API 令牌的 Access Key ID |
-| `R2_SECRET_ACCESS_KEY` | secret | API 令牌的 Secret Access Key |
+| 存储桶 | `eve-o-preview` | `release.yml` 的 `R2_BUCKET` |
+| 公开地址 | `https://eveo.deepai.wiki`（R2 的自定义域名，经 Cloudflare 的 CDN） | `release.yml` 的 `R2_PUBLIC_BASE_URL` |
+| 账号 ID | Cloudflare 账号 ID | secret `R2_ACCOUNT_ID` |
+| 访问密钥 | 只对这个桶有读写权限的 R2 API 令牌 | secrets `R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` |
+
+不用 `r2.dev` 的地址：它有限速、不走缓存。三个 secret 缺任何一个时，清单里只有 GitHub 的地址，`cdn` 任务跳过上传。
+
+`cdn` 任务用 AWS CLI 经 R2 的 S3 接口（`https://<账号 ID>.r2.cloudflarestorage.com`，region `auto`）上传。
+它可以单独重跑：已在 R2 上的版本文件跳过，清单每次覆盖。
 
 应用内置的 R2 清单地址在 `UpdateFeed.productionManifestURLs`（macOS）与 `feed::PRODUCTION_MANIFEST_URLS`（Windows），
 与 `R2_PUBLIC_BASE_URL` 一致。换域名时要先发一个同时内置新旧地址的版本。

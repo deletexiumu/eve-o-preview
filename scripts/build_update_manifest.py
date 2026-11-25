@@ -11,6 +11,7 @@ release.yml 的 publish 任务用它，签名本身用 openssl 做（与 SHA256S
 - message：正文前面接上签名前缀，写成要签名的消息（openssl 签这个文件）。
 - envelope：把正文与 base64 的签名包成对外发布的信封；超过 512 KiB 时报错（build 已按预算去掉旧的说明）。
 - open：把信封拆成正文、要验签的消息与原始签名字节，供 openssl 验签与样例核对。
+- files：列出正文里各平台 latest 指向的文件（tag、文件名、SHA-256，去重），供上传 R2 时逐个下载、核对。
 
 用法见各子命令的 --help。出错时打印原因、退出码为 1。
 """
@@ -220,6 +221,22 @@ def open_envelope(args: argparse.Namespace) -> None:
     Path(args.signature_out).write_bytes(signature)
 
 
+def list_files(args: argparse.Namespace) -> None:
+    """子命令 files：每行「tag 文件名 SHA-256」，两个平台共用的文件只列一次。"""
+    payload = json.loads(Path(args.payload).read_bytes())
+    seen = set()
+    for platform in PLATFORMS:
+        entry = payload["latest"][platform]
+        for file in entry["files"]:
+            line = f"{entry['tag']} {file['name']} {file['sha256']}"
+            # 文件名与 tag 只含发布脚本生成的字符；有空白说明正文不对，不往下传。
+            if len(line.split()) != 3:
+                fail(f"文件名或 tag 里有空白：{line}")
+            if line not in seen:
+                seen.add(line)
+                print(line)
+
+
 def main(argv: list[str]) -> None:
     """解析命令行并调用子命令。"""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -259,6 +276,10 @@ def main(argv: list[str]) -> None:
     three.add_argument("--message-out", required=True, help="要验签的消息（前缀 + 正文）")
     three.add_argument("--signature-out", required=True)
     three.set_defaults(handler=open_envelope)
+
+    four = commands.add_parser("files", help="列出 latest 指向的文件")
+    four.add_argument("--payload", required=True)
+    four.set_defaults(handler=list_files)
 
     args = parser.parse_args(argv)
     args.handler(args)
