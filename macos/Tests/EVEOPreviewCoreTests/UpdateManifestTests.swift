@@ -186,6 +186,32 @@ struct UpdateManifestTests {
         #expect(throws: UpdateError.malformedFeed("file size missing")) { try open(payload(file: fractional)) }
     }
 
+    /// 测试地址下：发布页与附件都要与清单同源。同源的附件收下；只有别处的 https 地址（如 R2）时整份清单不收。
+    @Test func testFeedAssetsMustBeSameOrigin() throws {
+        let signer = Curve25519.Signing.PrivateKey()
+        func open(urls: [String]) throws -> UpdateManifest {
+            let file: [String: Any] = ["name": "EVE-O-Preview-1.5.0.dmg", "size": 10,
+                                       "sha256": String(repeating: "a", count: 64), "urls": urls]
+            let payload: [String: Any] = [
+                "schema": 1, "sequence": 5, "releases": [],
+                "latest": ["macos": ["version": "1.5.0", "tag": "v1.5.0", "pageURL": "http://127.0.0.1:8123/",
+                                     "files": [file]]],
+            ]
+            let body = try JSONSerialization.data(withJSONObject: payload)
+            let signature = try signer.signature(for: UpdateSigning.message(for: body))
+            let envelope = try JSONSerialization.data(withJSONObject: [
+                "format": 1, "payload": body.base64EncodedString(), "signature": signature.base64EncodedString(),
+            ])
+            return try UpdateManifest.open(envelope, publicKey: signer.publicKey, feed: UpdateFixtures.testFeed)
+        }
+        let local = try open(urls: ["https://eveo.deepai.wiki/v1.5.0/a.dmg", "http://127.0.0.1:8123/a.dmg"])
+        let asset = try #require(local.latest?.assets.first)
+        #expect(asset.urls == ["http://127.0.0.1:8123/a.dmg"])
+        #expect(throws: UpdateError.malformedFeed("file has no usable url")) {
+            try open(urls: ["https://eveo.deepai.wiki/v1.5.0/a.dmg"])
+        }
+    }
+
     /// 说明的截短上限与 Windows 相同。
     @Test func notesLimit() {
         #expect(ReleaseFeedParser.maxNotesCharacters == 65_536)
