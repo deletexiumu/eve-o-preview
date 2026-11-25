@@ -9,6 +9,7 @@
 use std::rc::Rc;
 
 use eveo_app_core::Event;
+use eveo_app_core::log::Logger;
 use eveo_core::hotkeys::HotkeyScope;
 use eveo_platform_win::events::foreground_window;
 use eveo_platform_win::recorder::{HotkeyRecorder, RecordOutcome};
@@ -16,6 +17,10 @@ use eveo_ui::switching;
 use slint::ComponentHandle;
 
 use super::{App, Input, Runtime, post, window_hwnd};
+
+/// 热键录制的日志。录制是用户点按钮才有的低频操作，开始、结果与取消都按 info 记，
+/// 用户反馈「按了组合键没反应」时不用先改日志级别就能看到钩子收到了什么（见 HotkeyRecorder::summary）。
+const LOG: Logger = Logger::new("Recorder");
 
 /// 接上「切换与热键」页的回调：每个回调都转成输入排队，不在 Slint 的事件处理中途借用应用。
 pub(super) fn connect(window: &eveo_ui::SettingsWindow, runtime: &Rc<Runtime>) {
@@ -131,17 +136,33 @@ impl App {
             .as_ref()
             .is_some_and(|(s, t, _)| *s == slot && *t == text);
         self.stop_recording();
-        // 钩子装不上（极少见）时不进入录制状态，按钮保持原样。
-        if !same && let Ok(recorder) = HotkeyRecorder::start() {
-            self.hotkeys.set_suspended(true);
-            self.recording = Some((slot, text, recorder));
+        // 钩子装不上（极少见）时不进入录制状态，按钮保持原样，原因记进日志。
+        if !same {
+            // 设置窗口作为第二个来源：安全软件把实体按键挡在全局钩子外时，窗口自己的按键消息照样能录上。
+            let window = self
+                .settings
+                .as_ref()
+                .and_then(|settings| window_hwnd(settings.window()));
+            match HotkeyRecorder::start(window) {
+                Ok(recorder) => {
+                    LOG.info(format_args!("开始录制 {slot:?}（原文「{text}」）"));
+                    self.hotkeys.set_suspended(true);
+                    self.recording = Some((slot, text, recorder));
+                }
+                Err(error) => LOG.error(format_args!("开始录制失败：{error}")),
+            }
         }
         self.refresh_settings_pages();
     }
 
     /// 结束录制：摘掉钩子，恢复热键。
     pub(super) fn stop_recording(&mut self) {
-        if self.recording.take().is_some() {
+        if let Some((slot, _, recorder)) = self.recording.take() {
+            LOG.info(format_args!(
+                "结束录制 {slot:?}，用时 {} 毫秒；{}",
+                recorder.elapsed().as_millis(),
+                recorder.summary()
+            ));
             self.hotkeys.set_suspended(false);
         }
     }
@@ -161,7 +182,18 @@ impl App {
             .and_then(|window| window_hwnd(window.window()))
             .is_some_and(|hwnd| foreground_window() == Some(eveo_platform_win::window_id(hwnd)));
         if outcome.is_none() && settings_foreground {
+            // 诊断：迟迟没有结果时每 5 秒记一次钩子收到了什么，分得清「钩子没收到键」与「收到了没录成」。
+            if recorder.report_due() {
+                LOG.info(format_args!("录制中仍无结果：{}", recorder.summary()));
+            }
             return;
+        }
+        match outcome {
+            Some(outcome) => LOG.info(format_args!("录制结果：{outcome:?}")),
+            None => LOG.info(format_args!(
+                "设置窗口不在前台，取消录制：前台 {:?}",
+                foreground_window()
+            )),
         }
         let edit = match outcome {
             Some(RecordOutcome::Recorded(hotkey)) => Some(switching::SwitchingEdit::Recorded {
