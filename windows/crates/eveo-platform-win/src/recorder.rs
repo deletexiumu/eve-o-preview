@@ -61,6 +61,46 @@ struct State {
     swallowed_key: Option<u32>,
     /// 吞掉了按下的鼠标按钮（按钮号），它的松开也要吞掉。
     swallowed_button: Option<u8>,
+    /// 诊断：钩子回调收到的键盘事件数（含修饰键与松开），用来判断钩子是否真的在工作。
+    keys_seen: u32,
+    /// 诊断：钩子回调收到的中键、侧键事件数。
+    buttons_seen: u32,
+    /// 诊断：最近几次键盘事件的简写（如 `↓A2 C`、`↓4A CS 吞`），录制结束时写进日志。
+    trace: Vec<String>,
+}
+
+/// 诊断记录最多保留的键盘事件条数；更早的丢掉，日志一行放得下。
+const TRACE_LIMIT: usize = 16;
+
+impl State {
+    /// 记一次键盘事件：计数，并把简写放进最近事件的记录里。
+    fn note_key(&mut self, down: bool, vk: u32, modifiers: HotkeyModifiers, action: KeyAction) {
+        self.keys_seen = self.keys_seen.saturating_add(1);
+        if self.trace.len() == TRACE_LIMIT {
+            self.trace.remove(0);
+        }
+        let arrow = if down { '↓' } else { '↑' };
+        let swallowed = if action == KeyAction::Swallow { " 吞" } else { "" };
+        self.trace.push(format!(
+            "{arrow}{vk:02X} {}{swallowed}",
+            modifier_letters(modifiers)
+        ));
+    }
+}
+
+/// 修饰键的简写：C、A、S、W 依次表示 Ctrl、Alt、Shift、Win；没有修饰键时是 `-`。
+fn modifier_letters(modifiers: HotkeyModifiers) -> String {
+    let letters: String = [
+        (HotkeyModifiers::CONTROL, 'C'),
+        (HotkeyModifiers::ALT, 'A'),
+        (HotkeyModifiers::SHIFT, 'S'),
+        (HotkeyModifiers::WIN, 'W'),
+    ]
+    .into_iter()
+    .filter(|(flag, _)| modifiers.contains(*flag))
+    .map(|(_, letter)| letter)
+    .collect();
+    if letters.is_empty() { "-".into() } else { letters }
 }
 
 /// 两个线程共用的录制状态。
@@ -79,7 +119,16 @@ pub struct HotkeyRecorder {
     join: Option<JoinHandle<()>>,
     /// 与钩子线程共用的状态。
     state: SharedState,
+    /// 开始录制的时刻，诊断日志用。
+    started: std::time::Instant,
+    /// 钩子线程的编号，诊断日志用（与 thread_id 相同，单独留一份免得混淆用途）。
+    hook_thread: u32,
+    /// 下一次「录制中仍无结果」诊断日志的时刻（录制开始后的秒数），每 5 秒一次。
+    next_report: std::cell::Cell<u64>,
 }
+
+/// 「录制中仍无结果」诊断日志的间隔（秒）。
+const REPORT_INTERVAL: u64 = 5;
 
 impl HotkeyRecorder {
     /// 开始录制：启动钩子线程，两个钩子都装好后才返回。已有录制器时先丢弃旧的再调用（同一时刻只有一个）。
@@ -97,6 +146,9 @@ impl HotkeyRecorder {
                 thread_id,
                 join: Some(join),
                 state,
+                started: std::time::Instant::now(),
+                hook_thread: thread_id,
+                next_report: std::cell::Cell::new(REPORT_INTERVAL),
             }),
             Ok(Err(message)) => {
                 let _ = join.join();
@@ -113,6 +165,37 @@ impl HotkeyRecorder {
     /// 应用的定时器每 50 毫秒调一次；结果只交出一次。
     pub fn take_outcome(&self) -> Option<RecordOutcome> {
         lock(&self.state).outcome.take()
+    }
+
+    /// 已经录了多久。
+    pub fn elapsed(&self) -> std::time::Duration {
+        self.started.elapsed()
+    }
+
+    /// 到了该写「录制中仍无结果」诊断日志的时候返回真，每 5 秒只返回一次真。
+    pub fn report_due(&self) -> bool {
+        let due = self.started.elapsed().as_secs() >= self.next_report.get();
+        if due {
+            self.next_report.set(self.next_report.get() + REPORT_INTERVAL);
+        }
+        due
+    }
+
+    /// 诊断摘要：钩子线程、收到的事件数与最近的键盘事件，写进日志排查「按了没反应」。
+    /// 例：`钩子线程 1234，键盘事件 6，鼠标按键 0，最近：↓A2 C ↓A0 CS ↓4A CS 吞 ↑4A CS 吞`。
+    pub fn summary(&self) -> String {
+        let state = lock(&self.state);
+        format!(
+            "钩子线程 {}，键盘事件 {}，鼠标按键 {}，最近：{}",
+            self.hook_thread,
+            state.keys_seen,
+            state.buttons_seen,
+            if state.trace.is_empty() {
+                "（无）".into()
+            } else {
+                state.trace.join(" ")
+            }
+        )
     }
 }
 
@@ -255,10 +338,16 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
         let action = if own_key {
             KeyAction::Pass
         } else {
-            with_state(|state| match message {
-                WM_KEYDOWN | WM_SYSKEYDOWN => on_key_down(state, info.vkCode, modifiers),
-                WM_KEYUP | WM_SYSKEYUP => on_key_up(state, info.vkCode),
-                _ => KeyAction::Pass,
+            with_state(|state| {
+                let down = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
+                let action = match message {
+                    WM_KEYDOWN | WM_SYSKEYDOWN => on_key_down(state, info.vkCode, modifiers),
+                    WM_KEYUP | WM_SYSKEYUP => on_key_up(state, info.vkCode),
+                    _ => KeyAction::Pass,
+                };
+                // 诊断：每个事件都记下，录制结束时由应用写进日志。
+                state.note_key(down, info.vkCode, modifiers, action);
+                action
             })
             .unwrap_or(KeyAction::Pass)
         };
@@ -319,8 +408,12 @@ unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) 
         };
         if let Some((button, down)) = event {
             let modifiers = mouse_hook::current_modifiers();
-            let action =
-                with_state(|state| on_mouse(state, button, down, modifiers)).unwrap_or(KeyAction::Pass);
+            let action = with_state(|state| {
+                // 诊断：只数中键与侧键，移动与左右键不计。
+                state.buttons_seen = state.buttons_seen.saturating_add(1);
+                on_mouse(state, button, down, modifiers)
+            })
+            .unwrap_or(KeyAction::Pass);
             if action == KeyAction::Swallow {
                 return LRESULT(1);
             }
