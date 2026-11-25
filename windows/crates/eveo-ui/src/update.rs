@@ -2,8 +2,8 @@
 //
 // 软件更新窗口的绑定（ui/update.slint）。窗口只显示：阶段、标题、副标题、进度与发布说明都由应用层按更新状态机的
 // 阶段算好，装进 UpdateView 交给这里；用户的操作经 UpdateModel 的回调交回应用。
-// 发布说明：每个版本的正文先按界面语言取一块（Core 的 notes::section），再切成标题、段落、列表项、代码
-// （notes::blocks），换成窗口的块。最新版在前，不加小标题；中间版本各加一个「版本 x.y.z」的小标题。
+// 发布说明：每个版本的正文先按界面语言取一块（Core 的 notes::section），去掉 macOS 的小节（notes::platform_only），
+// 再切成标题、段落、列表项、代码（notes::blocks），换成窗口的块。最新版在前，不加小标题；中间版本各加一个「版本 x.y.z」的小标题。
 // 文件大小用十进制单位（KB、MB），保留一位小数，与资源管理器的习惯一致。
 
 //! 软件更新窗口。
@@ -90,6 +90,9 @@ pub fn apply(window: &UpdateWindow, view: &UpdateView) {
     model.set_relaunch_failed(view.relaunch_failed);
 }
 
+/// 本平台在发布说明里的小标题。
+const OWN_HEADING: &str = "Windows";
+
 /// 发布说明换成窗口的块。versions 是（版本号，正文），最新版在前；第一个不加小标题。
 /// version_title 生成中间版本的小标题（「版本 0.9.1」）。
 pub fn notes_blocks(
@@ -99,7 +102,9 @@ pub fn notes_blocks(
 ) -> Vec<NotesBlock> {
     let mut result = Vec::new();
     for (index, (version, body)) in versions.iter().enumerate() {
-        let blocks = notes::blocks(&notes::section(language, body));
+        // 只留 Windows 的小节：两个平台共用一份说明，macOS 的改动不显示（docs/update-manifest.md 第 4 节）。
+        let section = notes::section(language, body);
+        let blocks = notes::blocks(&notes::platform_only(&section, OWN_HEADING));
         // 没有内容的版本（正文为空）不列出，免得只剩一个孤零零的小标题。
         if blocks.is_empty() {
             continue;

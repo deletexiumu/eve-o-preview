@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 更新检查的地址与附件地址的核对（docs/windows/architecture.md 6.2、6.3 节，规则移植 macOS 的 UpdateFeed）。
+// 更新检查的地址与附件地址的核对（docs/update-manifest.md 第 3、4 节；docs/windows/architecture.md 6.2、6.3 节）。
 //
-// Windows 版与 macOS 版发在同一个仓库里，Windows 只取 Release 列表（每页 100 个），在里面找 Windows 版的项。
-// 一次请求同时得到最新版与中间版本的发布说明。Windows 版的项有两种 tag：
-// - `v<版本>`：1.4.0 起两个平台用同一个 tag、同一个 Release 发布。只有带着本版本 Windows 压缩包的才算，
-//   1.3.2 及更早的 `v*` 是纯 macOS 的 Release，没有这个附件，被排除（由 parser 按附件名判断）。
-// - `win-v<版本>`：1.4.0 以前 Windows 单独发布用的 tag。1.4.0 还会多发一个只含 Windows 文件的 `win-v1.4.0`，
-//   让只认这种 tag 的 1.0、1.1 能自动升级；同一个版本出现两次时由 policy 与 history 去重。
+// 1.5.0 起检查读签过名的更新清单 `update-manifest.json`，不再读 GitHub 的 Release 列表接口。清单的源按顺序试：
+// R2（经 Cloudflare 的 CDN）在前，GitHub 最新 Release 的附件在后；一个源失败（网络、验签、序号更旧）就换下一个。
 //
-// 测试地址：环境变量 `EVEO_UPDATE_FEED_URL` 指向一个 Release 列表的 JSON。只接受 https，或主机是
-// 127.0.0.1、localhost、::1 的 http；不符合时用正式地址。测试地址下附件与发布页应与它同源。
+// 测试地址：环境变量 `EVEO_UPDATE_FEED_URL` 指向一份清单，只用这一个源。只接受 https，或主机是
+// 127.0.0.1、localhost、::1 的 http；不符合时用正式地址。测试地址下附件与发布页都应与它同源。
 //
-// 正式地址下，附件与发布页的地址同时满足：
-// - 原文以 `https://github.com/deletexiumu/eve-o-preview/releases/` 开头，不含反斜杠、`%2e`、`%2f`、`%5c`（不分大小写）；
-// - 没有用户名、密码与端口（前缀已经保证主机之后紧跟 `/`）；
-// - 路径里没有 `.` 或 `..` 段。
-// Windows 版从改名之后才开始发布，不接受旧仓库名 `eve-o-preview-macos`。
+// 正式地址下地址分两种核对：
+// - 发布页（`accepts`，会在浏览器里打开）：原文以 `https://github.com/deletexiumu/eve-o-preview/releases/` 开头，
+//   不含反斜杠、`%2e`、`%2f`、`%5c`（不分大小写）；没有用户名、密码与端口；路径里没有 `.` 或 `..` 段。
+// - 附件（`accepts_asset`）：来自验过签的清单，文件的真伪由清单里的 SHA-256 与签名的校验和文件保证，
+//   所以只要求是 https、没有用户信息、反斜杠与控制字符，主机不限（R2 的域名可以换，不用为此发新版）。
 
 //! 更新检查的地址。
 
-/// 正式的 Release 列表地址。每页个数与 `history::PAGE_SIZE` 一致，由用例核对。
-pub const PRODUCTION_LIST_URL: &str =
-    "https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=100";
+/// 正式的清单地址，按顺序试：R2（自定义域名经 Cloudflare 的 CDN）在前，GitHub 最新 Release 的附件在后。
+/// R2 的地址与 release.yml 的 `R2_PUBLIC_BASE_URL` 一致；换域名时先发一个同时内置新旧地址的版本。
+pub const PRODUCTION_MANIFEST_URLS: [&str; 2] = [
+    "https://eveo.deepai.wiki/update-manifest.json",
+    "https://github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json",
+];
 /// 正式地址下，附件与发布页的地址应以它开头。
 pub const PRODUCTION_ASSET_PREFIX: &str = "https://github.com/deletexiumu/eve-o-preview/releases/";
 /// 发布页列表：检查失败、不能自动安装时打开它。
@@ -57,8 +56,8 @@ pub fn is_unified_tag(tag: &str) -> bool {
 /// 更新检查的地址。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateFeed {
-    /// Release 列表的地址。
-    pub list_url: String,
+    /// 清单的地址，按顺序试；测试地址下只有一个。
+    pub manifest_urls: Vec<String>,
     /// 是否是环境变量指定的测试地址。
     pub is_test_feed: bool,
 }
@@ -67,7 +66,10 @@ impl UpdateFeed {
     /// 正式地址。
     pub fn production() -> Self {
         Self {
-            list_url: PRODUCTION_LIST_URL.to_owned(),
+            manifest_urls: PRODUCTION_MANIFEST_URLS
+                .iter()
+                .map(|url| (*url).to_owned())
+                .collect(),
             is_test_feed: false,
         }
     }
@@ -81,7 +83,7 @@ impl UpdateFeed {
         match Origin::parse(text) {
             Some(origin) if origin.scheme == "https" || (origin.scheme == "http" && origin.is_loopback()) => {
                 Self {
-                    list_url: text.to_owned(),
+                    manifest_urls: vec![text.to_owned()],
                     is_test_feed: true,
                 }
             }
@@ -120,12 +122,36 @@ impl UpdateFeed {
         acceptable.then_some(target)
     }
 
-    /// 附件与发布页的地址是否可用。规则见本文件开头。
+    /// 发布页的地址是否可用（会在浏览器里打开）。规则见本文件开头。
     pub fn accepts(&self, url: &str) -> bool {
         if !self.is_test_feed {
             return is_production_asset(url);
         }
-        match (Origin::parse(url), Origin::parse(&self.list_url)) {
+        self.same_origin(url)
+    }
+
+    /// 附件的地址是否可用（下载后按 SHA-256 与签名核对）。规则见本文件开头。
+    pub fn accepts_asset(&self, url: &str) -> bool {
+        if self.is_test_feed {
+            return self.same_origin(url);
+        }
+        let Some(origin) = Origin::parse(url) else {
+            return false;
+        };
+        // 用户信息（`user@host`）可能被用来伪装主机；反斜杠与控制字符在有的实现里改变主机的边界。
+        let authority = url.split_once("://").map_or("", |(_, rest)| {
+            rest.split(['/', '?', '#']).next().unwrap_or_default()
+        });
+        origin.scheme == "https"
+            && !authority.contains('@')
+            && !url.contains('\\')
+            && !url.chars().any(char::is_control)
+    }
+
+    /// 地址与测试地址（第一个清单地址）同源。
+    fn same_origin(&self, url: &str) -> bool {
+        let own = self.manifest_urls.first().and_then(|first| Origin::parse(first));
+        match (Origin::parse(url), own) {
             (Some(candidate), Some(own)) => candidate == own,
             _ => false,
         }
@@ -240,7 +266,7 @@ mod tests {
         ] {
             let feed = UpdateFeed::resolve(Some(good));
             assert!(feed.is_test_feed, "{good}");
-            assert_eq!(feed.list_url, good);
+            assert_eq!(feed.manifest_urls, [good]);
         }
     }
 
@@ -302,7 +328,38 @@ mod tests {
         assert_eq!(version_text("1.4.0"), None);
         assert!(is_unified_tag("v1.4.0"));
         assert!(!is_unified_tag("win-v1.4.0"));
-        assert!(PRODUCTION_LIST_URL.ends_with(&format!("per_page={}", crate::update::history::PAGE_SIZE)));
+        // 正式的清单地址：R2 在前、GitHub 在后，都是 https。
+        assert!(PRODUCTION_MANIFEST_URLS[1].starts_with(PRODUCTION_ASSET_PREFIX));
+        assert!(
+            PRODUCTION_MANIFEST_URLS
+                .iter()
+                .all(|url| url.starts_with("https://"))
+        );
+    }
+
+    /// 附件地址：正式地址下任何 https 主机都行，不带用户信息、反斜杠与控制字符；测试地址下只认同源。
+    #[test]
+    fn asset_rules() {
+        let feed = UpdateFeed::production();
+        for good in [
+            "https://eveo.deepai.wiki/v1.5.0/EVE-O-Preview-1.5.0-windows-x64.zip",
+            "https://github.com/deletexiumu/eve-o-preview/releases/download/v1.5.0/a.zip",
+        ] {
+            assert!(feed.accepts_asset(good), "{good}");
+        }
+        for bad in [
+            "http://eveo.deepai.wiki/a.zip",
+            "https://user@evil.example/a.zip",
+            "https://evil.example\\@github.com/a.zip",
+            "https://a.example/x\ny",
+            "ftp://a.example/a.zip",
+            "a.zip",
+        ] {
+            assert!(!feed.accepts_asset(bad), "{bad}");
+        }
+        let test = test_feed();
+        assert!(test.accepts_asset("http://127.0.0.1:8123/a.zip"));
+        assert!(!test.accepts_asset("https://eveo.deepai.wiki/a.zip"));
     }
 
     /// 重定向：正式地址下跟到任何 https 主机（不带用户信息）；测试地址下只跟同源；路径相对当前地址。

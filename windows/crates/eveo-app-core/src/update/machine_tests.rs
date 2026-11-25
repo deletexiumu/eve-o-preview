@@ -36,6 +36,8 @@ fn release(version: &str) -> ReleaseInfo {
             name: archive_name(version),
             download_url: format!("{prefix}download/win-v{version}/{}", archive_name(version)),
             size: Some(1000),
+            sha256: None,
+            mirrors: Vec::new(),
         }],
     }
 }

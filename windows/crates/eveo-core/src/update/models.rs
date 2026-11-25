@@ -18,6 +18,18 @@ pub struct ReleaseAsset {
     pub download_url: String,
     /// 附件声明的大小，单位是字节；没有时是 None。
     pub size: Option<u64>,
+    /// 更新清单里写的 SHA-256（小写十六进制）。清单里的文件都有；旧的 GitHub 接口给的附件没有，是 None。
+    /// 有它时下载的文件必须与它相符（docs/update-manifest.md 第 4 节第 4 条）。
+    pub sha256: Option<String>,
+    /// 后备的下载地址，按优先顺序；`download_url` 下载失败时依次换它们。
+    pub mirrors: Vec<String>,
+}
+
+impl ReleaseAsset {
+    /// 按优先顺序的全部下载地址：`download_url` 在前，之后是后备地址。
+    pub fn urls(&self) -> impl Iterator<Item = &str> {
+        std::iter::once(self.download_url.as_str()).chain(self.mirrors.iter().map(String::as_str))
+    }
 }
 
 /// 一个 Release 的发布信息（已解析、已过滤附件）。
@@ -39,7 +51,7 @@ pub struct ReleaseInfo {
     pub is_prerelease: bool,
     /// 答复里的 `draft`。
     pub is_draft: bool,
-    /// 通过 `UpdateFeed::accepts` 的附件，最多 100 个。
+    /// 附件：来自更新清单时是 `files`，来自旧的 GitHub 接口时是通过 `UpdateFeed::accepts` 的附件（最多 100 个）。
     pub assets: Vec<ReleaseAsset>,
 }
 

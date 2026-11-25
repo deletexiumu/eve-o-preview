@@ -7,10 +7,11 @@
 // 1. 把给定的 exe 以 `EVE-O Preview.exe` 的名字打进一个 zip（存储方式，不压缩），文件名按发布脚本的规则；
 // 2. 每次运行现生成一把一次性的 ed25519 密钥（只在内存里，进程结束即丢），给 `SHA256SUMS.txt` 签名，
 //    公钥的十六进制打印到标准输出并写进 `public_key.txt`，交给应用的环境变量 EVEO_UPDATE_TEST_PUBLIC_KEY；
-// 3. 写一份 Release 列表（GitHub API 的格式，只有一项 `win-v<版本>`），附件与发布页都指向本机同一个端口；
+// 3. 写一份更新清单 `update-manifest.json`（docs/update-manifest.md 的格式，用同一把一次性密钥签名，
+//    latest.windows 是给定的版本），文件的地址与发布页都指向本机同一个端口；
 // 4. 在 127.0.0.1 上提供这些文件，直到时限到了。每个请求打印一行（方法、路径、状态、字节数）。
 //
-// 列表带 ETag，带 If-None-Match 且相同时回 304，可以顺带核对「没变」的路径。`--rate-kib` 限制 zip 的速度，
+// 清单带 ETag，带 If-None-Match 且相同时回 304（1.5.0 起应用不再发这个头）。`--rate-kib` 限制 zip 的速度，
 // 用来看进度条与测试取消。这是测试工具：只监听回环地址，只提供目录里那几个文件，别的路径一律 404。
 
 //! 本机测试更新源。
@@ -27,14 +28,15 @@ use ed25519_dalek::{Signer, SigningKey};
 use eveo_core::support::crc::crc32;
 use eveo_core::update::checksums::sha256_hex;
 use eveo_core::update::feed::{CHECKSUMS_NAME, SIGNATURE_NAME, archive_name};
+use eveo_core::update::manifest::{MANIFEST_NAME, SIGNING_PREFIX};
 
 use crate::option;
 
 /// zip 里 exe 的名字（与 eveo_core::update::archive::EXE_NAME 相同）。
 const EXE_NAME: &str = "EVE-O Preview.exe";
-/// Release 列表的文件名。
-const LIST_NAME: &str = "releases.json";
-/// 列表的 ETag（内容在一次运行里不变）。
+/// 清单的文件名（应用的测试地址指向它）。
+const LIST_NAME: &str = MANIFEST_NAME;
+/// 清单的 ETag（内容在一次运行里不变）。
 const LIST_ETAG: &str = "\"eveo-test-feed\"";
 /// 默认运行多久（秒）。
 const DEFAULT_SECONDS: u64 = 1800;
@@ -72,7 +74,26 @@ pub fn run(args: &[String]) -> i32 {
     0
 }
 
-/// 写 zip、校验和、签名与列表，返回公钥的十六进制。
+/// 标准 base64（带填充），给清单的信封用。
+fn base64(data: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        // 三个字节拼成 24 位，切成四个 6 位；不足三个字节时用 `=` 补齐。
+        let bytes = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let value = (u32::from(bytes[0]) << 16) | (u32::from(bytes[1]) << 8) | u32::from(bytes[2]);
+        for index in 0..4 {
+            if index <= chunk.len() {
+                out.push(char::from(ALPHABET[((value >> (18 - 6 * index)) & 63) as usize]));
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
+/// 写 zip、校验和、签名与清单，返回公钥的十六进制。
 fn prepare(exe: &Path, version: &str, dir: &Path, port: u16) -> std::io::Result<String> {
     fs::create_dir_all(dir)?;
     let exe_bytes = fs::read(exe)?;
@@ -88,33 +109,54 @@ fn prepare(exe: &Path, version: &str, dir: &Path, port: u16) -> std::io::Result<
     fs::write(dir.join(SIGNATURE_NAME), key.sign(sums.as_bytes()).to_bytes())?;
     let public_key = hex(&key.verifying_key().to_bytes());
     fs::write(dir.join("public_key.txt"), &public_key)?;
-    // 附件与发布页必须与列表同源（应用在测试地址下只接受同源的地址，重定向也只跟同源），
-    // 所以都写成同一个端口下的路径。大小与实际文件一致，应用用它显示「共 xx MB」。
+    // 文件与发布页必须与清单同源（应用在测试地址下只接受同源的地址，重定向也只跟同源），
+    // 所以都写成同一个端口下的路径。大小与 SHA-256 与实际文件一致：应用会逐一核对。
     let base = format!("http://127.0.0.1:{port}");
-    let asset = |name: &str, size: usize| {
+    let signature_bytes = fs::read(dir.join(SIGNATURE_NAME))?;
+    let file = |name: &str, data: &[u8]| {
         serde_json::json!({
             "name": name,
-            "browser_download_url": format!("{base}/{name}"),
-            "size": size,
+            "size": data.len(),
+            "sha256": sha256_hex(data),
+            "urls": [format!("{base}/{name}")],
         })
     };
-    // 列表只有一项：发布说明里不写语言标记，应用按「没有本语言的块时用全文」显示。
-    // published_at 是固定值；应用只用它排序与显示，不拿它判断新旧。
-    let list = serde_json::json!([{
-        "tag_name": format!("win-v{version}"),
-        "name": format!("EVE-O Preview {version}"),
-        "body": format!("## Test build {version}\n\n- Served by eveo-probe update-feed.\n- Signed with a one-time test key."),
-        "html_url": format!("{base}/release"),
-        "published_at": "2026-11-24T00:00:00Z",
-        "prerelease": false,
-        "draft": false,
-        "assets": [
-            asset(&zip_name, zip.len()),
-            asset(CHECKSUMS_NAME, sums.len()),
-            asset(SIGNATURE_NAME, 64),
-        ],
-    }]);
-    fs::write(dir.join(LIST_NAME), serde_json::to_vec_pretty(&list)?)?;
+    // 说明不写语言标记，应用按「没有本语言的块时用全文」显示。序号取现在的秒数：每次运行都比上一次大。
+    let sequence = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    let payload = serde_json::json!({
+        "schema": 1,
+        "sequence": sequence,
+        "generatedAt": "2026-11-25T00:00:00Z",
+        "latest": {
+            "windows": {
+                "version": version,
+                "tag": format!("v{version}"),
+                "pageURL": format!("{base}/release"),
+                "files": [
+                    file(&zip_name, &zip),
+                    file(CHECKSUMS_NAME, sums.as_bytes()),
+                    file(SIGNATURE_NAME, &signature_bytes),
+                ],
+            }
+        },
+        "releases": [{
+            "version": version,
+            "platforms": ["windows"],
+            "notes": format!("## Test build {version}\n\n- Served by eveo-probe update-feed.\n- Signed with a one-time test key."),
+        }],
+    });
+    let payload = serde_json::to_vec(&payload)?;
+    // 签名的消息是前缀接上正文，与发布流程相同。
+    let mut message = SIGNING_PREFIX.to_vec();
+    message.extend_from_slice(&payload);
+    let envelope = serde_json::json!({
+        "format": 1,
+        "payload": base64(&payload),
+        "signature": base64(&key.sign(&message).to_bytes()),
+    });
+    fs::write(dir.join(LIST_NAME), serde_json::to_vec(&envelope)?)?;
     Ok(public_key)
 }
 
@@ -303,4 +345,27 @@ fn handle(stream: TcpStream, dir: &Path, rate: Option<u64>) {
         }
     }
     let _ = stream.flush();
+}
+
+#[cfg(test)]
+mod tests {
+    use eveo_core::update::checksums::base64_decode;
+
+    use super::base64;
+
+    /// 编码后能被应用的解码还原，长度不是 3 的倍数时也一样。
+    #[test]
+    fn base64_round_trip() {
+        for data in [
+            &b""[..],
+            b"a",
+            b"ab",
+            b"abc",
+            b"abcd",
+            &[0xff, 0x00, 0x7f, 0x80, 0x01],
+        ] {
+            assert_eq!(base64_decode(&base64(data)).as_deref(), Some(data));
+        }
+        assert_eq!(base64(b"hi"), "aGk=");
+    }
 }

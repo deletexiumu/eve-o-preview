@@ -76,6 +76,56 @@ pub fn section(language: AppLanguage, body: &str) -> String {
     trim_blank_lines(&strip_details(&text))
 }
 
+/// 发布说明里平台小节的名字（docs/update-manifest.md 第 4 节第 5 条），与清单里 `latest` 的键一一对应。
+pub const PLATFORM_HEADINGS: [&str; 2] = ["macOS", "Windows"];
+
+/// 只留本平台的内容：`section` 取出的一段里，标题正好是另一个平台名（不分大小写）的小节整个去掉，
+/// 小节到下一个级别相同或更高的标题为止；本平台的小标题也去掉，只留它下面的内容。
+/// 两端都改了的内容写在平台小节之前（如「macOS 与 Windows」），标题不正好是平台名，照常保留。
+/// own 是本平台的标题名（`Windows`）。代码块里的 `#` 不算标题。
+pub fn platform_only(markdown: &str, own: &str) -> String {
+    let mut kept = Vec::new();
+    // 正在跳过的平台小节的标题级别；不在跳过时是 None。
+    let mut skipping: Option<usize> = None;
+    let mut in_code = false;
+    for line in markdown.split('\n') {
+        if line.trim().starts_with("```") {
+            in_code = !in_code;
+        } else if !in_code && let Some((level, text)) = heading(line) {
+            // 遇到级别相同或更高的标题，跳过的小节结束。
+            if skipping.is_some_and(|skip| level <= skip) {
+                skipping = None;
+            }
+            if skipping.is_none()
+                && PLATFORM_HEADINGS
+                    .iter()
+                    .any(|name| name.eq_ignore_ascii_case(text))
+            {
+                // 本平台的小标题只去掉这一行；别的平台连内容一起跳过。
+                if !own.eq_ignore_ascii_case(text) {
+                    skipping = Some(level);
+                }
+                continue;
+            }
+        }
+        // 去掉的小节前后各有空行，连在一起时只留一个（代码块里的空行原样保留）。
+        let doubled = !in_code
+            && line.trim().is_empty()
+            && kept.last().is_some_and(|last: &&str| last.trim().is_empty());
+        if skipping.is_none() && !doubled {
+            kept.push(line);
+        }
+    }
+    trim_blank_lines(&kept.join("\n"))
+}
+
+/// 标题行的级别与文字（去掉首尾空白）；不是标题时返回 None。规则与 `blocks` 相同。
+fn heading(line: &str) -> Option<(usize, &str)> {
+    let hashes = line.bytes().take_while(|&b| b == b'#').count();
+    let rest = line.get(hashes..)?;
+    ((1..=6).contains(&hashes) && rest.starts_with(' ')).then(|| (hashes, rest.trim()))
+}
+
 /// 把取出的那段文字按行切成块（8.7 节的表）。
 ///
 /// | 行的形式 | 块 |

@@ -35,7 +35,8 @@ pub const MAX_REDIRECTS: usize = 5;
 /// 版本资源里放构建标签的字符串名（app.rc 里写入，见 eveo-app 的 build.rs）。
 pub const BUILD_LABEL_KEY: &str = "BuildLabel";
 
-/// 下载一个附件。url 要先经过 feed.accepts 的核对；headers 里放 User-Agent 等请求头。
+/// 下载一个附件或更新清单。url 要通过 feed.accepts_asset 的核对（正式地址下只要 https，测试地址下同源）；
+/// headers 里放 User-Agent 等请求头。
 /// on_progress 收到（已收到的字节数，答复头里的总长），返回 false 表示用户取消。
 pub fn download(
     feed: &UpdateFeed,
@@ -45,7 +46,7 @@ pub fn download(
     timeout_seconds: f64,
     on_progress: &mut dyn FnMut(u64, Option<u64>) -> bool,
 ) -> Result<Vec<u8>, UpdateError> {
-    if !feed.accepts(url) {
+    if !feed.accepts_asset(url) {
         return Err(UpdateError::Network("asset url rejected".into()));
     }
     let mut current = url.to_owned();

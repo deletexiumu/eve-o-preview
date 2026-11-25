@@ -141,6 +141,8 @@ fn asset_from(value: &Value, feed: &UpdateFeed) -> Option<ReleaseAsset> {
         name: name.to_owned(),
         download_url: url.to_owned(),
         size: object.get("size").and_then(Value::as_u64),
+        sha256: None,
+        mirrors: Vec::new(),
     })
 }
 

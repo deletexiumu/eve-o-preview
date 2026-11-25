@@ -91,8 +91,8 @@ pub(super) enum UpdateInput {
 /// 每种结果对应状态机的一个方法；通道是无界的，进度已在下载线程里节流（每 256 KiB 一条），
 /// 一次下载最多几百条，定时器每 250 毫秒取空一次，不会堆积。
 enum WorkResult {
-    /// 检查的结果。
-    Checked(CheckOutcome),
+    /// 检查的结果，与清单的序号（正式地址下检查成功时才有）。
+    Checked(CheckOutcome, Option<u64>),
     /// 下载的进度。
     Progress(Progress),
     /// 下载、核对与解包的结果。
@@ -297,7 +297,12 @@ impl App {
                 update_jobs::is_inside(std::path::Path::new(&p.exe_path), &self.updates.cache_dir)
             });
         let now = wall_clock();
-        let commands = self.with_updates(|machine, state| machine.start(state, now, exists));
+        let commands = self.with_updates(|machine, state| {
+            // 1.5.0 起检查不再走 GitHub 的接口，不会被限流：1.4.x 留下的限流时刻与 ETag 清掉，免得挡住第一次检查。
+            state.rate_limited_until = None;
+            state.etag = None;
+            machine.start(state, now, exists)
+        });
         self.run_update_commands(commands, runtime);
     }
 
@@ -321,9 +326,16 @@ impl App {
         // 后台任务的结果，按到达的顺序处理。
         while let Ok(result) = self.updates.receiver.try_recv() {
             let commands = match result {
-                WorkResult::Checked(outcome) => {
+                WorkResult::Checked(outcome, sequence) => {
                     log_check(&outcome);
-                    self.with_updates(|machine, state| machine.check_finished(state, now, outcome))
+                    self.with_updates(|machine, state| {
+                        // 记下接受过的最大序号：之后更旧的清单当作那个源失败（防止旧清单被重放）。
+                        if let Some(sequence) = sequence {
+                            state.manifest_sequence =
+                                Some(state.manifest_sequence.map_or(sequence, |old| old.max(sequence)));
+                        }
+                        machine.check_finished(state, now, outcome)
+                    })
                 }
                 WorkResult::Progress(progress) => {
                     self.updates.machine.progress(progress);
@@ -407,7 +419,7 @@ impl App {
     fn run_update_commands(&mut self, commands: Vec<Command>, runtime: &Rc<Runtime>) {
         for command in commands {
             match command {
-                Command::Check { etag } => self.spawn_check(etag),
+                Command::Check { .. } => self.spawn_check(),
                 Command::Prepare(release) => self.spawn_prepare(release),
                 Command::CancelPrepare => self.updates.cancel.store(true, Ordering::Relaxed),
                 // 是否重新启动由状态机记着：替换完成后它按 install_finished 的结果发 Relaunch，这里不用看。
@@ -445,24 +457,26 @@ impl App {
 
     /// 在新线程里检查。
     ///
-    /// 检查只发一个请求（发布列表），最多几秒；线程结束时把结果放进通道，不碰应用的任何状态。
-    fn spawn_check(&self, etag: Option<String>) {
+    /// 检查按顺序试清单的源，通常一个请求、最多几秒；线程结束时把结果放进通道，不碰应用的任何状态。
+    /// 1.5.0 起不用 ETag（清单很小，每天一次），状态机给的 etag 不再使用。
+    fn spawn_check(&mut self) {
         let feed = self.updates.machine.feed().clone();
         let sender = self.updates.sender.clone();
+        let public_key = self.updates.public_key;
+        let min_sequence = self.chat.state.state().updates.manifest_sequence;
         LOG.info("检查更新");
         let spawned = std::thread::Builder::new()
             .name("update-check".into())
             .spawn(move || {
-                let _ = sender.send(WorkResult::Checked(update_jobs::check(&feed, etag.as_deref())));
+                let (outcome, sequence) = update_jobs::check(&feed, public_key, min_sequence);
+                let _ = sender.send(WorkResult::Checked(outcome, sequence));
             });
         // 线程建不出来（极少见）：当作网络错误交回，状态机按失败处理，下次醒来再试。
         if spawned.is_err() {
-            let _ =
-                self.updates
-                    .sender
-                    .send(WorkResult::Checked(CheckOutcome::Failed(UpdateError::Network(
-                        "thread".into(),
-                    ))));
+            let _ = self.updates.sender.send(WorkResult::Checked(
+                CheckOutcome::Failed(UpdateError::Network("thread".into())),
+                None,
+            ));
         }
     }
 
@@ -700,10 +714,10 @@ fn install_job(
 /// 发布说明与地址不进日志：说明可能很长，地址对排查没有帮助，版本数与错误名已经够用。
 fn log_check(outcome: &CheckOutcome) {
     match outcome {
-        CheckOutcome::List(list, _) => LOG.info(format_args!(
-            "检查更新：列表里有 {} 个 Windows 版",
-            list.releases.len()
-        )),
+        CheckOutcome::List(list, _) => match list.releases.first() {
+            Some(latest) => LOG.info(format_args!("检查更新：Windows 的最新版是 {}", latest.version)),
+            None => LOG.info("检查更新：清单里没有 Windows 版"),
+        },
         CheckOutcome::NotModified => LOG.info("检查更新：与上次相同"),
         CheckOutcome::RateLimited(_) => LOG.error("检查更新被限流"),
         CheckOutcome::Failed(error) => LOG.error(format_args!("检查更新失败：{}", error.code())),

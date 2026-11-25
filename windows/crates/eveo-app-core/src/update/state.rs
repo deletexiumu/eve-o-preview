@@ -56,6 +56,9 @@ pub struct UpdateState {
     /// cached_release 与正在运行的版本之间各版本的说明。
     /// 更新窗口在最新版的说明之后列出它们；最多 10 个、总共约 256 KB，更早的请看发布页。
     pub intermediate_notes: Option<IntermediateReleaseNotes>,
+    /// 接受过的更新清单的最大序号（docs/update-manifest.md 第 4 节第 2 条）。序号更小的清单当作这个源失败，
+    /// 防止旧清单被重放、把新版本藏起来。只在正式地址下读写。
+    pub manifest_sequence: Option<u64>,
     /// updates 里不认识的键，写回时原样保留。
     other: Map<String, Value>,
 }
@@ -77,6 +80,7 @@ impl UpdateState {
         let pending_swap = take("pendingSwap").as_ref().and_then(decode_swap);
         let last_install = take("lastInstall").as_ref().and_then(decode_install);
         let intermediate_notes = take("intermediateNotes").as_ref().and_then(decode_notes);
+        let manifest_sequence = take("manifestSequence").as_ref().and_then(Value::as_u64);
         Self {
             last_check_at,
             etag,
@@ -87,6 +91,7 @@ impl UpdateState {
             pending_swap,
             last_install,
             intermediate_notes,
+            manifest_sequence,
             other: map,
         }
     }
@@ -118,6 +123,7 @@ impl UpdateState {
             "intermediateNotes",
             self.intermediate_notes.as_ref().map(encode_notes),
         );
+        put("manifestSequence", self.manifest_sequence.map(Value::from));
         Value::Object(map)
     }
 }
@@ -158,6 +164,13 @@ fn decode_release(value: &Value) -> Option<ReleaseInfo> {
                 name: text(asset, "name")?.to_owned(),
                 download_url: text(asset, "downloadURL")?.to_owned(),
                 size: asset.get("size").and_then(Value::as_u64),
+                // 1.5.0 起清单里的附件带 SHA-256 与后备地址；更早写下的记录没有这两个键。
+                sha256: text(asset, "sha256").map(str::to_owned),
+                mirrors: asset
+                    .get("mirrors")
+                    .and_then(Value::as_array)
+                    .map(|urls| urls.iter().filter_map(text_value).collect())
+                    .unwrap_or_default(),
             })
         })
         .collect();
@@ -182,7 +195,12 @@ fn encode_release(release: &ReleaseInfo) -> Value {
         .map(|asset| {
             object(vec![
                 ("downloadURL", Some(Value::from(asset.download_url.clone()))),
+                (
+                    "mirrors",
+                    (!asset.mirrors.is_empty()).then(|| Value::from(asset.mirrors.clone())),
+                ),
                 ("name", Some(Value::from(asset.name.clone()))),
+                ("sha256", asset.sha256.clone().map(Value::from)),
                 ("size", asset.size.map(Value::from)),
             ])
         })
@@ -333,6 +351,8 @@ mod tests {
                     "https://github.com/deletexiumu/eve-o-preview/releases/download/win-v0.9.1/SHA256SUMS.txt"
                         .into(),
                 size: Some(299),
+                sha256: Some("ab".repeat(32)),
+                mirrors: vec!["https://dl.example.com/v0.9.1/SHA256SUMS.txt".into()],
             }],
         }
     }
@@ -373,11 +393,13 @@ mod tests {
                 }],
                 has_more: true,
             }),
+            manifest_sequence: Some(1_700_000_000),
             other: Map::new(),
         };
         let encoded = state.encode();
         assert!(encoded["pendingSwap"].get("launchedAt").is_none());
         assert_eq!(encoded["cachedRelease"]["assets"][0]["size"], 299);
+        assert_eq!(encoded["manifestSequence"], 1_700_000_000);
         assert_eq!(UpdateState::decode(Some(encoded)), state);
         // 全部为空时只剩不认识的键。
         let empty = UpdateState::decode(Some(json!({"future": "1.0.0"}))).encode();
