@@ -22,6 +22,7 @@
 //! 热键录制。
 
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 
@@ -156,12 +157,18 @@ pub struct HotkeyRecorder {
 /// 「录制中仍无结果」诊断日志的间隔（秒）。
 const REPORT_INTERVAL: u64 = 5;
 
+/// 诊断：键盘钩子回调一进门就加一（加锁、判断之前），开始录制时清零。
+/// 和「钩子键盘事件」对比：两者都是 0 说明系统根本没调用回调（钩子被别的程序架空或卡住），
+/// 这个有数而事件数为 0 说明回调卡在了加锁或别处。同一时刻只有一个录制器，放全局变量即可。
+static HOOK_CALLS: AtomicU32 = AtomicU32::new(0);
+
 impl HotkeyRecorder {
     /// 开始录制：启动钩子线程，两个钩子都装好后才返回；再在设置窗口上装子类过程作为第二个来源。
     /// `window` 是设置窗口（要在它所在的线程上调用）；传 `None` 时只靠钩子（探针用）。
     /// 已有录制器时先丢弃旧的再调用（同一时刻只有一个）。
     pub fn start(window: Option<HWND>) -> Result<Self, String> {
         let state = SharedState::default();
+        HOOK_CALLS.store(0, Ordering::Relaxed);
         let (ready_tx, ready_rx) = mpsc::channel::<Result<u32, String>>();
         let thread_state = Arc::clone(&state);
         let join = std::thread::Builder::new()
@@ -219,8 +226,9 @@ impl HotkeyRecorder {
     pub fn summary(&self) -> String {
         let state = lock(&self.state);
         format!(
-            "钩子线程 {}，钩子键盘事件 {}，窗口键盘消息 {}（{}），鼠标按键 {}，最近：{}",
+            "钩子线程 {}，钩子回调 {} 次，钩子键盘事件 {}，窗口键盘消息 {}（{}），鼠标按键 {}，最近：{}",
             self.hook_thread,
+            HOOK_CALLS.load(Ordering::Relaxed),
             state.keys_seen,
             state.window_keys_seen,
             if self.window.is_some() {
@@ -367,6 +375,7 @@ pub(crate) fn on_key_up(state: &mut State, vk: u32) -> KeyAction {
 
 /// 低级键盘钩子的回调。
 unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    HOOK_CALLS.fetch_add(1, Ordering::Relaxed);
     if code == HC_ACTION as i32 {
         // SAFETY: HC_ACTION 时 lparam 指向系统提供的 KBDLLHOOKSTRUCT，在回调期间有效。
         let info = unsafe { &*(lparam.0 as *const KBDLLHOOKSTRUCT) };
