@@ -34,7 +34,9 @@ struct UpdateManifestTests {
 
     /// 样例的测试公钥。
     private static func key() throws -> Curve25519.Signing.PublicKey {
-        try #require(UpdateSigning.publicKey(hex: try #require(try cases()["publicKey"] as? String)))
+        // #require 不能嵌套展开，先取出十六进制串再解析。
+        let hex = try #require(try cases()["publicKey"] as? String)
+        return try #require(UpdateSigning.publicKey(hex: hex))
     }
 
     /// 用正式地址的规则、测试公钥打开一份清单。
@@ -72,8 +74,10 @@ struct UpdateManifestTests {
         for item in cases {
             let platform = try #require(item["platform"] as? String)
             let manifest = try Self.open(try Self.manifest(), platform: platform)
-            let latest = try #require(SemanticVersion(try #require(manifest.latest).version))
-            let running = try #require(SemanticVersion(try #require(item["running"] as? String)))
+            let latestEntry = try #require(manifest.latest)
+            let latest = try #require(SemanticVersion(latestEntry.version))
+            let runningText = try #require(item["running"] as? String)
+            let running = try #require(SemanticVersion(runningText))
             let record = ReleaseHistory.record(from: manifest.historyPage(platform: platform), running: running,
                                                latest: latest)
             #expect(record.entries.map(\.version) == item["versions"] as? [String], "\(item)")
@@ -101,10 +105,11 @@ struct UpdateManifestTests {
     }
 
     /// 测试地址下附件要与清单同源：样例里的正式地址全被丢掉，整份清单不收。
+    /// 发布页地址在附件之前检查，样例的发布页也是正式地址，所以报的是发布页这一条（Windows 端同序）。
     @Test func testFeedRejectsForeignAssets() throws {
         let data = try Self.manifest()
         let key = try Self.key()
-        #expect(throws: UpdateError.malformedFeed("file has no usable url")) {
+        #expect(throws: UpdateError.malformedFeed("latest pageURL not accepted")) {
             try UpdateManifest.open(data, publicKey: key, feed: UpdateFixtures.testFeed)
         }
     }
@@ -135,7 +140,9 @@ struct UpdateManifestTests {
         let hex = try #require(try Self.cases()["publicKey"] as? String)
         let environment = [UpdateSigning.testPublicKeyVariable: hex]
         let test = UpdateSigning.publicKey(for: UpdateFixtures.testFeed, environment: environment)
-        #expect(test?.rawRepresentation == (try Self.key()).rawRepresentation)
+        // #expect 的比较闭包不能抛错，先在外面取出公钥。
+        let expected = try Self.key()
+        #expect(test?.rawRepresentation == expected.rawRepresentation)
         #expect(UpdateSigning.publicKey(for: UpdateFixtures.testFeed, environment: [:]) == nil)
         let production = UpdateSigning.publicKey(for: UpdateFixtures.productionFeed, environment: environment)
         #expect(production?.rawRepresentation

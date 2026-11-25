@@ -118,6 +118,16 @@ public enum ReleaseFeedClient {
         return data
     }
 
+    /// 答复头，键转成小写。情报名字解析与翻译传输也用它。
+    static func lowercasedHeaders(_ response: HTTPURLResponse) -> [String: String] {
+        var headers: [String: String] = [:]
+        for (key, value) in response.allHeaderFields {
+            guard let name = key as? String else { continue }
+            headers[name.lowercased()] = value as? String ?? String(describing: value)
+        }
+        return headers
+    }
+
     /// 网络错误的简短说明：URLError 取代码，其他取类型名，不带地址（地址可能是测试地址里的路径）。
     static func describe(_ error: any Error) -> String {
         if let urlError = error as? URLError { return "URLError \(urlError.code.rawValue)" }

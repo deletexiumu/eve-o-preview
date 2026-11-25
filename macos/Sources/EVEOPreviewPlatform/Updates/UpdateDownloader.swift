@@ -194,7 +194,8 @@ final class UpdateDownloader: Sendable {
                                progress: (@Sendable (UpdateProgress) -> Void)?) async throws(UpdateError) -> Int64 {
         var lastError = UpdateError.assetMissing(asset.name)
         for (index, address) in asset.urls.enumerated() where feed.acceptsAsset(address) {
-            do {
+            // 标明 do 块只抛 UpdateError，catch 里的 error 才能直接和 `.cancelled` 比较、赋给 lastError。
+            do throws(UpdateError) {
                 let received = try await download(address, to: destination, maxBytes: maxBytes, tooLarge: tooLarge,
                                                   feed: feed, configuration: configuration, progress: progress)
                 if let expected = asset.sha256 {
