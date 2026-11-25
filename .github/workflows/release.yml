@@ -302,6 +302,9 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          # 新版 AWS CLI 默认给每个请求加 CRC 校验头，R2 的文档建议只在必需时加，免得上传被拒。
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
           if [[ -z "$R2_ACCOUNT_ID" || -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
             echo "::notice::没有配 R2 的密钥，跳过上传；清单里只有 GitHub 的地址"
