@@ -158,7 +158,8 @@ fn sync_later_writes_only_final_value() {
     controller.tick(start + Duration::from_millis(900));
     assert!(controller.running.is_none());
     controller.tick(start + Duration::from_millis(1400));
-    assert!(controller.running.is_some());
+    // 到期后发出同步。不能断言 running 仍在：假驱动的后台线程很快，同一次 tick 里可能已经取走结果。
+    assert!(controller.deferred.is_none());
     assert_eq!(controller.requested, Some(Some(450)));
     settle(&mut controller);
     // 与上一次想要的值相同：不再推迟。
