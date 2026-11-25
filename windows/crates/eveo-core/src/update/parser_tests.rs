@@ -109,7 +109,9 @@ fn filters_urls_and_assets() {
         [ReleaseAsset {
             name: "SHA256SUMS.txt".into(),
             download_url: url("download/win-v0.9.0/SHA256SUMS.txt"),
-            size: Some(2)
+            size: Some(2),
+            sha256: None,
+            mirrors: Vec::new(),
         }]
     );
     // 150 个附件只看前 100 个，最后一个是 a99。

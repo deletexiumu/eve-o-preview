@@ -256,3 +256,46 @@ fn lookalikes_are_plain_paragraphs() {
         assert_eq!(blocks(line), [Paragraph(line.into())], "{line}");
     }
 }
+
+/// 只留本平台：别的平台的小节整个去掉，本平台的小标题去掉、内容保留，两端共有的小节与开头的段落照常保留。
+#[test]
+fn platform_only_keeps_own_sections() {
+    let text = "Intro.\n\n## macOS and Windows\n\n- Both.\n\n## macOS\n\n- Mac item.\n\n### Detail\n\n- Mac detail.\n\n\
+## Windows\n\n- Win item.";
+    assert_eq!(
+        platform_only(text, "Windows"),
+        "Intro.\n\n## macOS and Windows\n\n- Both.\n\n- Win item."
+    );
+    assert_eq!(
+        platform_only(text, "macOS"),
+        "Intro.\n\n## macOS and Windows\n\n- Both.\n\n- Mac item.\n\n### Detail\n\n- Mac detail."
+    );
+}
+
+/// 标题不分大小写；代码块里的 `#` 不算标题；没有平台小节时原样返回。
+#[test]
+fn platform_only_edge_cases() {
+    assert_eq!(
+        platform_only("### WINDOWS\n- a\n### MacOS\n- b", "windows"),
+        "- a"
+    );
+    let code = "```\n## macOS\n```\n- a";
+    assert_eq!(platform_only(code, "Windows"), code);
+    assert_eq!(platform_only("- only", "Windows"), "- only");
+    // 只改了别的平台的说明，剩下开头的段落。
+    assert_eq!(
+        platform_only("Fixes Windows.\n\n## Windows\n\n- x", "macOS"),
+        "Fixes Windows."
+    );
+}
+
+/// 仓库里真实的 1.4.0 说明：Windows 看得到自己的小节，macOS 看不到。
+#[test]
+fn platform_only_on_real_notes() {
+    let body = include_str!("../../../../../docs/release-notes/v1.4.0.md");
+    let zh = section(AppLanguage::Zh, body);
+    assert!(platform_only(&zh, "Windows").contains("Ctrl+Shift+J"));
+    let mac = platform_only(&zh, "macOS");
+    assert!(!mac.contains("Ctrl+Shift+J"));
+    assert!(mac.contains("macOS 与 Windows"));
+}

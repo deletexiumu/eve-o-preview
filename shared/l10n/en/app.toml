@@ -183,7 +183,7 @@ licenseText = "Like upstream, it is released under the GNU General Public Licens
 disclaimerHeader = "Notes"
 focusOnlyText = "This tool only switches window focus. It never broadcasts input to multiple clients and never reads or modifies game memory."
 gameLogText = "Combat alerts only read the game log files that the EVE client writes. They never read game memory, modify files or send input."
-networkText = "EVE-O Preview contacts GitHub only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically."
+networkText = "EVE-O Preview contacts the update servers (Cloudflare and GitHub) only to check for and download updates; you can turn this off under General. Problem reports are never sent automatically."
 eveIPText = "EVE Online and related logos are trademarks of CCP ehf. This project is not affiliated with or endorsed by CCP."
 aboutChatLogsNote = "Intel and translation only read chat logs and game logs. Translation sends chat text to the model service you choose. When online name checking is on, pilot names that run together in intel messages are sent to CCP's ESI API."
 

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // `UpdateService` 的真实实现（v1.1 设计 8.4、8.8、9.2、9.3 节）。各方法转给：
-// `ReleaseFeedClient`（检查与 Release 列表）、`UpdateDownloader`（下载与核对）、`BundleInstaller`（挂载、验证、替换与残留清理）。
+// `ReleaseFeedClient`（取更新清单）、`UpdateDownloader`（下载与核对）、`BundleInstaller`（挂载、验证、替换与残留清理）。
+//
+// 中间版本的说明取自最近一次检查拿到的清单（存在内存里）；没有时（重启后从缓存恢复的提示）重新取一次清单。
 //
 // 缓存目录默认是 `~/Library/Caches/io.github.deletexiumu.eveopreview-macos/Updates/`。探针可以另指目录，
 // 不碰用户的缓存。
@@ -13,6 +15,7 @@
 
 import Foundation
 import EVEOPreviewCore
+import os
 
 /// 更新的平台服务。
 public final class SystemUpdateService: UpdateService {
@@ -20,6 +23,8 @@ public final class SystemUpdateService: UpdateService {
     let downloader: UpdateDownloader
     /// 替换与残留清理。
     let installer: BundleInstaller
+    /// 最近一次检查拿到的清单与它的检查地址，供 `fetchReleaseHistory` 用。
+    private let lastManifest = OSAllocatedUnfairLock<(feed: UpdateFeed, manifest: UpdateManifest)?>(initialState: nil)
 
     /// 默认的缓存目录 `~/Library/Caches/<bundle id>/Updates`。
     public static func defaultCacheDirectory() -> URL {
@@ -40,14 +45,24 @@ public final class SystemUpdateService: UpdateService {
         installer = BundleInstaller(cacheRoot: cacheDirectory, registersWithLaunchServices: registersWithLaunchServices)
     }
 
-    /// 请求最新的正式版（8.4 节）。
-    public func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult {
-        await ReleaseFeedClient.fetch(feed: feed, etag: etag, appVersion: appVersion)
+    /// 取更新清单，返回改动了 macOS 的最新正式版（docs/update-manifest.md 第 4 节）。
+    public func fetchLatestRelease(feed: UpdateFeed, minimumSequence: UInt64?,
+                                   appVersion: String) async -> ReleaseFetchResult {
+        let (result, manifest) = await ReleaseFeedClient.fetch(feed: feed, minimumSequence: minimumSequence,
+                                                               appVersion: appVersion)
+        if let manifest { lastManifest.withLock { $0 = (feed, manifest) } }
+        return result
     }
 
-    /// 请求 Release 列表，取中间版本的说明（8.8 节）。失败时返回 nil。
+    /// 改动了 macOS 的各版本的说明（8.8 节）：用最近一次检查的清单，没有时重新取一次（不比较序号：只用来显示说明）。
     public func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? {
-        await ReleaseFeedClient.fetchHistory(feed: feed, appVersion: appVersion)
+        if let cached = lastManifest.withLock({ $0 }), cached.feed == feed { return cached.manifest.historyPage() }
+        guard case .success(let manifest) = await ReleaseFeedClient.fetchManifest(feed: feed, minimumSequence: nil,
+                                                                                  appVersion: appVersion) else {
+            return nil
+        }
+        lastManifest.withLock { $0 = (feed, manifest) }
+        return manifest.historyPage()
     }
 
     /// 下载校验和文件与 dmg，核对 SHA-256（9.2 节）。

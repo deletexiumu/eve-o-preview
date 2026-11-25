@@ -2,12 +2,12 @@
 //
 // 跨版本的发布说明（v1.1 设计 8.8 节）：用户跳过了几个版本时，更新窗口在最新版的说明之后列出中间各版本的说明。
 //
-// - 检查本身不变（只请求 `releases/latest`）。有新版本要提示时（`evaluate` 得到 `.offer`），以及更新窗口显示某个
-//   版本时，调 `ensureIntermediateNotes(for:)`：缓存合用就什么都不做，否则在后台请求一次 Release 列表。
+// - 各版本的说明在更新清单的 `releases` 里（只取改动了 macOS 的版本）。有新版本要提示时（`evaluate` 得到 `.offer`），
+//   以及更新窗口显示某个版本时，调 `ensureIntermediateNotes(for:)`：缓存合用就什么都不做，否则在后台向服务要一次
+//   （服务用最近一次检查的清单，没有时才重新取清单）。
 // - 缓存（`state.updates.intermediateNotes`）合用的条件：是为同一个最新版取的，且取的时候正在运行的版本不比现在新。
 //   所以每个新的最新版最多多一次请求；启动时只读缓存，不发请求。
-// - 这次请求从不被检查、下载或安装等待，也不改 `phase`、`isChecking`、`workTask`；失败只记日志，1 小时内不再试，
-//   被限流（`rateLimitedUntil` 在将来）时也不发。
+// - 这次请求从不被检查、下载或安装等待，也不改 `phase`、`isChecking`、`workTask`；失败只记日志，1 小时内不再试。
 // - 同一时刻只有一个请求；要取的最新版变了时取消旧的。请求回来时 `cachedRelease` 已换成别的版本，结果丢掉。
 // - 正在运行的版本解析不了（如本机的开发构建）时不取，窗口只显示最新版的说明。
 
@@ -15,7 +15,7 @@ import Foundation
 import EVEOPreviewCore
 
 extension UpdateController {
-    /// 取 Release 列表失败后，多久之内不再取。
+    /// 取中间版本的说明失败后，多久之内不再取。
     static let historyRetryDelay: TimeInterval = 3_600
 
     /// 更新窗口要在 release 之后列出的中间版本说明，新版在前；没有或缓存不是为这个版本取的时候是空数组。
@@ -66,7 +66,6 @@ extension UpdateController {
         if historyTask != nil, historyTaskVersion == latest { return }
         let now = Date()
         if let retry = historyRetryAfter, retry > now { return }
-        if let limited = state.state.updates.rateLimitedUntil, limited > now { return }
         historyTask?.cancel()
         historyTaskVersion = latest
         let service = self.service

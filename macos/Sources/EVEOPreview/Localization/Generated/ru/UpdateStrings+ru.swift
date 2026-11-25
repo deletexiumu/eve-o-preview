@@ -14,7 +14,7 @@ struct UpdateStringsRU: UpdateStrings {
     // MARK: 「通用」页的更新一组
     var sectionHeader: String { "Обновления" }
     var autoCheckToggle: String { "Автоматически проверять наличие обновлений" }
-    var autoCheckHelp: String { "Обращается к GitHub раз в день. Личные данные не передаются." }
+    var autoCheckHelp: String { "Проверяет обновления раз в день (через Cloudflare, запасной источник — GitHub). Личные данные не передаются." }
     var autoInstallToggle: String { "Автоматически устанавливать обновления" }
     var autoInstallHelp: String { "Загружает обновление в фоне. Устанавливает и перезапускает приложение, если клиент EVE не запущен в течение минуты, а также устанавливает при выходе из EVE-O Preview." }
     var currentVersionLabel: String { "Текущая версия" }
@@ -64,8 +64,8 @@ struct UpdateStringsRU: UpdateStrings {
     var blockerDevelopmentSignature: String { "Это сборка для разработки с локальной подписью." }
     var blockerUnsigned: String { "Эта сборка не подписана." }
     // MARK: 错误（UpdateError，按类合并）
-    var errorNetwork: String { "Не удалось подключиться к GitHub. Проверьте подключение к интернету." }
-    func errorHTTPStatus(_ code: Int) -> String { "GitHub вернул ошибку (\(code))." }
+    var errorNetwork: String { "Не удалось подключиться к серверу обновлений. Проверьте подключение к интернету." }
+    func errorHTTPStatus(_ code: Int) -> String { "Сервер обновлений вернул ошибку (\(code))." }
     var errorMalformedFeed: String { "Не удалось прочитать сведения о выпуске." }
     var errorAssetMissing: String { "В этом выпуске нет установщика для автоматического обновления." }
     var errorDiskSpace: String { "Недостаточно свободного места на диске для загрузки." }

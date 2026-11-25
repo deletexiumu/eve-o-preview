@@ -158,7 +158,7 @@ struct SettingsStringsJA: SettingsStrings {
     var disclaimerHeader: String { "注意事項" }
     var focusOnlyText: String { "このツールはウインドウのフォーカスを切り替えるだけです。複数のクライアントに同じ入力を送ることはなく、ゲームのメモリを読み取ったり変更したりすることもありません。" }
     var gameLogText: String { "戦闘アラートは、EVEクライアントが書き出すゲームログのファイルを読むだけです。ゲームのメモリは読まず、ファイルを変更せず、入力も送りません。" }
-    var networkText: String { "EVE-O PreviewがGitHubに接続するのは、アップデートの確認とダウンロードのときだけです。「一般」でオフにできます。問題のレポートが自動で送信されることはありません。" }
+    var networkText: String { "EVE-O Previewがアップデートサーバー（Cloudflare と GitHub）に接続するのは、アップデートの確認とダウンロードのときだけです。「一般」でオフにできます。問題のレポートが自動で送信されることはありません。" }
     var eveIPText: String { "EVE Onlineおよび関連するロゴはCCP ehf.の商標です。このプロジェクトはCCPとは関係がなく、CCPの承認も受けていません。" }
     var aboutChatLogsNote: String { "偵察と翻訳はチャットログとゲームログを読み取るだけです。翻訳は、選択したモデルサービスにチャットの本文を送信します。「オンラインで名前を確認」がオンのときは、偵察メッセージ内で続けて書かれたパイロット名を CCP の ESI API に送信します。" }
     // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）

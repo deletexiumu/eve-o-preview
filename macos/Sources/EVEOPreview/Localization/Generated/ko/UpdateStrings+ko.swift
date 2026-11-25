@@ -14,7 +14,7 @@ struct UpdateStringsKO: UpdateStrings {
     // MARK: 「通用」页的更新一组
     var sectionHeader: String { "업데이트" }
     var autoCheckToggle: String { "자동으로 업데이트 확인" }
-    var autoCheckHelp: String { "하루에 한 번 GitHub에 접속합니다. 개인 정보는 전송되지 않습니다." }
+    var autoCheckHelp: String { "하루에 한 번 업데이트를 확인합니다(Cloudflare 경유, 예비는 GitHub). 개인 정보는 전송되지 않습니다." }
     var autoInstallToggle: String { "자동으로 업데이트 설치" }
     var autoInstallHelp: String { "백그라운드에서 다운로드합니다. EVE 클라이언트가 1분 동안 실행되지 않으면 설치하고 다시 실행하며, EVE-O Preview를 종료할 때도 설치합니다." }
     var currentVersionLabel: String { "현재 버전" }
@@ -64,8 +64,8 @@ struct UpdateStringsKO: UpdateStrings {
     var blockerDevelopmentSignature: String { "로컬에서 서명한 개발용 빌드입니다." }
     var blockerUnsigned: String { "이 빌드는 서명되지 않았습니다." }
     // MARK: 错误（UpdateError，按类合并）
-    var errorNetwork: String { "GitHub에 연결할 수 없습니다. 인터넷 연결을 확인하십시오." }
-    func errorHTTPStatus(_ code: Int) -> String { "GitHub가 오류를 반환했습니다(\(code))." }
+    var errorNetwork: String { "업데이트 서버에 연결할 수 없습니다. 인터넷 연결을 확인하십시오." }
+    func errorHTTPStatus(_ code: Int) -> String { "업데이트 서버가 오류를 반환했습니다(\(code))." }
     var errorMalformedFeed: String { "릴리스 정보를 읽을 수 없습니다." }
     var errorAssetMissing: String { "이 릴리스에는 자동 업데이트용 설치 파일이 없습니다." }
     var errorDiskSpace: String { "다운로드에 필요한 디스크 공간이 부족합니다." }

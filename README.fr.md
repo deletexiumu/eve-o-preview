@@ -216,7 +216,7 @@ EVE-O Preview affiche aussi son icône dans le Dock ; un clic dessus ouvre la fe
 
 ### Mises à jour
 
-EVE-O Preview recherche une nouvelle version sur GitHub au lancement, puis une fois par jour. Pour désactiver cette recherche, décochez « Rechercher automatiquement les mises à jour » dans Réglages > Général > Mises à jour ; « Rechercher les mises à jour… » dans le menu de la barre des menus permet toujours de lancer une recherche à la demande.
+EVE-O Preview recherche une nouvelle version au lancement, puis une fois par jour, à l'aide d'une liste de mises à jour signée diffusée par le CDN de Cloudflare, avec GitHub en secours. Les versions qui ne modifient que l'app Windows ne sont pas proposées, et les notes de version n'affichent que les parties macOS. Pour désactiver cette recherche, décochez « Rechercher automatiquement les mises à jour » dans Réglages > Général > Mises à jour ; « Rechercher les mises à jour… » dans le menu de la barre des menus permet toujours de lancer une recherche à la demande.
 
 Quand une nouvelle version est disponible, une fenêtre affiche les notes de version dans la langue de votre interface (en anglais s'il n'existe pas de traduction) et propose « Installer la mise à jour », « Ignorer cette version » et « Plus tard ». Tant qu'un client EVE est au premier plan, la fenêtre attend que vous passiez à autre chose, et elle ne prend jamais d'elle-même le focus clavier ; un point sur l'icône de la barre des menus signale qu'une mise à jour est en attente. « Ignorer cette version » n'arrête que les rappels automatiques pour cette version ; « Rechercher les mises à jour… » l'affiche toujours.
 
@@ -234,13 +234,12 @@ L'app conserve jusqu'à 5 fichiers journaux de 1 Mio chacun dans `~/Library/Logs
 
 ## Confidentialité
 
-L'app se connecte à GitHub pour les mises à jour et n'établit aucune autre connexion, sauf si vous activez l'une des fonctionnalités facultatives décrites après cette liste :
+L'app se connecte à Cloudflare et à GitHub pour les mises à jour et n'établit aucune autre connexion, sauf si vous activez l'une des fonctionnalités facultatives décrites après cette liste :
 
-- La recherche de mises à jour interroge `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` au lancement et une fois par jour tant que « Rechercher automatiquement les mises à jour » est activé, ainsi qu'à chaque fois que vous choisissez « Rechercher les mises à jour… ».
-- Lorsqu'une nouvelle version est proposée, l'app interroge aussi une fois la liste des versions `api.github.com/repos/deletexiumu/eve-o-preview/releases`, avec les mêmes en-têtes, pour afficher les notes des versions que vous avez sautées.
-- L'installation d'une mise à jour télécharge `SHA256SUMS.txt` et le dmg de la version.
+- La recherche de mises à jour télécharge la liste signée `eveo.deepai.wiki/update-manifest.json` (diffusée par Cloudflare), ou `github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json` en cas d'échec, au lancement et une fois par jour tant que « Rechercher automatiquement les mises à jour » est activé, ainsi qu'à chaque fois que vous choisissez « Rechercher les mises à jour… ». La liste contient aussi les notes des versions précédentes : afficher les versions que vous avez sautées ne demande aucune requête supplémentaire.
+- L'installation d'une mise à jour télécharge `SHA256SUMS.txt` et le dmg depuis `eveo.deepai.wiki`, ou depuis la version GitHub en cas d'échec. Chaque fichier est vérifié avec la liste signée.
 
-Les requêtes ne transmettent que la version de l'app dans l'en-tête `User-Agent`, un `Accept-Language: en` fixe et une étiquette de cache ; aucun nom de personnage, réglage, journal, détail matériel, version du système ni identifiant n'est envoyé, et aucun cookie n'est utilisé. GitHub voit votre adresse IP et l'heure de la requête. Il n'y a ni télémétrie ni envoi automatique des plantages : « Signaler un problème… » crée seulement un zip sur votre Mac et ouvre une page web que vous choisissez d'envoyer ou non.
+Les requêtes ne transmettent que la version de l'app dans l'en-tête `User-Agent`, un `Accept-Language: en` fixe et `Cache-Control: no-cache` ; aucun nom de personnage, réglage, journal, détail matériel, version du système ni identifiant n'est envoyé, et aucun cookie n'est utilisé. Cloudflare et GitHub voient votre adresse IP et l'heure de la requête. Il n'y a ni télémétrie ni envoi automatique des plantages : « Signaler un problème… » crée seulement un zip sur votre Mac et ouvre une page web que vous choisissez d'envoyer ou non.
 
 Les overlays de renseignement et de traduction ne font que lire les journaux de discussion et de jeu ; ils n'y écrivent jamais, et les conversations privées ne sont jamais lues. Deux fonctionnalités facultatives se connectent à d'autres services :
 

@@ -70,11 +70,10 @@ public struct ChatState: Sendable, Equatable, Codable {
 public struct UpdateState: Sendable, Equatable, Codable {
     /// 最近一次得到服务器答复的时刻。
     public var lastCheckAt: Date?
-    /// 上次答复的 ETag，有缓存的发布信息时随请求发出。
-    public var etag: String?
-    /// 上次解析出的发布信息，304 时用它继续判断。
+    /// 上次检查得到的发布信息：重启后据此恢复提示，不必先发请求。
+    /// （1.4.x 及更早版本还存了 GitHub 答复的 `etag`，1.5.0 起读清单、不用 ETag，旧键读时忽略、写时不再写出。）
     public var cachedRelease: ReleaseInfo?
-    /// 被限流时可以再试的时刻。
+    /// 被限流时可以再试的时刻。1.5.0 起清单不经 GitHub 的接口、不会被限流，启动时清掉 1.4.x 留下的值。
     public var rateLimitedUntil: Date?
     /// 用户选了「跳过此版本」的版本号。
     public var skippedVersion: String?
@@ -86,14 +85,16 @@ public struct UpdateState: Sendable, Equatable, Codable {
     public var staleStagingPath: String?
     /// `cachedRelease` 与正在运行的版本之间各版本的说明（8.8 节），1.1.4 新增，缺键时为 nil。
     public var intermediateNotes: IntermediateReleaseNotes?
+    /// 接受过的更新清单的最大序号（docs/update-manifest.md 第 4 节第 2 条），1.5.0 新增，缺键时为 nil。
+    /// 只在正式地址下读写；拿到序号更小的清单时按那个源失败处理，防止旧清单被重放。
+    public var manifestSequence: UInt64?
 
     /// 用各字段建记录，默认全部为空。
-    public init(lastCheckAt: Date? = nil, etag: String? = nil, cachedRelease: ReleaseInfo? = nil,
+    public init(lastCheckAt: Date? = nil, cachedRelease: ReleaseInfo? = nil,
                 rateLimitedUntil: Date? = nil, skippedVersion: String? = nil, prepared: PreparedUpdate? = nil,
                 lastInstall: InstallRecord? = nil, staleStagingPath: String? = nil,
-                intermediateNotes: IntermediateReleaseNotes? = nil) {
+                intermediateNotes: IntermediateReleaseNotes? = nil, manifestSequence: UInt64? = nil) {
         self.lastCheckAt = lastCheckAt
-        self.etag = etag
         self.cachedRelease = cachedRelease
         self.rateLimitedUntil = rateLimitedUntil
         self.skippedVersion = skippedVersion
@@ -101,6 +102,7 @@ public struct UpdateState: Sendable, Equatable, Codable {
         self.lastInstall = lastInstall
         self.staleStagingPath = staleStagingPath
         self.intermediateNotes = intermediateNotes
+        self.manifestSequence = manifestSequence
     }
 
     /// 缺键取 nil。其余字段结构不符时照旧整个解码失败（由 `load()` 退回默认状态）；只有 `intermediateNotes`
@@ -108,7 +110,6 @@ public struct UpdateState: Sendable, Equatable, Codable {
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         lastCheckAt = try c.decodeIfPresent(Date.self, forKey: .lastCheckAt)
-        etag = try c.decodeIfPresent(String.self, forKey: .etag)
         cachedRelease = try c.decodeIfPresent(ReleaseInfo.self, forKey: .cachedRelease)
         rateLimitedUntil = try c.decodeIfPresent(Date.self, forKey: .rateLimitedUntil)
         skippedVersion = try c.decodeIfPresent(String.self, forKey: .skippedVersion)
@@ -116,6 +117,7 @@ public struct UpdateState: Sendable, Equatable, Codable {
         lastInstall = try c.decodeIfPresent(InstallRecord.self, forKey: .lastInstall)
         staleStagingPath = try c.decodeIfPresent(String.self, forKey: .staleStagingPath)
         intermediateNotes = try? c.decodeIfPresent(IntermediateReleaseNotes.self, forKey: .intermediateNotes)
+        manifestSequence = try c.decodeIfPresent(UInt64.self, forKey: .manifestSequence)
     }
 }
 

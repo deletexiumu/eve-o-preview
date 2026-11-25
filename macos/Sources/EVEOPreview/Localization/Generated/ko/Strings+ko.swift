@@ -158,7 +158,7 @@ struct SettingsStringsKO: SettingsStrings {
     var disclaimerHeader: String { "참고" }
     var focusOnlyText: String { "이 도구는 윈도우 포커스만 전환합니다. 여러 클라이언트에 입력을 동시에 보내지 않으며 게임 메모리를 읽거나 수정하지 않습니다." }
     var gameLogText: String { "전투 알림은 EVE 클라이언트가 직접 기록한 게임 로그 파일만 읽습니다. 게임 메모리를 읽지 않고, 파일을 수정하지 않으며, 입력을 보내지 않습니다." }
-    var networkText: String { "EVE-O Preview는 업데이트를 확인하고 다운로드할 때만 GitHub에 연결합니다. '일반'에서 끌 수 있습니다. 문제 보고서는 자동으로 전송되지 않습니다." }
+    var networkText: String { "EVE-O Preview는 업데이트를 확인하고 다운로드할 때만 업데이트 서버(Cloudflare와 GitHub)에 연결합니다. '일반'에서 끌 수 있습니다. 문제 보고서는 자동으로 전송되지 않습니다." }
     var eveIPText: String { "EVE Online 및 관련 로고는 CCP ehf.의 상표입니다. 이 프로젝트는 CCP와 관련이 없으며 CCP의 승인을 받지 않았습니다." }
     var aboutChatLogsNote: String { "정찰과 번역은 채팅 로그와 게임 로그를 읽기만 합니다. 번역은 채팅 내용을 선택한 모델 서비스로 보냅니다. 「온라인 이름 확인」이 켜져 있으면 정찰 메시지에서 이어서 적힌 파일럿 이름을 CCP의 ESI API로 보냅니다." }
     // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）

@@ -8,7 +8,7 @@ menuRestartToUpdate = "Redémarrer pour passer à la version {version}"
 
 sectionHeader = "Mises à jour"
 autoCheckToggle = "Rechercher automatiquement les mises à jour"
-autoCheckHelp = "Contacte GitHub une fois par jour. Aucune donnée personnelle n'est envoyée."
+autoCheckHelp = "Recherche les mises à jour une fois par jour (via Cloudflare, avec GitHub en secours). Aucune donnée personnelle n'est envoyée."
 autoInstallToggle = "Installer automatiquement les mises à jour"
 autoInstallHelp = "Télécharge en arrière-plan. Installe et redémarre quand aucun client EVE n'a tourné depuis une minute, ou installe quand vous quittez EVE-O Preview."
 notAvailableYet = "Les mises à jour arriveront dans une prochaine version de test. D'ici là, téléchargez les nouvelles versions depuis la page des versions sur GitHub."
@@ -64,9 +64,9 @@ blockerNoSigningKey = "Cette copie de l'app ne contient pas la clé nécessaire 
 blockerDevelopmentBuild = "Il s'agit d'une version de développement."
 
 # 「无法……」统一写 Impossible de …，与 macOS 法文的错误提示一致。
-errorNetwork = "Impossible de joindre GitHub. Vérifiez votre connexion Internet."
+errorNetwork = "Impossible de joindre le serveur de mises à jour. Vérifiez votre connexion Internet."
 # code 是 HTTP 状态码，原样显示。
-errorHTTPStatus = "GitHub a répondu par une erreur ({code})."
+errorHTTPStatus = "Le serveur de mises à jour a répondu par une erreur ({code})."
 errorMalformedFeed = "Impossible de lire les informations de la version."
 errorAssetMissing = "Cette version ne contient pas de programme d'installation pour les mises à jour automatiques."
 errorDiskSpace = "Espace disque insuffisant pour le téléchargement."

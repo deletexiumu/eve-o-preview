@@ -8,7 +8,8 @@
 //!
 //! - [`version`]：语义化版本号。
 //! - [`feed`]：检查地址、附件地址的核对与附件名。
-//! - [`parser`]：Release 列表的解析与限流判断。
+//! - [`manifest`]：更新清单的验签与解析（1.5.0 起的检查）。
+//! - [`parser`]：GitHub Release 列表的解析（1.5.0 起只剩 `ReleaseList` 与工具函数在用）与限流判断。
 //! - [`history`]：中间版本的发布说明。
 //! - [`notes`]：发布说明按语言的选取与切块。
 //! - [`policy`]：能否安装、挑哪个版本、要不要提示、何时检查、新 exe 能否安装。
@@ -22,6 +23,7 @@ pub mod checksums;
 pub mod feed;
 pub mod history;
 pub mod install;
+pub mod manifest;
 pub mod models;
 pub mod notes;
 pub mod parser;

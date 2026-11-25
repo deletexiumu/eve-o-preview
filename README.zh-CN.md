@@ -214,7 +214,7 @@ tccutil reset Accessibility io.github.deletexiumu.eveopreview-macos
 
 ### 更新
 
-应用在启动时和每天检查一次 GitHub 上的新版本。要关掉自动检查，在「设置 > 通用 > 更新」里关掉「自动检查更新」；菜单栏菜单的「检查更新…」仍可随时手动检查。
+应用在启动时和每天检查一次新版本：读一份签过名的更新清单，经 Cloudflare 的 CDN 分发，GitHub 作为后备。只改了 Windows 版的版本不提示，更新内容也只显示 macOS 的部分。要关掉自动检查，在「设置 > 通用 > 更新」里关掉「自动检查更新」；菜单栏菜单的「检查更新…」仍可随时手动检查。
 
 有新版本时，窗口按界面语言显示发布说明（没有对应译文时显示英文），提供「安装更新」「跳过此版本」「稍后」。EVE 客户端在前台时，窗口等你切走后才出现，也不会自己抢键盘焦点；菜单栏图标上的圆点表示有更新在等待。「跳过此版本」只停止该版本的自动提醒，「检查更新…」仍会显示它。
 
@@ -232,13 +232,12 @@ macOS 用户名、全名、主目录路径与电脑名替换为 `[user]` 与 `[h
 
 ## 隐私
 
-应用为了更新访问 GitHub；除非你打开列表之后说明的可选功能，否则不发其他网络请求：
+应用为了更新访问 Cloudflare 与 GitHub；除非你打开列表之后说明的可选功能，否则不发其他网络请求：
 
-- 检查更新：「自动检查更新」打开时，在启动后与每天请求一次 `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest`；你点「检查更新…」时也请求一次。
-- 有新版本要提示时，再请求一次 Release 列表 `api.github.com/repos/deletexiumu/eve-o-preview/releases`（请求头相同），用来显示你跳过的中间版本的更新内容。
-- 安装更新：从 Release 下载 `SHA256SUMS.txt` 与 dmg。
+- 检查更新：「自动检查更新」打开时，在启动后与每天下载一次签过名的更新清单 `eveo.deepai.wiki/update-manifest.json`（经 Cloudflare 分发），失败时改取 `github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json`；你点「检查更新…」时也下载一次。清单里也有之前各版本的更新内容，显示你跳过的版本不用另发请求。
+- 安装更新：从 `eveo.deepai.wiki` 下载 `SHA256SUMS.txt` 与 dmg，失败时改从 GitHub 的 Release 下载。每个文件都与签过名的清单核对。
 
-请求里只有 `User-Agent` 请求头里的应用版本号、固定的 `Accept-Language: en` 和一个缓存标签；不发送角色名、配置、日志、硬件信息、系统版本或任何标识符，不用 cookie。GitHub 能看到的是你的 IP 地址和请求时间。应用没有遥测，也不自动上传崩溃信息：「报告问题…」只在本机生成 zip，并打开一个网页，提交与否由你决定。
+请求里只有 `User-Agent` 请求头里的应用版本号、固定的 `Accept-Language: en` 和 `Cache-Control: no-cache`；不发送角色名、配置、日志、硬件信息、系统版本或任何标识符，不用 cookie。Cloudflare 与 GitHub 能看到的是你的 IP 地址和请求时间。应用没有遥测，也不自动上传崩溃信息：「报告问题…」只在本机生成 zip，并打开一个网页，提交与否由你决定。
 
 预警浮窗与翻译浮窗只读聊天日志和游戏日志，不写入；私聊频道不读取。以下两项可选功能会访问其他服务：
 

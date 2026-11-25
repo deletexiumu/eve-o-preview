@@ -11,6 +11,8 @@
 # - Windows 1.4.0 起两种 tag 都认，`v*` 只认带 Windows 压缩包的 Release。1.0、1.1 只认 `win-v*`：
 #   WINDOWS_LEGACY_TAG_VERSIONS 里列出的版本额外发一个只含 Windows 文件的 `win-v<版本>`（不标 latest），
 #   让它们能自动升级。目前只有 1.4.0。
+# 更新清单（1.5.0 起，docs/update-manifest.md）：publish 任务生成并签名 update-manifest.json，放进 Release；
+# 之后的 cdn 任务把清单与它指向的文件传到 Cloudflare R2（经 CDN 全球分发），GitHub 作为后备。
 # 签名私钥只在 publish 任务里用（Linux 运行器、Actions secret），不进构建用的运行器。
 # 第三方 action 钉到提交 SHA，行尾注释写对应的版本号。
 
@@ -38,6 +40,10 @@ concurrency:
 env:
   # 额外发 win-v<版本> 的版本，空格分隔。只认 win-v* 的 Windows 1.0、1.1 靠它升到统一发布的版本。
   WINDOWS_LEGACY_TAG_VERSIONS: "1.4.0"
+  # R2 的存储桶与公开地址（自定义域名经 Cloudflare 的 CDN）。应用里内置的清单地址与它一致（feed.rs、UpdateContracts.swift）。
+  # 账号 ID 与访问密钥在 secrets 里：R2_ACCOUNT_ID、R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY。
+  R2_BUCKET: eve-o-preview
+  R2_PUBLIC_BASE_URL: https://eveo.deepai.wiki
 
 jobs:
   # 两个平台的版本号必须相同；推送 tag 时 tag 必须是 v<版本号>。手动运行只能演练，不能正式发布。
@@ -153,9 +159,50 @@ jobs:
             printf '\n' >> "$dir/SHA256SUMS.txt.sig"
             openssl pkeyutl -verify -pubin -keyform DER -inkey "$WORK/pub.der" -rawin -in "$dir/SHA256SUMS.txt" -sigfile "$WORK/sig.bin"
           done
-          # macOS：dmg 与 2 个源码包；Windows：zip 与源码包；再加校验和与签名。
-          [[ "$(ls release-files | wc -l | tr -d ' ')" == "7" ]] || { echo "::error::附件数不是 7"; ls release-files; exit 1; }
           [[ "$(ls legacy-files | wc -l | tr -d ' ')" == "4" ]] || { echo "::error::win-v 的附件数不是 4"; ls legacy-files; exit 1; }
+
+      # 更新清单（docs/update-manifest.md 第 5 节）：每个平台的 latest 按发布说明的平台标记算出。
+      # 是本次版本时用本次的附件；是更早的版本时从那个版本的 Release 下载安装包与校验和，先验签、再核对哈希。
+      # 签名的消息是前缀加正文（build_update_manifest.py message），用签校验和文件的同一把私钥，签完用提交的公钥验一遍。
+      # 配好 R2 的密钥时清单里写 R2 的地址（在前）；cdn 任务随后把文件传上去，传完之前应用会自动退回 GitHub 的地址。
+      - name: 更新清单
+        env:
+          SIGNING_KEY: ${{ secrets.WINDOWS_UPDATE_SIGNING_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.versions.outputs.version }}
+          MAC_LABEL: ${{ needs.macos.outputs.label }}
+          WIN_LABEL: ${{ needs.windows.outputs.label }}
+          R2_CONFIGURED: ${{ secrets.R2_ACCESS_KEY_ID != '' && secrets.R2_SECRET_ACCESS_KEY != '' && secrets.R2_ACCOUNT_ID != '' }}
+        run: |
+          umask 077
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          python3 -c 'import os,sys; seed=bytes.fromhex(os.environ["SIGNING_KEY"].strip()); assert len(seed)==32; sys.stdout.buffer.write(bytes.fromhex("302e020100300506032b657004220420")+seed)' > "$WORK/key.der"
+          PUBLIC="$(tr -d '[:space:]' < windows/packaging/update-public-key.txt)"
+          python3 -c 'import sys; sys.stdout.buffer.write(bytes.fromhex("302a300506032b6570032100"+sys.argv[1]))' "$PUBLIC" > "$WORK/pub.der"
+          SCRIPT=scripts/build_update_manifest.py
+          mkdir -p older
+          for OLD in $(python3 "$SCRIPT" plan --version "$VERSION" --notes-dir docs/release-notes); do
+            DIR="older/v${OLD}"
+            gh release download "v${OLD}" --repo "$GITHUB_REPOSITORY" --dir "$DIR" \
+              --pattern "EVE-O-Preview-${OLD}.dmg" --pattern "EVE-O-Preview-${OLD}-windows-x64.zip" \
+              --pattern SHA256SUMS.txt --pattern SHA256SUMS.txt.sig
+            base64 -d "$DIR/SHA256SUMS.txt.sig" > "$WORK/old.sig"
+            openssl pkeyutl -verify -pubin -keyform DER -inkey "$WORK/pub.der" -rawin -in "$DIR/SHA256SUMS.txt" -sigfile "$WORK/old.sig"
+            (cd "$DIR" && sha256sum -c --ignore-missing SHA256SUMS.txt)
+          done
+          R2_ARGS=()
+          [[ "$R2_CONFIGURED" == "true" ]] && R2_ARGS=(--r2-base "$R2_PUBLIC_BASE_URL")
+          python3 "$SCRIPT" build --version "$VERSION" --repo "$GITHUB_REPOSITORY" --notes-dir docs/release-notes \
+            --files-dir release-files --mac-label "$MAC_LABEL" --windows-label "$WIN_LABEL" --older-dir older \
+            "${R2_ARGS[@]}" --out "$WORK/payload.json"
+          python3 "$SCRIPT" message --payload "$WORK/payload.json" --out "$WORK/message"
+          openssl pkeyutl -sign -keyform DER -inkey "$WORK/key.der" -rawin -in "$WORK/message" -out "$WORK/manifest.sig"
+          openssl pkeyutl -verify -pubin -keyform DER -inkey "$WORK/pub.der" -rawin -in "$WORK/message" -sigfile "$WORK/manifest.sig"
+          base64 -w0 "$WORK/manifest.sig" > "$WORK/manifest.sig.txt"
+          python3 "$SCRIPT" envelope --payload "$WORK/payload.json" --signature "$WORK/manifest.sig.txt" --out release-files/update-manifest.json
+          # macOS：dmg 与 2 个源码包；Windows：zip 与源码包；再加校验和、签名与更新清单。
+          [[ "$(ls release-files | wc -l | tr -d ' ')" == "8" ]] || { echo "::error::附件数不是 8"; ls release-files; exit 1; }
 
       # 说明取 docs/release-notes/v<VERSION>.md（按平台分节）。正式发布时必须有；演练时没有就让 GitHub 自动生成。
       # 版本号带 - 时标为预发布、不标 latest；否则标为 latest（已安装的 macOS 客户端靠 /releases/latest 检查更新）。
@@ -232,4 +279,70 @@ jobs:
           if [[ "$VERSION" != *-* && "$LATEST" != "v${VERSION}" ]]; then
             echo "::error::/releases/latest 是 ${LATEST}，应是 v${VERSION}"
             exit 1
+          fi
+
+  # 把清单与它指向的文件传到 R2（docs/update-manifest.md 第 5 节）。只在正式发布、配好 R2 的密钥时运行；
+  # 与 publish 分开，失败时可以单独重跑。文件从刚发布的 GitHub Release 取，核对清单里的 SHA-256 后上传；
+  # R2 上已有的版本文件不覆盖（只写一次，缓存一年），最后才传清单，R2 上的清单只指向已经在的文件。
+  cdn:
+    needs: [versions, publish]
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 上传到 R2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.versions.outputs.version }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          # 新版 AWS CLI 默认给每个请求加 CRC 校验头，R2 的文档建议只在必需时加，免得上传被拒。
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          if [[ -z "$R2_ACCOUNT_ID" || -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "::notice::没有配 R2 的密钥，跳过上传；清单里只有 GitHub 的地址"
+            exit 0
+          fi
+          if [[ "$VERSION" == *-* ]]; then
+            echo "预发布版本不进清单，不上传"
+            exit 0
+          fi
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          WORK="$(mktemp -d)"
+          SCRIPT=scripts/build_update_manifest.py
+          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --dir "$WORK" --pattern update-manifest.json
+          # 先验签：只上传签名对得上的清单。
+          PUBLIC="$(tr -d '[:space:]' < windows/packaging/update-public-key.txt)"
+          python3 -c 'import sys; sys.stdout.buffer.write(bytes.fromhex("302a300506032b6570032100"+sys.argv[1]))' "$PUBLIC" > "$WORK/pub.der"
+          python3 "$SCRIPT" open --envelope "$WORK/update-manifest.json" --payload-out "$WORK/payload.json" \
+            --message-out "$WORK/message" --signature-out "$WORK/sig.bin"
+          openssl pkeyutl -verify -pubin -keyform DER -inkey "$WORK/pub.der" -rawin -in "$WORK/message" -sigfile "$WORK/sig.bin"
+          python3 "$SCRIPT" files --payload "$WORK/payload.json" | while read -r TAG NAME SHA; do
+            KEY="${TAG}/${NAME}"
+            if aws s3api head-object --endpoint-url "$ENDPOINT" --bucket "$R2_BUCKET" --key "$KEY" > /dev/null 2>&1; then
+              echo "已在 R2：${KEY}"
+              continue
+            fi
+            mkdir -p "$WORK/$TAG"
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$WORK/$TAG" --pattern "$NAME" --clobber
+            echo "${SHA}  $WORK/${KEY}" | sha256sum -c -
+            aws s3 cp "$WORK/${KEY}" "s3://${R2_BUCKET}/${KEY}" --endpoint-url "$ENDPOINT" \
+              --cache-control "public, max-age=31536000, immutable" --only-show-errors
+            echo "已上传：${KEY}"
+          done
+          aws s3 cp "$WORK/update-manifest.json" "s3://${R2_BUCKET}/update-manifest.json" --endpoint-url "$ENDPOINT" \
+            --cache-control "public, max-age=300" --content-type application/json --only-show-errors
+          # 经 CDN 取一遍清单，核对与 Release 里的相同（CDN 上可能还有旧的缓存，最多 5 分钟；不同时只提示，不算失败）。
+          if curl -fsS -H 'Cache-Control: no-cache' "${R2_PUBLIC_BASE_URL}/update-manifest.json" -o "$WORK/cdn.json" \
+            && cmp -s "$WORK/cdn.json" "$WORK/update-manifest.json"; then
+            echo "R2 上的清单已更新：${R2_PUBLIC_BASE_URL}/update-manifest.json"
+          else
+            echo "::warning::经 CDN 取到的清单与 Release 里的不同，可能是缓存，几分钟后再看"
           fi

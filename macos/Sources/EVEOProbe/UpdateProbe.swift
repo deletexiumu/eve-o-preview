@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // 更新的探针命令（v1.1 设计 9.6 节），供 WP-3 在不运行应用的情况下核对平台代码：
-//   update feed [地址] [--running 版本] [--etag 值]
-//       请求并解析发布信息，打印版本、附件与 `UpdatePolicy.offer` 的结果。
-//       不给地址时请求正式地址；--running 是假定正在运行的版本（默认 0.0.0）。
+//   update feed [地址] [--running 版本] [--sequence 序号]
+//       取更新清单（docs/update-manifest.md），打印改动了 macOS 的最新版、附件、中间版本与 `UpdatePolicy.offer` 的结果。
+//       不给地址时依次请求正式的两个源；--running 是假定正在运行的版本（默认 0.0.0）；--sequence 是假定接受过的最大序号。
+//       测试地址要设 EVEO_UPDATE_TEST_PUBLIC_KEY（与应用相同）。
 //   update verify <新应用> <基准应用>
 //       读基准应用的指定要求，对新应用做 9.3 节第 6 步的核对，打印返回值。
 //   update prepare <地址> [--cache 目录] [--running 版本]
 //       运行 9.2 节的下载与核对，打印 dmg 的位置与 SHA-256。
+//   update sign-manifest <正文> <输出>
+//       用测试私钥（shared/fixtures/update-manifest 的测试种子）给清单正文签名，写成签名信封，打印测试公钥。
+//       供 macos/scripts/make-update-test-feed.sh 生成本地测试用的清单；测试私钥人人可算，只能配合测试地址使用。
 //   update install <dmg> <已安装的应用> --version 版本 [--cache 目录] [--cleanup]
 //       设计表外的命令：对一份应用副本走一遍 9.3 节的 12 步（不重新启动，不登记到 LaunchServices）。
 //       「正在运行的应用」取已安装的那一份的签名、版本与位置。只用于临时目录里的副本。
@@ -23,7 +27,7 @@ import EVEOPreviewPlatform
 /// `update` 命令的分发。
 @MainActor enum UpdateProbe {
     /// 子命令的名字。
-    static let subcommands = ["feed", "verify", "prepare", "install"]
+    static let subcommands = ["feed", "verify", "prepare", "sign-manifest", "install"]
 
     /// 解析子命令并执行，返回进程退出码：参数不对时 2，失败时 1。
     static func run(_ args: [String]) async -> Int32 {
@@ -33,6 +37,7 @@ import EVEOPreviewPlatform
         case "feed": return await feed(rest)
         case "verify": return verify(rest)
         case "prepare": return await prepare(rest)
+        case "sign-manifest": return signManifest(rest)
         case "install": return await install(rest)
         default: return usage()
         }
@@ -41,9 +46,10 @@ import EVEOPreviewPlatform
     /// 打印 `update` 的用法，返回 2。
     static func usage() -> Int32 {
         print("""
-        用法：EVEOProbe update feed [地址] [--running 版本] [--etag 值]
+        用法：EVEOProbe update feed [地址] [--running 版本] [--sequence 序号]
               | update verify <新应用> <基准应用>
               | update prepare <地址> [--cache 目录] [--running 版本]
+              | update sign-manifest <正文> <输出>
               | update install <dmg> <已安装的应用> --version 版本 [--cache 目录] [--cleanup]
         """)
         return 2
@@ -51,36 +57,40 @@ import EVEOPreviewPlatform
 
     // MARK: - feed
 
-    /// 请求并解析发布信息，打印结果与 `offer` 的决定。
+    /// 取更新清单，打印结果与 `offer` 的决定。
     static func feed(_ args: [String]) async -> Int32 {
         let positional = positionals(args)
         guard let feed = resolveFeed(positional.first) else { return 2 }
         let running = option("--running", in: args) ?? "0.0.0"
-        print("地址：\(feed.feedURL.absoluteString)（测试地址：\(feed.isTestFeed)）")
+        let minimum = option("--sequence", in: args).flatMap { UInt64($0) }
+        print("清单地址：\(feed.manifestURLs.map(\.absoluteString).joined(separator: "、"))（测试地址：\(feed.isTestFeed)）")
         let started = ContinuousClock.now
-        let result = await ReleaseFeedClient.fetch(feed: feed, etag: option("--etag", in: args), appVersion: running)
+        let fetched = await ReleaseFeedClient.fetchManifest(feed: feed, minimumSequence: minimum, appVersion: running)
         print("耗时 \(Probe.milliseconds(since: started)) 毫秒")
-        switch result {
-        case .release(let info, let etag):
-            printRelease(info)
-            print("ETag：\(etag ?? "nil")")
-            let offer = UpdatePolicy.offer(release: info, running: environment(version: running),
-                                           skippedVersion: nil, userInitiated: false)
-            print("offer（正在运行 \(running)）：\(offer.summary)")
-            if let pair = try? UpdateAssetContract.assets(in: info, feed: feed) {
-                print("契约附件：\(pair.image.name)、\(pair.checksums.name)")
-            } else {
-                do {
-                    _ = try UpdateAssetContract.assets(in: info, feed: feed)
-                } catch {
-                    print("契约附件：\(error)")
-                }
-            }
-            return 0
-        default:
-            print("结果：\(result)")
-            return result == .notModified || result == .noRelease ? 0 : 1
+        guard case .success(let manifest) = fetched else {
+            print("结果：\(fetched)")
+            return 1
         }
+        print("序号：\(manifest.sequence)，版本 \(manifest.entries.map { "\($0.version)\($0.platforms)" })")
+        guard let info = manifest.latest else {
+            print("清单里没有 macOS 的版本")
+            return 0
+        }
+        printRelease(info)
+        let offer = UpdatePolicy.offer(release: info, running: environment(version: running),
+                                       skippedVersion: nil, userInitiated: false)
+        print("offer（正在运行 \(running)）：\(offer.summary)")
+        if let runningVersion = SemanticVersion(running), let latest = SemanticVersion(info.version) {
+            let record = ReleaseHistory.record(from: manifest.historyPage(), running: runningVersion, latest: latest)
+            print("中间版本：\(record.entries.map(\.version))")
+        }
+        do {
+            let pair = try UpdateAssetContract.assets(in: info, feed: feed)
+            print("契约附件：\(pair.image.name)、\(pair.checksums.name)")
+        } catch {
+            print("契约附件：\(error)")
+        }
+        return 0
     }
 
     // MARK: - verify
@@ -113,7 +123,7 @@ import EVEOPreviewPlatform
     static func prepare(_ args: [String]) async -> Int32 {
         guard let address = positionals(args).first, let feed = resolveFeed(address) else { return usage() }
         let running = option("--running", in: args) ?? "0.0.0"
-        let fetched = await ReleaseFeedClient.fetch(feed: feed, etag: nil, appVersion: running)
+        let (fetched, _) = await ReleaseFeedClient.fetch(feed: feed, minimumSequence: nil, appVersion: running)
         guard case .release(let release, _) = fetched else {
             print("检查失败：\(fetched)")
             return 1
@@ -134,6 +144,39 @@ import EVEOPreviewPlatform
             print("失败：\(error)")
             return 1
         }
+    }
+
+    // MARK: - sign-manifest
+
+    /// 测试种子：固定字符串的 SHA-256，与 shared/fixtures/update-manifest/make_fixture.py 相同。
+    static let testSeedText = "eve-o-preview update manifest test key"
+
+    /// 用测试私钥给清单正文签名，写成签名信封（格式见 docs/update-manifest.md 第 2.1 节），打印测试公钥。
+    static func signManifest(_ args: [String]) -> Int32 {
+        let positional = positionals(args)
+        guard positional.count == 2 else { return usage() }
+        guard let payload = try? Data(contentsOf: URL(fileURLWithPath: positional[0])) else {
+            print("读不了 \(positional[0])")
+            return 1
+        }
+        let seed = Data(SHA256.hash(data: Data(testSeedText.utf8)))
+        guard let key = try? Curve25519.Signing.PrivateKey(rawRepresentation: seed),
+              let signature = try? key.signature(for: UpdateSigning.message(for: payload)) else {
+            print("签名失败")
+            return 1
+        }
+        let envelope: [String: Any] = ["format": 1, "payload": payload.base64EncodedString(),
+                                       "signature": signature.base64EncodedString()]
+        do {
+            let data = try JSONSerialization.data(withJSONObject: envelope, options: [.sortedKeys])
+            try data.write(to: URL(fileURLWithPath: positional[1]))
+        } catch {
+            print("写不了 \(positional[1])：\(error)")
+            return 1
+        }
+        let publicHex = key.publicKey.rawRepresentation.map { String(format: "%02x", $0) }.joined()
+        print("\(UpdateSigning.testPublicKeyVariable)=\(publicHex)")
+        return 0
     }
 
     // MARK: - install
@@ -259,7 +302,8 @@ import EVEOPreviewPlatform
         print("草稿 \(info.isDraft)，预发布 \(info.isPrerelease)，发布说明 \(info.notes.count) 个字符")
         print("附件 \(info.assets.count) 个：")
         for asset in info.assets {
-            print("  \(asset.name)  \(asset.size.map(String.init) ?? "?") 字节  \(asset.downloadURL)")
+            print("  \(asset.name)  \(asset.size.map(String.init) ?? "?") 字节  SHA-256 \(asset.sha256 ?? "nil")")
+            for url in asset.urls { print("    \(url)") }
         }
     }
 }

@@ -14,7 +14,7 @@ struct UpdateStringsDE: UpdateStrings {
     // MARK: 「通用」页的更新一组
     var sectionHeader: String { "Updates" }
     var autoCheckToggle: String { "Automatisch nach Updates suchen" }
-    var autoCheckHelp: String { "Kontaktiert GitHub einmal täglich. Es werden keine persönlichen Daten gesendet." }
+    var autoCheckHelp: String { "Sucht einmal täglich nach Updates (über Cloudflare, GitHub als Ausweichquelle). Es werden keine persönlichen Daten gesendet." }
     var autoInstallToggle: String { "Updates automatisch installieren" }
     var autoInstallHelp: String { "Lädt im Hintergrund. Installiert und startet neu, wenn seit einer Minute kein EVE-Client mehr läuft, oder installiert beim Beenden von EVE-O Preview." }
     var currentVersionLabel: String { "Aktuelle Version" }
@@ -64,8 +64,8 @@ struct UpdateStringsDE: UpdateStrings {
     var blockerDevelopmentSignature: String { "Dies ist ein lokal signierter Entwicklungs-Build." }
     var blockerUnsigned: String { "Dieser Build ist nicht signiert." }
     // MARK: 错误（UpdateError，按类合并）
-    var errorNetwork: String { "GitHub ist nicht erreichbar. Internetverbindung prüfen." }
-    func errorHTTPStatus(_ code: Int) -> String { "GitHub hat mit einem Fehler geantwortet (\(code))." }
+    var errorNetwork: String { "Der Update-Server ist nicht erreichbar. Internetverbindung prüfen." }
+    func errorHTTPStatus(_ code: Int) -> String { "Der Update-Server hat mit einem Fehler geantwortet (\(code))." }
     var errorMalformedFeed: String { "Die Release-Informationen konnten nicht gelesen werden." }
     var errorAssetMissing: String { "Dieses Release enthält kein Installationsprogramm für automatische Updates." }
     var errorDiskSpace: String { "Nicht genug freier Speicherplatz für den Download." }

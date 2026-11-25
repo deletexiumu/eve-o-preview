@@ -4,8 +4,10 @@
 // 每件事是一个阻塞函数，由 updates.rs 在新线程里调用，结果经通道交回主线程，再交给状态机
 // （eveo_app_core::update::machine）。这里不碰界面，也不写 state.json。
 //
-// 检查：取 Release 列表（带 If-None-Match），200 时解析，304 时说「没变」，403/429 时按限流的头算出可以再试的时刻。
-// 下载与核对，顺序与 macOS 相同，先验证再相信任何内容：
+// 检查（docs/update-manifest.md 第 4 节）：按顺序试清单的源（R2 在前、GitHub 在后），下载、验签、解析；
+// 正式地址下序号比记下的更小时当作这个源失败。第一个成功的源给出发布列表；都失败时交回最后一个源的错误。
+// 下载与核对，顺序与 macOS 相同，先验证再相信任何内容。每个文件按清单里的顺序试各个地址（R2 在前），
+// 网络错误、状态码不对或 SHA-256 与清单不符时换下一个地址：
 // 1. 下载 SHA256SUMS.txt 与 .sig（都很小），用内置（或测试）公钥验 ed25519 签名；
 // 2. 下载 zip（显示进度、可取消），算 SHA-256，与签过名的校验和文件里的值比较；
 // 3. 解出 exe，写进更新缓存目录，读它的版本资源与 PE 头，交给 Core 的 policy::validate 核对版本与架构；
@@ -29,33 +31,30 @@ use eveo_core::update::checksums::{
 };
 use eveo_core::update::feed::{CHECKSUMS_NAME, SIGNATURE_NAME, UpdateFeed, archive_name};
 use eveo_core::update::install::PendingSwap;
+use eveo_core::update::manifest::{self, MAX_MANIFEST_BYTES, OWN_PLATFORM};
+use eveo_core::update::models::ReleaseAsset;
 use eveo_core::update::models::{InstallBlocker, ReleaseInfo, RunningApp, UpdateError};
-use eveo_core::update::parser::{MAX_LIST_BYTES, parse_list, rate_limit};
 use eveo_core::update::policy::{self, StagedExe};
-use eveo_platform_win::http::{self, HttpError, HttpRequest};
 use eveo_platform_win::update as platform;
 
 /// 每一步网络操作的超时（秒）。下载大文件时是「两段数据之间」的超时，不是总时长。
 const TIMEOUT_SECONDS: f64 = 30.0;
+/// 取清单的超时（秒）：清单很小，一个源卡住时早点换下一个。
+const MANIFEST_TIMEOUT_SECONDS: f64 = 15.0;
 /// 压缩包与解出的 exe 的上限：现在的 exe 约 20 MB，留足余量，又不至于让异常的答复占满内存。
 const MAX_ARCHIVE_BYTES: usize = 128 * 1024 * 1024;
 /// 磁盘满的系统错误码（ERROR_DISK_FULL）与「空间不足」（ERROR_HANDLE_DISK_FULL）。
 const DISK_FULL_CODES: [i32; 2] = [112, 39];
 
-/// 请求头：User-Agent 只有应用名与版本；GitHub 的 API 版本头让答复格式固定。
-fn headers(etag: Option<&str>) -> Vec<(&'static str, String)> {
-    let mut headers = vec![
+/// 请求头：User-Agent 只有应用名与版本；`Cache-Control: no-cache` 让 CDN 与代理不给旧的清单。
+fn headers() -> Vec<(&'static str, String)> {
+    vec![
         (
             "User-Agent",
             format!("EVE-O-Preview/{} (Windows)", env!("CARGO_PKG_VERSION")),
         ),
-        ("Accept", "application/vnd.github+json".to_owned()),
-        ("X-GitHub-Api-Version", "2022-11-28".to_owned()),
-    ];
-    if let Some(etag) = etag {
-        headers.push(("If-None-Match", etag.to_owned()));
-    }
-    headers
+        ("Cache-Control", "no-cache".to_owned()),
+    ]
 }
 
 /// 墙上时钟的秒数。
@@ -65,45 +64,54 @@ fn now() -> f64 {
         .map_or(0.0, |d| d.as_secs_f64())
 }
 
-/// 检查：取 Release 列表并解析。
-pub(super) fn check(feed: &UpdateFeed, etag: Option<&str>) -> CheckOutcome {
-    let headers = headers(etag);
-    let request = HttpRequest {
-        method: "GET",
-        url: &feed.list_url,
-        headers: &headers,
-        body: &[],
-        timeout_seconds: TIMEOUT_SECONDS,
-        max_response_bytes: MAX_LIST_BYTES,
-        reads_body: |status| status == 200,
-        // 测试地址可以是本机的 http（UpdateFeed::resolve 已核对过是回环地址）。
-        allows_http: feed.is_test_feed,
-    };
-    let response = match http::send(&request) {
-        Ok(response) => response,
-        // 列表超过上限（正常不到 100 KB）只可能是答复异常：按格式错误处理，不当成网络问题反复重试。
-        Err(HttpError::TooLarge) => {
-            return CheckOutcome::Failed(UpdateError::MalformedFeed("release list too large".into()));
-        }
-        // 其余的错误（断网、超时、证书不对）都是网络错误：自动检查时不提示，下一次醒来再试。
-        Err(error) => return CheckOutcome::Failed(UpdateError::Network(error.describe())),
-    };
-    match response.status {
-        200 => match parse_list(&response.body, feed) {
-            Ok(list) => CheckOutcome::List(list, response.headers.get("etag").cloned()),
-            Err(error) => CheckOutcome::Failed(error),
-        },
-        // 304：列表与上次相同（ETag 相同），状态机用 state.json 里缓存的发布信息继续判断。
-        304 => CheckOutcome::NotModified,
-        status => {
-            // 答复头的名字已经是小写；rate_limit 按小写的名字查。
-            let header = |name: &str| response.headers.get(name).map(String::as_str);
-            match rate_limit(status, header, now()) {
-                Some(until) => CheckOutcome::RateLimited(Some(until)),
-                None => CheckOutcome::Failed(UpdateError::HttpStatus(status)),
+/// 检查：按顺序试清单的源。成功时交回发布列表与清单的序号（测试地址下不交序号，不写进记录）。
+///
+/// public_key 为 None 时不验签（本机构建，只能提示）；min_sequence 是记下的最大序号，更小的清单不收。
+pub(super) fn check(
+    feed: &UpdateFeed,
+    public_key: Option<[u8; 32]>,
+    min_sequence: Option<u64>,
+) -> (CheckOutcome, Option<u64>) {
+    let mut last_error = UpdateError::Network("no manifest source".into());
+    for url in &feed.manifest_urls {
+        match fetch_manifest(feed, url, public_key.as_ref()) {
+            // 序号更小：可能是 CDN 还缓存着旧清单，或旧清单被重放。换下一个源。
+            Ok(found) if !feed.is_test_feed && min_sequence.is_some_and(|min| found.sequence < min) => {
+                last_error = UpdateError::MalformedFeed("stale manifest".into());
             }
+            Ok(found) => {
+                let sequence = (!feed.is_test_feed).then_some(found.sequence);
+                return (
+                    CheckOutcome::List(found.release_list(OWN_PLATFORM), None),
+                    sequence,
+                );
+            }
+            Err(error) => last_error = error,
         }
     }
+    (CheckOutcome::Failed(last_error), None)
+}
+
+/// 从一个源下载清单并验签、解析。下载与附件用同一个函数（只跟 https 的重定向，测试地址下只跟同源）。
+fn fetch_manifest(
+    feed: &UpdateFeed,
+    url: &str,
+    public_key: Option<&[u8; 32]>,
+) -> Result<manifest::Manifest, UpdateError> {
+    let data = platform::download(
+        feed,
+        url,
+        &headers(),
+        MAX_MANIFEST_BYTES,
+        MANIFEST_TIMEOUT_SECONDS,
+        &mut |_, _| true,
+    )
+    // 清单超过上限只可能是答复异常：按格式错误处理，换下一个源。
+    .map_err(|error| match error {
+        UpdateError::DownloadTooLarge => UpdateError::MalformedFeed("manifest too large".into()),
+        other => other,
+    })?;
+    manifest::open(&data, public_key, feed, OWN_PLATFORM)
 }
 
 /// 下载与核对需要的东西。
@@ -122,6 +130,37 @@ pub(super) struct PrepareContext {
     pub cancel: Arc<AtomicBool>,
 }
 
+/// 按清单里的顺序试一个附件的各个地址，交回第一个下载成功、且与清单里的 SHA-256 相符（有的话）的内容。
+///
+/// 取消立即返回，不再试别的地址；其余错误换下一个地址，都失败时交回最后一个错误。
+/// on_progress 收到（已收到的字节数，总长），返回 false 表示取消；换地址时进度从 0 重新开始。
+fn download_asset(
+    context: &PrepareContext,
+    asset: &ReleaseAsset,
+    max: usize,
+    on_progress: &mut dyn FnMut(u64, Option<u64>) -> bool,
+) -> Result<Vec<u8>, UpdateError> {
+    let mut last_error = UpdateError::AssetMissing(asset.name.clone());
+    for url in asset.urls() {
+        let result = platform::download(&context.feed, url, &headers(), max, TIMEOUT_SECONDS, on_progress);
+        match result {
+            Ok(data)
+                if asset
+                    .sha256
+                    .as_ref()
+                    .is_none_or(|expected| sha256_hex(&data) == *expected) =>
+            {
+                return Ok(data);
+            }
+            // 与清单不符：这个地址上的文件坏了或被换了，换下一个地址。
+            Ok(_) => last_error = UpdateError::ChecksumMismatch,
+            Err(UpdateError::Cancelled) => return Err(UpdateError::Cancelled),
+            Err(error) => last_error = error,
+        }
+    }
+    Err(last_error)
+}
+
 /// 下载一个小附件（校验和文件、签名），不显示进度。
 fn download_small(
     context: &PrepareContext,
@@ -132,14 +171,9 @@ fn download_small(
     let asset = release
         .asset(name)
         .ok_or_else(|| UpdateError::AssetMissing(name.to_owned()))?;
-    platform::download(
-        &context.feed,
-        &asset.download_url,
-        &headers(None),
-        max,
-        TIMEOUT_SECONDS,
-        &mut |_, _| !context.cancel.load(Ordering::Relaxed),
-    )
+    download_asset(context, asset, max, &mut |_, _| {
+        !context.cancel.load(Ordering::Relaxed)
+    })
 }
 
 /// 下载、核对并解出新 exe。on_progress 收到下载 zip 的进度。
@@ -161,19 +195,12 @@ pub(super) fn prepare(
         .asset(&zip_name)
         .ok_or_else(|| UpdateError::AssetMissing(zip_name.clone()))?;
     let cancel = Arc::clone(&context.cancel);
-    let zip = platform::download(
-        &context.feed,
-        &asset.download_url,
-        &headers(None),
-        MAX_ARCHIVE_BYTES,
-        TIMEOUT_SECONDS,
-        &mut |received, total| {
-            // 答复没带 Content-Length 时用发布列表里附件的大小，进度条照样能显示比例。
-            let total = total.or(asset.size);
-            on_progress(Progress { received, total });
-            !cancel.load(Ordering::Relaxed)
-        },
-    )?;
+    let zip = download_asset(context, asset, MAX_ARCHIVE_BYTES, &mut |received, total| {
+        // 答复没带 Content-Length 时用发布列表里附件的大小，进度条照样能显示比例。
+        let total = total.or(asset.size);
+        on_progress(Progress { received, total });
+        !cancel.load(Ordering::Relaxed)
+    })?;
     // 下载的数据整份在内存里（上限 128 MB），算完哈希再解包：哈希不对时一个字节都不解。
     if sha256_hex(&zip) != expected {
         return Err(UpdateError::ChecksumMismatch);

@@ -216,7 +216,7 @@ EVE-O Preview también muestra su icono en el Dock; al hacer clic en él se abre
 
 ### Actualizaciones
 
-EVE-O Preview busca una nueva versión en GitHub al arrancar y una vez al día. Para desactivarlo, desmarca “Buscar actualizaciones automáticamente” en Ajustes > General > Actualizaciones; “Buscar actualizaciones…”, en el menú de la barra de menús, sigue buscando cuando lo pides.
+EVE-O Preview busca una nueva versión al arrancar y una vez al día, con una lista de actualizaciones firmada que se distribuye por la CDN de Cloudflare, con GitHub como respaldo. Las versiones que solo cambian la app de Windows no se ofrecen, y las notas de la versión solo muestran las partes de macOS. Para desactivarlo, desmarca “Buscar actualizaciones automáticamente” en Ajustes > General > Actualizaciones; “Buscar actualizaciones…”, en el menú de la barra de menús, sigue buscando cuando lo pides.
 
 Cuando hay una nueva versión disponible, una ventana muestra las notas de la versión en el idioma de tu interfaz (en inglés si no hay traducción) y ofrece Instalar actualización, Omitir esta versión y Más tarde. Mientras un cliente de EVE está en primer plano, la ventana espera hasta que cambies a otra app y nunca toma el foco del teclado por sí sola; un punto en el icono de la barra de menús indica que hay una actualización pendiente. “Omitir esta versión” solo detiene los recordatorios automáticos de esa versión; “Buscar actualizaciones…” la sigue mostrando.
 
@@ -234,13 +234,12 @@ La app conserva hasta 5 archivos de registro de 1 MiB cada uno en `~/Library/Log
 
 ## Privacidad
 
-La app se conecta a GitHub para las actualizaciones y no hace ninguna otra conexión salvo que actives alguna de las funciones opcionales descritas después de esta lista:
+La app se conecta a Cloudflare y GitHub para las actualizaciones y no hace ninguna otra conexión salvo que actives alguna de las funciones opcionales descritas después de esta lista:
 
-- La búsqueda de actualizaciones solicita `api.github.com/repos/deletexiumu/eve-o-preview/releases/latest` al arrancar y una vez al día mientras “Buscar actualizaciones automáticamente” está activado, y cada vez que eliges “Buscar actualizaciones…”.
-- Cuando se ofrece una versión nueva, la app también solicita una vez la lista de versiones `api.github.com/repos/deletexiumu/eve-o-preview/releases`, con las mismas cabeceras, para mostrar las notas de las versiones que te saltaste.
-- La instalación de una actualización descarga `SHA256SUMS.txt` y el dmg de la versión.
+- La búsqueda de actualizaciones descarga la lista firmada `eveo.deepai.wiki/update-manifest.json` (la distribuye Cloudflare), o `github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json` si falla, al arrancar y una vez al día mientras “Buscar actualizaciones automáticamente” está activado, y cada vez que eliges “Buscar actualizaciones…”. La lista también trae las notas de las versiones anteriores, así que mostrar las versiones que te saltaste no requiere otra solicitud.
+- La instalación de una actualización descarga `SHA256SUMS.txt` y el dmg desde `eveo.deepai.wiki`, o desde la versión de GitHub si falla. Cada archivo se comprueba con la lista firmada.
 
-Las solicitudes solo llevan la versión de la app en la cabecera `User-Agent`, un `Accept-Language: en` fijo y una etiqueta de caché; no se envían nombres de personajes, ajustes, registros, datos del hardware, versión del sistema ni identificadores, y no se usan cookies. GitHub ve tu dirección IP y la hora de la solicitud. No hay telemetría ni envío automático de fallos: “Informar de un problema…” solo crea un zip en tu Mac y abre una página web que tú decides si enviar.
+Las solicitudes solo llevan la versión de la app en la cabecera `User-Agent`, un `Accept-Language: en` fijo y `Cache-Control: no-cache`; no se envían nombres de personajes, ajustes, registros, datos del hardware, versión del sistema ni identificadores, y no se usan cookies. Cloudflare y GitHub ven tu dirección IP y la hora de la solicitud. No hay telemetría ni envío automático de fallos: “Informar de un problema…” solo crea un zip en tu Mac y abre una página web que tú decides si enviar.
 
 Las superposiciones de inteligencia y de traducción solo leen los registros de chat y del juego; nunca escriben en ellos, y las conversaciones privadas nunca se leen. Dos funciones opcionales se conectan a otros servicios:
 

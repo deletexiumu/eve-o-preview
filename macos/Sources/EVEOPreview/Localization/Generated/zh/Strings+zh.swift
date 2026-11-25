@@ -158,7 +158,7 @@ struct SettingsStringsZH: SettingsStrings {
     var disclaimerHeader: String { "说明" }
     var focusOnlyText: String { "本工具只切换窗口焦点，不向多个客户端广播输入，不读取或修改游戏内存。" }
     var gameLogText: String { "战斗提醒只读取 EVE 客户端自己写出的游戏日志文件，不读游戏内存、不改文件、不发送输入。" }
-    var networkText: String { "EVE-O Preview 只在检查和下载更新时访问 GitHub，可在「通用」页关闭。问题报告不会自动发送。" }
+    var networkText: String { "EVE-O Preview 只在检查和下载更新时访问更新服务器（Cloudflare 与 GitHub），可在「通用」页关闭。问题报告不会自动发送。" }
     var eveIPText: String { "EVE Online 及相关标志是 CCP ehf. 的商标。本项目与 CCP 没有关联，也未获其认可。" }
     var aboutChatLogsNote: String { "预警与翻译只读聊天日志和游戏日志。翻译会把聊天内容发给你选择的模型服务。打开「联网核对人名」时，预警消息里连在一起的人名会发给 CCP 的 ESI 接口。" }
     // MARK: 聊天日志的状态（预警页、翻译页与两个浮窗的状态行共用）

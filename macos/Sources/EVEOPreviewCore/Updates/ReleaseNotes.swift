@@ -4,7 +4,8 @@
 //
 // Release 正文是 `docs/release-notes/macos/<tag>.md` 的原文：英文在最前，包在 `<!-- lang:en -->` 与 `<!-- /lang:en -->`
 // 之间；之后 zh、ja、ko、ru、fr、de、es 各一个可折叠的块，块里是 `<details><summary>…</summary>`、Markdown 正文与 `</details>`。
-// `section(for:in:)` 按界面语言取出一段，`blocks(from:)` 把它切成标题、列表、段落与代码块，由界面逐块显示
+// `section(for:in:)` 按界面语言取出一段，`platformOnly(_:own:)` 去掉别的平台的小节（1.5.0 起），
+// `blocks(from:)` 把它切成标题、列表、段落与代码块，由界面逐块显示
 // （SwiftUI 的 `Text` 只渲染行内 Markdown，不渲染标题与列表）。
 //
 // 设计没有写明、这里定下的做法（各有用例）：
@@ -70,6 +71,49 @@ public enum ReleaseNotes {
             builder.consume(String(line))
         }
         return builder.finish()
+    }
+
+    /// 发布说明里的平台小节标题（docs/update-manifest.md 第 1 节）。
+    public static let platformHeadings = ["macOS", "Windows"]
+
+    /// 去掉别的平台的小节（docs/update-manifest.md 第 4 节第 6 条），对 `section(for:in:)` 取出的文字使用。
+    ///
+    /// - 标题正好是 `platformHeadings` 之一（不分大小写，去掉首尾空白）的是平台小节，到下一个级别相同或更高的标题为止。
+    /// - 别的平台的小节连标题带内容整个去掉；本平台（own）的小节只去掉标题这一行，内容保留。
+    /// - 标题的规则与 `blocks(from:)` 相同；代码块里的行不当作标题。去掉小节后连着的两个空行只留一个。
+    /// 规则与 Windows 的 `notes::platform_only` 相同。
+    public static func platformOnly(_ markdown: String, own: String) -> String {
+        var kept: [Substring] = []
+        // 正在跳过的平台小节的标题级别；不在跳过时是 nil。
+        var skipping: Int?
+        var inCode = false
+        for line in normalizedNewlines(markdown).split(separator: "\n", omittingEmptySubsequences: false) {
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                inCode.toggle()
+            } else if !inCode, let (level, text) = platformHeading(line) {
+                // 遇到级别相同或更高的标题，跳过的小节结束。
+                if let skip = skipping, level <= skip { skipping = nil }
+                if skipping == nil, platformHeadings.contains(where: { $0.caseInsensitiveCompare(text) == .orderedSame }) {
+                    // 本平台的小标题只去掉这一行；别的平台连内容一起跳过。
+                    if own.caseInsensitiveCompare(text) != .orderedSame { skipping = level }
+                    continue
+                }
+            }
+            // 去掉的小节前后各有空行，连在一起时只留一个（代码块里的空行原样保留）。
+            let isBlank = line.allSatisfy(\.isWhitespace)
+            let doubled = !inCode && isBlank && (kept.last?.allSatisfy(\.isWhitespace) ?? false)
+            if skipping == nil, !doubled { kept.append(line) }
+        }
+        return trimBlankLines(kept.joined(separator: "\n"))
+    }
+
+    /// 标题行的级别与文字（去掉首尾空白）；不是标题时返回 nil。规则与 `blocks(from:)` 相同：
+    /// 从行首开始的 1～6 个 `#`，后面跟一个空格。
+    static func platformHeading(_ line: Substring) -> (level: Int, text: String)? {
+        let hashes = line.prefix { $0 == "#" }.count
+        let rest = line.dropFirst(hashes)
+        guard (1...6).contains(hashes), rest.first == " " else { return nil }
+        return (hashes, rest.trimmingCharacters(in: .whitespaces))
     }
 
     // MARK: - 选取的步骤
