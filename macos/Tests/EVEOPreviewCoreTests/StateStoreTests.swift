@@ -36,8 +36,10 @@ struct StateStoreTests {
         let release = ReleaseInfo(version: "1.1.1", tagName: "v1.1.1", title: "EVE-O Preview 1.1.1", notes: "notes",
                                   pageURL: "https://github.com/deletexiumu/eve-o-preview-macos/releases/tag/v1.1.1",
                                   publishedAt: date, isPrerelease: false, isDraft: false,
-                                  assets: [ReleaseAsset(name: "SHA256SUMS.txt", downloadURL: "https://x/y", size: nil)])
-        let updates = UpdateState(lastCheckAt: date, etag: "W/\"abc\"", cachedRelease: release,
+                                  assets: [ReleaseAsset(name: "SHA256SUMS.txt", downloadURL: "https://x/y", size: nil,
+                                                        sha256: String(repeating: "b", count: 64),
+                                                        mirrors: ["https://z/y"])])
+        let updates = UpdateState(lastCheckAt: date, cachedRelease: release,
                                   rateLimitedUntil: date.addingTimeInterval(3600), skippedVersion: "1.1.0",
                                   prepared: PreparedUpdate(version: "1.1.1", imagePath: "/tmp/a.dmg",
                                                            sha256: String(repeating: "a", count: 64), preparedAt: date),
@@ -46,7 +48,8 @@ struct StateStoreTests {
                                   staleStagingPath: "/private/var/folders/x/TemporaryItems/y",
                                   intermediateNotes: IntermediateReleaseNotes(
                                       latestVersion: "1.1.1", runningVersion: "1.0.0",
-                                      entries: [ReleaseNotesEntry(version: "1.1.0", notes: "earlier")], hasMore: false))
+                                      entries: [ReleaseNotesEntry(version: "1.1.0", notes: "earlier")], hasMore: false),
+                                  manifestSequence: 1_795_000_123)
         let diagnostics = DiagnosticsState(pendingCrash: PendingCrash(sessionID: "s1", appVersion: "1.1.0",
                                                                       startedAt: date, detectedAt: date,
                                                                       reportFileNames: ["EVEOPreview-1.ips"]),
@@ -127,6 +130,23 @@ struct StateStoreTests {
         #expect(store.load().updates == UpdateState(skippedVersion: "1.1.1"))
         try writeState(#"{"updates":{"etag":"x"}}"#)
         #expect(store.load().updates.intermediateNotes == nil)
+    }
+
+    /// 1.4.x 写的 state.json：附件没有 `sha256` 与 `mirrors`，另有不再使用的 `etag`。照样读出，缺的取 nil 与空数组。
+    @Test func legacyUpdateStateStillLoads() throws {
+        defer { cleanUp() }
+        try writeState(#"""
+        {"updates":{"etag":"W/\"abc\"","skippedVersion":"1.4.1","cachedRelease":{"version":"1.4.1","tagName":"v1.4.1",
+        "title":"t","notes":"","pageURL":"https://github.com/deletexiumu/eve-o-preview/releases/tag/v1.4.1",
+        "isPrerelease":false,"isDraft":false,"assets":[{"name":"SHA256SUMS.txt","downloadURL":"https://x/y","size":3}]}}}
+        """#)
+        let updates = store.load().updates
+        #expect(updates.skippedVersion == "1.4.1")
+        #expect(updates.manifestSequence == nil)
+        let asset = try #require(updates.cachedRelease?.assets.first)
+        #expect(asset.sha256 == nil)
+        #expect(asset.mirrors.isEmpty)
+        #expect(asset.urls == ["https://x/y"])
     }
 
     /// 原子写入：覆盖已有文件后内容完整，目录里不留临时文件；目录不存在时自动创建。

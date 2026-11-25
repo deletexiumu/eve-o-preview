@@ -9,16 +9,35 @@ import Foundation
 public struct ReleaseAsset: Sendable, Equatable, Codable {
     /// 附件名，如 `EVE-O-Preview-1.1.1.dmg`。
     public var name: String
-    /// `browser_download_url`。
+    /// 首选的下载地址（清单里 `urls` 的第一个，一般是 R2）。
     public var downloadURL: String
     /// 附件声明的大小，单位是字节；没有时是 nil。
     public var size: Int?
+    /// 清单里写的 SHA-256（小写十六进制）；1.4.x 及更早版本缓存的附件没有，是 nil。
+    public var sha256: String?
+    /// 后备的下载地址（一般是 GitHub），downloadURL 失败时依次尝试。
+    public var mirrors: [String]
 
     /// 用各字段建附件。
-    public init(name: String, downloadURL: String, size: Int?) {
+    public init(name: String, downloadURL: String, size: Int?, sha256: String? = nil, mirrors: [String] = []) {
         self.name = name
         self.downloadURL = downloadURL
         self.size = size
+        self.sha256 = sha256
+        self.mirrors = mirrors
+    }
+
+    /// 按优先顺序排列的全部下载地址：downloadURL，然后是 mirrors。
+    public var urls: [String] { [downloadURL] + mirrors }
+
+    /// 缺 `sha256` 与 `mirrors` 时取 nil 与空数组：state.json 里 1.4.x 及更早版本缓存的发布信息没有这两个键。
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decode(String.self, forKey: .name)
+        downloadURL = try c.decode(String.self, forKey: .downloadURL)
+        size = try c.decodeIfPresent(Int.self, forKey: .size)
+        sha256 = try c.decodeIfPresent(String.self, forKey: .sha256)
+        mirrors = try c.decodeIfPresent([String].self, forKey: .mirrors) ?? []
     }
 }
 

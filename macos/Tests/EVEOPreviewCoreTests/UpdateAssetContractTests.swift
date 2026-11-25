@@ -19,11 +19,13 @@ struct UpdateAssetContractTests {
 
     /// 两个附件都在时取到，其他附件（源码包）不影响。
     @Test func findsBothAssets() throws {
-        let release = try ReleaseFeedParser.parse(Data(UpdateFixtures.githubLatest.utf8),
-                                                  feed: UpdateFixtures.productionFeed)
+        let base = UpdateFixtures.release("1.0.0")
+        let source = ReleaseAsset(name: "eve-o-preview-1.0.0-source.zip",
+                                  downloadURL: UpdateFeed.productionAssetPrefix + "download/v1.0.0/s.zip", size: 9)
+        let release = UpdateFixtures.release("1.0.0", assets: [source] + base.assets)
         let pair = try UpdateAssetContract.assets(in: release, feed: UpdateFixtures.productionFeed)
         #expect(pair.image.name == "EVE-O-Preview-1.0.0.dmg")
-        #expect(pair.image.size == 4_221_880)
+        #expect(pair.image.size == 2_618_184)
         #expect(pair.checksums.name == "SHA256SUMS.txt")
     }
 
@@ -57,15 +59,24 @@ struct UpdateAssetContractTests {
         }
     }
 
-    /// 附件地址不被检查地址接受时按缺失处理。
-    @Test func rejectsForeignURLs() {
-        let release = UpdateFixtures.release("1.1.1", assets: [
-            ReleaseAsset(name: "EVE-O-Preview-1.1.1.dmg", downloadURL: "https://example.com/x.dmg", size: 1),
-            ReleaseAsset(name: "SHA256SUMS.txt",
-                         downloadURL: UpdateFeed.productionAssetPrefix + "download/v1.1.1/SHA256SUMS.txt", size: 1),
+    /// 首选地址不是干净的 https 时按缺失处理；正式地址下别的 https 主机（如 R2 的域名）可以。
+    @Test func rejectsForeignURLs() throws {
+        let checksums = ReleaseAsset(name: "SHA256SUMS.txt", downloadURL: "https://eveo.deepai.wiki/v1.1.1/SHA256SUMS.txt",
+                                     size: 1)
+        let plain = UpdateFixtures.release("1.1.1", assets: [
+            ReleaseAsset(name: "EVE-O-Preview-1.1.1.dmg", downloadURL: "http://example.com/x.dmg", size: 1), checksums,
         ])
         #expect(throws: UpdateError.assetMissing("EVE-O-Preview-1.1.1.dmg")) {
-            try UpdateAssetContract.assets(in: release, feed: UpdateFixtures.productionFeed)
+            try UpdateAssetContract.assets(in: plain, feed: UpdateFixtures.productionFeed)
+        }
+        let mirror = UpdateFixtures.release("1.1.1", assets: [
+            ReleaseAsset(name: "EVE-O-Preview-1.1.1.dmg", downloadURL: "https://eveo.deepai.wiki/v1.1.1/x.dmg", size: 1),
+            checksums,
+        ])
+        #expect(try UpdateAssetContract.assets(in: mirror, feed: UpdateFixtures.productionFeed).image.size == 1)
+        // 测试地址下仍要同源。
+        #expect(throws: UpdateError.assetMissing("EVE-O-Preview-1.1.1.dmg")) {
+            try UpdateAssetContract.assets(in: mirror, feed: UpdateFixtures.testFeed)
         }
     }
 }

@@ -68,10 +68,10 @@ import EVEOPreviewPlatform
     @ObservationIgnored var preparationCancelRequested = false
     /// 当前这次下载的编号；进度回调晚到时据此丢掉。
     @ObservationIgnored var preparationID = 0
-    /// 正在取 Release 列表的任务，以及它是为哪个最新版取的（见 UpdateController+History.swift）。
+    /// 正在取中间版本说明的任务，以及它是为哪个最新版取的（见 UpdateController+History.swift）。
     @ObservationIgnored var historyTask: Task<Void, Never>?
     @ObservationIgnored var historyTaskVersion: SemanticVersion?
-    /// 取 Release 列表失败后，这个时刻之前不再取（只在内存里，重启后可以再试）。
+    /// 取中间版本的说明失败后，这个时刻之前不再取（只在内存里，重启后可以再试）。
     @ObservationIgnored var historyRetryAfter: Date?
     @ObservationIgnored let log = AppLog.logger("Updates")
 
@@ -158,11 +158,12 @@ import EVEOPreviewPlatform
 
     /// 只读 `state.updates` 恢复上次的状态，不发请求（8.5 节）。1 小时内重启后，圆点与菜单项仍在。
     private func restoreState() {
-        // 测试地址留下的缓存在正式地址下不认（反之亦然），连同 ETag 一起丢掉。
+        // 1.5.0 起读更新清单，不会被 GitHub 的接口限流：清掉 1.4.x 留下的限流时刻，免得它推迟第一次检查。
+        if state.state.updates.rateLimitedUntil != nil { state.update { $0.updates.rateLimitedUntil = nil } }
+        // 测试地址留下的缓存在正式地址下不认（反之亦然），连同中间版本的说明一起丢掉。
         if let cached = state.state.updates.cachedRelease, !feed.accepts(cached.pageURL) {
             state.update {
                 $0.updates.cachedRelease = nil
-                $0.updates.etag = nil
                 $0.updates.intermediateNotes = nil
             }
             intermediateNotes = nil
@@ -282,7 +283,7 @@ import EVEOPreviewPlatform
         Task { [weak self] in await self?.performCheck(userInitiated: userInitiated) }
     }
 
-    /// 发一次检查请求，按 8.4 节的表写 `state.updates`，再按 8.6 节决定提示。
+    /// 取一次更新清单（docs/update-manifest.md 第 4 节），写 `state.updates`，再按 8.6 节决定提示。
     func performCheck(userInitiated: Bool) async {
         isChecking = true
         defer { isChecking = false }
@@ -292,48 +293,42 @@ import EVEOPreviewPlatform
             phase = .checking
             presentWindow?(true)
         }
-        let updates = state.state.updates
-        // 只在有缓存的发布信息时带 ETag：304 要靠缓存继续判断。
-        let etag = updates.cachedRelease == nil ? nil : updates.etag
-        let result = await service.fetchLatestRelease(feed: feed, etag: etag, appVersion: environment.version)
+        // 正式地址下带上接受过的最大序号，更小的清单不收（防回退）；测试地址不比较。
+        let minimum = feed.isTestFeed ? nil : state.state.updates.manifestSequence
+        let result = await service.fetchLatestRelease(feed: feed, minimumSequence: minimum,
+                                                      appVersion: environment.version)
         let now = Date()
         // 等答复期间用户可能已点了「安装更新」：之后只写 state，不改阶段，免得盖掉进度。
         let keepPhase = isBusy
         defer { lastCheckAt = state.state.updates.lastCheckAt }
         switch result {
-        case .release(let release, let newTag):
+        case .release(let release, let sequence):
             state.update {
                 $0.updates.lastCheckAt = now
-                $0.updates.etag = newTag
                 $0.updates.cachedRelease = release
                 $0.updates.rateLimitedUntil = nil
+                $0.updates.manifestSequence = UpdateController.maxSequence($0.updates.manifestSequence, sequence)
             }
-            log.info("检查更新：最新的正式版是 \(release.version, privacy: .public)")
+            log.info("检查更新：改动了 macOS 的最新正式版是 \(release.version, privacy: .public)")
             if !keepPhase { evaluate(release, userInitiated: userInitiated, checkedAt: now, previous: previous) }
-        case .notModified:
-            state.update { $0.updates.lastCheckAt = now }
-            if let cached = state.state.updates.cachedRelease {
-                log.info("检查更新：与上次相同（\(cached.version, privacy: .public)）")
-                if !keepPhase { evaluate(cached, userInitiated: userInitiated, checkedAt: now, previous: previous) }
-            } else {
-                // 304 但没有缓存（不应发生）：丢掉 ETag，下次取完整答复。
-                state.update { $0.updates.etag = nil }
-                if !keepPhase { noOffer(.notNewer, userInitiated: userInitiated, checkedAt: now, previous: previous) }
+        case .noRelease(let sequence):
+            state.update {
+                $0.updates.lastCheckAt = now
+                $0.updates.manifestSequence = UpdateController.maxSequence($0.updates.manifestSequence, sequence)
             }
-        case .noRelease:
-            state.update { $0.updates.lastCheckAt = now }
-            log.info("检查更新：还没有正式版")
+            log.info("检查更新：清单里还没有 macOS 的正式版")
             if !keepPhase { noOffer(.notNewer, userInitiated: userInitiated, checkedAt: now, previous: previous) }
-        case .rateLimited(let until):
-            state.update { $0.updates.rateLimitedUntil = until }
-            log.error("检查更新被限流，可以再试的时刻：\(until.map { "\($0)" } ?? "未知", privacy: .public)")
-            if !keepPhase { phase = userInitiated ? .failed(.rateLimited(until: until), release: nil) : previous }
-            if userInitiated { presentWindow?(true) }
         case .failed(let error):
             log.error("检查更新失败：\(String(describing: error), privacy: .public)")
             if !keepPhase { phase = userInitiated ? .failed(error, release: nil) : previous }
             if userInitiated { presentWindow?(true) }
         }
+    }
+
+    /// 记下的序号取两者中较大的：序号只增不减；这次没有序号（测试地址）时保持原值。
+    static func maxSequence(_ stored: UInt64?, _ received: UInt64?) -> UInt64? {
+        guard let received else { return stored }
+        return max(stored ?? 0, received)
     }
 
     // MARK: - 决策与提示（8.6 节）

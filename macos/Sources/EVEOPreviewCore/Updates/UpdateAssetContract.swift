@@ -25,12 +25,12 @@ public enum UpdateAssetContract {
     /// 从发布信息里取 dmg 与校验和文件两个附件。名字按大小写完全相等匹配。
     ///
     /// 缺任何一个时抛 `assetMissing`，关联值是缺的附件名（两个都缺时报 dmg）。
-    /// 附件地址不通过 `feed.accepts` 时按缺失处理（解析时通常已经丢掉了，这里再核对一次）。
+    /// 首选地址不通过 `feed.acceptsAsset` 时按缺失处理（解析清单时已经丢掉了，这里再核对一次）。
     public static func assets(in release: ReleaseInfo, feed: UpdateFeed) throws(UpdateError)
         -> (image: ReleaseAsset, checksums: ReleaseAsset) {
         let imageName = imageName(version: release.version)
         func find(_ name: String) -> ReleaseAsset? {
-            release.assets.first { $0.name == name && feed.accepts($0.downloadURL) }
+            release.assets.first { $0.name == name && feed.acceptsAsset($0.downloadURL) }
         }
         guard let image = find(imageName) else { throw .assetMissing(imageName) }
         guard let checksums = find(checksumsName) else { throw .assetMissing(checksumsName) }

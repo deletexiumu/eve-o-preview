@@ -11,12 +11,44 @@ struct UpdateFeedTests {
     /// 正式地址。
     private let production = UpdateFeed.resolve(override: nil)
 
-    /// 没有覆盖值（nil 或空串）时用正式地址。
+    /// 没有覆盖值（nil 或空串）时用正式地址：两个清单源，R2 的 CDN 在前、GitHub 在后。
     @Test func noOverrideUsesProduction() {
-        #expect(production == UpdateFeed(feedURL: UpdateFeed.productionURL, isTestFeed: false))
         #expect(UpdateFeed.resolve(override: "") == production)
-        #expect(UpdateFeed.productionURL.absoluteString
-            == "https://api.github.com/repos/deletexiumu/eve-o-preview/releases/latest")
+        #expect(!production.isTestFeed)
+        #expect(production.manifestURLs.map(\.absoluteString) == [
+            "https://eveo.deepai.wiki/update-manifest.json",
+            "https://github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json",
+        ])
+        #expect(production.feedURL == production.manifestURLs[0])
+    }
+
+    /// 测试地址只有它自己一个清单源。
+    @Test func testFeedHasSingleSource() {
+        let feed = UpdateFeed.resolve(override: "http://127.0.0.1:8123/update-manifest.json")
+        #expect(feed.manifestURLs.map(\.absoluteString) == ["http://127.0.0.1:8123/update-manifest.json"])
+    }
+
+    /// 正式地址下清单里的附件：干净的 https 都可以（R2、GitHub），http、带用户信息、反斜杠、控制字符不可以。
+    @Test func productionAssetRules() {
+        #expect(production.acceptsAsset("https://eveo.deepai.wiki/v1.5.0/EVE-O-Preview-1.5.0.dmg"))
+        #expect(production.acceptsAsset(UpdateFeed.productionAssetPrefix + "download/v1.5.0/SHA256SUMS.txt"))
+        #expect(production.acceptsAsset("https://dl.example.com:8443/a.dmg"))
+        #expect(!production.acceptsAsset("http://eveo.deepai.wiki/v1.5.0/a.dmg"))
+        #expect(!production.acceptsAsset("https://user:pass@eveo.deepai.wiki/a.dmg"))
+        #expect(!production.acceptsAsset("https://eveo.deepai.wiki\\@evil.com/a.dmg"))
+        #expect(!production.acceptsAsset("https://eveo.deepai.wiki/a\n.dmg"))
+        #expect(!production.acceptsAsset("ftp://eveo.deepai.wiki/a.dmg"))
+        #expect(!production.acceptsAsset("not a url"))
+        #expect(!production.acceptsAsset(""))
+        // 发布页仍只认 GitHub 的 Release 地址。
+        #expect(!production.accepts("https://eveo.deepai.wiki/v1.5.0/EVE-O-Preview-1.5.0.dmg"))
+    }
+
+    /// 测试地址下附件仍要与清单同源。
+    @Test func testFeedAssetRules() {
+        let feed = UpdateFeed.resolve(override: "http://127.0.0.1:8123/update-manifest.json")
+        #expect(feed.acceptsAsset("http://127.0.0.1:8123/EVE-O-Preview-1.5.0.dmg"))
+        #expect(!feed.acceptsAsset("https://eveo.deepai.wiki/v1.5.0/EVE-O-Preview-1.5.0.dmg"))
     }
 
     /// https 地址与回环主机的 http 地址被接受，成为测试地址。

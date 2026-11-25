@@ -8,15 +8,15 @@
 import Foundation
 import EVEOPreviewCore
 
-/// 演示模式的更新服务。检查返回样例版本 1.1.1，Release 列表另有样例 1.1.0；下载只模拟进度，不写文件；安装不改动任何东西。
+/// 演示模式的更新服务。检查返回样例版本 1.1.1，中间版本的说明另有样例 1.1.0；下载只模拟进度，不写文件；安装不改动任何东西。
 final class FakeUpdateService: UpdateService {
     /// 模拟下载的步数与每步的间隔。
     private static let steps = 10
     private static let stepDelay: Duration = .milliseconds(200)
 
-    /// 返回样例版本 1.1.1（不发请求），不带 ETag。
-    func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult {
-        .release(FakeUpdateService.sampleRelease, etag: nil)
+    /// 返回样例版本 1.1.1（不发请求），不带序号（不改 state.json 里记下的序号）。
+    func fetchLatestRelease(feed: UpdateFeed, minimumSequence: UInt64?, appVersion: String) async -> ReleaseFetchResult {
+        .release(FakeUpdateService.sampleRelease, sequence: nil)
     }
 
     /// 返回样例的中间版本 1.1.0 与已是最新的 1.1.1（不发请求），供核对按版本分段的显示。

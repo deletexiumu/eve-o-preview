@@ -139,7 +139,9 @@ struct UpdateView: View {
                             Text(strings.versionNotesTitle(entry.version)).font(.title2.bold())
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        ReleaseNotesView(markdown: ReleaseNotes.section(for: L10n.language, in: entry.notes))
+                        // 只显示本平台的内容：去掉 Windows 的小节（docs/update-manifest.md 第 4 节第 6 条）。
+                        ReleaseNotesView(markdown: ReleaseNotes.platformOnly(
+                            ReleaseNotes.section(for: L10n.language, in: entry.notes), own: "macOS"))
                     }
                     if hasMore {
                         Divider()

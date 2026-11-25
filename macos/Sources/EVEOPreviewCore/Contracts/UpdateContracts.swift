@@ -2,22 +2,26 @@
 //
 // 更新功能的契约（v1.1 设计 8.4 节）：检查地址 `UpdateFeed`（含实现）、检查结果与平台服务协议。
 // 协议只含值类型，方法可以在任何线程调用；Platform 的实现是 `SystemUpdateService`，演示模式是 `FakeUpdateService`。
+//
+// 1.5.0 起检查读签名的更新清单（docs/update-manifest.md）：正式地址有两个源（R2 的 CDN 在前、GitHub 在后），
+// 依次尝试；测试地址只有一个源。发布页与附件的地址分开核对：发布页要在浏览器里打开，仍只认本仓库的 GitHub
+// Release 地址（`accepts`）；附件来自验过签的清单、真伪由清单里的 SHA-256 保证，只要求是干净的 https（`acceptsAsset`）。
 
 import Foundation
 
 /// 更新检查的地址。
 public struct UpdateFeed: Sendable, Equatable {
-    /// 检查请求的地址。
+    /// 第一个清单地址：正式地址下是 R2 的地址，测试地址下是 `EVEO_UPDATE_FEED_URL` 的值。
     public var feedURL: URL
     /// 是否是环境变量 `EVEO_UPDATE_FEED_URL` 指定的测试地址。
     public var isTestFeed: Bool
 
-    /// 正式的检查地址。1.3.2 起用改名后的仓库 `eve-o-preview`；更早的版本仍请求旧名字，由 GitHub 重定向过来。
-    public static let productionURL = URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview/releases/latest")!
-    /// 正式的 Release 列表地址（8.8 节）。每页个数与 `ReleaseHistory.pageSize` 一致，由用例核对。
-    /// 1.3.0 起每页 100 条：仓库以后同时发布 Windows 版（tag `win-v*`），30 条里会被它们占掉一部分。
-    public static let productionHistoryURL =
-        URL(string: "https://api.github.com/repos/deletexiumu/eve-o-preview/releases?per_page=100")!
+    /// 正式的清单地址，按顺序尝试：R2 的自定义域名（经 Cloudflare 的 CDN），然后是 GitHub 最新 Release 的附件。
+    /// R2 的地址与 release.yml 的 `R2_PUBLIC_BASE_URL` 一致；换域名时要先发一个同时内置新旧地址的版本。
+    public static let productionManifestURLs = [
+        URL(string: "https://eveo.deepai.wiki/update-manifest.json")!,
+        URL(string: "https://github.com/deletexiumu/eve-o-preview/releases/latest/download/update-manifest.json")!,
+    ]
     /// 正式地址下，附件与发布页的地址应以它开头，也是打开发布页时的默认地址。2026-11-23 仓库由
     /// `eve-o-preview-macos` 改名为 `eve-o-preview`，GitHub 答复里的 `html_url` 与 `browser_download_url` 都是新名字。
     public static let productionAssetPrefix = "https://github.com/deletexiumu/eve-o-preview/releases/"
@@ -45,7 +49,7 @@ public struct UpdateFeed: Sendable, Equatable {
     /// override 为 nil 或空串时用正式地址。不符合条件时也用正式地址，`isTestFeed` 为假；
     /// 是否记日志由调用方比较 override 与结果决定（8.4 节：App 记一条 `error`）。
     public static func resolve(override: String?) -> UpdateFeed {
-        let production = UpdateFeed(feedURL: productionURL, isTestFeed: false)
+        let production = UpdateFeed(feedURL: productionManifestURLs[0], isTestFeed: false)
         guard let override, !override.isEmpty,
               let url = URL(string: override), let origin = Origin(url) else { return production }
         switch origin.scheme {
@@ -58,25 +62,12 @@ public struct UpdateFeed: Sendable, Equatable {
         }
     }
 
-    /// Release 列表的地址，用来取中间版本的发布说明（8.8 节）。
-    ///
-    /// - 正式地址：只在 feedURL 正是 `productionURL` 时，取 `productionHistoryURL`。
-    /// - 测试地址：地址没有查询串、最后一段以 `.json` 结尾时，把最后一段换成 `releases.json`，如
-    ///   `http://127.0.0.1:8123/feed.json` → `http://127.0.0.1:8123/releases.json`，与 feedURL 同源
-    ///   （`make-update-test-feed.sh` 会一起生成）。
-    /// 其他情况返回 nil，调用方就不取中间版本，只显示最新版的说明。
-    public var historyURL: URL? {
-        if !isTestFeed { return feedURL == UpdateFeed.productionURL ? UpdateFeed.productionHistoryURL : nil }
-        guard var components = URLComponents(url: feedURL, resolvingAgainstBaseURL: false),
-              components.query == nil, components.fragment == nil,
-              feedURL.lastPathComponent.lowercased().hasSuffix(".json") else { return nil }
-        var segments = components.path.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
-        segments[segments.count - 1] = "releases.json"
-        components.path = segments.joined(separator: "/")
-        return components.url
+    /// 要依次尝试的清单地址：正式地址下是 `productionManifestURLs`，测试地址下只有 feedURL 一个。
+    public var manifestURLs: [URL] {
+        isTestFeed ? [feedURL] : UpdateFeed.productionManifestURLs
     }
 
-    /// 附件与发布页的地址是否可用。测试地址下应与 feedURL 同源。正式地址下同时满足：
+    /// 发布页（与 1.4.x 及更早版本缓存的附件）的地址是否可用。测试地址下应与 feedURL 同源。正式地址下同时满足：
     /// - 原文以 productionAssetPrefix 或 legacyAssetPrefix 开头，不含反斜杠、`%2e`（编码的点，不分大小写）、`%2f`、`%5c`；
     /// - 按地址解析后协议是 https，主机正好是 `github.com`，没有用户名与密码，端口省略或是 443；
     /// - 路径以本仓库（新旧两个名字之一）的 `/releases/` 开头，没有 `.` 或 `..` 段（如 `…/releases/../../../evil/repo/…`）。
@@ -88,6 +79,25 @@ public struct UpdateFeed: Sendable, Equatable {
             return false
         }
         return candidate == own
+    }
+
+    /// 清单里附件的地址是否可用（docs/update-manifest.md 第 4 节第 7 条）。测试地址下应与 feedURL 同源；
+    /// 正式地址下只要求：协议是 https、有主机、没有用户名与密码、原文里没有反斜杠与控制字符。
+    /// 不限主机：地址来自验过签的清单，下载的文件还要与清单里的 SHA-256 相符，源本身不需要被信任。
+    public func acceptsAsset(_ urlString: String) -> Bool {
+        guard isTestFeed else { return UpdateFeed.isCleanHTTPS(urlString) }
+        return accepts(urlString)
+    }
+
+    /// 正式地址下附件的规则，见 `acceptsAsset`。
+    static func isCleanHTTPS(_ urlString: String) -> Bool {
+        let hasControl = urlString.unicodeScalars.contains { $0.value < 0x20 || $0.value == 0x7f }
+        guard !hasControl, !urlString.contains("\\"),
+              let components = URLComponents(string: urlString),
+              components.scheme?.lowercased() == "https",
+              let host = components.host, !host.isEmpty,
+              components.user == nil, components.password == nil else { return false }
+        return true
     }
 
     /// 正式地址下的规则，见 `accepts`。先查原文：`URLComponents.path` 会解码百分号编码，解码后再查就晚了。
@@ -136,26 +146,23 @@ public struct UpdateFeed: Sendable, Equatable {
     }
 }
 
-/// 一次检查请求的结果（8.4 节答复的处理表）。
+/// 一次检查的结果（docs/update-manifest.md 第 4 节）。
 public enum ReleaseFetchResult: Sendable, Equatable {
-    /// 200：解析出的发布信息与答复的 ETag。
-    case release(ReleaseInfo, etag: String?)
-    /// 304：与上次相同，用缓存的发布信息。
-    case notModified
-    /// 404：仓库还没有正式版。
-    case noRelease
-    /// 被限流，关联值是可以再试的时刻。
-    case rateLimited(until: Date?)
-    /// 其他失败。
+    /// 拿到并验过签的清单里有改动了本平台的版本。sequence 是清单的序号，只在正式地址下给出，调用方记下它防回退。
+    case release(ReleaseInfo, sequence: UInt64?)
+    /// 清单里没有本平台的版本。
+    case noRelease(sequence: UInt64?)
+    /// 所有源都失败，关联值是最后一个源的错误。
     case failed(UpdateError)
 }
 
 /// 更新的平台服务。方法可以在任何线程调用。
 public protocol UpdateService: Sendable {
-    /// 请求最新的正式版。etag 是上次答复的 ETag；appVersion 用于 `User-Agent`。
-    func fetchLatestRelease(feed: UpdateFeed, etag: String?, appVersion: String) async -> ReleaseFetchResult
-    /// 请求 Release 列表（`feed.historyURL`），返回各正式版的说明，供显示中间版本（8.8 节）。
-    /// 尽力而为：地址拼不出来、网络错误、非 200、限流或解析失败时都返回 nil，不影响检查与安装。
+    /// 依次请求各个清单源，验签并解析，返回改动了本平台的最新正式版。minimumSequence 是接受过的最大序号
+    /// （正式地址下），序号更小的清单按这个源失败处理；appVersion 用于 `User-Agent`。
+    func fetchLatestRelease(feed: UpdateFeed, minimumSequence: UInt64?, appVersion: String) async -> ReleaseFetchResult
+    /// 改动了本平台的各正式版的说明，供显示中间版本（8.8 节）。取自最近一次检查拿到的清单；没有时（如重启后
+    /// 从缓存恢复的提示）重新取一次清单。尽力而为：失败时返回 nil，不影响检查与安装。
     func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage?
     /// 下载校验和文件与 dmg，核对 SHA-256，返回放在缓存目录里的 dmg。
     func prepare(_ release: ReleaseInfo, feed: UpdateFeed,
@@ -169,6 +176,6 @@ public protocol UpdateService: Sendable {
 }
 
 extension UpdateService {
-    /// 默认不取 Release 列表：没有实现它的服务（如测试替身）只显示最新版的说明。
+    /// 默认不取中间版本的说明：没有实现它的服务（如测试替身）只显示最新版的说明。
     public func fetchReleaseHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? { nil }
 }

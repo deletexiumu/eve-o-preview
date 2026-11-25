@@ -1,30 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 请求最新的正式版（v1.1 设计 8.4 节，10.1 节的请求清单）。
+// 取更新清单（docs/update-manifest.md 第 4 节；v1.1 设计 10.1 节的请求清单）。
 //
-// - `GET <feed>`，不带凭据。请求头：`Accept: application/vnd.github+json`、`X-GitHub-Api-Version: 2022-11-28`；
-//   有 ETag 时加 `If-None-Match`（调用方只在有缓存的发布信息时传 ETag）。
-// - `User-Agent: EVE-O-Preview-macOS/<版本号>` 与 `Accept-Language: en` 写在会话配置的 `httpAdditionalHeaders` 里：
-//   不写时 `URLSession` 会自己填，前者带系统与 CFNetwork 的版本，后者是系统的语言列表。
-// - 会话用 `.ephemeral`，不用 cookie、不留缓存；请求超时 15 秒；答复正文超过 1 MiB 按 `malformedFeed` 处理。
-// - 答复的处理见 8.4 节的表：200 解析，304 `.notModified`，404 `.noRelease`，限流 `.rateLimited`，
-//   其他状态码 `.failed(.httpStatus)`，网络错误 `.failed(.network)`。
-//
-// 列表回退（1.3.0 起）：200 答复的 `tag_name` 解析不了（最新 Release 是 Windows 版 `win-v*`）时，改取 Release 列表
-// （`feed.historyURL`），用 `ReleaseFeedParser.parseLatestFromList` 找 macOS 的最新正式版。这时不返回 ETag：
-// 下次检查若拿 ETag 得到 304，就会一直停在这次挑出的版本，看不到之后发布的 macOS 新版本。
-//
-// 另有 `fetchHistory`：有新版本要提示时取 Release 列表（8.8 节），只用来显示中间版本的说明。请求头与会话配置
-// 同上，不带 ETag；任何失败都只返回 nil。
+// - 依次请求 `feed.manifestURLs`（正式地址下是 R2 的 CDN，然后是 GitHub），不带凭据。第一个成功的源就用它；
+//   每个源的失败（网络错误、状态码不是 200、超过 1 MiB、验签或解析失败、序号比接受过的小）都只记一条日志，换下一个源。
+//   都失败时返回最后一个源的错误。
+// - 请求头：`Cache-Control: no-cache`（让 CDN 回源核对，不拿过期的缓存）；`User-Agent: EVE-O-Preview-macOS/<版本号>`
+//   与 `Accept-Language: en` 写在会话配置的 `httpAdditionalHeaders` 里：不写时 `URLSession` 会自己填，前者带系统与
+//   CFNetwork 的版本，后者是系统的语言列表。
+// - 会话用 `.ephemeral`，不用 cookie、不留缓存；请求超时 15 秒。重定向只跟到 https（GitHub 的地址会重定向到文件存储），
+//   测试地址下也允许与它同源的 http。
+// - 公钥：正式地址用内置的公钥；测试地址用环境变量 `EVEO_UPDATE_TEST_PUBLIC_KEY`（`UpdateSigning.publicKey(for:environment:)`）。
+// - 防回退：正式地址下调用方传入接受过的最大序号，更小的清单不收；返回的结果带上这次的序号，调用方记下。
+//   测试地址不比较也不返回序号。
 
+import CryptoKit
 import Foundation
 import EVEOPreviewCore
 
-/// 发布信息的请求。
+/// 更新清单的请求。
 public enum ReleaseFeedClient {
-    /// 检查请求的超时秒数。
+    /// 每个源的请求超时秒数。
     static let requestTimeout: TimeInterval = 15
-    /// 取 Release 列表的日志（检查本身的结果由 App 记）。与 BundleInstaller 一样每次取用，不存成静态属性。
+    /// 取清单的日志（检查本身的结果由 App 记）。与 BundleInstaller 一样每次取用，不存成静态属性。
     private static var log: LogChannel { PlatformLog.logger("Updates") }
 
     /// 检查与下载共用的会话配置：不带 cookie 与缓存，只加 `User-Agent` 与 `Accept-Language: en` 两个头。
@@ -41,108 +39,71 @@ public enum ReleaseFeedClient {
         return configuration
     }
 
-    /// 请求最新的正式版。etag 是上次答复的 ETag，没有缓存的发布信息时应传 nil。
-    public static func fetch(feed: UpdateFeed, etag: String?, appVersion: String, now: Date = Date()) async
-        -> ReleaseFetchResult {
+    /// 依次请求各个源，返回第一个验签、解析都通过且序号不回退的清单；都失败时返回最后一个错误。
+    /// environment 是进程的环境变量，只用来取测试公钥。
+    public static func fetchManifest(feed: UpdateFeed, minimumSequence: UInt64?, appVersion: String,
+                                     environment: [String: String] = ProcessInfo.processInfo.environment) async
+        -> Result<UpdateManifest, UpdateError> {
+        guard let key = UpdateSigning.publicKey(for: feed, environment: environment) else {
+            log.error("测试地址没有设 \(UpdateSigning.testPublicKeyVariable, privacy: .public)，无法验签")
+            return .failure(.malformedFeed("no public key for test feed"))
+        }
+        let delegate = RedirectPolicy(feed: feed)
         let session = URLSession(configuration: sessionConfiguration(appVersion: appVersion,
-                                                                     requestTimeout: requestTimeout))
+                                                                     requestTimeout: requestTimeout),
+                                 delegate: delegate, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
-        var request = apiRequest(url: feed.feedURL)
-        if let etag, !etag.isEmpty { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
-
-        let body: Data
-        let response: HTTPURLResponse
-        do {
-            let (bytes, rawResponse) = try await session.bytes(for: request)
-            guard let http = rawResponse as? HTTPURLResponse else { return .failed(.network("not an HTTP response")) }
-            response = http
-            // 只有 200 要读正文；读到上限加 1 字节就停，超大的答复不进内存。
-            body = http.statusCode == 200 ? try await readLimited(bytes, limit: ReleaseFeedParser.maxFeedBytes) : Data()
-        } catch {
-            return .failed(.network(describe(error)))
-        }
-        let outcome = result(status: response.statusCode, headers: lowercasedHeaders(response), body: body, feed: feed,
-                             now: now)
-        // 最新 Release 不是 macOS 版时改取列表；列表也失败时保留原来的解析错误，便于在日志里看出原因。
-        if case .failed(let error) = outcome, ReleaseFeedParser.needsListFallback(error),
-           let fallback = await fetchLatestFromList(feed: feed, session: session) {
-            return fallback
-        }
-        return outcome
-    }
-
-    /// 列表回退：取 Release 列表，挑出 macOS 的最新正式版，不带 ETag。任何失败都返回 nil 并记一条日志。
-    static func fetchLatestFromList(feed: UpdateFeed, session: URLSession) async -> ReleaseFetchResult? {
-        guard let url = feed.historyURL else { return nil }
-        do {
-            let (bytes, rawResponse) = try await session.bytes(for: apiRequest(url: url))
-            guard let http = rawResponse as? HTTPURLResponse, http.statusCode == 200 else {
-                let status = (rawResponse as? HTTPURLResponse)?.statusCode ?? 0
-                log.notice("最新 Release 不是 macOS 版，取列表：状态码 \(status, privacy: .public)")
-                return nil
+        var lastError = UpdateError.network("no manifest source")
+        for (index, url) in feed.manifestURLs.enumerated() {
+            switch await fetchOne(url, session: session, key: key, feed: feed) {
+            case .success(let manifest):
+                // 序号只在正式地址下比较：测试地址的清单由脚本随时生成，序号与正式的无关。
+                if !feed.isTestFeed, let minimum = minimumSequence, manifest.sequence < minimum {
+                    log.notice("清单源 \(index, privacy: .public) 的序号 \(manifest.sequence, privacy: .public) 小于接受过的 \(minimum, privacy: .public)，换下一个源")
+                    lastError = .malformedFeed("manifest sequence went backwards")
+                    continue
+                }
+                return .success(manifest)
+            case .failure(let error):
+                log.notice("清单源 \(index, privacy: .public) 失败：\(String(describing: error), privacy: .public)")
+                lastError = error
             }
-            let body = try await readLimited(bytes, limit: ReleaseHistory.maxListBytes)
-            let info = try ReleaseFeedParser.parseLatestFromList(body, feed: feed)
-            log.notice("最新 Release 不是 macOS 版，改用列表里的 \(info.tagName, privacy: .public)")
-            return .release(info, etag: nil)
-        } catch {
-            log.notice("最新 Release 不是 macOS 版，取列表失败：\(describeHistoryError(error), privacy: .public)")
-            return nil
+        }
+        return .failure(lastError)
+    }
+
+    /// 取清单并转成检查结果：有本平台的版本时 `.release`，没有时 `.noRelease`；序号只在正式地址下给出。
+    public static func fetch(feed: UpdateFeed, minimumSequence: UInt64?, appVersion: String) async
+        -> (result: ReleaseFetchResult, manifest: UpdateManifest?) {
+        switch await fetchManifest(feed: feed, minimumSequence: minimumSequence, appVersion: appVersion) {
+        case .success(let manifest):
+            let sequence = feed.isTestFeed ? nil : manifest.sequence
+            if let latest = manifest.latest { return (.release(latest, sequence: sequence), manifest) }
+            return (.noRelease(sequence: sequence), manifest)
+        case .failure(let error):
+            return (.failed(error), nil)
         }
     }
 
-    /// 请求 Release 列表（8.8 节），返回各正式版的说明。尽力而为：任何失败都返回 nil 并记一条日志，
-    /// 不写限流时刻（列表与检查共用 GitHub 的限额，被限流时下一次检查自己会遇到并记下）。不带 ETag。
-    public static func fetchHistory(feed: UpdateFeed, appVersion: String) async -> ReleaseHistoryPage? {
-        guard let url = feed.historyURL else { return nil }
-        let session = URLSession(configuration: sessionConfiguration(appVersion: appVersion,
-                                                                     requestTimeout: requestTimeout))
-        defer { session.finishTasksAndInvalidate() }
-        do {
-            let (bytes, rawResponse) = try await session.bytes(for: apiRequest(url: url))
-            guard let http = rawResponse as? HTTPURLResponse, http.statusCode == 200 else {
-                let status = (rawResponse as? HTTPURLResponse)?.statusCode ?? 0
-                log.notice("取 Release 列表：状态码 \(status, privacy: .public)")
-                return nil
-            }
-            let body = try await readLimited(bytes, limit: ReleaseHistory.maxListBytes)
-            return try ReleaseHistory.parse(body)
-        } catch {
-            log.notice("取 Release 列表失败：\(describeHistoryError(error), privacy: .public)")
-            return nil
-        }
-    }
-
-    /// GitHub API 的 GET 请求：`Accept` 与 `X-GitHub-Api-Version` 两个头。检查与取列表共用。
-    static func apiRequest(url: URL) -> URLRequest {
+    /// 请求一个源：状态码要是 200，正文不超过 1 MiB，再验签、解析。
+    static func fetchOne(_ url: URL, session: URLSession, key: Curve25519.Signing.PublicKey,
+                         feed: UpdateFeed) async -> Result<UpdateManifest, UpdateError> {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-        return request
-    }
-
-    /// 取列表失败的简短说明：解析错误给出原因，其余同 `describe(_:)`。
-    private static func describeHistoryError(_ error: any Error) -> String {
-        if let updateError = error as? UpdateError { return String(describing: updateError) }
-        return describe(error)
-    }
-
-    /// 按 8.4 节的表把状态码与正文换成结果。
-    static func result(status: Int, headers: [String: String], body: Data, feed: UpdateFeed, now: Date)
-        -> ReleaseFetchResult {
-        if let limited = ReleaseFeedParser.rateLimit(status: status, headers: headers, now: now) { return limited }
-        switch status {
-        case 200:
-            do {
-                let info = try ReleaseFeedParser.parse(body, feed: feed)
-                return .release(info, etag: headers["etag"])
-            } catch {
-                return .failed(error)
-            }
-        case 304: return .notModified
-        case 404: return .noRelease
-        default: return .failed(.httpStatus(status))
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let body: Data
+        do {
+            let (bytes, rawResponse) = try await session.bytes(for: request)
+            guard let http = rawResponse as? HTTPURLResponse else { return .failure(.network("not an HTTP response")) }
+            guard http.statusCode == 200 else { return .failure(.httpStatus(http.statusCode)) }
+            body = try await readLimited(bytes, limit: UpdateManifest.maxBytes)
+        } catch {
+            return .failure(.network(describe(error)))
+        }
+        do {
+            return .success(try UpdateManifest.open(body, publicKey: key, feed: feed))
+        } catch {
+            return .failure(error)
         }
     }
 
@@ -157,19 +118,26 @@ public enum ReleaseFeedClient {
         return data
     }
 
-    /// 答复头，键转成小写。
-    static func lowercasedHeaders(_ response: HTTPURLResponse) -> [String: String] {
-        var headers: [String: String] = [:]
-        for (key, value) in response.allHeaderFields {
-            guard let name = key as? String else { continue }
-            headers[name.lowercased()] = value as? String ?? String(describing: value)
-        }
-        return headers
-    }
-
     /// 网络错误的简短说明：URLError 取代码，其他取类型名，不带地址（地址可能是测试地址里的路径）。
     static func describe(_ error: any Error) -> String {
         if let urlError = error as? URLError { return "URLError \(urlError.code.rawValue)" }
         return String(describing: type(of: error))
+    }
+}
+
+/// 取清单时的重定向规则：只跟到 https；测试地址下也允许与它同源的 http。不跟随时 3xx 成为最终答复，按状态码报错。
+private final class RedirectPolicy: NSObject, URLSessionTaskDelegate, Sendable {
+    /// 检查地址。
+    let feed: UpdateFeed
+
+    init(feed: UpdateFeed) {
+        self.feed = feed
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest) async -> URLRequest? {
+        guard let target = request.url, let scheme = target.scheme?.lowercased() else { return nil }
+        let allowed = scheme == "https" || (feed.isTestFeed && feed.accepts(target.absoluteString))
+        return allowed ? request : nil
     }
 }

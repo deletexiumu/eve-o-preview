@@ -11,9 +11,14 @@
 // 6. 按 1 MiB 一块算 SHA-256（CryptoKit），与期望值比较。不同时删掉文件，返回 `checksumMismatch`。
 // 7. 把文件改名去掉 `.partial`，返回 `PreparedUpdate`。
 //
+// 镜像（1.5.0 起，docs/update-manifest.md 第 4 节第 4 条）：每个附件按 `ReleaseAsset.urls` 的顺序下载（R2 在前、
+// GitHub 在后）。一个地址失败（网络错误、状态码不对、超过上限、与清单里的 SHA-256 不符）时删掉半截文件，换下一个地址；
+// 都失败时报最后一个错误。取消立即结束，不再换地址。清单里有 SHA-256 时，校验和文件与 dmg 都先与它核对，
+// dmg 另外照旧与签过名的校验和文件核对（两者来自同一次发布，应当一致）。
+//
 // 会话的配置与检查请求相同，自己设的请求头只有 `User-Agent` 与 `Accept-Language: en`。请求超时 60 秒，
 // 整个下载最长 10 分钟。重定向只跟随到 https；使用测试地址时也允许跟随到与它同源的 http。
-// 重定向后的主机不核对（GitHub 的文件存储域名不固定），来源由 9.3 节的签名核对保证。
+// 重定向后的主机不核对（GitHub 的文件存储域名不固定），内容由清单里的 SHA-256 与 9.3 节的签名核对保证。
 //
 // 进度：下载完成、开始算 SHA-256 时，再回调一次 receivedBytes == totalBytes 的进度，控制器据此进入「核对中」。
 
@@ -95,8 +100,10 @@ final class UpdateDownloader: Sendable {
         // 第 4 步：校验和文件。
         let checksumsPartial = versionDirectory.appendingPathComponent(UpdateAssetContract.checksumsName + ".partial")
         defer { try? FileManager.default.removeItem(at: checksumsPartial) }
-        _ = try await download(assets.checksums.downloadURL, to: checksumsPartial, maxBytes: Int64(UpdateAssetContract.maxChecksumsBytes),
-                           tooLarge: .checksumListInvalid, feed: feed, configuration: configuration, progress: nil)
+        _ = try await downloadAsset(assets.checksums, to: checksumsPartial,
+                                    maxBytes: Int64(UpdateAssetContract.maxChecksumsBytes),
+                                    tooLarge: .checksumListInvalid, feed: feed, configuration: configuration,
+                                    progress: nil)
         guard let checksumsData = try? Data(contentsOf: checksumsPartial),
               let checksumsText = String(data: checksumsData, encoding: .utf8) else { throw .checksumListInvalid }
         let expected = try ChecksumList.expectedHash(for: assets.image.name, in: checksumsText)
@@ -106,10 +113,10 @@ final class UpdateDownloader: Sendable {
         let finalURL = versionDirectory.appendingPathComponent(assets.image.name)
         let partial = versionDirectory.appendingPathComponent(assets.image.name + ".partial")
         do {
-            let received = try await download(assets.image.downloadURL, to: partial,
-                                              maxBytes: Int64(UpdateAssetContract.maxImageBytes),
-                                              tooLarge: .downloadTooLarge, feed: feed, configuration: configuration,
-                                              progress: progress)
+            let received = try await downloadAsset(assets.image, to: partial,
+                                                   maxBytes: Int64(UpdateAssetContract.maxImageBytes),
+                                                   tooLarge: .downloadTooLarge, feed: feed,
+                                                   configuration: configuration, progress: progress)
             progress(UpdateProgress(receivedBytes: received, totalBytes: received))
             try checkCancelled()
             // 第 6 步：SHA-256。
@@ -180,7 +187,35 @@ final class UpdateDownloader: Sendable {
         return configuration
     }
 
-    /// 下载一个附件到 destination，返回收到的字节数。超过 maxBytes 时抛 tooLarge。
+    /// 按 `asset.urls` 的顺序下载一个附件到 destination，返回收到的字节数。清单给了 SHA-256 时，下完先核对，
+    /// 不符时当作这个地址失败。一个地址失败就删掉半截文件、换下一个；取消时立即抛出。都失败时抛最后一个错误。
+    private func downloadAsset(_ asset: ReleaseAsset, to destination: URL, maxBytes: Int64, tooLarge: UpdateError,
+                               feed: UpdateFeed, configuration: URLSessionConfiguration,
+                               progress: (@Sendable (UpdateProgress) -> Void)?) async throws(UpdateError) -> Int64 {
+        var lastError = UpdateError.assetMissing(asset.name)
+        for (index, address) in asset.urls.enumerated() where feed.acceptsAsset(address) {
+            do {
+                let received = try await download(address, to: destination, maxBytes: maxBytes, tooLarge: tooLarge,
+                                                  feed: feed, configuration: configuration, progress: progress)
+                if let expected = asset.sha256 {
+                    try checkCancelled()
+                    guard UpdateDownloader.sha256(of: destination) == expected.lowercased() else {
+                        throw UpdateError.checksumMismatch
+                    }
+                }
+                return received
+            } catch {
+                try? FileManager.default.removeItem(at: destination)
+                if error == .cancelled { throw error }
+                log.notice("下载 \(asset.name, privacy: .public) 的地址 \(index, privacy: .public) 失败：\(String(describing: error), privacy: .public)")
+                lastError = error
+                try checkCancelled()
+            }
+        }
+        throw lastError
+    }
+
+    /// 从一个地址下载到 destination，返回收到的字节数。超过 maxBytes 时抛 tooLarge。
     private func download(_ address: String, to destination: URL, maxBytes: Int64, tooLarge: UpdateError,
                           feed: UpdateFeed, configuration: URLSessionConfiguration,
                           progress: (@Sendable (UpdateProgress) -> Void)?) async throws(UpdateError) -> Int64 {
