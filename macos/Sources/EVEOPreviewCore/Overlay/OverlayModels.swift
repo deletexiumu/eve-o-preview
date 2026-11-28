@@ -124,15 +124,19 @@ public struct OverlayContent: Sendable, Equatable {
     public var contextKey: String
     /// 标题行。
     public var title: String
+    /// 标题行右侧频道切换按钮的文字；nil 时不显示按钮（预警浮窗没有这一项）。
+    public var channelLabel: String?
     /// 状态行；nil 时不显示。
     public var status: OverlayStatus?
     /// 各行，旧的在前，最新的在最后。
     public var lines: [OverlayLine]
 
-    /// 用各字段建内容。
-    public init(contextKey: String, title: String, status: OverlayStatus?, lines: [OverlayLine]) {
+    /// 用各字段建内容。channelLabel 不给时为 nil。
+    public init(contextKey: String, title: String, channelLabel: String? = nil, status: OverlayStatus?,
+                lines: [OverlayLine]) {
         self.contextKey = contextKey
         self.title = title
+        self.channelLabel = channelLabel
         self.status = status
         self.lines = lines
     }

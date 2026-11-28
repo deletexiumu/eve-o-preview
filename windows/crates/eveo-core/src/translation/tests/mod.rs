@@ -10,6 +10,7 @@ mod prompt;
 mod providers;
 mod queue;
 mod rules;
+mod switcher;
 mod wire;
 
 use super::{Phase, TranslationItem};

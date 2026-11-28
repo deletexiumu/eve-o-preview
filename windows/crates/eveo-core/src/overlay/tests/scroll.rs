@@ -139,6 +139,7 @@ fn placeholders() {
     let content = |key: &str, ids: &[u64]| OverlayContent {
         context_key: key.into(),
         title: "T".into(),
+        channel_label: None,
         status: None,
         lines: lines(ids),
     };

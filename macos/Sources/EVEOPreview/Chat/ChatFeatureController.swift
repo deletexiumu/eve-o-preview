@@ -47,8 +47,8 @@ import EVEOPreviewPlatform
     private let isFakeMode: Bool
     /// 最近一次的完整配置；start 之前为 nil。
     private var config: AppConfig?
-    /// 活动角色。
-    private var activeCharacter: String?
+    /// 活动角色；翻译浮窗的频道切换菜单据此优先排当前角色的频道。
+    private(set) var activeCharacter: String?
     /// 可见的浮窗；只有它们参与按时间的刷新。
     private var visibleKinds: Set<OverlayKind> = []
     /// 最近一次交给跟踪服务的请求；nil 表示没有在跟踪。
@@ -151,17 +151,25 @@ import EVEOPreviewPlatform
     /// 按配置算出请求；请求变了时清空缓冲再交给跟踪服务。然后更新两个功能的上下文。
     private func apply(_ newConfig: AppConfig) {
         guard !isStopped else { return }
+        let previous = config
         config = newConfig
         // 先把新上下文交给两个功能，再启动跟踪：跟踪服务可能在 start 里就上报事件（如假服务的位置线索）。
         updateConsumers()
         let request = ChatFeatureController.request(for: newConfig)
-        let restart = ChatLogRequest.requiresRestart(from: currentRequest, to: request)
+        // 翻译频道切换时，即便新旧频道都在预警列表里（并集没变），也要清掉旧频道的翻译缓冲并补读新频道。
+        let translationChannelsChanged = previous != nil
+            && previous?.activeProfile.translation.enabled == true
+            && newConfig.activeProfile.translation.enabled
+            && previous?.activeProfile.translation.channels != newConfig.activeProfile.translation.channels
+        let restart = ChatLogRequest.requiresRestart(from: currentRequest, to: request) || translationChannelsChanged
         currentRequest = request
         if restart {
             // 先清空缓冲：跟踪服务重建后会补读最近的内容，不清空会出现重复的消息。
             // 翻译的缓存与位置记录不清（由各功能自己保管）。
             for consumer in consumers { consumer.clear(character: nil) }
             if let request {
+                // 并集请求未变（例如新旧翻译频道都在预警里）时，先 stop 让跟踪服务按新起点重建并补读。
+                if translationChannelsChanged { services.chatLog.stop() }
                 let seconds = Int(request.backfillSeconds)
                 log.info("聊天日志跟踪：\(request.channels.count) 个频道，位置线索 \(request.followsLocation)，补读 \(seconds) 秒")
                 services.chatLog.start(request)

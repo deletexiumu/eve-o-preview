@@ -70,8 +70,8 @@ final class InfoOverlayController {
             if panel.isVisible {
                 // 拖动中被隐藏时取消拖动：协调器同时清掉它的交互状态，松开鼠标时不再提交。
                 interaction.cancel()
-                // 隐藏的面板收不到 mouseExited：鼠标正停在它的边缘带上时，缩放光标要在这里恢复。
-                ResizeCursor.reset()
+                // 隐藏的面板收不到 mouseExited：鼠标正停在边缘带或频道按钮上时，光标与悬停态要在这里恢复。
+                contentView.resetHoverAndCursor()
                 panel.orderOut(nil)
             }
             return
@@ -103,11 +103,23 @@ final class InfoOverlayController {
         panel.setFrame(CoordinateConversion.appKitFrame(rect), display: true)
     }
 
-    /// 不带修饰键的左键：点在新消息条上时回到最新并吞掉事件，否则交还给面板。
+    /// 不带修饰键的左键：点在新消息条上时回到最新，点在频道切换按钮上时通知委托弹菜单，否则交还给面板。
     private func handlePlainClick(_ event: NSEvent) -> Bool {
-        guard contentView.isNewMessagesBar(atWindowPoint: event.locationInWindow) else { return false }
+        let point = event.locationInWindow
+        if contentView.isChannelButton(atWindowPoint: point) {
+            delegate?.overlayChannelSwitcherClicked(for: kind)
+            return true
+        }
+        guard contentView.isNewMessagesBar(atWindowPoint: point) else { return false }
         contentView.scrollToLatest()
         return true
+    }
+
+    /// 在频道切换按钮下方弹出原生菜单；面板不可见时不弹。菜单关闭后恢复按钮悬停态。
+    func showChannelMenu(_ menu: NSMenu) {
+        guard panel.isVisible else { return }
+        menu.popUp(positioning: nil, at: contentView.channelButtonMenuOrigin(), in: contentView)
+        contentView.resetHoverAndCursor()
     }
 
     /// 右键单击：按光标下的那一行建菜单并弹出。
@@ -127,7 +139,7 @@ final class InfoOverlayController {
     /// 关闭面板：浮窗被关掉或退出时调用。
     func close() {
         contentView.cursorEdges = nil
-        ResizeCursor.reset()
+        contentView.resetHoverAndCursor()
         interaction.cancel()
         panel.interaction = nil
         panel.orderOut(nil)

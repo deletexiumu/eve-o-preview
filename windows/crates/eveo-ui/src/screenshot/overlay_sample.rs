@@ -111,6 +111,7 @@ pub(super) fn content() -> OverlayContent {
     OverlayContent {
         context_key: "intel:Aria Voss".to_owned(),
         title: "Intel · Aria Voss".to_owned(),
+        channel_label: None,
         status: None,
         lines,
     }

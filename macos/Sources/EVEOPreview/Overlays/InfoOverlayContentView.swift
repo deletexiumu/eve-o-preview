@@ -24,6 +24,9 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     private static let inset: CGFloat = 8
 
     private let titleLabel = InfoOverlayContentView.makeLabel(maximumLines: 1)
+    /// 标题行右侧的频道切换按钮（只有 channelLabel 不为 nil 时显示，如翻译浮窗）。
+    private let channelButton = NSView()
+    private let channelButtonLabel = InfoOverlayContentView.makeLabel(maximumLines: 1)
     private let statusLabel = InfoOverlayContentView.makeLabel(maximumLines: 2)
     private let placeholderLabel = InfoOverlayContentView.makeLabel(maximumLines: 3)
     private let scrollView = NSScrollView()
@@ -42,6 +45,8 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     private(set) var scrollState = OverlayScrollState.initial
     /// 程序正在调整内容或滚动位置：这期间剪裁视图的移动不算用户滚动。
     private var isAdjusting = false
+    /// 鼠标正悬停在频道切换按钮上：用于高亮底色与只在本视图改过光标时恢复箭头。
+    private var isChannelButtonHovered = false
     /// 鼠标停在浮窗上时应显示缩放光标的边，由控制器接到 OverlayInteraction.hoverEdges（v1.2.1）。
     var cursorEdges: (() -> ResizeEdges)?
     /// 光标用的跟踪区域；activeAlways，因为本应用几乎不在前台。
@@ -68,6 +73,14 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
         layer?.borderColor = NSColor(white: 1, alpha: OverlayStyle.borderAlpha).cgColor
         layer?.masksToBounds = true
         setUpTable()
+        channelButton.wantsLayer = true
+        channelButton.layer?.cornerRadius = 4
+        channelButton.layer?.borderWidth = 1
+        channelButton.isHidden = true
+        channelButtonLabel.textColor = OverlayStyle.titleColor
+        channelButtonLabel.alignment = .center
+        channelButton.addSubview(channelButtonLabel)
+        updateChannelButtonAppearance()
         newMessagesBar.wantsLayer = true
         newMessagesBar.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.9).cgColor
         newMessagesBar.addSubview(newMessagesLabel)
@@ -76,7 +89,9 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
         placeholderLabel.alignment = .center
         placeholderLabel.textColor = NSColor(white: 1, alpha: 0.55)
         titleLabel.textColor = OverlayStyle.titleColor
-        for view in [titleLabel, statusLabel, scrollView, placeholderLabel, newMessagesBar] { addSubview(view) }
+        for view in [titleLabel, channelButton, statusLabel, scrollView, placeholderLabel, newMessagesBar] {
+            addSubview(view)
+        }
         NotificationCenter.default.addObserver(self, selector: #selector(clipBoundsChanged),
                                                name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
         applyAppearance(opacity: 0.75, fontSize: 12)
@@ -104,15 +119,43 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
         cursorTrackingArea = area
     }
 
-    // 鼠标在浮窗上移动时按边缘带显示缩放光标，离开时恢复箭头。
-    override func mouseEntered(with event: NSEvent) { updateCursor() }
-    override func mouseMoved(with event: NSEvent) { updateCursor() }
-    override func cursorUpdate(with event: NSEvent) { updateCursor() }
-    override func mouseExited(with event: NSEvent) { ResizeCursor.reset() }
+    // 鼠标在浮窗上移动时按边缘带与频道切换按钮显示对应光标，离开时恢复箭头。
+    override func mouseEntered(with event: NSEvent) { updateHoverAndCursor(for: event) }
+    override func mouseMoved(with event: NSEvent) { updateHoverAndCursor(for: event) }
+    override func cursorUpdate(with event: NSEvent) { updateHoverAndCursor(for: event) }
+    override func mouseExited(with event: NSEvent) { resetHoverAndCursor() }
 
-    /// 按鼠标是否停在边缘带上显示或恢复缩放光标。
-    private func updateCursor() {
-        ResizeCursor.update(for: cursorEdges?() ?? [])
+    /// 清除频道按钮悬停态与光标（面板隐藏或鼠标离开时调用）。
+    func resetHoverAndCursor() {
+        setChannelButtonHovered(false, resetArrow: true)
+        ResizeCursor.reset()
+    }
+
+    /// 鼠标停在频道按钮上时高亮按钮并显示手形光标；否则按边缘带显示或恢复缩放光标。
+    private func updateHoverAndCursor(for event: NSEvent) {
+        if isChannelButton(atWindowPoint: event.locationInWindow) {
+            ResizeCursor.reset()
+            setChannelButtonHovered(true, resetArrow: false)
+            NSCursor.pointingHand.set()
+            return
+        }
+        let edges = cursorEdges?() ?? []
+        setChannelButtonHovered(false, resetArrow: edges.isEmpty)
+        ResizeCursor.update(for: edges)
+    }
+
+    /// 更新频道按钮的悬停状态与底色；仅在本视图曾经改成手形光标且 resetArrow 为真时恢复箭头。
+    private func setChannelButtonHovered(_ hovered: Bool, resetArrow: Bool) {
+        guard hovered != isChannelButtonHovered else { return }
+        isChannelButtonHovered = hovered
+        updateChannelButtonAppearance()
+        if !hovered, resetArrow { NSCursor.arrow.set() }
+    }
+
+    /// 按悬停状态更新频道按钮的背景与边线颜色。
+    private func updateChannelButtonAppearance() {
+        channelButton.layer?.backgroundColor = NSColor(white: 1, alpha: isChannelButtonHovered ? 0.2 : 0.1).cgColor
+        channelButton.layer?.borderColor = NSColor(white: 1, alpha: isChannelButtonHovered ? 0.34 : 0.2).cgColor
     }
 
     /// 光标在标题、状态行、说明或新消息条上时，滚轮事件沿响应链到这里；转给列表，让整个浮窗都能滚动列表。
@@ -158,10 +201,11 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
         guard fontSize != self.fontSize || titleLabel.font?.pointSize != CGFloat(fontSize) else { return }
         self.fontSize = fontSize
         titleLabel.font = .boldSystemFont(ofSize: CGFloat(fontSize))
-        statusLabel.font = .systemFont(ofSize: CGFloat(max(OverlayStyle.minimumSecondaryFontSize, fontSize - 1)))
+        let secondaryFontSize = CGFloat(max(OverlayStyle.minimumSecondaryFontSize, fontSize - 1))
+        channelButtonLabel.font = .systemFont(ofSize: secondaryFontSize, weight: .medium)
+        statusLabel.font = .systemFont(ofSize: secondaryFontSize)
         placeholderLabel.font = .systemFont(ofSize: CGFloat(fontSize))
-        newMessagesLabel.font = .systemFont(ofSize: CGFloat(max(OverlayStyle.minimumSecondaryFontSize, fontSize - 1)),
-                                            weight: .medium)
+        newMessagesLabel.font = .systemFont(ofSize: secondaryFontSize, weight: .medium)
         preservingPosition {
             heightCache = [:]
             layoutContent()
@@ -175,6 +219,14 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
         let previous = content
         content = new
         titleLabel.stringValue = new.title
+        if let label = new.channelLabel {
+            channelButtonLabel.stringValue = "\(label) ▾"
+            channelButton.isHidden = false
+        } else {
+            channelButtonLabel.stringValue = ""
+            channelButton.isHidden = true
+            setChannelButtonHovered(false, resetArrow: true)
+        }
         statusLabel.stringValue = new.status?.text ?? ""
         statusLabel.textColor = new.status.map { OverlayStyle.statusColor($0.level) } ?? OverlayStyle.titleColor
         statusLabel.isHidden = new.status == nil
@@ -233,6 +285,16 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     /// 窗口坐标的点是否落在可见的新消息条上。
     func isNewMessagesBar(atWindowPoint point: NSPoint) -> Bool {
         !newMessagesBar.isHidden && newMessagesBar.frame.contains(convert(point, from: nil))
+    }
+
+    /// 窗口坐标的点是否落在可见的频道切换按钮上。
+    func isChannelButton(atWindowPoint point: NSPoint) -> Bool {
+        !channelButton.isHidden && channelButton.frame.contains(convert(point, from: nil))
+    }
+
+    /// 频道切换菜单弹出的锚点（内容视图翻转坐标）：按钮左下角下方 2 点。
+    func channelButtonMenuOrigin() -> NSPoint {
+        NSPoint(x: channelButton.frame.minX, y: channelButton.frame.maxY + 2)
     }
 
     // MARK: - 列表的更新
@@ -352,10 +414,41 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     private func layoutContent() {
         let width = bounds.width
         let inset = InfoOverlayContentView.inset
-        let titleHeight = CGFloat(fontSize) + 10
         let titleLine = lineHeight(titleLabel.font)
-        titleLabel.frame = NSRect(x: inset, y: (titleHeight - titleLine) / 2, width: max(0, width - 2 * inset),
-                                  height: titleLine)
+        let buttonLine = lineHeight(channelButtonLabel.font)
+        let titleHeight: CGFloat
+        var titleWidth = max(0, width - 2 * inset)
+        if !channelButton.isHidden {
+            // 顶部留出 EdgeGrip 的 6 点边缘带，不让频道按钮吃掉顶边缩放区域。
+            let topBand = CGFloat(EdgeGrip.bandWidth)
+            let horizontalPadding: CGFloat = 12
+            let gap: CGFloat = 6
+            let labelWidth = ceil(channelButtonLabel.cell?.cellSize.width ?? 0)
+            let maxButtonWidth = max(72, floor(titleWidth * 0.48))
+            let buttonWidth = min(maxButtonWidth, labelWidth + horizontalPadding)
+            let buttonHeight = buttonLine + 4
+            let rowHeight = max(titleLine, buttonHeight)
+            titleHeight = topBand + rowHeight + 4
+            let buttonX = max(inset, width - inset - buttonWidth)
+            channelButton.frame = NSRect(x: buttonX, y: topBand + (rowHeight - buttonHeight) / 2,
+                                         width: buttonWidth, height: buttonHeight)
+            channelButtonLabel.frame = NSRect(x: horizontalPadding / 2, y: (buttonHeight - buttonLine) / 2,
+                                              width: max(0, buttonWidth - horizontalPadding), height: buttonLine)
+            titleWidth = max(0, buttonX - inset - gap)
+            titleLabel.frame = NSRect(x: inset, y: topBand + (rowHeight - titleLine) / 2, width: titleWidth,
+                                      height: titleLine)
+            // 按钮因换频道变窄后，若静止光标不再落在按钮内则立即退出悬停态。
+            if isChannelButtonHovered, let window {
+                let mouseInWindow = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+                if !isChannelButton(atWindowPoint: mouseInWindow) {
+                    setChannelButtonHovered(false, resetArrow: true)
+                }
+            }
+        } else {
+            titleHeight = CGFloat(fontSize) + 10
+            titleLabel.frame = NSRect(x: inset, y: (titleHeight - titleLine) / 2, width: titleWidth,
+                                      height: titleLine)
+        }
         var top = titleHeight
         if !statusLabel.isHidden {
             let maxHeight = 2 * lineHeight(statusLabel.font) + 2

@@ -276,6 +276,34 @@ fn messages_reach_translation() {
     );
 }
 
+/// 切换翻译频道时，即便新旧频道都在预警里（并集请求未变），也要重启跟踪并清空旧的翻译缓冲。
+#[test]
+fn translation_channel_switch_restarts_within_union() {
+    let mut features = features_with_translation("switch");
+    let mut cfg = both_on();
+    let profile = cfg.active_profile_mut().expect("有方案");
+    // 预警同时跟踪 Local 与 Intel.North；翻译最初只看 Intel.North。
+    profile.intel.channels = vec![
+        ChannelRef::built_ins()[0].clone(),
+        ChannelRef::new("Intel.North", None),
+    ];
+    profile.translation.channels = vec![ChannelRef::new("Intel.North", None)];
+    assert!(matches!(features.apply(&cfg, NOW), Some(TailerCommand::Start(_))));
+    features.set_active_character(Some(ACTIVE.to_owned()), NOW);
+    features.events(vec![message(ACTIVE, "Jita clear", NOW)], NOW);
+    let content = features.content(OverlayKind::Translation, NOW);
+    assert_eq!(content.channel_label.as_deref(), Some("Intel.North"));
+    assert_eq!(content.lines.len(), 1);
+
+    // 单选切换到 Local：并集仍是 [Local, Intel.North]，但翻译频道变了，必须重建跟踪并清掉旧频道缓冲。
+    cfg.active_profile_mut().expect("有方案").translation.channels = vec![ChannelRef::built_ins()[0].clone()];
+    assert!(matches!(features.apply(&cfg, NOW), Some(TailerCommand::Start(_))));
+    let after = features.content(OverlayKind::Translation, NOW);
+    assert_eq!(after.channel_label.as_deref(), Some("Local"));
+    assert!(after.lines.is_empty());
+    features.stop(NOW);
+}
+
 /// 「预警」页：在线角色排序、位置文字与来源、手动设置与清除、参考星系查不到、星图数据一行。
 #[test]
 fn intel_page_state() {

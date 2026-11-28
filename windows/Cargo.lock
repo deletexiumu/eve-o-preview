@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "eveo-app"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "embed-resource",
  "eveo-app-core",
@@ -1111,7 +1111,7 @@ dependencies = [
 
 [[package]]
 name = "eveo-app-core"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "eveo-core",
  "eveo-l10n",
@@ -1121,7 +1121,7 @@ dependencies = [
 
 [[package]]
 name = "eveo-core"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "ed25519-dalek",
  "miniz_oxide 0.8.9",
@@ -1135,21 +1135,21 @@ dependencies = [
 
 [[package]]
 name = "eveo-fake-client"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "windows",
 ]
 
 [[package]]
 name = "eveo-l10n"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "eveo-core",
 ]
 
 [[package]]
 name = "eveo-platform-win"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "eveo-core",
  "windows",
@@ -1157,7 +1157,7 @@ dependencies = [
 
 [[package]]
 name = "eveo-probe"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "ed25519-dalek",
  "eveo-core",
@@ -1170,7 +1170,7 @@ dependencies = [
 
 [[package]]
 name = "eveo-ui"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "eveo-core",
  "eveo-l10n",

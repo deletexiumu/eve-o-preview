@@ -124,4 +124,35 @@ extension AppCoordinator: InfoOverlayDelegate {
             openSettings?(kind == .intel ? .intel : .translation)
         }
     }
+
+    /// 点击了翻译浮窗标题栏右侧的频道切换按钮：扫描最近 24 小时日志频道后在按钮下方弹单选切换菜单。
+    func overlayChannelSwitcherClicked(for kind: OverlayKind) {
+        guard kind == .translation, !isStopped else { return }
+        channelMenuTask?.cancel()
+        channelMenuTask = Task { [weak self] in
+            guard let self else { return }
+            let discovered = await self.chat.discoverChannels()
+            guard !Task.isCancelled, !self.isStopped,
+                  self.overlayManager.visibleKinds().contains(.translation) else { return }
+            let model = TranslationChannelMenu.Model(
+                selected: self.profile.translation.channels,
+                discovered: discovered,
+                activeCharacter: self.chat.activeCharacter
+            )
+            let menu = TranslationChannelMenu.make(model) { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .select(let channel):
+                    // 已经是唯一翻译频道时不做无谓的重建，免得清空列表重读。
+                    guard !TranslationChannelSwitcher.isOnlySelected(
+                        channel, in: self.profile.translation.channels
+                    ) else { return }
+                    self.config.updateActiveProfile { $0.translation.channels = [channel] }
+                case .openSettings:
+                    self.openSettings?(.translation)
+                }
+            }
+            self.overlayManager.showChannelMenu(menu, for: .translation)
+        }
+    }
 }

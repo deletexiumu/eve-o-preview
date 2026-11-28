@@ -41,3 +41,7 @@ builtInLocal = "로컬"
 builtInCorp = "코퍼레이션"
 builtInAlliance = "얼라이언스"
 builtInFleet = "플릿"
+
+channelSwitcherEmpty = "채널 선택"
+menuBuiltInChannelsHeader = "기본 채널"
+menuRecentChannelsHeader = "최근 채널 (24시간)"

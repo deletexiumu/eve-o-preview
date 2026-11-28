@@ -68,7 +68,7 @@ pub trait OverlayStrings: Sync {
     fn add_built_in(&self) -> &'static str;
     /// Windows：频道列表下按名称添加一行的名字。
     fn add_by_name(&self) -> &'static str;
-    /// Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 14 天出现过、还没选的频道。
+    /// Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 24 小时出现过、还没选的频道。
     fn pick_from_logs(&self) -> &'static str;
     /// 「移除」按钮。
     fn remove_channel(&self) -> &'static str;
@@ -88,6 +88,13 @@ pub trait OverlayStrings: Sync {
     fn built_in_alliance(&self) -> &'static str;
     /// 内置频道：舰队。
     fn built_in_fleet(&self) -> &'static str;
+    // 翻译浮窗频道切换
+    /// 还没有设置翻译频道时，浮窗标题栏右侧切换按钮的文字。
+    fn channel_switcher_empty(&self) -> &'static str;
+    /// 频道切换菜单里内置频道一组的标题。
+    fn menu_built_in_channels_header(&self) -> &'static str;
+    /// 频道切换菜单里最近 24 小时日志频道一组的标题。
+    fn menu_recent_channels_header(&self) -> &'static str;
 }
 
 /// 浮窗与两页共用设置控件的文字（en）。
@@ -208,6 +215,15 @@ impl OverlayStrings for OverlayStringsEn {
     fn built_in_fleet(&self) -> &'static str {
         "Fleet"
     }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "Select Channel"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "Built-in Channels"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "Recent Channels (24h)"
+    }
 }
 
 /// 浮窗与两页共用设置控件的文字（zh）。
@@ -324,6 +340,15 @@ impl OverlayStrings for OverlayStringsZh {
     }
     fn built_in_fleet(&self) -> &'static str {
         "舰队"
+    }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "选择频道"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "内置频道"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "最近频道（24 小时）"
     }
 }
 
@@ -450,6 +475,15 @@ impl OverlayStrings for OverlayStringsRu {
     fn built_in_fleet(&self) -> &'static str {
         "Флот"
     }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "Выбрать канал"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "Встроенные каналы"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "Недавние каналы (24 ч)"
+    }
 }
 
 /// 浮窗与两页共用设置控件的文字（ja）。
@@ -567,6 +601,15 @@ impl OverlayStrings for OverlayStringsJa {
     fn built_in_fleet(&self) -> &'static str {
         "フリート"
     }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "チャンネル選択"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "組み込みチャンネル"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "最近のチャンネル（24時間）"
+    }
 }
 
 /// 浮窗与两页共用设置控件的文字（ko）。
@@ -683,6 +726,15 @@ impl OverlayStrings for OverlayStringsKo {
     }
     fn built_in_fleet(&self) -> &'static str {
         "플릿"
+    }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "채널 선택"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "기본 채널"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "최근 채널 (24시간)"
     }
 }
 
@@ -807,6 +859,15 @@ impl OverlayStrings for OverlayStringsFr {
     fn built_in_fleet(&self) -> &'static str {
         "Flotte"
     }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "Choisir un canal"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "Canaux intégrés"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "Canaux récents (24 h)"
+    }
 }
 
 /// 浮窗与两页共用设置控件的文字（de）。
@@ -926,6 +987,15 @@ impl OverlayStrings for OverlayStringsDe {
     }
     fn built_in_fleet(&self) -> &'static str {
         "Flotte"
+    }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "Kanal wählen"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "Integrierte Kanäle"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "Aktuelle Kanäle (24 Std.)"
     }
 }
 
@@ -1049,6 +1119,15 @@ impl OverlayStrings for OverlayStringsEs {
     }
     fn built_in_fleet(&self) -> &'static str {
         "Flota"
+    }
+    fn channel_switcher_empty(&self) -> &'static str {
+        "Elegir canal"
+    }
+    fn menu_built_in_channels_header(&self) -> &'static str {
+        "Canales integrados"
+    }
+    fn menu_recent_channels_header(&self) -> &'static str {
+        "Canales recientes (24 h)"
     }
 }
 

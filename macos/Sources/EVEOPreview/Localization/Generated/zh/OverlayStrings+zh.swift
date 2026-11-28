@@ -45,4 +45,8 @@ struct OverlayStringsZH: OverlayStrings {
     var builtInCorp: String { "军团" }
     var builtInAlliance: String { "联盟" }
     var builtInFleet: String { "舰队" }
+    // MARK: 翻译浮窗频道切换
+    var channelSwitcherEmpty: String { "选择频道" }
+    var menuBuiltInChannelsHeader: String { "内置频道" }
+    var menuRecentChannelsHeader: String { "最近频道（24 小时）" }
 }

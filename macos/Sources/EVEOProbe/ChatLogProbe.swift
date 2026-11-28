@@ -44,7 +44,7 @@ import EVEOPreviewPlatform
         // 频道发现与设置界面「从日志添加」走同一段代码，只打印各种类的个数。
         let channels = await FileChatLogMonitor().discoverChannels(logDirectory: configured)
         let byKind = Dictionary(grouping: channels, by: \.kind.rawValue).mapValues(\.count)
-        print("最近 14 天的频道 \(channels.count) 个：" + describe(byKind, order: kindOrder))
+        print("最近 24 小时的频道 \(channels.count) 个：" + describe(byKind, order: kindOrder))
         if let followSeconds {
             await follow(configured: configured, channels: channels.map(\.ref), seconds: followSeconds)
         }

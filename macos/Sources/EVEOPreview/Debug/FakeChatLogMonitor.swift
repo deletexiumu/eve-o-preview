@@ -108,10 +108,10 @@ final class FakeChatLogMonitor: ChatLogMonitor {
     /// 返回两个演示频道。
     func discoverChannels(logDirectory: String?) async -> [DiscoveredChannel] {
         let now = Date().timeIntervalSince1970
-        let listeners = characterNames().count
+        let names = Set(characterNames().map { $0.lowercased() }).sorted()
         return [FakeChatLogMonitor.intelChannel, FakeChatLogMonitor.chatChannel].map { ref in
-            DiscoveredChannel(id: ref.id ?? ref.name, name: ref.name, kind: .player, listeners: listeners,
-                              lastModified: now)
+            DiscoveredChannel(id: ref.id ?? ref.name, name: ref.name, kind: .player, listeners: names.count,
+                              lastModified: now, listenerNames: names)
         }
     }
 

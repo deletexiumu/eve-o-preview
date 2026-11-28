@@ -147,7 +147,7 @@ pub enum ChatLogStatus {
     AccessDenied(String),
 }
 
-/// 日志目录里发现的一个频道，给设置界面的「从日志添加」用（5.3 节）。
+/// 日志目录里发现的一个频道，给设置界面的「从日志添加」与翻译浮窗的频道切换用（5.3 节）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DiscoveredChannel {
     /// Channel ID。
@@ -160,11 +160,19 @@ pub struct DiscoveredChannel {
     pub listeners: usize,
     /// 最近一个文件的修改时间，1970 年以来的秒数。
     pub last_modified: f64,
+    /// 出现过这个频道的角色名（小写、已去重并排序），浮窗切换频道时据此优先排当前角色。
+    pub listener_names: Vec<String>,
 }
 
 impl DiscoveredChannel {
     /// 写进配置用的频道：名字与 ID 都存。
     pub fn channel_ref(&self) -> ChannelRef {
         ChannelRef::new(&self.name, Some(&self.id))
+    }
+
+    /// 这个频道的近期日志里有没有出现过某个角色（不区分大小写）。
+    pub fn has_listener(&self, character: &str) -> bool {
+        let key = character.trim().to_lowercase();
+        !key.is_empty() && self.listener_names.iter().any(|name| name == &key)
     }
 }

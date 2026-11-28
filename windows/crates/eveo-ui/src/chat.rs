@@ -435,6 +435,7 @@ pub(crate) mod tests {
             kind,
             listeners: 1,
             last_modified: 0.0,
+            listener_names: Vec::new(),
         };
         let discovered = [
             found("player_a", "intel.A", ChatChannelKind::Player),

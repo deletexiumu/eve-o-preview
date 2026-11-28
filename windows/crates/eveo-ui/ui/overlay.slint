@@ -39,6 +39,8 @@ export component OverlayWindow inherits Window {
     in property <length> font-size: 12px;
     // 标题行。
     in property <string> title-text;
+    // 标题行右侧频道切换按钮的文字；空串时不显示按钮（预警浮窗没有这一项）。
+    in property <string> channel-label;
     // 状态行；空串时不显示。
     in property <string> status-text;
     // 状态行的级别：0 说明，1 提醒，2 错误。
@@ -65,6 +67,8 @@ export component OverlayWindow inherits Window {
     callback scrolled(distance-from-bottom: length);
     // 用户点了新消息条。
     callback new-messages-clicked();
+    // 用户点了标题栏右侧的频道切换按钮。
+    callback channel-switcher-clicked();
 
     // 滚到底部。内容比可见区域矮时停在顶部。
     public function scroll-to-bottom() {
@@ -111,20 +115,58 @@ export component OverlayWindow inherits Window {
 
     VerticalLayout {
         padding-left: 8px;
-        // 右侧与底部各留 6，滚动条不与缩放用的边缘带重叠（8.7 节）。
+        // 右侧、顶部与底部各留 6，滚动条与频道切换按钮不与缩放用的边缘带重叠（8.7 节）。
         padding-right: 6px;
-        padding-top: 4px;
+        padding-top: 6px;
         padding-bottom: 6px;
         spacing: 2px;
 
-        // 标题行：粗体，高度是字号加 10。
-        Text {
-            text: root.title-text;
+        // 标题行：左侧粗体标题，有频道切换文字时右侧显示紧凑按钮。
+        HorizontalLayout {
             height: root.font-size + 10px;
-            font-weight: 700;
-            color: #ffffff;
-            vertical-alignment: center;
-            overflow: elide;
+            spacing: 6px;
+            alignment: stretch;
+
+            Text {
+                text: root.title-text;
+                horizontal-stretch: 1;
+                font-weight: 700;
+                color: #ffffff;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.channel-label != "": Rectangle {
+                horizontal-stretch: 0;
+                // 显式绑定宽度（按文字首选宽加内边距，上限 48%），防止左侧长标题把短频道按钮一起挤扁。
+                width: min(max(72px, (root.width - 20px) * 0.48), channel-text.preferred-width + 12px);
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: channel-touch.has-hover ? #ffffff57 : #ffffff33;
+                background: channel-touch.has-hover ? #ffffff33 : #ffffff1a;
+
+                HorizontalLayout {
+                    padding-left: 6px;
+                    padding-right: 6px;
+
+                    channel-text := Text {
+                        text: root.channel-label + " ▾";
+                        color: #ffffffeb;
+                        font-size: root.secondary-size;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                channel-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.channel-switcher-clicked();
+                    }
+                }
+            }
         }
 
         // 状态行。

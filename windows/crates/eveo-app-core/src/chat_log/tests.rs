@@ -434,8 +434,12 @@ fn discovers_recent_channels() {
         .collect();
     ids.sort();
     assert_eq!(ids, [(INTEL.1, INTEL.0, 2), ("player_feed", "chat.Demo", 1)]);
-    // 14 天以前的文件不列：把「现在」挪到 15 天以后。
-    assert!(discover_channels(Some(&text(&chat)), "unused", now + WINDOW_SECONDS + 86_400.0).is_empty());
+    // 发现结果保留去重并排序后的小写角色名，浮窗切换频道时据此优先排当前角色。
+    let intel_channel = found.iter().find(|c| c.id == INTEL.1).expect("发现预警频道");
+    assert_eq!(intel_channel.listener_names, ["kael doran", "lyra quell"]);
+    // 窗口是 24 小时，早于 24 小时的文件不列。
+    assert_eq!(WINDOW_SECONDS, 86_400.0);
+    assert!(discover_channels(Some(&text(&chat)), "unused", now + WINDOW_SECONDS + 1.0).is_empty());
     // 目录不存在时为空。
     assert!(discover_channels(Some(&text(&dir.join("missing"))), "unused", now).is_empty());
     let _ = fs::remove_dir_all(&dir);

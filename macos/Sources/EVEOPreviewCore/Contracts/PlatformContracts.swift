@@ -177,7 +177,7 @@ public struct HotkeyRegistrationFailure: Sendable, Equatable {
     func start(_ request: ChatLogRequest)
     /// 停止跟踪，关闭全部文件描述符，状态变成 `stopped`。
     func stop()
-    /// 列出日志目录里最近 14 天出现过的频道，给设置界面挑选。可在未跟踪时调用。
+    /// 列出日志目录里最近 24 小时出现过的频道，给设置界面与翻译浮窗挑选。可在未跟踪时调用。
     /// 私聊频道与文件头不完整的文件不列出，结果按 `lastModified` 从新到旧排序。
     func discoverChannels(logDirectory: String?) async -> [DiscoveredChannel]
 }

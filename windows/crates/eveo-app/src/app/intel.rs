@@ -25,18 +25,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use eveo_app_core::chat::features::{ChatFeatures, StaticDataLoad, TailerCommand};
 use eveo_app_core::chat::intel::IntelController;
 use eveo_app_core::chat::static_file;
+use eveo_app_core::chat_log::discovery::discover_channels;
 use eveo_app_core::chat_log::{ChatLogMessage, ChatLogTailer};
 use eveo_app_core::log::Logger;
 use eveo_app_core::paths::DataPaths;
 use eveo_app_core::pilots::PilotLookupService;
 use eveo_app_core::pilots::store::PilotNameStore;
 use eveo_app_core::state_store::StateStore;
-use eveo_app_core::{DragContext, Event};
+use eveo_app_core::{DragContext, Event, OverlayMenuAction};
 use eveo_core::chat_log::{ChatLogStatus, DiscoveredChannel};
 use eveo_core::geometry::{ScreenPoint, ScreenRect};
 use eveo_core::model::AppLanguage;
 use eveo_core::overlay::OverlayKind;
 use eveo_core::overlay::planner::OverlayPresentation;
+use eveo_core::translation::switcher;
 use eveo_platform_win::{esi, menu, shell};
 
 use super::alerts::automatic_directory;
@@ -44,7 +46,7 @@ use super::intel_page::IntelPage;
 use super::logging::{self, QuitTimer};
 use super::translation::{self, TranslationPage};
 use super::{App, Runtime};
-use crate::menus::{self, OverlayChoice};
+use crate::menus::{self, ChannelMenuChoice, OverlayChoice};
 use crate::overlays::{DragContextProvider, InfoOverlays, OverlayEvent};
 
 /// 嵌进 exe 的星图数据（shared/static/eve-static.json，约 755 KB）。
@@ -88,6 +90,8 @@ pub(super) struct ChatRuntime {
     pub(super) discovered: Option<Vec<DiscoveredChannel>>,
     /// 扫描线程交回结果的通道；没在扫描时为 None。
     pub(super) discovery: Option<Receiver<Vec<DiscoveredChannel>>>,
+    /// 翻译浮窗频道切换按钮触发的后台扫描：记下浮窗种类、弹出锚点与结果通道，免得在主线程同步扫盘。
+    pending_channel_menu: Option<(OverlayKind, ScreenPoint, Receiver<Vec<DiscoveredChannel>>)>,
 }
 
 impl ChatRuntime {
@@ -121,6 +125,7 @@ impl ChatRuntime {
             refresh_at: None,
             discovered: None,
             discovery: None,
+            pending_channel_menu: None,
         }
     }
 }
@@ -272,6 +277,8 @@ impl App {
         for event in self.chat.overlays.drain_events() {
             self.overlay_event(event, runtime);
         }
+        // 频道切换按钮的后台扫描完成后，在此弹出模态菜单并处理用户选择。
+        self.poll_channel_menu(runtime);
     }
 
     /// 应用退出：停掉人名核对（有改动时同步存盘）与翻译，再停聊天日志的跟踪服务。分两步，各记耗时。
@@ -341,6 +348,9 @@ impl App {
                 self.send(Event::OverlayDragEnded { kind, frame }, runtime)
             }
             OverlayEvent::Menu { kind, point, row } => self.overlay_menu(kind, point, row, runtime),
+            OverlayEvent::ChannelSwitcher { kind, point } => {
+                self.overlay_channel_menu(kind, point);
+            }
             // 拖动开始与取消只影响浮窗自己（它不让规划改正在拖动的浮窗），协调器不需要知道。
             OverlayEvent::DragBegan(_) | OverlayEvent::DragCancelled(_) => {}
         }
@@ -359,6 +369,8 @@ impl App {
         let locked = self.coordinator.profile().behavior.lock_layout;
         let entries = menus::overlay_menu(locked, line.as_ref(), self.language);
         let chosen = menu::popup(self.tray.hwnd(), point, &entries);
+        // 模态菜单关闭后光标可能已移出浮窗，主动清除悬停态，避免按钮或行高亮卡住。
+        self.chat.overlays.clear_hover(kind);
         let Some(choice) = chosen
             .ok()
             .flatten()
@@ -381,6 +393,85 @@ impl App {
                 }
             }
             OverlayChoice::Coordinator(action) => self.send(Event::OverlayMenu { kind, action }, runtime),
+        }
+    }
+
+    /// 点击了翻译浮窗的频道切换按钮：在后台线程扫最近 24 小时的日志频道，结果在定时器里取回后弹菜单。
+    /// 重复点击时替换旧的待弹请求，旧线程的发送端被丢弃后自然结束。
+    fn overlay_channel_menu(&mut self, kind: OverlayKind, point: ScreenPoint) {
+        if kind != OverlayKind::Translation {
+            return;
+        }
+        let configured = self.coordinator.config().general.eve_log_directory.clone();
+        let automatic = automatic_directory();
+        let (sender, receiver) = mpsc::channel();
+        let spawned = std::thread::Builder::new()
+            .name("chat-channel-menu".to_owned())
+            .spawn(move || {
+                // 扫描期间用户再次点击或退出应用时接收端已丢掉，发送失败无妨。
+                let _ = sender.send(discover_channels(configured.as_deref(), &automatic, wall_clock()));
+            });
+        if spawned.is_ok() {
+            self.chat.pending_channel_menu = Some((kind, point, receiver));
+        }
+    }
+
+    /// 定时器里检查频道切换的后台扫描：完成后同步刷新设置页列表，并在浮窗仍可见时弹出单选切换菜单。
+    fn poll_channel_menu(&mut self, runtime: &Rc<Runtime>) {
+        let Some((_, _, receiver)) = &self.chat.pending_channel_menu else {
+            return;
+        };
+        let discovered = match receiver.try_recv() {
+            Ok(found) => found,
+            Err(mpsc::TryRecvError::Empty) => return,
+            Err(mpsc::TryRecvError::Disconnected) => {
+                self.chat.pending_channel_menu = None;
+                return;
+            }
+        };
+        let Some((kind, point, _)) = self.chat.pending_channel_menu.take() else {
+            return;
+        };
+        // 同步更新设置页里的「从日志添加」列表，保证下拉框下标与最新发现结果一致。
+        self.chat.discovered = Some(discovered.clone());
+        self.show_discovered();
+        // 扫描期间浮窗可能被隐藏或关闭，此时不再弹菜单。
+        if !self.chat.features.visible().contains(&kind) {
+            return;
+        }
+        let selected = self.coordinator.profile().translation.channels.clone();
+        let active = self.chat.features.active_character();
+        let (entries, choices) =
+            menus::translation_channel_menu(&selected, &discovered, active, self.language);
+        let chosen = menu::popup(self.tray.hwnd(), point, &entries);
+        // 菜单关闭后清除按钮的悬停高亮，避免光标在菜单外松开后按钮一直亮着。
+        self.chat.overlays.clear_hover(kind);
+        let Some(choice) = chosen
+            .ok()
+            .flatten()
+            .and_then(|id| menus::translation_channel_choice(id, &choices))
+        else {
+            return;
+        };
+        match choice {
+            ChannelMenuChoice::Select(channel) => {
+                // 已经是唯一且带相同 ID 的翻译频道时不做无谓的重建，免得清空列表重读。
+                if switcher::is_only_selected(&channel, &self.coordinator.profile().translation.channels) {
+                    return;
+                }
+                let mut config = self.coordinator.config().clone();
+                if let Some(profile) = config.active_profile_mut() {
+                    profile.translation.channels = vec![channel];
+                }
+                self.send(Event::ConfigEdited(config), runtime);
+            }
+            ChannelMenuChoice::OpenSettings => self.send(
+                Event::OverlayMenu {
+                    kind,
+                    action: OverlayMenuAction::OpenSettings,
+                },
+                runtime,
+            ),
         }
     }
 }

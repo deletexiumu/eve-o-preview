@@ -55,4 +55,8 @@ struct OverlayStringsFR: OverlayStrings {
     var builtInCorp: String { "Corporation" }
     var builtInAlliance: String { "Alliance" }
     var builtInFleet: String { "Flotte" }
+    // MARK: 翻译浮窗频道切换
+    var channelSwitcherEmpty: String { "Choisir un canal" }
+    var menuBuiltInChannelsHeader: String { "Canaux intégrés" }
+    var menuRecentChannelsHeader: String { "Canaux récents (24 h)" }
 }
