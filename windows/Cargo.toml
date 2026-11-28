@@ -30,7 +30,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "1.5.2"
+version = "1.5.3"
 edition = "2024"
 rust-version = "1.88"
 license = "GPL-3.0-or-later"
@@ -72,6 +72,7 @@ windows = { version = "0.62", features = [
     "Win32_System_Com",
     "Win32_System_DataExchange",
     "Win32_System_Diagnostics_Debug",
+    "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Kernel",
     "Win32_System_LibraryLoader",
     "Win32_System_Memory",

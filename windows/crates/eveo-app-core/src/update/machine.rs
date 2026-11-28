@@ -217,6 +217,8 @@ pub struct UpdateMachine {
     relaunch_failed: bool,
     /// 这次运行已为哪个版本发过托盘通知。
     notified_version: Option<String>,
+    /// 当前后台下载是否由用户手动检查触发：失败时只回到「可用」，不再重复弹托盘通知。
+    background_from_user_check: bool,
 }
 
 impl UpdateMachine {
@@ -242,6 +244,7 @@ impl UpdateMachine {
             is_terminating: false,
             relaunch_failed: false,
             notified_version: None,
+            background_from_user_check: false,
         }
     }
 
@@ -394,18 +397,23 @@ impl UpdateMachine {
 
     // MARK: 定时
 
-    /// 定时器里调用（间隔不限，每秒一次即可）。clients_running：现在有没有 EVE 客户端在运行。
+    /// 定时器里调用（间隔不限，每秒一次即可）。
+    /// `defer_idle_install` 为真（存在 EVE 客户端/进程，或打开着设置/更新/报告窗口）时推迟空闲自动安装。
     ///
     /// 空闲安装与定时检查都在这里：前者每次都看（客户端的进出要及时反映），后者只在到了醒来的时刻才看。
     /// 两者同一次只做一件：空闲安装开始后本次不再检查，安装中 is_busy 为真，之后的检查也会让开。
-    pub fn tick(&mut self, state: &mut UpdateState, now: f64, clients_running: bool) -> Vec<Command> {
+    pub fn tick(&mut self, state: &mut UpdateState, now: f64, defer_idle_install: bool) -> Vec<Command> {
         let mut commands = Vec::new();
         if self.capability == InstallCapability::Unavailable {
             return commands;
         }
-        // 待安装时看空闲：没有客户端运行的时长从第一次看到「没有」时算起，看到有客户端就清零。
-        if matches!(self.phase, UpdatePhase::ReadyToInstall(_)) && !self.is_terminating {
-            if clients_running {
+        // 待安装时看空闲：两个自动开关均打开、没有 EVE 进程且未打开交互窗口的时长从第一次看到空闲起算，任一条件不满足即清零。
+        if matches!(self.phase, UpdatePhase::ReadyToInstall(_))
+            && self.switches.check
+            && self.switches.auto_install
+            && !self.is_terminating
+        {
+            if defer_idle_install {
                 self.idle_since = None;
             } else {
                 let since = *self.idle_since.get_or_insert(now);
@@ -446,7 +454,7 @@ impl UpdateMachine {
             return Vec::new();
         }
         let release = release.clone();
-        self.prepare_in_background(state, release)
+        self.prepare_in_background(state, release, false)
     }
 
     /// 自动检查：开关打开、没有在忙、到时才检查。
@@ -488,7 +496,14 @@ impl UpdateMachine {
             self.rederive(state);
         }
         if !was_checking && switches.check {
-            return self.automatic_check_if_due(state, now, false);
+            let commands = self.automatic_check_if_due(state, now, false);
+            if !commands.is_empty() {
+                return commands;
+            }
+        }
+        // 自动安装打开且当前已有可用更新时，立即在后台静默下载（下载完进入待安装，不打断运行中的 EVE）。
+        if switches.check && switches.auto_install && !self.is_checking {
+            return self.resume_cached_download(state);
         }
         Vec::new()
     }
@@ -643,15 +658,25 @@ impl UpdateMachine {
                 Vec::new()
             };
         }
-        if user {
-            self.phase = UpdatePhase::Available(offered);
-            return vec![Command::ShowWindow { activate: true }];
-        }
-        if self.switches.auto_install
+        let is_skipped = state.skipped_version.as_deref().and_then(SemanticVersion::parse)
+            == SemanticVersion::parse(&offered.version);
+        // 自动安装依附于自动检查：只有两个开关都开着、能安装、没跳过且没装失败过才在后台自动下载。
+        let can_auto_download = self.switches.check
+            && self.switches.auto_install
             && self.capability == InstallCapability::CanInstall
-            && !Self::has_failed_install(state, &offered.version)
-        {
-            return self.prepare_in_background(state, offered);
+            && !is_skipped
+            && !Self::has_failed_install(state, &offered.version);
+        if user {
+            let mut commands = vec![Command::ShowWindow { activate: true }];
+            if can_auto_download {
+                commands.extend(self.prepare_in_background(state, offered, true));
+            } else {
+                self.phase = UpdatePhase::Available(offered);
+            }
+            return commands;
+        }
+        if can_auto_download {
+            return self.prepare_in_background(state, offered, false);
         }
         self.prompt_automatically(offered)
     }
@@ -709,18 +734,30 @@ impl UpdateMachine {
     }
 
     /// 自动安装的后台下载，不显示窗口。已有可用的下载时直接进入「待安装」。
-    fn prepare_in_background(&mut self, state: &mut UpdateState, release: ReleaseInfo) -> Vec<Command> {
+    fn prepare_in_background(
+        &mut self,
+        state: &mut UpdateState,
+        release: ReleaseInfo,
+        from_user_check: bool,
+    ) -> Vec<Command> {
         if self.capability != InstallCapability::CanInstall || self.is_busy() {
-            return self.prompt_automatically(release);
+            return if from_user_check {
+                self.phase = UpdatePhase::Available(release);
+                Vec::new()
+            } else {
+                self.prompt_automatically(release)
+            };
         }
         if let Some(prepared) = &state.prepared
             && prepared.version == release.version
             && self.is_usable(prepared, state)
         {
+            self.background_from_user_check = false;
             self.become_ready(release);
             return Vec::new();
         }
         self.job = None;
+        self.background_from_user_check = from_user_check;
         self.phase = UpdatePhase::Downloading(release.clone(), Self::initial_progress(&release));
         vec![Command::Prepare(release)]
     }
@@ -761,14 +798,20 @@ impl UpdateMachine {
             _ => return Vec::new(),
         };
         let job = self.job.take();
+        let from_user_check = std::mem::take(&mut self.background_from_user_check);
         match result {
             Ok(prepared) => {
                 state.prepared = Some(prepared.clone());
                 match job {
-                    // 为安装而下载的：接着安装。
+                    // 为安装而下载的（或用户中途点了「安装更新」）：接着安装。
                     Some(job) => self.begin_install(prepared, job),
-                    None => {
+                    // 后台下载完成：如果自动安装仍开着就进入「待安装」（由空闲定时决定何时静默安装），否则退回「可用」。
+                    None if self.switches.check && self.switches.auto_install => {
                         self.become_ready(release);
+                        Vec::new()
+                    }
+                    None => {
+                        self.phase = UpdatePhase::Available(release);
                         Vec::new()
                     }
                 }
@@ -782,52 +825,24 @@ impl UpdateMachine {
                 Some(job) => {
                     self.record_failure(state, now, &error, &job.release.version);
                     self.phase = UpdatePhase::Failed(error, Some(job.release));
-                    vec![Command::ShowWindow { activate: false }]
+                    vec![Command::ShowWindow {
+                        activate: job.user_initiated,
+                    }]
                 }
-                // 后台下载失败：退回普通提示。
+                // 后台下载失败：手动检查触发的只回退到「可用」，自动检查触发的发一次普通通知。
+                None if from_user_check => {
+                    self.phase = UpdatePhase::Available(release);
+                    Vec::new()
+                }
                 None => self.prompt_automatically(release),
             },
         }
     }
 
-    /// 取消进行中的下载或核对。安装开始后不能取消。
-    pub fn cancel(&mut self) -> Vec<Command> {
-        match self.phase {
-            UpdatePhase::Downloading(..) | UpdatePhase::Verifying(_) => vec![Command::CancelPrepare],
-            _ => Vec::new(),
-        }
-    }
-
     // MARK: 安装
 
-    /// 窗口的「安装更新」：下载（已有可用的下载时跳过）、安装、重新启动。只提示的构建改为打开发布页。
-    ///
-    /// 从「可用」「待安装」或失败的阶段都能点；忙的时候（连点、按钮与菜单项同时）第二次什么都不做：
-    /// 第一次调用已同步把阶段改成下载中或安装中。
-    pub fn install(&mut self, state: &mut UpdateState) -> Vec<Command> {
-        match self.capability {
-            InstallCapability::Unavailable => Vec::new(),
-            InstallCapability::NotifyOnly(_) => vec![self.release_page_command(state)],
-            InstallCapability::CanInstall => match self.current_release().cloned() {
-                Some(release) if !self.is_busy() => self.start_install(state, release, true, true),
-                _ => Vec::new(),
-            },
-        }
-    }
-
-    /// 托盘菜单的「重新启动以更新」，以及空闲时的自动安装。
-    pub fn restart_to_install(&mut self, state: &mut UpdateState) -> Vec<Command> {
-        if self.capability != InstallCapability::CanInstall || self.is_busy() || self.is_terminating {
-            return Vec::new();
-        }
-        match self.phase.clone() {
-            UpdatePhase::ReadyToInstall(release) => self.start_install(state, release, true, false),
-            _ => Vec::new(),
-        }
-    }
-
     /// 定出起始阶段：已有可用的下载时直接安装，否则先下载。不能用的旧下载在这里丢掉。
-    fn start_install(
+    pub(super) fn start_install(
         &mut self,
         state: &mut UpdateState,
         release: ReleaseInfo,

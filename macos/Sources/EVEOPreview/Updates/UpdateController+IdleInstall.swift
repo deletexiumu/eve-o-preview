@@ -60,8 +60,11 @@ extension UpdateController {
     /// 现在是否空闲，条件见文件头。
     private var isIdleForInstall: Bool {
         guard coordinator.registry.clients.isEmpty else { return false }
-        let eveRunning = NSWorkspace.shared.runningApplications.contains {
-            $0.bundleIdentifier == CGWindowProvider.eveBundleIdentifier && !$0.isTerminated
+        let eveRunning = NSWorkspace.shared.runningApplications.contains { app in
+            guard !app.isTerminated else { return false }
+            if app.bundleIdentifier == CGWindowProvider.eveBundleIdentifier { return true }
+            let executable = app.executableURL?.lastPathComponent.lowercased()
+            return executable == "exefile" || executable == "exefile.exe"
         }
         guard !eveRunning else { return false }
         // 菜单栏图标与缩略图都是无标题栏的窗口，只看带标题栏、可见的窗口。
