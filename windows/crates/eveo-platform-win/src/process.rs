@@ -9,6 +9,9 @@ use std::path::Path;
 
 use windows::Win32::Foundation::{CloseHandle, FILETIME, HANDLE};
 use windows::Win32::Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation};
+use windows::Win32::System::Diagnostics::ToolHelp::{
+    CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
+};
 use windows::Win32::System::Threading::{
     GetCurrentProcess, GetProcessTimes, OpenProcess, OpenProcessToken, PROCESS_NAME_WIN32,
     PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
@@ -63,6 +66,47 @@ pub fn process_info(pid: u32) -> Option<ProcessInfo> {
 pub fn current_process_elevated() -> Option<bool> {
     // SAFETY: GetCurrentProcess 返回伪句柄，不需要关闭。
     token_elevated(unsafe { GetCurrentProcess() })
+}
+
+/// 枚举当前系统的进程列表，检查是否存在指定映像名（不区分大小写）的进程。
+///
+/// 使用 ToolHelp 进程快照，无需打开目标进程句柄，管理员权限运行的客户端或尚未创建主窗口的启动中进程都能识别。
+/// 空名单直接返回 `false`；若快照创建或首条枚举失败，说明系统调用受阻，保守返回 `true`（视作客户端可能正在运行，
+/// 避免在未知状态下误触发静默更新重启，打断正在运行的 EVE 客户端）。
+pub fn any_process_running(image_names: &[String]) -> bool {
+    if image_names.is_empty() {
+        return false;
+    }
+    // SAFETY: TH32CS_SNAPPROCESS 无需指定进程 ID，返回句柄由 OwnedHandle 负责关闭。
+    let Ok(snapshot) = (unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) }) else {
+        return true;
+    };
+    let snapshot = OwnedHandle(snapshot);
+    let mut entry = PROCESSENTRY32W {
+        dwSize: size_of::<PROCESSENTRY32W>() as u32,
+        ..Default::default()
+    };
+    // SAFETY: entry.dwSize 已正确填写，snapshot 为有效的进程快照句柄。
+    // 存活系统里快照至少包含本进程自身，Process32FirstW 失败说明枚举受阻，按保守策略返回 true 避免误重启。
+    if unsafe { Process32FirstW(snapshot.0, &mut entry) }.is_err() {
+        return true;
+    }
+    loop {
+        // szExeFile 是以 NUL 结尾的固定长 UTF-16 缓冲区，只截到首个 NUL 之前。
+        let len = entry
+            .szExeFile
+            .iter()
+            .position(|&unit| unit == 0)
+            .unwrap_or(entry.szExeFile.len());
+        let name = from_wide(&entry.szExeFile, len);
+        if image_names.iter().any(|target| name.eq_ignore_ascii_case(target)) {
+            return true;
+        }
+        // SAFETY: entry 与 snapshot 均有效，继续枚举下一项直到失败（ERROR_NO_MORE_FILES）。
+        if unsafe { Process32NextW(snapshot.0, &mut entry) }.is_err() {
+            return false;
+        }
+    }
 }
 
 /// 映像的完整路径。

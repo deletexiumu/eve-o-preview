@@ -10,9 +10,14 @@
 
 use eveo_core::model::AppLanguage;
 use eveo_core::update::notes::{self, ReleaseNotesBlock};
-use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, StyledText, VecModel};
 
 use crate::{NotesBlock, UpdateModel, UpdateWindow};
+
+#[path = "update_markdown.rs"]
+mod markdown;
+
+pub use markdown::{is_safe_https_url, normalize_safe_https_url};
 
 /// 窗口的阶段，数值与 update.slint 的 UpdateModel.phase 相同。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +47,8 @@ pub enum PhaseKind {
 pub struct UpdateView {
     /// 阶段。
     pub phase: PhaseKind,
+    /// 是否正在后台静默下载（用户尚未点击「安装更新」）。
+    pub background_downloading: bool,
     /// 大标题。
     pub headline: String,
     /// 副标题；空串表示没有。
@@ -73,6 +80,7 @@ pub fn set_language(window: &UpdateWindow, language: AppLanguage) {
 pub fn apply(window: &UpdateWindow, view: &UpdateView) {
     let model = window.global::<UpdateModel>();
     model.set_phase(view.phase as i32);
+    model.set_background_downloading(view.background_downloading);
     model.set_headline(SharedString::from(view.headline.as_str()));
     model.set_subtitle(SharedString::from(view.subtitle.as_str()));
     model.set_notify_only(SharedString::from(view.notify_only.as_str()));
@@ -112,7 +120,9 @@ pub fn notes_blocks(
         if index > 0 {
             result.push(NotesBlock {
                 kind: 4,
+                styled: StyledText::default(),
                 text: version_title(version).into(),
+                marker: SharedString::default(),
                 level: 0,
             });
         }
@@ -121,20 +131,45 @@ pub fn notes_blocks(
     result
 }
 
-/// 一块说明换成窗口的块。编号列表的序号拼进文字，按列表项画（不加圆点的写法要另一个种类，没有必要）。
+/// 一块说明换成窗口的块：标题、段落与列表项渲染行内 Markdown，代码块保留原始等宽文本。
 fn block(source: ReleaseNotesBlock) -> NotesBlock {
-    let (kind, text, level) = match source {
-        ReleaseNotesBlock::Heading { level, text } => (0, text, level),
-        ReleaseNotesBlock::Paragraph(text) => (1, text, 0),
-        ReleaseNotesBlock::Bullet { depth, text } => (2, text, depth),
-        ReleaseNotesBlock::Numbered { number, text } => (2, format!("{number}. {text}"), 0),
-        ReleaseNotesBlock::Code(text) => (3, text, 0),
-    };
-    NotesBlock {
-        kind,
-        text: text.into(),
-        // 层级不会超过几十；万一超出 i32 就按最大值画（缩进由界面限制在窗口内）。
-        level: i32::try_from(level).unwrap_or(i32::MAX),
+    match source {
+        ReleaseNotesBlock::Heading { level, text } => NotesBlock {
+            kind: 0,
+            styled: markdown::render_inline(&text, true),
+            text: SharedString::default(),
+            marker: SharedString::default(),
+            level: i32::try_from(level).unwrap_or(i32::MAX),
+        },
+        ReleaseNotesBlock::Paragraph(text) => NotesBlock {
+            kind: 1,
+            styled: markdown::render_inline(&text, false),
+            text: SharedString::default(),
+            marker: SharedString::default(),
+            level: 0,
+        },
+        ReleaseNotesBlock::Bullet { depth, text } => NotesBlock {
+            kind: 2,
+            styled: markdown::render_inline(&text, false),
+            text: SharedString::default(),
+            // 嵌套无序列表用空心圆点，与 macOS 的 ReleaseNotesView 一致。
+            marker: if depth == 0 { "•" } else { "◦" }.into(),
+            level: i32::try_from(depth).unwrap_or(i32::MAX),
+        },
+        ReleaseNotesBlock::Numbered { number, text } => NotesBlock {
+            kind: 2,
+            styled: markdown::render_inline(&text, false),
+            text: SharedString::default(),
+            marker: format!("{number}.").into(),
+            level: 0,
+        },
+        ReleaseNotesBlock::Code(text) => NotesBlock {
+            kind: 3,
+            styled: StyledText::default(),
+            text: text.into(),
+            marker: SharedString::default(),
+            level: 0,
+        },
     }
 }
 
@@ -158,24 +193,44 @@ pub fn byte_size(bytes: u64) -> String {
 mod tests {
     use super::*;
 
-    /// 最新版不加小标题；中间版本各加一个；空正文的版本跳过；按界面语言选块。
+    /// 最新版不加小标题；中间版本各加一个；空正文的版本跳过；按界面语言选块并渲染行内 Markdown。
     #[test]
     fn builds_blocks() {
-        let latest = "<!-- lang:en -->\n## Fixes\n- one\n  - two\n1. first\n<!-- /lang:en -->\n<!-- lang:zh -->\n## 修复\n- 一\n<!-- /lang:zh -->";
+        use i_slint_core::styled_text::get_raw_text;
+        let latest = "<!-- lang:en -->\n## Fixes\n- **Bold:** one\n  - two\n1. first\n<!-- /lang:en -->\n<!-- lang:zh -->\n## 修复\n- **粗体：** 一\n<!-- /lang:zh -->";
         let blocks = notes_blocks(
             AppLanguage::Zh,
             &[("0.9.2", latest), ("0.9.1", ""), ("0.9.0", "Plain paragraph.")],
             |v| format!("版本 {v}"),
         );
-        let kinds: Vec<(i32, &str)> = blocks.iter().map(|b| (b.kind, b.text.as_str())).collect();
+        let summary: Vec<(i32, String)> = blocks
+            .iter()
+            .map(|b| {
+                let text = if b.kind == 3 || b.kind == 4 {
+                    b.text.to_string()
+                } else {
+                    get_raw_text(&b.styled).into_owned()
+                };
+                (b.kind, text)
+            })
+            .collect();
         assert_eq!(
-            kinds,
-            [(0, "修复"), (2, "一"), (4, "版本 0.9.0"), (1, "Plain paragraph.")]
+            summary,
+            [
+                (0, "修复".to_owned()),
+                (2, "粗体： 一".to_owned()),
+                (4, "版本 0.9.0".to_owned()),
+                (1, "Plain paragraph.".to_owned()),
+            ]
         );
-        // 英文界面：嵌套的列表项带层级，编号拼进文字。
+        assert!(format!("{:?}", blocks[1].styled).contains("Strong"));
+        // 英文界面：嵌套列表用空心圆点带缩进，有序列表用数字记号而不拼进正文。
         let english = notes_blocks(AppLanguage::En, &[("0.9.2", latest)], |v| v.to_owned());
+        assert_eq!(english[1].marker.as_str(), "•");
         assert_eq!(english[2].level, 1);
-        assert_eq!(english[3].text.as_str(), "1. first");
+        assert_eq!(english[2].marker.as_str(), "◦");
+        assert_eq!(english[3].marker.as_str(), "1.");
+        assert_eq!(get_raw_text(&english[3].styled), "first");
     }
 
     /// 大小的写法。

@@ -42,13 +42,17 @@ use eveo_core::update::models::{InstallBlocker, InstallCapability, RunningApp, U
 use eveo_core::update::version::SemanticVersion;
 use eveo_platform_win::update as platform;
 use eveo_platform_win::{activation, appearance};
-use eveo_ui::update::{PhaseKind, UpdateView};
 use slint::ComponentHandle;
 
 use super::intel::wall_clock;
 use super::update_jobs::{self, PrepareContext};
 use super::update_launch::version_label;
 use super::{App, Input, Runtime, post, shell};
+
+#[path = "update_view.rs"]
+mod view;
+
+use view::NotesCache;
 
 /// 更新的日志。
 const LOG: Logger = Logger::new("Update");
@@ -58,11 +62,13 @@ const WINDOW_SIZE: (f64, f64) = (640.0, 540.0);
 const QUIT_INSTALL_TIMEOUT: Duration = Duration::from_secs(8);
 /// 更新推进的间隔。
 const TICK_INTERVAL: Duration = Duration::from_millis(250);
+/// 待安装时检查 EVE 进程是否仍在运行的间隔：每 1 秒做一次 ToolHelp 快照，开销极低且响应及时。
+const PROCESS_PROBE_INTERVAL: Duration = Duration::from_secs(1);
 /// 下载进度最多多久交一次（字节）：每 256 KiB 一次，窗口的进度条够流畅，通道也不会塞满。
 const PROGRESS_STEP: u64 = 256 * 1024;
 
 /// 更新窗口与托盘菜单的操作。
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(super) enum UpdateInput {
     /// 安装更新。
     Install,
@@ -78,6 +84,8 @@ pub(super) enum UpdateInput {
     Retry,
     /// 打开发布页。
     OpenReleasePage,
+    /// 点击发布说明中的安全链接（仅允许 `https://`）。
+    OpenLink(String),
     /// 托盘菜单与「通用」页的「检查更新」。
     CheckNow,
     /// 托盘菜单的「有可用更新…」：显示窗口。
@@ -93,10 +101,10 @@ pub(super) enum UpdateInput {
 enum WorkResult {
     /// 检查的结果，与清单的序号（正式地址下检查成功时才有）。
     Checked(CheckOutcome, Option<u64>),
-    /// 下载的进度。
-    Progress(Progress),
-    /// 下载、核对与解包的结果。
-    Prepared(Result<PreparedUpdate, UpdateError>),
+    /// 下载的进度，附带任务代号以丢弃已跳过或被替换的旧任务回包。
+    Progress(u64, Progress),
+    /// 下载、核对与解包的结果，附带任务代号。
+    Prepared(u64, Result<PreparedUpdate, UpdateError>),
     /// 替换的结果。
     Installed(Result<PendingSwap, UpdateError>),
 }
@@ -121,6 +129,8 @@ pub(super) struct Updates {
     receiver: Receiver<WorkResult>,
     /// 取消下载的标志。每次下载换一个新的，旧任务晚到的取消不影响新任务。
     cancel: Arc<AtomicBool>,
+    /// 当前生效的下载任务代号：启动新下载或跳过版本时递增，用于丢弃过期的后台回包。
+    prepare_id: u64,
     /// 更新窗口；关掉后丢弃，下次重建。
     window: Option<eveo_ui::UpdateWindow>,
     /// 窗口固定文字所用的语言；新建的窗口是 None。界面语言变了时重填。
@@ -131,6 +141,12 @@ pub(super) struct Updates {
     pub(super) last_notification: bool,
     /// 最近一次交给状态机的开关；配置变了才通知它。
     switches: Switches,
+    /// 下一次通过进程快照核对 EVE 进程是否仍在运行的时刻。
+    next_process_probe: Instant,
+    /// 上一次进程快照是否检测到 EVE 进程。
+    eve_process_running: bool,
+    /// 已渲染好的发布说明缓存。
+    notes_cache: Option<NotesCache>,
 }
 
 /// 正式构建的公钥（打包时编进来）。
@@ -179,11 +195,15 @@ impl Updates {
             sender,
             receiver,
             cancel: Arc::new(AtomicBool::new(false)),
+            prepare_id: 0,
             window: None,
             window_language: None,
             focus_pending: false,
             last_notification: false,
             switches,
+            next_process_probe: Instant::now(),
+            eve_process_running: false,
+            notes_cache: None,
         }
     }
 
@@ -243,6 +263,8 @@ fn connect(window: &eveo_ui::UpdateWindow, runtime: &Rc<Runtime>) {
     model.on_retry(move || send(UpdateInput::Retry));
     let send = sender(runtime);
     model.on_open_release_page(move || send(UpdateInput::OpenReleasePage));
+    let send = sender(runtime);
+    model.on_open_link(move |url| send(UpdateInput::OpenLink(url.into())));
     // 标题栏的关闭按钮等于「稍后」：下载中关窗口不取消，下载在后台继续。
     let send = sender(runtime);
     window.window().on_close_requested(move || {
@@ -337,17 +359,28 @@ impl App {
                         machine.check_finished(state, now, outcome)
                     })
                 }
-                WorkResult::Progress(progress) => {
-                    self.updates.machine.progress(progress);
+                WorkResult::Progress(id, progress) => {
+                    if id == self.updates.prepare_id {
+                        self.updates.machine.progress(progress);
+                    }
                     Vec::new()
                 }
-                WorkResult::Prepared(result) => {
-                    match &result {
-                        Ok(prepared) => LOG.info(format_args!("更新 {} 已下载并核对", prepared.version)),
-                        Err(UpdateError::Cancelled) => LOG.info("下载更新已取消"),
-                        Err(error) => LOG.error(format_args!("下载更新失败：{}", error.code())),
+                WorkResult::Prepared(id, result) => {
+                    // 跳过版本或另起新下载后，旧线程晚到的回包一律忽略，已落盘的旧缓存文件顺手清理。
+                    if id != self.updates.prepare_id {
+                        if let Ok(prepared) = result {
+                            vec![Command::DeleteFile(prepared.exe_path)]
+                        } else {
+                            Vec::new()
+                        }
+                    } else {
+                        match &result {
+                            Ok(prepared) => LOG.info(format_args!("更新 {} 已下载并核对", prepared.version)),
+                            Err(UpdateError::Cancelled) => LOG.info("下载更新已取消"),
+                            Err(error) => LOG.error(format_args!("下载更新失败：{}", error.code())),
+                        }
+                        self.with_updates(|machine, state| machine.prepare_finished(state, now, result))
                     }
-                    self.with_updates(|machine, state| machine.prepare_finished(state, now, result))
                 }
                 WorkResult::Installed(result) => {
                     match &result {
@@ -359,12 +392,49 @@ impl App {
             };
             self.run_update_commands(commands, runtime);
         }
-        // 空闲安装只在没有 EVE 客户端时进行（状态机自己记「多久没有客户端」）：
-        // 换 exe 后重新启动会让缩略图消失几秒，不能在玩家正在用的时候发生。
-        let clients = !self.coordinator.registry().clients().is_empty();
-        let commands = self.with_updates(|machine, state| machine.tick(state, now, clients));
+        // 空闲静默安装只在没有 EVE 客户端窗口、系统里也没有 EVE 进程、且没有打开本应用交互窗口时进行：
+        // 换 exe 后重新启动会让缩略图消失几秒，不能在玩家运行 EVE 或操作设置窗口时发生。
+        let defer = self.should_defer_idle_install(now);
+        let commands = self.with_updates(|machine, state| machine.tick(state, now, defer));
         self.run_update_commands(commands, runtime);
         self.refresh_update_views();
+    }
+
+    /// 是否应推迟空闲自动安装：有已发现的客户端、系统存在 EVE 进程，或打开着设置/更新/问题报告窗口。
+    fn should_defer_idle_install(&mut self, now_wall: f64) -> bool {
+        if !self.coordinator.registry().clients().is_empty() {
+            return true;
+        }
+        if !matches!(self.updates.machine.phase(), UpdatePhase::ReadyToInstall(_)) {
+            self.updates.eve_process_running = false;
+            self.updates.next_process_probe = Instant::now();
+            return false;
+        }
+        // 本应用打开着交互窗口时暂不自动重启，避免突然关掉用户正在阅读或配置的界面。
+        let dialog_open = self.updates.window.is_some()
+            || self.diagnostics.report.is_some()
+            || self
+                .settings
+                .as_ref()
+                .is_some_and(|window| window.window().is_visible());
+        if dialog_open {
+            return true;
+        }
+        // 只看窗口列表不够：启动中、无可见主窗口或以管理员权限运行的 exefile.exe 也必须拦住。
+        // 临近 1 分钟空闲触发点时绕过 1 秒缓存做实时复核，避免刚启动的 EVE 进程漏检。
+        let now = Instant::now();
+        let force_probe = self.updates.machine.is_idle_install_imminent(now_wall);
+        if force_probe || now >= self.updates.next_process_probe {
+            self.updates.next_process_probe = now + PROCESS_PROBE_INTERVAL;
+            let fallback = [eveo_core::frame_cap::EXE_NAME.to_owned()];
+            let names = if self.filter.process_names.is_empty() {
+                &fallback[..]
+            } else {
+                &self.filter.process_names[..]
+            };
+            self.updates.eve_process_running = eveo_platform_win::process::any_process_running(names);
+        }
+        self.updates.eve_process_running
     }
 
     /// 更新窗口、托盘菜单与「通用」页的操作。
@@ -377,6 +447,10 @@ impl App {
             }
             UpdateInput::Skip => {
                 let commands = self.with_updates(|machine, state| machine.skip(state));
+                // 仅当状态机确实取消了在途后台下载时才递增代号，避免误伤人工下载。
+                if commands.iter().any(|c| matches!(c, Command::CancelPrepare)) {
+                    self.updates.prepare_id = self.updates.prepare_id.wrapping_add(1);
+                }
                 self.close_update_window();
                 commands
             }
@@ -397,6 +471,10 @@ impl App {
                 let state = &self.chat.state.state().updates;
                 self.updates.machine.open_release_page(state)
             }
+            UpdateInput::OpenLink(url) => match eveo_ui::update::normalize_safe_https_url(&url) {
+                Some(normalized) => vec![Command::OpenUrl(normalized)],
+                None => Vec::new(),
+            },
             UpdateInput::CheckNow => self.with_updates(|machine, state| machine.check_now(state, now)),
             UpdateInput::ShowWindow => vec![Command::ShowWindow { activate: true }],
         };
@@ -482,13 +560,13 @@ impl App {
 
     /// 在新线程里下载、核对与解包。
     fn spawn_prepare(&mut self, release: eveo_core::update::models::ReleaseInfo) {
+        self.updates.prepare_id = self.updates.prepare_id.wrapping_add(1);
+        let id = self.updates.prepare_id;
         let Some(public_key) = self.updates.public_key else {
-            let _ = self
-                .updates
-                .sender
-                .send(WorkResult::Prepared(Err(UpdateError::Blocked(
-                    InstallBlocker::NoSigningKey,
-                ))));
+            let _ = self.updates.sender.send(WorkResult::Prepared(
+                id,
+                Err(UpdateError::Blocked(InstallBlocker::NoSigningKey)),
+            ));
             return;
         };
         // 下载线程拿到的是这一刻的副本：检查地址、公钥、正在运行的版本与缓存目录在下载期间都不会变，
@@ -515,16 +593,16 @@ impl App {
                     let done = progress.total.is_some_and(|total| progress.received >= total);
                     if done || progress.received >= reported + PROGRESS_STEP {
                         reported = progress.received;
-                        let _ = progress_sender.send(WorkResult::Progress(progress));
+                        let _ = progress_sender.send(WorkResult::Progress(id, progress));
                     }
                 });
-                let _ = sender.send(WorkResult::Prepared(result));
+                let _ = sender.send(WorkResult::Prepared(id, result));
             });
         if spawned.is_err() {
-            let _ = self
-                .updates
-                .sender
-                .send(WorkResult::Prepared(Err(UpdateError::Network("thread".into()))));
+            let _ = self.updates.sender.send(WorkResult::Prepared(
+                id,
+                Err(UpdateError::Network("thread".into())),
+            ));
         }
     }
 
@@ -666,7 +744,12 @@ impl App {
                 eveo_ui::update::set_language(window, language);
             }
             // 状态机回到空闲（例如跳过之后）时窗口没有内容可显示，关掉。
-            match view(&self.updates.machine, &state, language) {
+            match view::build_view(
+                &self.updates.machine,
+                &state,
+                language,
+                &mut self.updates.notes_cache,
+            ) {
                 Some(view) => eveo_ui::update::apply(window, &view),
                 None => {
                     self.close_update_window();
@@ -683,11 +766,11 @@ impl App {
             }
         }
         if let Some(settings) = &self.settings {
-            let (status, can_check) = settings_status(&self.updates.machine, &state, language);
+            let (status, can_check) = view::settings_status(&self.updates.machine, &state, language);
             let text = eveo_l10n::updates(language);
             let last = state
                 .last_check_at
-                .map_or_else(|| text.last_checked_never().to_owned(), local_date_time);
+                .map_or_else(|| text.last_checked_never().to_owned(), view::local_date_time);
             eveo_ui::general::show_update_status(settings, version_label(), &last, &status, can_check);
         }
     }
@@ -722,215 +805,4 @@ fn log_check(outcome: &CheckOutcome) {
         CheckOutcome::RateLimited(_) => LOG.error("检查更新被限流"),
         CheckOutcome::Failed(error) => LOG.error(format_args!("检查更新失败：{}", error.code())),
     }
-}
-
-/// 时刻写成本地的「yyyy-MM-dd HH:mm」。
-///
-/// 时差按此刻的本地时区算（含夏令时）；记录里的时刻离现在最多几天，跨过夏令时切换的误差可以忽略。
-fn local_date_time(time: f64) -> String {
-    let shifted = time + eveo_platform_win::events::local_offset_seconds();
-    // ISO 8601 的「2026-11-24T16:30:00Z」取日期与时分。
-    let text = eveo_core::support::time::iso8601_seconds(shifted);
-    format!("{} {}", &text[..10], &text[11..16])
-}
-
-/// 时刻写成本地的「HH:mm」（限流的「请在 HH:mm 之后再试」）。
-fn local_time(time: f64) -> String {
-    local_date_time(time)[11..].to_owned()
-}
-
-/// 不能安装的原因写成一句话。
-///
-/// 原因接在「此版本只能提示更新。」之后显示，告诉用户为什么没有「安装更新」按钮、该怎么办。
-fn blocker_text(blocker: InstallBlocker, language: AppLanguage) -> String {
-    let text = eveo_l10n::updates(language);
-    match blocker {
-        InstallBlocker::LocationNotWritable => text.blocker_location_not_writable(),
-        InstallBlocker::DevelopmentBuild => text.blocker_development_build(),
-        InstallBlocker::NoSigningKey => text.blocker_no_signing_key(),
-    }
-    .to_owned()
-}
-
-/// 错误写成一句话；取消时是空串。
-///
-/// 错误的细节（HTTP 状态码以外的内部原因）只写进日志：用户能做的只有重试或去发布页手动下载，
-/// 多写几种措辞只会让人困惑。
-fn error_text(error: &UpdateError, language: AppLanguage) -> String {
-    let text = eveo_l10n::updates(language);
-    match error {
-        UpdateError::Network(_) => text.error_network().to_owned(),
-        UpdateError::HttpStatus(code) => text.error_http_status(i64::from(*code)),
-        UpdateError::RateLimited(Some(until)) => text.status_rate_limited(&local_time(*until)),
-        UpdateError::RateLimited(None) => text.status_rate_limited_later().to_owned(),
-        UpdateError::MalformedFeed(_) => text.error_malformed_feed().to_owned(),
-        UpdateError::AssetMissing(_) => text.error_asset_missing().to_owned(),
-        UpdateError::InsufficientDiskSpace => text.error_disk_space().to_owned(),
-        UpdateError::ChecksumListInvalid
-        | UpdateError::ChecksumEntryMissing(_)
-        | UpdateError::ChecksumMismatch => text.error_checksum().to_owned(),
-        // 签名、解包、版本与架构的核对失败对用户都是「无法验证新版本」；具体原因在日志里。
-        UpdateError::DownloadTooLarge
-        | UpdateError::SignatureInvalid
-        | UpdateError::ArchiveInvalid(_)
-        | UpdateError::VersionMismatch { .. }
-        | UpdateError::NotNewer
-        | UpdateError::ArchitectureMismatch => text.error_verification().to_owned(),
-        UpdateError::Blocked(blocker) => blocker_text(*blocker, language),
-        UpdateError::ReplaceFailed(_) => text.error_swap_failed().to_owned(),
-        UpdateError::Cancelled => String::new(),
-    }
-}
-
-/// 窗口要显示的内容；空闲时没有（窗口关掉）。
-///
-/// 阶段与窗口的对应与 macOS 的 UpdateView 相同：
-/// - 检查中、已是最新：只有标题与「关闭」；
-/// - 可用、待安装：标题是「EVE-O Preview x.y.z 可用」，下面是发布说明；只提示的构建多一行原因；
-/// - 下载中、核对中、安装中：标题不变，进度条与进度文字在说明下面；
-/// - 重新启动中：标题换成「正在重新启动…」，启动失败时副标题请用户手动重新打开；
-/// - 失败：副标题是失败原因（红字由界面按阶段决定），带着发布版时可以重试安装或打开发布页。
-fn view(machine: &UpdateMachine, state: &UpdateState, language: AppLanguage) -> Option<UpdateView> {
-    let text = eveo_l10n::updates(language);
-    let current = text.current_version_line(version_label());
-    let notify_only = match machine.capability() {
-        InstallCapability::NotifyOnly(blocker) => {
-            format!("{} {}", text.notify_only_intro(), blocker_text(blocker, language))
-        }
-        _ => String::new(),
-    };
-    // 发布说明：最新版加上中间版本（按正在运行的版本再过滤一次）。
-    let notes_for = |release: &eveo_core::update::models::ReleaseInfo| {
-        let mut versions: Vec<(&str, &str)> = vec![(release.version.as_str(), release.notes.as_str())];
-        let intermediate = state
-            .intermediate_notes
-            .as_ref()
-            .filter(|notes| notes.latest_version == release.version);
-        if let Some(notes) = intermediate {
-            versions.extend(
-                notes
-                    .entries
-                    .iter()
-                    .map(|e| (e.version.as_str(), e.notes.as_str())),
-            );
-        }
-        let more = intermediate.is_some_and(|notes| notes.has_more);
-        let blocks = eveo_ui::update::notes_blocks(language, &versions, |v| text.version_notes_title(v));
-        (blocks, more)
-    };
-    let mut view = UpdateView {
-        phase: PhaseKind::Checking,
-        headline: String::new(),
-        subtitle: current.clone(),
-        notify_only: String::new(),
-        test_feed: machine.feed().is_test_feed,
-        notes: Vec::new(),
-        more_on_release_page: false,
-        progress: None,
-        progress_text: String::new(),
-        has_release: false,
-        relaunch_failed: machine.relaunch_failed(),
-    };
-    match machine.phase() {
-        UpdatePhase::Idle => return None,
-        UpdatePhase::Checking => view.headline = text.status_checking().to_owned(),
-        UpdatePhase::UpToDate(_) => {
-            view.phase = PhaseKind::UpToDate;
-            view.headline = text.status_up_to_date().to_owned();
-        }
-        UpdatePhase::Available(release) | UpdatePhase::ReadyToInstall(release) => {
-            let ready = matches!(machine.phase(), UpdatePhase::ReadyToInstall(_));
-            view.phase = if ready {
-                PhaseKind::Ready
-            } else {
-                PhaseKind::Available
-            };
-            view.headline = text.headline(&release.version);
-            if ready {
-                view.subtitle = text.status_ready(&release.version);
-            }
-            view.notify_only = notify_only;
-            (view.notes, view.more_on_release_page) = notes_for(release);
-        }
-        UpdatePhase::Downloading(release, progress) => {
-            view.phase = PhaseKind::Downloading;
-            view.headline = text.headline(&release.version);
-            view.progress = progress
-                .total
-                .filter(|&total| total > 0)
-                .map(|total| (progress.received as f64 / total as f64).min(1.0) as f32);
-            let received = eveo_ui::update::byte_size(progress.received);
-            let total = progress.total.map(eveo_ui::update::byte_size);
-            view.progress_text = text.progress_downloading(&received, total.as_deref());
-            (view.notes, view.more_on_release_page) = notes_for(release);
-        }
-        UpdatePhase::Verifying(release) | UpdatePhase::Installing(release) => {
-            let installing = matches!(machine.phase(), UpdatePhase::Installing(_));
-            view.phase = if installing {
-                PhaseKind::Installing
-            } else {
-                PhaseKind::Verifying
-            };
-            view.headline = text.headline(&release.version);
-            view.progress_text = if installing {
-                text.progress_installing()
-            } else {
-                text.progress_verifying()
-            }
-            .to_owned();
-            (view.notes, view.more_on_release_page) = notes_for(release);
-        }
-        UpdatePhase::Relaunching => {
-            view.phase = PhaseKind::Relaunching;
-            view.headline = text.progress_relaunching().to_owned();
-            if machine.relaunch_failed() {
-                view.subtitle = text.reopen_manually().to_owned();
-            }
-        }
-        UpdatePhase::Failed(error, release) => {
-            view.phase = PhaseKind::Failed;
-            view.has_release = release.is_some();
-            view.headline = release
-                .as_ref()
-                .map_or_else(|| text.window_title().to_owned(), |r| text.headline(&r.version));
-            // 安装失败时补一句「当前版本没有变化」，让用户放心。
-            view.subtitle = match release {
-                Some(_) => format!(
-                    "{} {}",
-                    error_text(error, language),
-                    text.current_version_unchanged()
-                ),
-                None => error_text(error, language),
-            };
-        }
-    }
-    Some(view)
-}
-
-/// 「通用」页的状态行与「立即检查」能否点。
-///
-/// 状态行只写一句话：窗口里的细节（发布说明、进度）不放进设置页。
-/// 正在检查、下载或安装时「立即检查」不能点，免得用户以为点了没反应又连点几次。
-fn settings_status(machine: &UpdateMachine, state: &UpdateState, language: AppLanguage) -> (String, bool) {
-    let text = eveo_l10n::updates(language);
-    if machine.capability() == InstallCapability::Unavailable {
-        return (text.status_unavailable().to_owned(), false);
-    }
-    let status = match machine.phase() {
-        UpdatePhase::Checking => text.status_checking().to_owned(),
-        UpdatePhase::UpToDate(_) => text.status_up_to_date().to_owned(),
-        UpdatePhase::Available(release) => text.status_available(&release.version),
-        UpdatePhase::ReadyToInstall(release) => text.status_ready(&release.version),
-        UpdatePhase::Downloading(release, _)
-        | UpdatePhase::Verifying(release)
-        | UpdatePhase::Installing(release) => text.headline(&release.version),
-        UpdatePhase::Failed(error, _) => error_text(error, language),
-        UpdatePhase::Relaunching => text.progress_relaunching().to_owned(),
-        // 空闲时：被限流就说明，否则不写。
-        UpdatePhase::Idle => match state.rate_limited_until.filter(|&until| until > wall_clock()) {
-            Some(until) => text.status_rate_limited(&local_time(until)),
-            None => String::new(),
-        },
-    };
-    (status, !machine.is_busy())
 }

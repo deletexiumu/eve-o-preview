@@ -205,6 +205,9 @@ pub(super) fn prepare(
     if sha256_hex(&zip) != expected {
         return Err(UpdateError::ChecksumMismatch);
     }
+    if context.cancel.load(Ordering::Relaxed) {
+        return Err(UpdateError::Cancelled);
+    }
     // 3. 解出 exe，写进缓存目录，读版本资源，交给 Core 核对。
     let exe = archive::extract(&zip, EXE_NAME, MAX_ARCHIVE_BYTES)?;
     drop(zip);
@@ -221,6 +224,11 @@ pub(super) fn prepare(
     if let Err(error) = policy::validate(&staged, &release.version, &context.running) {
         let _ = fs::remove_file(&path);
         return Err(error);
+    }
+    // 核对完成后再看一次取消标记：若用户刚点过「跳过此版本」或「取消」，立即清理缓存文件并返回取消。
+    if context.cancel.load(Ordering::Relaxed) {
+        let _ = fs::remove_file(&path);
+        return Err(UpdateError::Cancelled);
     }
     // 记下新 exe 的 SHA-256：替换前再读回核对一次，防止下载之后缓存里的文件被换掉或损坏。
     Ok(PreparedUpdate {

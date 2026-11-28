@@ -193,14 +193,33 @@ struct UpdateView: View {
         case .available:
             offerButtons(strings)
         case .downloading(_, let progress):
-            progressRow(strings.progressDownloading(
+            let text = strings.progressDownloading(
                 received: UpdateTextFormat.bytes(progress.receivedBytes),
-                total: progress.totalBytes.map(UpdateTextFormat.bytes)),
-                fraction: Self.fraction(progress), canCancel: true, strings: strings)
+                total: progress.totalBytes.map(UpdateTextFormat.bytes))
+            if controller.isBackgroundDownloading {
+                VStack(alignment: .leading, spacing: 10) {
+                    progressRow(text, fraction: Self.fraction(progress), canCancel: false, showsCancel: false,
+                                strings: strings)
+                    offerButtons(strings, showsHelp: false)
+                }
+            } else {
+                progressRow(text, fraction: Self.fraction(progress), canCancel: true, showsCancel: true,
+                            strings: strings)
+            }
         case .verifying:
-            progressRow(strings.progressVerifying, fraction: nil, canCancel: true, strings: strings)
+            if controller.isBackgroundDownloading {
+                VStack(alignment: .leading, spacing: 10) {
+                    progressRow(strings.progressVerifying, fraction: nil, canCancel: false, showsCancel: false,
+                                strings: strings)
+                    offerButtons(strings, showsHelp: false)
+                }
+            } else {
+                progressRow(strings.progressVerifying, fraction: nil, canCancel: true, showsCancel: true,
+                            strings: strings)
+            }
         case .installing:
-            progressRow(strings.progressInstalling, fraction: nil, canCancel: false, strings: strings)
+            progressRow(strings.progressInstalling, fraction: nil, canCancel: false, showsCancel: true,
+                        strings: strings)
         case .relaunching:
             if controller.relaunchFailed {
                 buttonRow {
@@ -237,10 +256,10 @@ struct UpdateView: View {
     }
 
     /// 有新版本时的按钮：能安装时是「安装更新」，否则是「打开发布页」。
-    private func offerButtons(_ strings: any UpdateStrings) -> some View {
+    private func offerButtons(_ strings: any UpdateStrings, showsHelp: Bool = true) -> some View {
         let canInstall = controller.capability == .canInstall
         return VStack(alignment: .leading, spacing: 10) {
-            if canInstall {
+            if canInstall && showsHelp {
                 Text(strings.installHelp).font(.callout).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -258,8 +277,8 @@ struct UpdateView: View {
         }
     }
 
-    /// 进度条、进度文字与「取消」。fraction 为 nil 时是不定进度。
-    private func progressRow(_ text: String, fraction: Double?, canCancel: Bool,
+    /// 进度条、进度文字与可选的「取消」按钮。fraction 为 nil 时是不定进度。
+    private func progressRow(_ text: String, fraction: Double?, canCancel: Bool, showsCancel: Bool,
                              strings: any UpdateStrings) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -270,9 +289,11 @@ struct UpdateView: View {
                 }
                 Text(text).font(.callout).foregroundStyle(.secondary).monospacedDigit()
             }
-            Button(strings.cancelButton) { controller.cancel() }
-                .keyboardShortcut(.cancelAction)
-                .disabled(!canCancel)
+            if showsCancel {
+                Button(strings.cancelButton) { controller.cancel() }
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(!canCancel)
+            }
         }
     }
 

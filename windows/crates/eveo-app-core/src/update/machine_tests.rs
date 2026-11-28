@@ -219,10 +219,23 @@ fn user_checks() {
     // 关窗口后回到空闲。
     machine.later(&state);
     assert_eq!(machine.phase(), &UpdatePhase::Idle);
-    // 有新版本时即使自动安装打开也只显示窗口，等用户点安装。
+    // 有新版本且自动安装打开时：显示窗口的同时立即在后台静默下载，下载完不立刻安装而是进入待安装。
     machine.check_now(&mut state, T0 + 3.0);
-    machine.check_finished(&mut state, T0 + 4.0, list(&["0.9.2"]));
-    assert_eq!(machine.phase(), &UpdatePhase::Available(release("0.9.2")));
+    let commands = machine.check_finished(&mut state, T0 + 4.0, list(&["0.9.2"]));
+    assert_eq!(
+        commands,
+        [
+            Command::ShowWindow { activate: true },
+            Command::Prepare(release("0.9.2"))
+        ]
+    );
+    assert!(machine.is_background_downloading());
+    assert!(
+        machine
+            .prepare_finished(&mut state, T0 + 4.5, Ok(prepared("0.9.2")))
+            .is_empty()
+    );
+    assert_eq!(machine.phase(), &UpdatePhase::ReadyToInstall(release("0.9.2")));
     // 检查失败：显示失败；记录里的检查时刻不变。
     machine.check_now(&mut state, T0 + 5.0);
     // 失败的原因原样显示在窗口里；网络错误的说明来自系统，不含地址。
@@ -230,9 +243,9 @@ fn user_checks() {
     machine.check_finished(&mut state, T0 + 6.0, CheckOutcome::Failed(error.clone()));
     assert_eq!(machine.phase(), &UpdatePhase::Failed(error, None));
     assert_eq!(state.last_check_at, Some(T0 + 4.0));
-    // 「稍后」：按记录回到「可用」。
+    // 「稍后」：已下载好时按记录回到「待安装」。
     machine.later(&state);
-    assert_eq!(machine.phase(), &UpdatePhase::Available(release("0.9.2")));
+    assert_eq!(machine.phase(), &UpdatePhase::ReadyToInstall(release("0.9.2")));
     // 被限流：记下时刻；限流期间用户再点检查，不发请求，直接显示限流。
     // 限流的答复带着可以再试的时刻，窗口按它显示「请在某时之后再试」。
     machine.check_now(&mut state, T0 + 7.0);
@@ -245,6 +258,50 @@ fn user_checks() {
         machine.phase(),
         &UpdatePhase::Failed(UpdateError::RateLimited(Some(T0 + 600.0)), None)
     );
+}
+
+/// 手动检查触发的后台静默下载：下载中可提升为立即安装，也可跳过或等完成后按空闲时机静默安装。
+#[test]
+fn manual_check_background_download_and_promote() {
+    let mut state = UpdateState::default();
+    let mut machine = started(both_on(), &mut state);
+    machine.check_now(&mut state, T0 + 1.0);
+    let commands = machine.check_finished(&mut state, T0 + 2.0, list(&["0.9.1"]));
+    assert_eq!(
+        commands,
+        [
+            Command::ShowWindow { activate: true },
+            Command::Prepare(release("0.9.1"))
+        ]
+    );
+    assert!(machine.is_background_downloading());
+    // 下载进行中用户主动点击「安装更新」：直接提升本次后台下载，不重复发 Prepare。
+    assert!(machine.install(&mut state).is_empty());
+    assert!(!machine.is_background_downloading());
+    let commands = machine.prepare_finished(&mut state, T0 + 3.0, Ok(prepared("0.9.1")));
+    assert_eq!(
+        commands,
+        [Command::Install {
+            prepared: prepared("0.9.1"),
+            relaunch: true
+        }]
+    );
+
+    // 另一场景：手动检查后在后台下载中点击「跳过此版本」，取消下载并回到空闲。
+    let mut state2 = UpdateState::default();
+    let mut machine2 = started(both_on(), &mut state2);
+    machine2.check_now(&mut state2, T0 + 1.0);
+    machine2.check_finished(&mut state2, T0 + 2.0, list(&["0.9.1"]));
+    assert_eq!(machine2.skip(&mut state2), [Command::CancelPrepare]);
+    assert_eq!(state2.skipped_version.as_deref(), Some("0.9.1"));
+    assert_eq!(machine2.phase(), &UpdatePhase::Idle);
+    // 迟到的取消结果不再把状态拉回 Available。
+    assert!(
+        machine2
+            .prepare_finished(&mut state2, T0 + 3.0, Err(UpdateError::Cancelled))
+            .is_empty()
+    );
+    assert_eq!(machine2.phase(), &UpdatePhase::Idle);
 }
 
 /// 自动检查失败：阶段不变、不显示窗口、不写检查时刻。
@@ -271,8 +328,8 @@ fn install_failure_blocks_auto_install() {
     let mut machine = started(both_on(), &mut state);
     machine.check_now(&mut state, T0 + 1.0);
     machine.check_finished(&mut state, T0 + 2.0, list(&["0.9.1"]));
-    // 用户检查到 0.9.1 后点「安装更新」：还没有下载，先下载；下载好之后直接安装，不进「待安装」。
-    assert_eq!(machine.install(&mut state), [Command::Prepare(release("0.9.1"))]);
+    // 用户检查到 0.9.1 时已开始后台下载；此时点「安装更新」提升为立即安装，不重复发 Prepare。
+    assert!(machine.install(&mut state).is_empty());
     let commands = machine.prepare_finished(&mut state, T0 + 3.0, Ok(prepared("0.9.1")));
     assert_eq!(
         commands,
@@ -536,6 +593,33 @@ fn switches() {
     // 关掉自动安装：已下载的 exe 留着，但不再空闲时安装，界面退为「可用」。
     machine.switches_changed(&mut state, T0 + 23.0, manual);
     assert_eq!(machine.phase(), &UpdatePhase::Available(release("0.9.1")));
+    // 重新打开自动安装且没有已下载文件时，立即在后台静默下载，不再傻等下一次检查。
+    state.prepared = None;
+    let commands = machine.switches_changed(&mut state, T0 + 24.0, both_on());
+    assert_eq!(commands, [Command::Prepare(release("0.9.1"))]);
+    assert!(machine.is_background_downloading());
+}
+
+/// 关闭「自动检查更新」时（即使保留了「自动安装更新」为真），手动检查不应自动后台下载，也不应空闲自动安装。
+#[test]
+fn manual_check_respects_check_switch_off() {
+    let mut state = UpdateState::default();
+    state.cached_release = Some(release("0.9.1"));
+    state.prepared = Some(prepared("0.9.1"));
+    let check_off = Switches {
+        check: false,
+        auto_install: true,
+    };
+    let mut machine = UpdateMachine::new(running(), UpdateFeed::production(), check_off);
+    machine.start(&mut state, T0, true);
+    machine.check_now(&mut state, T0 + 1.0);
+    // 手动检查发现已有缓存与预下载的新版本，因自动检查关闭，只展示 Available，不进入 ReadyToInstall 或自动下载。
+    let commands = machine.check_finished(&mut state, T0 + 2.0, list(&["0.9.1"]));
+    assert_eq!(commands, [Command::ShowWindow { activate: true }]);
+    assert_eq!(machine.phase(), &UpdatePhase::Available(release("0.9.1")));
+    // 空闲满 1 分钟后也不会静默安装。
+    assert!(machine.tick(&mut state, T0 + 3.0, false).is_empty());
+    assert!(machine.tick(&mut state, T0 + 100.0, false).is_empty());
 }
 
 /// 检查时顺便取中间版本的说明：0.9.0 < v < 0.9.3 的两个版本，新的在前。

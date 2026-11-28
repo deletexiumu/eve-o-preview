@@ -341,13 +341,13 @@ pub fn update_png(options: &ShotOptions, phase: crate::update::PhaseKind) -> Res
     ui.set_dark(options.dark);
     ui.set_ui_font(options.font.as_str().into());
     crate::update::set_language(&ui, options.language);
-    // 说明是虚构的：最新版两条列表与一段代码，中间版本一条列表。
+    // 说明是虚构的：最新版含粗体、行内代码与一段代码块，中间版本一条列表。
     let notes = crate::update::notes_blocks(
         options.language,
         &[
             (
                 "0.9.1",
-                "## Improvements\n\n- Faster thumbnail updates.\n- Clearer tray menu.\n\n```\nEVEO_LOG_DIR=D:\\logs\n```",
+                "## Improvements\n\n- **Faster thumbnails:** reduced `DWM` sync latency.\n- Clearer tray menu.\n\n```\nEVEO_LOG_DIR=D:\\logs\n```",
             ),
             ("0.9.0", "- First public beta."),
         ],
@@ -359,6 +359,7 @@ pub fn update_png(options: &ShotOptions, phase: crate::update::PhaseKind) -> Res
     let downloading = phase == PhaseKind::Downloading;
     let view = UpdateView {
         phase,
+        background_downloading: false,
         headline: "EVE-O Preview 0.9.1".to_owned(),
         subtitle: "0.9.0".to_owned(),
         notify_only: String::new(),

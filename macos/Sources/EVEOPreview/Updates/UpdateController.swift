@@ -34,6 +34,8 @@ import EVEOPreviewPlatform
     /// 安装成功、已请求重新启动，但等了 `relaunchGrace` 秒旧实例仍在运行（新实例没有启动）。
     /// 这时 `phase` 仍是 `.relaunching`，窗口应提示用户手动重新打开应用（`reopenManually`）。
     private(set) var relaunchFailed = false
+    /// 是否正在后台静默下载或核对（用户尚未点击「安装更新」）。
+    private(set) var isBackgroundDownloading = false
     /// 最新版与正在运行的版本之间各版本的说明（8.8 节），与 `state.updates.intermediateNotes` 同步。
     /// 更新窗口按它在最新版的说明之后列出中间版本；取用见 UpdateController+History.swift。
     var intermediateNotes: IntermediateReleaseNotes?
@@ -66,6 +68,10 @@ import EVEOPreviewPlatform
     @ObservationIgnored var cleanupTask: Task<Void, Never>?
     /// 用户在下载真正开始前点了「取消」（阶段已是下载中，但还在等清理）。
     @ObservationIgnored var preparationCancelRequested = false
+    /// 用户在后台静默下载期间点击了「安装更新」：下载核对完成后直接进入安装与重启。
+    @ObservationIgnored var installAfterBackgroundPrepare = false
+    /// 当前后台下载是否由用户手动检查触发：失败时只回到 `.available`，不重复触发自动弹窗。
+    @ObservationIgnored var backgroundDownloadFromUserCheck = false
     /// 当前这次下载的编号；进度回调晚到时据此丢掉。
     @ObservationIgnored var preparationID = 0
     /// 正在取中间版本说明的任务，以及它是为哪个最新版取的（见 UpdateController+History.swift）。
@@ -234,29 +240,70 @@ import EVEOPreviewPlatform
 
     // MARK: - 定时检查
 
-    /// 先等 10 秒，之后每小时醒一次。只有第一次醒来算启动时的检查。
+    /// 先等 10 秒，之后每小时醒一次。只有第一次醒来算启动时的检查；
+    /// 若首次醒来因距上次检查不到 1 小时而未发起检查，但缓存里已有可用版本，则续上后台静默下载。
     private func startLoop() {
         loopTask?.cancel()
         loopTask = Task { [weak self] in
             try? await Task.sleep(for: UpdateController.firstCheckDelay)
             var atLaunch = true
             while !Task.isCancelled {
-                await self?.automaticCheckIfDue(atLaunch: atLaunch)
+                if let self {
+                    let didCheck = await self.automaticCheckIfDue(atLaunch: atLaunch)
+                    // 仅当本次启动没有发起检查（如距上次检查不足 1 小时）时才续下缓存版本；
+                    // 避免离线检查失败后立刻重试下载进而弹出更新窗口。
+                    if atLaunch && !didCheck && !self.isChecking && !self.isBusy {
+                        self.resumeCachedDownloadIfNeeded()
+                    }
+                }
                 atLaunch = false
                 try? await Task.sleep(for: UpdateController.wakeInterval)
             }
         }
     }
 
-    /// 自动检查：开关打开、没有在忙、到时才检查。
-    func automaticCheckIfDue(atLaunch: Bool) async {
+    /// 缓存里已有可用版本、两个开关都开着、能安装且没装失败过时，开始后台静默下载。
+    func resumeCachedDownloadIfNeeded() {
+        guard case .available(let release) = phase,
+              general.checkForUpdates, general.autoInstallUpdates,
+              capability == .canInstall, !hasFailedInstall(of: release.version) else { return }
+        prepareInBackground(release, fromUserCheck: false)
+    }
+
+    /// 自动检查或自动安装开关变更时调用：同步阶段并按需检查或开始后台静默下载。
+    func switchesDidChange(oldCheck: Bool, oldAutoInstall: Bool) {
+        guard capability != .unavailable, debugUIState == nil, !isBusy else { return }
+        switch phase {
+        case .checking, .upToDate, .failed: break
+        default: rederivePhaseFromState()
+        }
+        if !oldCheck && general.checkForUpdates {
+            let updates = state.state.updates
+            // 若已到自动检查间隔，先调度检查并直接返回，避免抢先下载过时的缓存版本挡住检查。
+            if !isChecking, UpdatePolicy.isCheckDue(now: Date(), lastCheckAt: updates.lastCheckAt,
+                                                    rateLimitedUntil: updates.rateLimitedUntil, atLaunch: false) {
+                checkForUpdatesWasEnabled()
+                return
+            }
+        }
+        if (!oldAutoInstall || !oldCheck) && general.checkForUpdates && general.autoInstallUpdates && !isChecking {
+            resumeCachedDownloadIfNeeded()
+        }
+    }
+
+    /// 自动检查：开关打开、没有在忙、到时才检查。返回本次是否实际发起了检查请求。
+    @discardableResult
+    func automaticCheckIfDue(atLaunch: Bool) async -> Bool {
         guard capability != .unavailable, debugUIState == nil, general.checkForUpdates, !isBusy, !isChecking else {
-            return
+            return false
         }
         let updates = state.state.updates
         guard UpdatePolicy.isCheckDue(now: Date(), lastCheckAt: updates.lastCheckAt,
-                                      rateLimitedUntil: updates.rateLimitedUntil, atLaunch: atLaunch) else { return }
+                                      rateLimitedUntil: updates.rateLimitedUntil, atLaunch: atLaunch) else {
+            return false
+        }
         await performCheck(userInitiated: false)
+        return true
     }
 
     /// `general.checkForUpdates` 从假变真时调用：立即按非启动时的间隔判断一次（8.5 节）。
@@ -354,14 +401,23 @@ import EVEOPreviewPlatform
             if userInitiated { presentWindow?(true) }
             return
         }
+        let isSkipped = state.state.updates.skippedVersion.flatMap(SemanticVersion.init)
+            == SemanticVersion(offered.version)
+        // 自动安装依附于自动检查：两个开关都打开、能安装、未跳过且没装失败过才在后台自动下载。
+        let canAutoDownload = general.checkForUpdates && general.autoInstallUpdates
+            && capability == .canInstall && !isSkipped && !hasFailedInstall(of: offered.version)
         if userInitiated {
-            phase = .available(offered)
-            coordinator.setAttention(.updateAvailable, on: true)
+            if canAutoDownload {
+                prepareInBackground(offered, fromUserCheck: true)
+            } else {
+                phase = .available(offered)
+                coordinator.setAttention(.updateAvailable, on: true)
+            }
             presentWindow?(true)
             return
         }
-        if general.autoInstallUpdates, capability == .canInstall, !hasFailedInstall(of: offered.version) {
-            prepareInBackground(offered)
+        if canAutoDownload {
+            prepareInBackground(offered, fromUserCheck: false)
             return
         }
         promptAutomatically(offered)
@@ -419,9 +475,18 @@ import EVEOPreviewPlatform
         }
     }
 
-    /// 跳过当前提示的版本：只影响自动检查。不关窗口（窗口自己关）。
+    /// 跳过当前提示的版本：只影响自动检查。后台静默下载进行中时同时取消下载并使旧任务代号失效。不关窗口（窗口自己关）。
     func skipThisVersion() {
-        guard debugUIState == nil, let release = currentRelease, !isBusy else { return }
+        let cancelBackground = isBackgroundDownloading
+        guard debugUIState == nil, let release = currentRelease, !isBusy || cancelBackground else { return }
+        if cancelBackground {
+            // 同步递增下载代号，使正在收尾的后台下载任务晚到回调全部失效，不会复活已跳过版本或干扰后续下载。
+            preparationID += 1
+            isBackgroundDownloading = false
+            installAfterBackgroundPrepare = false
+            backgroundDownloadFromUserCheck = false
+            cancel()
+        }
         state.update { $0.updates.skippedVersion = release.version }
         if let prepared = state.state.updates.prepared, SemanticVersion(prepared.version) == SemanticVersion(release.version) {
             discardPrepared()
@@ -458,6 +523,11 @@ import EVEOPreviewPlatform
     /// 设阶段。`phase` 的 setter 是 private，扩展文件经这里改。
     func setPhase(_ newPhase: UpdatePhase) {
         phase = newPhase
+    }
+
+    /// 设后台静默下载状态。`isBackgroundDownloading` 的 setter 是 private，扩展文件经这里改。
+    func setBackgroundDownloading(_ value: Bool) {
+        isBackgroundDownloading = value
     }
 
     /// 记下重新启动没有成功，并重新显示更新窗口：这是用户自己发起的操作失败了，

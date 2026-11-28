@@ -30,10 +30,18 @@ extension UpdateController {
     // MARK: - 用户发起
 
     /// 下载、校验、安装并重新启动。只提示的构建改为打开发布页。
+    /// 若当前正在后台静默下载，直接把该次下载提升为立即安装，不重复下载。
     func install() {
         guard debugUIState == nil else { return }
         if case .notifyOnly = capability {
             openReleasePage()
+            return
+        }
+        if canRunInstaller, isBackgroundDownloading {
+            coordinator.presenter.cancel(key: UpdateController.presenterKey)
+            installAfterBackgroundPrepare = true
+            backgroundDownloadFromUserCheck = false
+            setBackgroundDownloading(false)
             return
         }
         guard canRunInstaller, !isBusy, let release = currentRelease else { return }
@@ -56,8 +64,12 @@ extension UpdateController {
             prepared = nil
         }
         preparationCancelRequested = false
+        preparationID += 1
+        let id = preparationID
         setPhase(prepared == nil ? .downloading(release, initialProgress(release)) : .installing(release))
-        workTask = Task { [weak self] in await self?.downloadAndInstall(release, prepared: prepared, relaunch: true) }
+        workTask = Task { [weak self] in
+            await self?.downloadAndInstall(release, prepared: prepared, relaunch: true, id: id)
+        }
     }
 
     /// 取消进行中的下载或核对，回到 `.available`。安装开始后不能取消。
@@ -73,30 +85,65 @@ extension UpdateController {
 
     // MARK: - 下载
 
-    /// 自动安装的后台下载（9.5 节第 1～3 步），不显示窗口。
-    func prepareInBackground(_ release: ReleaseInfo) {
+    /// 自动安装的后台下载（9.5 节第 1～3 步），不显示窗口。已有可用的下载时直接进入 `.readyToInstall`。
+    func prepareInBackground(_ release: ReleaseInfo, fromUserCheck: Bool = false) {
         guard canRunInstaller, !isBusy else {
-            promptAutomatically(release)
+            if fromUserCheck {
+                setPhase(.available(release))
+                coordinator.setAttention(.updateAvailable, on: true)
+            } else {
+                promptAutomatically(release)
+            }
             return
         }
         if let prepared = state.state.updates.prepared, prepared.version == release.version, isUsable(prepared) {
             becomeReady(release)
             return
         }
-        // 同步进入下载中，与 `startInstall` 相同：任务开始前 `isBusy` 已为真。
+        // 同步进入下载中并分配代号：任务开始前 `isBusy` 已为真，后续跳过或替换会递增代号使本任务失效。
         preparationCancelRequested = false
+        installAfterBackgroundPrepare = false
+        backgroundDownloadFromUserCheck = fromUserCheck
+        preparationID += 1
+        let id = preparationID
+        setBackgroundDownloading(true)
         setPhase(.downloading(release, initialProgress(release)))
         workTask = Task { [weak self] in
             guard let self else { return }
-            switch await self.prepare(release) {
-            case .success:
-                self.becomeReady(release)
+            let result = await self.prepare(release, id: id)
+            // 已跳过或已被新的下载任务取代：直接丢弃，不碰当前标志位与阶段。
+            guard id == self.preparationID else { return }
+            let promote = self.installAfterBackgroundPrepare
+            let fromUser = self.backgroundDownloadFromUserCheck
+            self.installAfterBackgroundPrepare = false
+            self.backgroundDownloadFromUserCheck = false
+            self.setBackgroundDownloading(false)
+            switch result {
+            case .success(let prepared):
+                if promote {
+                    await self.installPrepared(prepared, release: release, relaunch: true)
+                } else if self.general.checkForUpdates && self.general.autoInstallUpdates {
+                    self.becomeReady(release)
+                } else {
+                    self.setPhase(.available(release))
+                    self.coordinator.setAttention(.updateAvailable, on: true)
+                }
             case .failure(.cancelled):
                 self.setPhase(.available(release))
                 self.coordinator.setAttention(.updateAvailable, on: true)
-            case .failure:
-                // 下载或核对失败：退回普通提示（9.5 节第 3 步）。
-                self.promptAutomatically(release)
+            case .failure(let error):
+                if promote {
+                    self.recordFailure(error, version: release.version)
+                    self.setPhase(.failed(error, release: release))
+                    self.presentFailure()
+                } else if fromUser {
+                    // 手动检查触发的后台下载失败：只退回「可用」，保留当前打开的窗口供用户手动重试。
+                    self.setPhase(.available(release))
+                    self.coordinator.setAttention(.updateAvailable, on: true)
+                } else {
+                    // 自动检查触发的下载或核对失败：退回普通提示（9.5 节第 3 步）。
+                    self.promptAutomatically(release)
+                }
             }
         }
     }
@@ -118,21 +165,25 @@ extension UpdateController {
         }?.size.map(Int64.init))
     }
 
-    /// 下载并核对；成功时把结果写进 `state.updates.prepared`。先等启动时的清理做完。
-    private func prepare(_ release: ReleaseInfo) async -> Result<PreparedUpdate, UpdateError> {
-        preparationID += 1
-        let id = preparationID
+    /// 下载并核对；成功且代号仍有效时把结果写进 `state.updates.prepared`。先等启动时的清理做完。
+    private func prepare(_ release: ReleaseInfo, id: Int) async -> Result<PreparedUpdate, UpdateError> {
+        // 先核对代号，避免任务调度前已被 skipThisVersion 取消却把 phase 写回 .downloading 导致永久卡死。
+        if id != preparationID || preparationCancelRequested {
+            return .failure(.cancelled)
+        }
         setPhase(.downloading(release, initialProgress(release)))
         await cleanupTask?.value
-        if preparationCancelRequested {
-            preparationID += 1
+        if id != preparationID || preparationCancelRequested {
             return .failure(.cancelled)
         }
         let result = await service.prepare(release, feed: feed) { [weak self] progress in
             Task { @MainActor in self?.progressDidChange(progress, release: release, id: id) }
         }
-        // 晚到的进度回调按编号丢掉。
-        preparationID += 1
+        // 任务在核对中途已被跳过或替换：删掉刚落盘的旧 dmg，不污染 state.updates.prepared。
+        guard id == preparationID else {
+            if case .success(let prepared) = result { removePreparedImage(prepared) }
+            return .failure(.cancelled)
+        }
         if case .success(let prepared) = result {
             state.update { $0.updates.prepared = prepared }
         } else if case .failure(let error) = result, error != .cancelled {
@@ -158,24 +209,31 @@ extension UpdateController {
     // MARK: - 安装
 
     /// 下载（prepared 是 `startInstall` 核对过的可用下载，有时跳过下载）、安装，relaunch 为真时成功后重新启动。
-    private func downloadAndInstall(_ release: ReleaseInfo, prepared: PreparedUpdate?, relaunch: Bool) async {
+    private func downloadAndInstall(_ release: ReleaseInfo, prepared: PreparedUpdate?, relaunch: Bool, id: Int) async {
         var prepared = prepared
         if prepared == nil {
-            switch await prepare(release) {
+            switch await prepare(release, id: id) {
             case .success(let value):
                 prepared = value
             case .failure(.cancelled):
+                guard id == preparationID else { return }
                 setPhase(.available(release))
                 coordinator.setAttention(.updateAvailable, on: true)
                 return
             case .failure(let error):
+                guard id == preparationID else { return }
                 recordFailure(error, version: release.version)
                 setPhase(.failed(error, release: release))
                 presentFailure()
                 return
             }
         }
-        guard let prepared else { return }
+        guard id == preparationID, let prepared else { return }
+        await installPrepared(prepared, release: release, relaunch: relaunch)
+    }
+
+    /// 已有验证通过的 dmg 后执行安装与重启。
+    private func installPrepared(_ prepared: PreparedUpdate, release: ReleaseInfo, relaunch: Bool) async {
         // 已有下载直接安装时也先等启动时的清理做完：清理会卸下残留的挂载，
         // 没卸完就挂同一个 dmg 会报「资源忙」（复审意见）。
         await cleanupTask?.value

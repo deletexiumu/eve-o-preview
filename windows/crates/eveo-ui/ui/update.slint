@@ -20,8 +20,12 @@ import { UpdateText } from "generated/l10n.slint";
 export struct NotesBlock {
     // 0 标题、1 段落、2 列表项、3 代码、4 版本小标题（中间版本的「版本 x.y.z」）。
     kind: int,
-    // 文字。列表项不含前面的符号，由界面画；编号列表的编号已拼进文字。
+    // 行内富文本：标题、段落与列表项经 Markdown 渲染后放在这里。
+    styled: styled-text,
+    // 纯文本：代码块与版本小标题直接显示。
     text: string,
+    // 列表项的记号：无序列表是「•」或「◦」，有序列表是「1.」。
+    marker: string,
     // 列表项的缩进层级，从 0 开始；标题的级别（1～6）。
     level: int,
 }
@@ -30,6 +34,8 @@ export struct NotesBlock {
 export global UpdateModel {
     // 阶段：0 检查中、1 已是最新、2 可用、3 下载中、4 核对中、5 待安装、6 安装中、7 重新启动中、8 失败。
     in property <int> phase;
+    // 是否正在后台静默下载（用户尚未点击「安装更新」，仍可点「跳过此版本」「稍后」或「安装更新」）。
+    in property <bool> background-downloading;
     // 大标题。
     in property <string> headline;
     // 副标题（当前版本、状态说明或失败原因）。
@@ -54,7 +60,7 @@ export global UpdateModel {
     callback install();
     // 跳过此版本。
     callback skip();
-    // 稍后（关窗口，保留提示）。
+    // 稍后（关窗口，保留提示；后台下载进行中时继续在后台下载）。
     callback later();
     // 取消下载。
     callback cancel();
@@ -64,38 +70,65 @@ export global UpdateModel {
     callback retry();
     // 打开发布页。
     callback open-release-page();
+    // 打开说明正文里的安全链接（由应用层再核对一次 https://）。
+    callback open-link(string);
 }
 
-// 发布说明的一块：标题加粗、列表项前加圆点、代码用等宽字体与浅底色。
+// 发布说明的一块：标题与正文支持行内 Markdown 富文本，代码用等宽字体与浅底色。
 component NotesBlockView inherits VerticalLayout {
     in property <NotesBlock> block;
+    // 链接颜色随明暗主题切换，与强调色一致。
+    property <color> link-color: Theme.dark ? #60cdff : #005fb8;
     padding-top: block.kind == 0 || block.kind == 4 ? 8px : 2px;
-    if block.kind == 0 || block.kind == 4: Text {
+    if block.kind == 0: StyledText {
+        text: block.styled;
+        default-color: Theme.text;
+        default-font-size: block.level <= 2 ? 14px : 13px;
+        link-color: root.link-color;
+        horizontal-alignment: left;
+        selectable: true;
+        link-clicked(url) => {
+            UpdateModel.open-link(url);
+        }
+    }
+    if block.kind == 4: Text {
         text: block.text;
         color: Theme.text;
         // 版本小标题比说明里的标题大一点，分清每个版本从哪里开始。
-        font-size: block.kind == 4 ? 15px : (block.level <= 2 ? 14px : 13px);
+        font-size: 15px;
         font-weight: 600;
         wrap: word-wrap;
     }
-    if block.kind == 1: Text {
-        text: block.text;
-        color: Theme.text;
-        wrap: word-wrap;
+    if block.kind == 1: StyledText {
+        text: block.styled;
+        default-color: Theme.text;
+        default-font-size: 14px;
+        link-color: root.link-color;
+        horizontal-alignment: left;
+        selectable: true;
+        link-clicked(url) => {
+            UpdateModel.open-link(url);
+        }
     }
     if block.kind == 2: HorizontalLayout {
         padding-left: 12px + block.level * 16px;
         spacing: 6px;
         Text {
-            text: "•";
+            text: block.marker;
             color: Theme.text-secondary;
             vertical-alignment: top;
         }
-        Text {
-            text: block.text;
-            color: Theme.text;
-            wrap: word-wrap;
+        StyledText {
+            text: block.styled;
+            default-color: Theme.text;
+            default-font-size: 14px;
+            link-color: root.link-color;
+            horizontal-alignment: left;
             horizontal-stretch: 1;
+            selectable: true;
+            link-clicked(url) => {
+                UpdateModel.open-link(url);
+            }
         }
     }
     if block.kind == 3: Rectangle {
@@ -207,8 +240,14 @@ export component UpdateWindow inherits Window {
             border-width: 1px;
             border-color: Theme.card-border;
             border-radius: 6px;
-            ScrollView {
-                VerticalLayout {
+            notes-scroll := ScrollView {
+                width: 100%;
+                height: 100%;
+                horizontal-scrollbar-policy: always-off;
+                // 内容高度取各块的首选高度之和，保证 StyledText 折行后滚动条范围准确。
+                content-height: notes-layout.preferred-height;
+                notes-layout := VerticalLayout {
+                    width: notes-scroll.visible-width;
                     padding: 12px;
                     spacing: 4px;
                     alignment: start;
@@ -256,20 +295,20 @@ export component UpdateWindow inherits Window {
             vertical-stretch: 0;
             alignment: end;
             spacing: 8px;
-            // 可用：跳过此版本、稍后、安装更新（或打开发布页）。
-            if UpdateModel.phase == 2: Button {
+            // 可用与后台下载中：跳过此版本、稍后、安装更新（只提示的构建换成「打开发布页」）。
+            if UpdateModel.phase == 2 || UpdateModel.background-downloading: Button {
                 text: UpdateText.skip-button;
                 clicked => {
                     UpdateModel.skip();
                 }
             }
-            if UpdateModel.phase == 2 || UpdateModel.phase == 5: Button {
+            if UpdateModel.phase == 2 || UpdateModel.phase == 5 || UpdateModel.background-downloading: Button {
                 text: UpdateText.later-button;
                 clicked => {
                     UpdateModel.later();
                 }
             }
-            if (UpdateModel.phase == 2 || UpdateModel.phase == 5) && UpdateModel.notify-only == "": Button {
+            if (UpdateModel.phase == 2 || UpdateModel.phase == 5 || UpdateModel.background-downloading) && UpdateModel.notify-only == "": Button {
                 text: UpdateText.install-button;
                 primary: true;
                 clicked => {
@@ -283,8 +322,8 @@ export component UpdateWindow inherits Window {
                     UpdateModel.open-release-page();
                 }
             }
-            // 下载中与核对中：取消。
-            if UpdateModel.phase == 3 || UpdateModel.phase == 4: Button {
+            // 用户主动发起的下载与核对中：取消。
+            if (UpdateModel.phase == 3 || UpdateModel.phase == 4) && !UpdateModel.background-downloading: Button {
                 text: UpdateText.cancel-button;
                 clicked => {
                     UpdateModel.cancel();
