@@ -36,6 +36,7 @@ fn content(key: &str, ids: impl IntoIterator<Item = u64>) -> OverlayContent {
     OverlayContent {
         context_key: key.to_owned(),
         title: "Intel · Pilot Alpha".to_owned(),
+        channel_label: None,
         status: None,
         lines: ids.into_iter().map(|id| line(id, "")).collect(),
     }
@@ -294,4 +295,25 @@ fn host_forwards_pointer_and_wheel() {
     // 向前滚三格：往上翻，离开底部。
     host.wheel(100.0, 150.0, 360);
     assert!(!host.view().borrow().scroll_state().is_pinned_to_bottom);
+}
+
+/// 频道切换按钮：设置了 channel_label 时显示按钮，点击后置位并可被应用层取走。
+#[test]
+fn host_channel_switcher_button() {
+    crate::screenshot::ensure_platform().expect("软件渲染平台");
+    let mut host = host::OverlayHost::new(AppLanguage::Zh).expect("建宿主");
+    host.resize(380, 260, 1.0);
+    let mut sample = content("translation:Pilot Alpha", []);
+    sample.title = "翻译 · Pilot Alpha".to_owned();
+    sample.channel_label = Some("本地".to_owned());
+    host.view().borrow_mut().set_content(&sample);
+    host.render();
+    assert_eq!(host.view().borrow().window().get_channel_label(), "本地");
+    assert!(!host.take_channel_switcher_clicked());
+    // 点击标题栏右侧的频道切换按钮区域（距右边缘留出 6px 边缘带后向内点）。
+    host.left_button(355.0, 17.0, true);
+    host.left_button(355.0, 17.0, false);
+    assert!(host.take_channel_switcher_clicked());
+    // 取走后立即复位。
+    assert!(!host.take_channel_switcher_clicked());
 }

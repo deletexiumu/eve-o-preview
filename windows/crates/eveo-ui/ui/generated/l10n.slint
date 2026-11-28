@@ -819,7 +819,7 @@ export global OverlayText {
     in property <string> add-built-in: "Add a built-in channel";
     // Windows：频道列表下按名称添加一行的名字。
     in property <string> add-by-name: "Add by name";
-    // Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 14 天出现过、还没选的频道。
+    // Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 24 小时出现过、还没选的频道。
     in property <string> pick-from-logs: "Choose a channel from your logs…";
     // 「移除」按钮。
     in property <string> remove-channel: "Remove";
@@ -839,6 +839,12 @@ export global OverlayText {
     in property <string> built-in-alliance: "Alliance";
     // 内置频道：舰队。
     in property <string> built-in-fleet: "Fleet";
+    // 还没有设置翻译频道时，浮窗标题栏右侧切换按钮的文字。
+    in property <string> channel-switcher-empty: "Select Channel";
+    // 频道切换菜单里内置频道一组的标题。
+    in property <string> menu-built-in-channels-header: "Built-in Channels";
+    // 频道切换菜单里最近 24 小时日志频道一组的标题。
+    in property <string> menu-recent-channels-header: "Recent Channels (24h)";
 }
 
 // 翻译域的文字。

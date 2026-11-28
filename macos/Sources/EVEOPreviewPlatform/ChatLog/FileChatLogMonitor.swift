@@ -6,7 +6,7 @@
 // - stop()：停掉跟踪服务，状态变成 stopped。
 // - 每建一个跟踪服务，代号加 1。旧服务排在主线程队列里的回调带着旧代号，到达时直接丢弃，
 //   所以请求变了之后，旧服务迟到的事件不会混进新的缓冲。
-// - discoverChannels：列出聊天日志目录里最近 14 天出现过的频道（5.3 节），在 ChatChannelDiscovery 自己的
+// - discoverChannels：列出聊天日志目录里最近 24 小时出现过的频道（5.3 节），在 ChatChannelDiscovery 自己的
 //   串行队列上执行，未跟踪时也能调用。文件头按文件名缓存，私聊频道与文件头不完整的文件不列出。
 
 import Dispatch
@@ -80,7 +80,7 @@ import EVEOPreviewCore
         updateFollowed(nil)
     }
 
-    /// 列出最近 14 天出现过的频道，按最后修改时间从新到旧排序。
+    /// 列出最近 24 小时出现过的频道，按最后修改时间从新到旧排序。
     public func discoverChannels(logDirectory: String?) async -> [DiscoveredChannel] {
         let candidates = ChatLogDirectory.candidates(configured: logDirectory, homeDirectory: homeDirectory)
         return await discovery.discover(candidates: candidates)
@@ -101,10 +101,10 @@ import EVEOPreviewCore
     }
 }
 
-/// 设置界面「从日志添加」用的频道发现。状态只在自己的串行队列上访问，所以标为 `@unchecked Sendable`。
+/// 设置界面「从日志添加」与翻译浮窗切换频道用的频道发现。状态只在自己的串行队列上访问，所以标为 `@unchecked Sendable`。
 final class ChatChannelDiscovery: @unchecked Sendable {
-    /// 只列这么多秒以内修改过的文件：14 天。
-    static let windowSeconds = 14.0 * 86_400
+    /// 只列这么多秒以内修改过的文件：24 小时，避免过早的旧频道干扰选择。
+    static let windowSeconds = 86_400.0
 
     private let queue = DispatchQueue(label: "io.github.deletexiumu.eveopreview.chatlog.discovery", qos: .utility)
     /// 完整的文件头，按文件名缓存。只在 queue 上访问。
@@ -125,7 +125,7 @@ final class ChatChannelDiscovery: @unchecked Sendable {
         var lastModified: Double
     }
 
-    /// 取第一个能列出的候选目录，按 Channel ID 合并最近 14 天的文件。名字取最近修改的那个文件的。
+    /// 取第一个能列出的候选目录，按 Channel ID 合并最近 24 小时的文件。名字取最近修改的那个文件的。
     private func scan(_ candidates: [String]) -> [DiscoveredChannel] {
         guard let (directory, names) = firstListing(candidates) else { return [] }
         let cutoff = Date().timeIntervalSince1970 - ChatChannelDiscovery.windowSeconds
@@ -150,7 +150,7 @@ final class ChatChannelDiscovery: @unchecked Sendable {
         headers = headers.filter { present.contains($0.key) }
         return entries.map { id, entry in
             DiscoveredChannel(id: id, name: entry.name, kind: entry.kind, listeners: entry.listeners.count,
-                              lastModified: entry.lastModified)
+                              lastModified: entry.lastModified, listenerNames: entry.listeners.sorted())
         }.sorted { $0.lastModified != $1.lastModified ? $0.lastModified > $1.lastModified : $0.id < $1.id }
     }
 

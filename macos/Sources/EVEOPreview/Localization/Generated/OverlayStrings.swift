@@ -87,6 +87,14 @@ protocol OverlayStrings: Sendable {
     var builtInAlliance: String { get }
     /// 内置频道：舰队。
     var builtInFleet: String { get }
+
+    // MARK: 翻译浮窗频道切换
+    /// 还没有设置翻译频道时，浮窗标题栏右侧切换按钮的文字。
+    var channelSwitcherEmpty: String { get }
+    /// 频道切换菜单里内置频道一组的标题。
+    var menuBuiltInChannelsHeader: String { get }
+    /// 频道切换菜单里最近 24 小时日志频道一组的标题。
+    var menuRecentChannelsHeader: String { get }
 }
 
 extension L10n {

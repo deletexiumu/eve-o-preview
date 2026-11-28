@@ -41,3 +41,7 @@ builtInLocal = "Локал"
 builtInCorp = "Корпорация"
 builtInAlliance = "Альянс"
 builtInFleet = "Флот"
+
+channelSwitcherEmpty = "Выбрать канал"
+menuBuiltInChannelsHeader = "Встроенные каналы"
+menuRecentChannelsHeader = "Недавние каналы (24 ч)"

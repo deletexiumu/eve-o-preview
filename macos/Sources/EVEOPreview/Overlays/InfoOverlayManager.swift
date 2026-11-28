@@ -6,6 +6,7 @@
 // - setContent：只交给已有的面板；协调器在浮窗变成可见时会再补一次内容，所以没有面板时直接丢弃。
 // - visibleFrames：作为缩略图与另一个浮窗拖动时的吸附目标。
 
+import AppKit
 import EVEOPreviewCore
 
 /// 浮窗右键菜单里交给协调器处理的动作（「滚动到最新」「复制这一条」「在浏览器中打开」由面板与菜单自己处理）。
@@ -44,6 +45,8 @@ struct OverlayDragContext {
     func overlayDragEnded(_ kind: OverlayKind, frame: ScreenRect)
     /// 右键菜单里选了一项。
     func overlayMenuAction(_ action: OverlayMenuAction, for kind: OverlayKind)
+    /// 点击了浮窗标题栏右侧的频道切换按钮。
+    func overlayChannelSwitcherClicked(for kind: OverlayKind)
 }
 
 /// 浮窗面板的管理器。全部方法在主线程调用。
@@ -75,6 +78,11 @@ struct OverlayDragContext {
     /// 把内容交给某个浮窗的面板；没有面板时丢弃。
     func setContent(_ content: OverlayContent, for kind: OverlayKind) {
         controllers[kind]?.setContent(content)
+    }
+
+    /// 在某个浮窗的频道切换按钮下方弹出菜单；浮窗不可见或不存在时忽略。
+    func showChannelMenu(_ menu: NSMenu, for kind: OverlayKind) {
+        controllers[kind]?.showChannelMenu(menu)
     }
 
     /// 当前可见的浮窗。

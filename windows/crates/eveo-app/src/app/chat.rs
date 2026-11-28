@@ -241,7 +241,7 @@ impl App {
     }
 
     /// 把发现的频道填进两页的下拉框（各自去掉已选的）；设置窗口没开或没有当前方案时什么也不做。
-    fn show_discovered(&self) {
+    pub(super) fn show_discovered(&self) {
         let (Some(window), Some(profile)) = (&self.settings, self.coordinator.config().active_profile())
         else {
             return;

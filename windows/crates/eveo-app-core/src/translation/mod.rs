@@ -55,7 +55,7 @@ use eveo_core::translation::cache::{CacheEntry, TranslationCache};
 use eveo_core::translation::queue::TranslationQueue;
 use eveo_core::translation::{
     ApiKind, Failure, HttpRequest, HttpResponse, Phase, SkipReason, TranslationItem, TranslationStatus,
-    TransportError, presenter, rules,
+    TransportError, presenter, rules, switcher,
 };
 
 use self::store::TranslationCacheStore;
@@ -386,7 +386,7 @@ impl TranslationController {
         appended
     }
 
-    /// 浮窗的内容：标题、状态行与活动角色的各条。
+    /// 浮窗的内容：标题、频道切换按钮文字、状态行与活动角色的各条。
     pub fn content(&self, now: f64) -> OverlayContent {
         let language = self.language();
         let character = self.context.as_ref().and_then(|c| c.active_character.clone());
@@ -397,6 +397,10 @@ impl TranslationController {
         };
         let formatter = TranslationFormatter { language };
         let settings = self.settings();
+        let empty_label = eveo_l10n::overlay(language).channel_switcher_empty();
+        let channel_label = switcher::button_label(&settings.channels, empty_label, |channel| {
+            channel_display_name(channel, language)
+        });
         let lines = character
             .as_deref()
             .map(|name| {
@@ -410,6 +414,7 @@ impl TranslationController {
         OverlayContent {
             context_key: format!("translation:{}", character.unwrap_or_default()),
             title,
+            channel_label: Some(channel_label),
             status: self.status_line(now),
             lines,
         }

@@ -5,10 +5,13 @@
 // 菜单项编号与动作一一对应；托盘菜单里的配置方案从 PROFILE_BASE 起按配置里的顺序编号。
 // 文字按界面语言取自 eveo-l10n，与 macOS 的菜单栏菜单、缩略图右键菜单同一份文案。
 
+use eveo_app_core::translation::text::channel_display_name;
 use eveo_app_core::update::machine::MenuHint;
 use eveo_app_core::{ContextMenuAction, ContextMenuModel, OverlayMenuAction, TrayAction, TrayModel};
-use eveo_core::model::AppLanguage;
+use eveo_core::chat_log::DiscoveredChannel;
+use eveo_core::model::{AppLanguage, ChannelRef};
 use eveo_core::overlay::{OverlayLine, OverlayLink};
+use eveo_core::translation::switcher;
 use eveo_platform_win::menu::MenuEntry;
 
 /// 右键菜单「最小化」。
@@ -59,6 +62,12 @@ const OVERLAY_HIDE: u32 = 206;
 const OVERLAY_SETTINGS: u32 = 207;
 /// 浮窗菜单「在浏览器中打开」子菜单里第一个链接的编号，其余按链接的顺序往后排。
 const OVERLAY_LINK_BASE: u32 = 300;
+/// 频道切换菜单里不可点标题/占位项的编号（置灰，不会触发选择）。
+const CHANNEL_MENU_DISABLED: u32 = 400;
+/// 频道切换菜单「打开设置…」。
+const CHANNEL_MENU_SETTINGS: u32 = 401;
+/// 频道切换菜单里第一个可选频道的编号，其余按列表顺序往后排。
+const CHANNEL_MENU_BASE: u32 = 410;
 
 /// 缩略图的右键菜单。按角色的项对登录客户端置灰。
 pub fn context_menu(model: &ContextMenuModel, language: AppLanguage) -> Vec<MenuEntry> {
@@ -334,6 +343,92 @@ pub fn browser_url(link: &OverlayLink) -> Option<String> {
     (!host.is_empty()).then(|| url.to_owned())
 }
 
+/// 翻译浮窗频道切换菜单选中的一项。
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChannelMenuChoice {
+    /// 单选切换到这个频道。
+    Select(ChannelRef),
+    /// 打开设置窗口的「翻译」页。
+    OpenSettings,
+}
+
+/// 翻译浮窗标题栏的频道切换菜单（对应 macOS 的 TranslationChannelMenu）：
+/// 返回菜单项与按编号顺序排列的可选频道表，选中后再按同一份表换回频道。
+pub fn translation_channel_menu(
+    selected: &[ChannelRef],
+    discovered: &[DiscoveredChannel],
+    active_character: Option<&str>,
+    language: AppLanguage,
+) -> (Vec<MenuEntry>, Vec<ChannelRef>) {
+    let text = eveo_l10n::overlay(language);
+    let sections = switcher::sections(
+        selected,
+        discovered,
+        active_character,
+        switcher::MAX_RECENT_CHANNELS,
+    );
+    let mut entries = Vec::new();
+    let mut choices = Vec::new();
+    let mut push_channel =
+        |entries: &mut Vec<MenuEntry>, label: String, channel: ChannelRef, checked: bool| {
+            let id = CHANNEL_MENU_BASE + choices.len() as u32;
+            choices.push(channel);
+            // Win32 菜单把单个 `&` 当快捷键前缀，玩家频道名里常带 `&`（如 R&D），需要转义成 `&&`。
+            entries.push(MenuEntry::Item {
+                id,
+                text: label.replace('&', "&&"),
+                enabled: true,
+                checked,
+            });
+        };
+    let disabled_label = |label: &str| MenuEntry::Item {
+        id: CHANNEL_MENU_DISABLED,
+        text: label.to_owned(),
+        enabled: false,
+        checked: false,
+    };
+
+    // 第一组：4 个内置频道。
+    entries.push(disabled_label(text.menu_built_in_channels_header()));
+    for channel in sections.built_ins {
+        let checked = switcher::is_selected(&channel, selected);
+        let label = channel_display_name(&channel, language);
+        push_channel(&mut entries, label, channel, checked);
+    }
+    // 第二组：最近 24 小时从日志里发现的频道（活动角色排前面）。
+    entries.push(MenuEntry::Separator);
+    entries.push(disabled_label(text.menu_recent_channels_header()));
+    if sections.recent.is_empty() {
+        entries.push(disabled_label(text.no_discovered_channels()));
+    } else {
+        for channel in sections.recent {
+            let channel_ref = channel.channel_ref();
+            let checked = switcher::is_selected(&channel_ref, selected);
+            push_channel(&mut entries, channel.name, channel_ref, checked);
+        }
+    }
+    // 当前已选但不在前两组里的自定义频道，避免在菜单里「失踪」。
+    if !sections.custom_selected.is_empty() {
+        entries.push(MenuEntry::Separator);
+        for channel in sections.custom_selected {
+            let label = channel_display_name(&channel, language);
+            push_channel(&mut entries, label, channel, true);
+        }
+    }
+    entries.push(MenuEntry::Separator);
+    entries.push(MenuEntry::item(CHANNEL_MENU_SETTINGS, text.menu_open_settings()));
+    (entries, choices)
+}
+
+/// 频道切换菜单的编号换回选项。choices 必须是弹菜单时返回的那一份频道表。
+pub fn translation_channel_choice(id: u32, choices: &[ChannelRef]) -> Option<ChannelMenuChoice> {
+    if id == CHANNEL_MENU_SETTINGS {
+        return Some(ChannelMenuChoice::OpenSettings);
+    }
+    let index = id.checked_sub(CHANNEL_MENU_BASE)? as usize;
+    Some(ChannelMenuChoice::Select(choices.get(index)?.clone()))
+}
+
 #[cfg(test)]
 mod tests {
     //! 浮窗菜单的链接检查与编号换回；托盘菜单的崩溃提示项与报告项。
@@ -484,5 +579,67 @@ mod tests {
             Some(OverlayChoice::Coordinator(OverlayMenuAction::Hide))
         );
         assert_eq!(overlay_choice(9999, None), None);
+    }
+
+    /// 翻译浮窗频道切换菜单：内置频道、优先当前角色的近期频道、已选自定义频道与「打开设置…」。
+    #[test]
+    fn translation_channel_menu_builds_and_maps_choices() {
+        use eveo_core::chat_log::ChatChannelKind;
+        // 构造两个不同角色的近期频道，并测试频道名里含 `&` 时的 Win32 菜单转义。
+        let discovered = [
+            DiscoveredChannel {
+                id: "player_beta".into(),
+                name: "Beta & Ops".into(),
+                kind: ChatChannelKind::Player,
+                listeners: 1,
+                last_modified: 500.0,
+                listener_names: vec!["beta".into()],
+            },
+            DiscoveredChannel {
+                id: "player_alpha".into(),
+                name: "AlphaOps".into(),
+                kind: ChatChannelKind::Player,
+                listeners: 1,
+                last_modified: 100.0,
+                listener_names: vec!["alpha".into()],
+            },
+        ];
+        // 当前已选里混入一个不在近期列表里的自定义频道，核对菜单末尾会补列并打勾。
+        let custom = ChannelRef::new("Legacy", Some("player_legacy"));
+        let selected = [ChannelRef::built_ins()[0].clone(), custom.clone()];
+        let (entries, choices) =
+            translation_channel_menu(&selected, &discovered, Some("Alpha"), AppLanguage::Zh);
+        // 4 个内置 + 2 个近期（AlphaOps 排在 Beta & Ops 前面）+ 1 个已选自定义。
+        assert_eq!(choices.len(), 7);
+        assert_eq!(choices[4].id.as_deref(), Some("player_alpha"));
+        assert_eq!(choices[5].id.as_deref(), Some("player_beta"));
+        assert_eq!(choices[6], custom);
+        // 确认含 `&` 的频道名在菜单项里已转义为 `&&`，避免被 Win32 吃掉或画下划线。
+        assert!(entries.iter().any(|entry| matches!(
+            entry,
+            MenuEntry::Item { text, .. } if text == "Beta && Ops"
+        )));
+        // 编号换回选项：频道、打开设置与不可点标题项。
+        assert_eq!(
+            translation_channel_choice(CHANNEL_MENU_BASE + 4, &choices),
+            Some(ChannelMenuChoice::Select(ChannelRef::new(
+                "AlphaOps",
+                Some("player_alpha")
+            )))
+        );
+        assert_eq!(
+            translation_channel_choice(CHANNEL_MENU_SETTINGS, &choices),
+            Some(ChannelMenuChoice::OpenSettings)
+        );
+        assert_eq!(translation_channel_choice(CHANNEL_MENU_DISABLED, &choices), None);
+        // 菜单里第一个置灰标题项存在且不可点。
+        assert!(matches!(
+            entries[0],
+            MenuEntry::Item {
+                id: CHANNEL_MENU_DISABLED,
+                enabled: false,
+                ..
+            }
+        ));
     }
 }

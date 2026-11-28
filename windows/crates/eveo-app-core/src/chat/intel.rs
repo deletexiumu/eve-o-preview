@@ -243,6 +243,7 @@ impl IntelController {
         OverlayContent {
             context_key: format!("intel:{}", active.as_deref().unwrap_or("")),
             title,
+            channel_label: None,
             status: self.status_line(now, &formatter),
             lines,
         }

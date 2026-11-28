@@ -41,3 +41,7 @@ builtInLocal = "Lokal"
 builtInCorp = "Corporation"
 builtInAlliance = "Allianz"
 builtInFleet = "Flotte"
+
+channelSwitcherEmpty = "Kanal wählen"
+menuBuiltInChannelsHeader = "Integrierte Kanäle"
+menuRecentChannelsHeader = "Aktuelle Kanäle (24 Std.)"

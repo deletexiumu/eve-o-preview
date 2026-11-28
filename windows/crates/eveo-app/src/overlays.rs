@@ -55,6 +55,13 @@ pub enum OverlayEvent {
         /// 光标下的行；不在任何一行上时为 None。
         row: Option<usize>,
     },
+    /// 点击了翻译浮窗标题栏右侧的频道切换按钮：在 point 处弹频道切换菜单。
+    ChannelSwitcher {
+        /// 哪个浮窗。
+        kind: OverlayKind,
+        /// 光标位置。
+        point: ScreenPoint,
+    },
 }
 
 /// 按下时取拖动上下文的函数：参数是浮窗的种类与当前 frame。返回 None 表示不能拖动。
@@ -164,6 +171,12 @@ impl Panel {
                     self.left_in_slint = false;
                     let (x, y) = self.local(point);
                     self.host.left_button(x, y, false);
+                    if self.host.take_channel_switcher_clicked() {
+                        events.push(OverlayEvent::ChannelSwitcher {
+                            kind: self.kind,
+                            point,
+                        });
+                    }
                 }
             }
             // 滚轮不经过手势：拖动中滚动也照常翻列表，与 macOS 一致。
@@ -330,6 +343,15 @@ impl InfoOverlays {
     pub fn scroll_to_latest(&self, kind: OverlayKind) {
         if let Some(panel) = self.panel(kind) {
             panel.borrow().host.view().borrow_mut().scroll_to_latest();
+        }
+    }
+
+    /// 清除浮窗的悬停状态并重画：弹出模态菜单关闭后，窗口可能收不到 WM_MOUSELEAVE，这里主动复位。
+    pub fn clear_hover(&self, kind: OverlayKind) {
+        if let Some(panel) = self.panel(kind) {
+            let mut panel = panel.borrow_mut();
+            panel.host.pointer_exited();
+            panel.flush();
         }
     }
 

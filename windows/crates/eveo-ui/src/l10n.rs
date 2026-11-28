@@ -434,6 +434,9 @@ macro_rules! fill {
     text.set_built_in_corp(overlay.built_in_corp().into());
     text.set_built_in_alliance(overlay.built_in_alliance().into());
     text.set_built_in_fleet(overlay.built_in_fleet().into());
+    text.set_channel_switcher_empty(overlay.channel_switcher_empty().into());
+    text.set_menu_built_in_channels_header(overlay.menu_built_in_channels_header().into());
+    text.set_menu_recent_channels_header(overlay.menu_recent_channels_header().into());
     let translation = eveo_l10n::translation(language);
     let text = ui.global::<TranslationText>();
     text.set_page_subtitle(translation.page_subtitle().into());

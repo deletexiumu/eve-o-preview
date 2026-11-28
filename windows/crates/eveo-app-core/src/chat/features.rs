@@ -158,17 +158,34 @@ impl ChatFeatures {
         &self.static_data_state
     }
 
+    /// 当前活动角色名；翻译浮窗的频道切换菜单据此优先排当前角色的频道。
+    pub fn active_character(&self) -> Option<&str> {
+        self.active_character.as_deref()
+    }
+
     /// 配置变了（含启动时的第一次）：先把新上下文交给各功能，再算请求；请求要重建时清空缓冲。
     /// 返回应用层要对跟踪服务做的事；不用动时为 None。
     pub fn apply(&mut self, config: &AppConfig, now: f64) -> Option<TailerCommand> {
         if self.stopped {
             return None;
         }
+        // 翻译频道切换时，即便新旧频道都在预警列表里（并集没变），也要清掉旧频道的翻译缓冲并补读新频道。
+        let translation_channels_changed = self
+            .config
+            .as_ref()
+            .and_then(AppConfig::active_profile)
+            .zip(config.active_profile())
+            .is_some_and(|(old, new)| {
+                old.translation.enabled
+                    && new.translation.enabled
+                    && old.translation.channels != new.translation.channels
+            });
         self.config = Some(config.clone());
         // 先更新上下文再启动跟踪：跟踪服务一启动就可能上报事件，这时功能要已经知道新的频道与开关。
         self.update_consumers(now);
         let request = Self::request_for(config);
-        let restart = ChatLogRequest::requires_restart(self.current_request.as_ref(), request.as_ref());
+        let restart = ChatLogRequest::requires_restart(self.current_request.as_ref(), request.as_ref())
+            || translation_channels_changed;
         // 只有补读秒数变了时也记下新请求，但不重建：缓冲在每次刷新时按新的「保留最近」修剪。
         self.current_request = request.clone();
         if request.is_some() && !self.static_data_requested {
@@ -248,6 +265,7 @@ impl ChatFeatures {
                 None => OverlayContent {
                     context_key: "translation:".to_owned(),
                     title: eveo_l10n::settings(self.language).page_translation().to_owned(),
+                    channel_label: None,
                     status: None,
                     lines: Vec::new(),
                 },

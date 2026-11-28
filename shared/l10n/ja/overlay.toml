@@ -41,3 +41,7 @@ builtInLocal = "ローカル"
 builtInCorp = "コーポレーション"
 builtInAlliance = "アライアンス"
 builtInFleet = "フリート"
+
+channelSwitcherEmpty = "チャンネル選択"
+menuBuiltInChannelsHeader = "組み込みチャンネル"
+menuRecentChannelsHeader = "最近のチャンネル（24時間）"

@@ -152,10 +152,12 @@ pub struct OverlayView {
     language: AppLanguage,
     /// 上一次的内容是否为空、属于哪种说明；换语言时据此重填。
     placeholder: Option<OverlayListPlaceholder>,
+    /// 用户点了标题栏右侧的频道切换按钮，应用层取走后弹菜单。
+    channel_switcher_clicked: bool,
 }
 
 impl OverlayView {
-    /// 建视图并接上窗口的两个回调（用户滚动、点新消息条）。回调只持有弱引用，视图释放后不再生效。
+    /// 建视图并接上窗口的回调（用户滚动、点新消息条、点频道切换按钮）。回调只持有弱引用，视图释放后不再生效。
     ///
     /// 返回 Rc<RefCell<…>>：回调里要改视图的状态，应用层也要持有它来更新内容。
     /// 回调在 Slint 的事件处理里调用，这时应用层不会同时借用视图（两者都在主线程上、不重入）。
@@ -171,6 +173,7 @@ impl OverlayView {
             scroll: OverlayScrollState::INITIAL,
             language,
             placeholder: None,
+            channel_switcher_clicked: false,
         }));
         let window = view.borrow().window.clone_strong();
         let weak = Rc::downgrade(&view);
@@ -185,7 +188,18 @@ impl OverlayView {
                 view.borrow_mut().scroll_to_latest();
             }
         });
+        let weak = Rc::downgrade(&view);
+        window.on_channel_switcher_clicked(move || {
+            if let Some(view) = weak.upgrade() {
+                view.borrow_mut().channel_switcher_clicked = true;
+            }
+        });
         view
+    }
+
+    /// 取走「点击了频道切换按钮」的标志。
+    pub fn take_channel_switcher_clicked(&mut self) -> bool {
+        std::mem::take(&mut self.channel_switcher_clicked)
     }
 
     /// 浮窗。
@@ -221,8 +235,10 @@ impl OverlayView {
     /// 控制器每次刷新都给一份完整的内容（几秒一次，或者有新消息时）。这里按 diff 只改变化的行，
     /// 没变化的行不重新解析、不重新排版，滚动位置也不跳动。
     pub fn set_content(&mut self, content: &OverlayContent) {
-        // 标题与状态行每次都照填：它们很短，比较是否变化不比直接设值省事；值没变时 Slint 不会重画。
+        // 标题、频道切换按钮与状态行每次都照填：它们很短，比较是否变化不比直接设值省事；值没变时 Slint 不会重画。
         self.window.set_title_text(content.title.as_str().into());
+        self.window
+            .set_channel_label(content.channel_label.as_deref().unwrap_or("").into());
         let (status, level) = content.status.as_ref().map_or((String::new(), 0), |status| {
             let level = match status.level {
                 OverlayStatusLevel::Info => 0,

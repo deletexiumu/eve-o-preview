@@ -169,6 +169,8 @@ pub struct OverlayContent {
     pub context_key: String,
     /// 标题行。
     pub title: String,
+    /// 标题行右侧频道切换按钮的文字；None 时不显示按钮（预警浮窗没有这一项）。
+    pub channel_label: Option<String>,
     /// 状态行；None 时不显示。
     pub status: Option<OverlayStatus>,
     /// 各行，旧的在前，最新的在最后。

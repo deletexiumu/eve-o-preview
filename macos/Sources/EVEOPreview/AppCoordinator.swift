@@ -33,6 +33,8 @@ final class AppCoordinator {
     let chat: ChatFeatureController
     /// 正在拖动的浮窗；规划结果不改它们的 frame。
     var interactingOverlays: Set<OverlayKind> = []
+    /// 翻译浮窗频道切换按钮触发的近期频道扫描任务；再次点击或退出时取消。
+    var channelMenuTask: Task<Void, Never>?
 
     /// 已发现的客户端。
     private(set) var registry = ClientRegistry()
@@ -149,6 +151,8 @@ final class AppCoordinator {
         pollTask?.cancel()
         healthTask?.cancel()
         wakeTask?.cancel()
+        channelMenuTask?.cancel()
+        channelMenuTask = nil
         updateBackgroundActivity()
         services.workspace.stop()
         services.combatLog.stop()

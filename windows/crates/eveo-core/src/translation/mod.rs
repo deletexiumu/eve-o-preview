@@ -20,6 +20,7 @@ pub mod prompt;
 pub mod providers;
 pub mod queue;
 pub mod rules;
+pub mod switcher;
 pub mod wire;
 
 #[cfg(test)]

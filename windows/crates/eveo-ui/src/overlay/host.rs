@@ -167,6 +167,11 @@ impl OverlayHost {
         usize::try_from(self.view.borrow().window().get_hovered_row()).ok()
     }
 
+    /// 取走「点击了频道切换按钮」的标志。
+    pub fn take_channel_switcher_clicked(&self) -> bool {
+        self.view.borrow_mut().take_channel_switcher_clicked()
+    }
+
     /// 物理像素换成逻辑坐标。
     fn logical(&self, x: f64, y: f64) -> LogicalPosition {
         LogicalPosition::new(x as f32 / self.scale, y as f32 / self.scale)

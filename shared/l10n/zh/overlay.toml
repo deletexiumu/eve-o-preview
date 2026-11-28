@@ -41,3 +41,7 @@ builtInLocal = "本地"
 builtInCorp = "军团"
 builtInAlliance = "联盟"
 builtInFleet = "舰队"
+
+channelSwitcherEmpty = "选择频道"
+menuBuiltInChannelsHeader = "内置频道"
+menuRecentChannelsHeader = "最近频道（24 小时）"

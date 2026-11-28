@@ -45,4 +45,8 @@ struct OverlayStringsJA: OverlayStrings {
     var builtInCorp: String { "コーポレーション" }
     var builtInAlliance: String { "アライアンス" }
     var builtInFleet: String { "フリート" }
+    // MARK: 翻译浮窗频道切换
+    var channelSwitcherEmpty: String { "チャンネル選択" }
+    var menuBuiltInChannelsHeader: String { "組み込みチャンネル" }
+    var menuRecentChannelsHeader: String { "最近のチャンネル（24時間）" }
 }

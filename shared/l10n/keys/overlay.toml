@@ -100,7 +100,7 @@ doc = "Windows：频道列表下按名称添加一行的名字。"
 platforms = ["windows"]
 
 [OverlayStrings.pickFromLogs]
-doc = "Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 14 天出现过、还没选的频道。"
+doc = "Windows：「从日志添加」下拉框的第一项（提示文字），列表里是日志目录最近 24 小时出现过、还没选的频道。"
 platforms = ["windows"]
 
 [OverlayStrings.removeChannel]
@@ -131,3 +131,13 @@ doc = "内置频道：联盟。"
 
 [OverlayStrings.builtInFleet]
 doc = "内置频道：舰队。"
+
+[OverlayStrings.channelSwitcherEmpty]
+section = "翻译浮窗频道切换"
+doc = "还没有设置翻译频道时，浮窗标题栏右侧切换按钮的文字。"
+
+[OverlayStrings.menuBuiltInChannelsHeader]
+doc = "频道切换菜单里内置频道一组的标题。"
+
+[OverlayStrings.menuRecentChannelsHeader]
+doc = "频道切换菜单里最近 24 小时日志频道一组的标题。"

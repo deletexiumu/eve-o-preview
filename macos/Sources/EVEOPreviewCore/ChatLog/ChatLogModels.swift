@@ -184,7 +184,7 @@ public struct ChatLogRequest: Sendable, Equatable {
     }
 }
 
-/// 日志目录里发现的一个频道，给设置界面的「从日志添加」用（5.3 节）。
+/// 日志目录里发现的一个频道，给设置界面的「从日志添加」与翻译浮窗的频道切换用（5.3 节）。
 public struct DiscoveredChannel: Sendable, Equatable, Identifiable {
     /// Channel ID。
     public var id: String
@@ -196,18 +196,29 @@ public struct DiscoveredChannel: Sendable, Equatable, Identifiable {
     public var listeners: Int
     /// 最近一个文件的修改时间，1970 年以来的秒数。
     public var lastModified: Double
+    /// 出现过这个频道的角色名（小写、已去重并排序），浮窗切换频道时据此优先排当前角色。
+    public var listenerNames: [String]
 
-    /// 用各字段建一项。
-    public init(id: String, name: String, kind: ChatChannelKind, listeners: Int, lastModified: Double) {
+    /// 用各字段建一项。listenerNames 不给时为空数组。
+    public init(id: String, name: String, kind: ChatChannelKind, listeners: Int, lastModified: Double,
+                listenerNames: [String] = []) {
         self.id = id
         self.name = name
         self.kind = kind
         self.listeners = listeners
         self.lastModified = lastModified
+        self.listenerNames = listenerNames
     }
 
     /// 写进配置用的频道：名字与 ID 都存。
     public var ref: ChannelRef { ChannelRef(name: name, id: id) }
+
+    /// 这个频道的近期日志里有没有出现过某个角色（不区分大小写）。
+    public func hasListener(_ character: String) -> Bool {
+        let key = character.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !key.isEmpty else { return false }
+        return listenerNames.contains(key)
+    }
 }
 
 // MARK: - 位置记录（类型由 WP-0 建，规则归 WP-B 的 LocationTracker）

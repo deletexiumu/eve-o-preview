@@ -157,18 +157,23 @@ import EVEOPreviewPlatform
         pump()
     }
 
-    /// 浮窗的内容：标题、状态行与活动角色的各条。
+    /// 浮窗的内容：标题、频道切换按钮文字、状态行与活动角色的各条。
     func content(now: Double) -> OverlayContent {
         let strings = L10n.translation
+        let overlay = L10n.overlay
         let character = context?.activeCharacter
         let title = character.map { strings.overlayTitle($0) } ?? L10n.settings.pageTranslation
         let formatter = TranslationLineFormatter(strings: strings)
         let current = settings
+        let channelLabel = TranslationChannelSwitcher.buttonLabel(
+            selected: current.channels,
+            emptyLabel: overlay.channelSwitcherEmpty
+        ) { overlay.displayName(for: $0) }
         let lines = character.map { name in
             queue.items(for: name).compactMap { TranslationPresenter.line($0, settings: current, formatter: formatter) }
         } ?? []
         return OverlayContent(contextKey: "translation:" + (character ?? ""), title: title,
-                              status: statusLine(strings, now: now), lines: lines)
+                              channelLabel: channelLabel, status: statusLine(strings, now: now), lines: lines)
     }
 
     /// 翻译不按时间刷新（9.2 节）。
