@@ -30,6 +30,7 @@ pub mod message_loop;
 pub mod mouse_hook;
 pub mod nvidia;
 pub mod overlay;
+mod overlay_lock;
 pub mod panel;
 pub mod process;
 pub mod recorder;

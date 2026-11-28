@@ -27,6 +27,7 @@ pub mod flash;
 pub mod frame_cap;
 pub mod game_log;
 pub mod gesture;
+pub mod lock_effect;
 pub mod log;
 pub mod paths;
 pub mod pilots;

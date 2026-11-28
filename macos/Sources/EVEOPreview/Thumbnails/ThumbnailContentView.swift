@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// 缩略图的内容视图（架构文档 7.3 节）。图层从下到上共 6 层：
-// 画面层（IOSurface）、占位层、标题层、跳过标记层、边框层、提醒层（AlertFlashLayer，反馈文档 7.8 节）。
+// 缩略图的内容视图（架构文档 7.3 节）。图层从下到上共 7 层：
+// 画面层（IOSurface）、占位层、标题层、跳过标记层、边框层、锁定特效层（LockEffectLayer）、
+// 提醒层（AlertFlashLayer，反馈文档 7.8 节）。
+// 锁定特效层向内缩进外圈边框的宽度，不覆盖活动窗口高亮边框，两种效果清晰叠加。
 // 鼠标事件转给 ThumbnailInteraction；悬停用 activeAlways 的 NSTrackingArea，
 // 因为本应用几乎不在前台，不用 activeAlways 就收不到悬停事件。
 // 同一个跟踪区域也收 mouseMoved：鼠标停在边缘带上时显示缩放光标（ResizeCursor，v1.2.1）。
@@ -36,21 +38,26 @@ final class ThumbnailContentView: NSView {
     private let skipBar = CALayer()
     /// 边框层：只画边框，盖在画面之上，不缩小画面。高亮边框与中性边框共用这一层，同一时刻只画一种。
     private let borderLayer = CALayer()
-    /// 提醒层：战斗提醒期间闪烁，在边框层之上。动画由它自己管理。
+    /// 锁定特效层：画在外圈边框之内侧，叠加显示锁定布局的角标与流光动画，不覆盖活动高亮边框。
+    private let lockLayer = LockEffectLayer()
+    /// 提醒层：战斗提醒期间闪烁，在最顶层。动画由它自己管理。
     private let alertLayer = AlertFlashLayer()
 
     /// 当前呈现。
     private var presentation: ThumbnailPresentation?
+    /// 当前外圈边框的内缩宽度（点），锁定特效层按此内缩以保留外圈高亮边框。
+    private var borderInset: CGFloat = 0
     /// 画面在 surface 里的范围，归一化，原点在左上角。
     private var surfaceRect = UnitRect.full
     /// 悬停用的跟踪区域；视图尺寸变化时重建。
     private var trackingArea: NSTrackingArea?
 
-    /// 建视图并建好 6 个图层。视图由 AppKit 托管图层（wantsLayer）。
+    /// 建视图并建好 7 个图层。视图由 AppKit 托管图层（wantsLayer）。
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
         setUpLayers()
+        layoutLayers()
     }
 
     @available(*, unavailable)
@@ -60,7 +67,7 @@ final class ThumbnailContentView: NSView {
 
     // MARK: - 图层
 
-    /// 建 6 个图层并关闭隐式动画（提醒层的显示与动画由它自己管理）。
+    /// 建 7 个图层并关闭隐式动画（锁定特效层与提醒层的显示与动画由各自管理）。
     private func setUpLayers() {
         guard let root = layer else { return }
         root.backgroundColor = NSColor.black.cgColor
@@ -80,7 +87,7 @@ final class ThumbnailContentView: NSView {
         skipBar.backgroundColor = NSColor.white.cgColor
         skipLayer.addSublayer(skipBar)
         borderLayer.backgroundColor = nil
-        for sublayer in [imageLayer, placeholderLayer, titleLayer, skipLayer, borderLayer, alertLayer] {
+        for sublayer in [imageLayer, placeholderLayer, titleLayer, skipLayer, borderLayer, lockLayer, alertLayer] {
             root.addSublayer(sublayer)
         }
         // 图层属性默认带 0.25 秒的隐式动画；画面每帧更新、面板拖动时跟手，都不能有动画。
@@ -103,6 +110,7 @@ final class ThumbnailContentView: NSView {
         for text in [placeholderText, titleLayer] {
             text.contentsScale = scale
         }
+        lockLayer.updateContentsScale(scale)
     }
 
     /// 按视图尺寸摆放各图层。标题在左上角，跳过标记在右上角。
@@ -117,6 +125,7 @@ final class ThumbnailContentView: NSView {
         placeholderText.frame = CGRect(x: 8, y: (bounds.height - textHeight) / 2,
                                        width: max(0, bounds.width - 16), height: textHeight)
         borderLayer.frame = bounds
+        layoutLockLayer(in: bounds)
         alertLayer.frame = bounds
         layoutTitle(in: bounds)
         let diameter = max(14, min(24, bounds.height * 0.12))
@@ -150,6 +159,14 @@ final class ThumbnailContentView: NSView {
         applyPlaceholder(newPresentation)
         skipLayer.isHidden = !newPresentation.isSkipped
         applyBorder(newPresentation)
+        let inset = CGFloat(LockEffectRules.borderInset(for: newPresentation))
+        if inset != borderInset || (lockLayer.frame.isEmpty && !bounds.isEmpty) {
+            borderInset = inset
+            layoutLockLayer(in: bounds)
+        }
+        let triggerEngage = LockEffectRules.shouldTriggerEngage(previousLocked: old?.isLocked,
+                                                                newLocked: newPresentation.isLocked)
+        lockLayer.update(locked: newPresentation.isLocked, triggerEngage: triggerEngage)
         alertLayer.update(newPresentation.alert)
         // 裁剪范围只在源窗口尺寸或裁剪设置变化时变，避免每次重算都改 contentsRect。
         if old?.contentsRect != newPresentation.contentsRect {
@@ -181,9 +198,16 @@ final class ThumbnailContentView: NSView {
         }
     }
 
-    /// 用当前的呈现再更新一次提醒层。面板从隐藏变成显示后调用：隐藏期间系统可能移除了图层上的动画（V14）。
+    /// 用当前的呈现再更新一次提醒层与锁定特效层。面板从隐藏变成显示后调用：隐藏期间系统可能移除了图层上的动画（V14）。
     func refreshAlert() {
         alertLayer.update(presentation?.alert)
+        lockLayer.refresh()
+    }
+
+    /// 将锁定特效层摆在外圈边框（活动高亮或中性边框）之内侧，防止遮挡外圈边框。
+    private func layoutLockLayer(in bounds: CGRect) {
+        let safeInset = min(borderInset, min(bounds.width, bounds.height) / 2)
+        lockLayer.frame = bounds.insetBy(dx: safeInset, dy: safeInset)
     }
 
     /// 更新标题层的文字、字号与颜色。

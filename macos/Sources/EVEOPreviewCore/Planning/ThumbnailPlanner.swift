@@ -129,7 +129,8 @@ public enum ThumbnailPlanner {
                                                    titleBarCropHeight: cropHeight(for: client, input: input)),
             placeholder: placeholder(for: client, input: input),
             borderColor: border, borderThickness: Double(profile.overlay.borderThickness), alert: alert,
-            isOverFullScreen: profile.behavior.alwaysOnTop && isFrontmostFullScreen(input))
+            isOverFullScreen: profile.behavior.alwaysOnTop && isFrontmostFullScreen(input),
+            isLocked: profile.behavior.lockLayout)
     }
 
     /// 活动客户端的 PID：前台是客户端时取它，否则取最后一次处于前台的客户端。

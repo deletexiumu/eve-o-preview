@@ -173,6 +173,8 @@ pub struct ThumbnailPresentation {
     pub alert: Option<ThumbnailAlert>,
     /// 是否为活动客户端（前台客户端；前台不是 EVE 时为最后活动的客户端）。
     pub is_active: bool,
+    /// 布局是否已锁定（`behavior.lock_layout`）。锁定特效叠在内侧，不覆盖活动高亮。
+    pub is_locked: bool,
     /// 角色是否在本次会话内被跳过，显示跳过标记。
     pub is_skipped: bool,
     /// 是否置顶。

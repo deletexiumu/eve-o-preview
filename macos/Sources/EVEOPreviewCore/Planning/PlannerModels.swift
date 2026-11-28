@@ -86,6 +86,8 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
     public var alert: ThumbnailAlert?
     /// 是否为活动客户端（前台客户端；前台不是 EVE 时为最后活动的客户端）。
     public var isActive: Bool
+    /// 布局是否已锁定（`behavior.lockLayout`）。锁定特效叠加在边框内侧，不覆盖活动高亮。
+    public var isLocked: Bool
     /// 角色是否在本次会话内被跳过，显示跳过标记。
     public var isSkipped: Bool
     /// 面板是否置顶。
@@ -100,13 +102,13 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
     /// 占位。
     public var placeholder: ThumbnailPlaceholder
 
-    /// 用全部字段建一个呈现。第一轮反馈新增的边框与提醒字段放在最后，带默认值（不画、没有提醒）。
+    /// 用全部字段建一个呈现。新增的边框、提醒、全屏与锁定字段放在最后，带默认值以兼容已有调用方。
     public init(id: WindowID, pid: Int32, frame: ScreenRect, isVisible: Bool, title: String, showsTitle: Bool,
                 titleFontSize: Double, titleColor: String, opacity: Double, highlightColor: String?,
                 highlightThickness: Double, isActive: Bool, isSkipped: Bool, isAlwaysOnTop: Bool,
                 isZoomed: Bool, contentsRect: UnitRect, placeholder: ThumbnailPlaceholder,
                 borderColor: String? = nil, borderThickness: Double = 0, alert: ThumbnailAlert? = nil,
-                isOverFullScreen: Bool = false) {
+                isOverFullScreen: Bool = false, isLocked: Bool = false) {
         self.id = id
         self.pid = pid
         self.frame = frame
@@ -119,6 +121,7 @@ public struct ThumbnailPresentation: Sendable, Equatable, Identifiable {
         self.highlightColor = highlightColor
         self.highlightThickness = highlightThickness
         self.isActive = isActive
+        self.isLocked = isLocked
         self.isSkipped = isSkipped
         self.isAlwaysOnTop = isAlwaysOnTop
         self.isOverFullScreen = isOverFullScreen

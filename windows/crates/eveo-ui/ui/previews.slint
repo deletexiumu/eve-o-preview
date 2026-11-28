@@ -94,6 +94,29 @@ component ThumbnailMock inherits Rectangle {
         Rectangle { x: 140px; y: 64px; width: 2px; height: 2px; border-radius: 1px; background: #ffffff88; }
         Rectangle { x: 96px; y: 40px; width: 46px; height: 10px; border-radius: 5px; background: #ffffff30; }
         Rectangle { x: 108px; y: 36px; width: 18px; height: 18px; border-radius: 9px; background: tint.with-alpha(0.55); }
+        // 锁定布局特效示意：画在 frame-width 之内侧，与外圈活动高亮边框清晰叠加。
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            opacity: PreviewsModel.lock-layout ? 1.0 : 0.0;
+            animate opacity { duration: 240ms; easing: ease-out; }
+            // 内圈微光边线。
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                border-width: 1px;
+                border-color: #38bdf844;
+            }
+            // 四角 L 型战术锁扣（按预览区一半比例取 10px 臂长、1.5px 线宽，竖臂避开横臂顶点防重叠）。
+            Rectangle { x: 2px; y: 2px; width: 10px; height: 1.5px; background: #38bdf8; }
+            Rectangle { x: 2px; y: 3.5px; width: 1.5px; height: 8.5px; background: #38bdf8; }
+            Rectangle { x: parent.width - 12px; y: 2px; width: 10px; height: 1.5px; background: #38bdf8; }
+            Rectangle { x: parent.width - 3.5px; y: 3.5px; width: 1.5px; height: 8.5px; background: #38bdf8; }
+            Rectangle { x: 2px; y: parent.height - 3.5px; width: 10px; height: 1.5px; background: #38bdf8; }
+            Rectangle { x: 2px; y: parent.height - 12px; width: 1.5px; height: 8.5px; background: #38bdf8; }
+            Rectangle { x: parent.width - 12px; y: parent.height - 3.5px; width: 10px; height: 1.5px; background: #38bdf8; }
+            Rectangle { x: parent.width - 3.5px; y: parent.height - 12px; width: 1.5px; height: 8.5px; background: #38bdf8; }
+        }
     }
     // 标题：左上角的半透明圆角底，与应用的叠加层相同；字号按一半大小画。
     // 底的宽度随文字收缩，超出缩略图宽度时以省略号截断，与叠加层的规则一致。
