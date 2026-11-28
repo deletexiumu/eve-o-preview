@@ -224,6 +224,11 @@ impl OverlayView {
         self.window.set_font_size(font_size as f32);
     }
 
+    /// 布局锁定状态：开启时在 1px 白色边线内侧叠加青蓝锁扣与内圈微光。
+    pub fn set_locked(&self, locked: bool) {
+        self.window.set_is_locked(locked);
+    }
+
     /// 换界面语言：重填说明与新消息条。
     pub fn set_language(&mut self, language: AppLanguage) {
         self.language = language;

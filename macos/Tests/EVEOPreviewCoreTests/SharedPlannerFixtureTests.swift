@@ -94,7 +94,7 @@ struct SharedPlannerFixtureTests {
             "titleColor": p.titleColor, "opacity": p.opacity,
             "highlightColor": p.highlightColor ?? NSNull(), "highlightThickness": p.highlightThickness,
             "borderColor": p.borderColor ?? NSNull(), "borderThickness": p.borderThickness, "alert": alert,
-            "isActive": p.isActive, "isSkipped": p.isSkipped, "isAlwaysOnTop": p.isAlwaysOnTop,
+            "isActive": p.isActive, "isLocked": p.isLocked, "isSkipped": p.isSkipped, "isAlwaysOnTop": p.isAlwaysOnTop,
             "isOverFullScreen": p.isOverFullScreen, "isZoomed": p.isZoomed, "placeholder": placeholder,
         ]
     }

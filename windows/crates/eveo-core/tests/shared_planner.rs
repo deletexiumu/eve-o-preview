@@ -110,7 +110,7 @@ fn presentation_json(p: &ThumbnailPresentation) -> Value {
         "highlightColor": p.highlight_color, "highlightThickness": p.highlight_thickness,
         "borderColor": p.border_color, "borderThickness": p.border_thickness,
         "alert": p.alert.as_ref().map(|a| json!({"color": a.color, "style": a.style.raw()})),
-        "isActive": p.is_active, "isSkipped": p.is_skipped, "isAlwaysOnTop": p.is_always_on_top,
+        "isActive": p.is_active, "isLocked": p.is_locked, "isSkipped": p.is_skipped, "isAlwaysOnTop": p.is_always_on_top,
         "isOverFullScreen": p.is_over_full_screen, "isZoomed": p.is_zoomed,
         "placeholder": match p.placeholder {
             ThumbnailPlaceholder::None => "none",

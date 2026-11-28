@@ -53,6 +53,8 @@ export component OverlayWindow inherits Window {
     in property <string> new-messages;
     // 贴住底部：内容或尺寸变化后滚到底部。
     in property <bool> pinned: true;
+    // 布局是否已锁定：在 1px 白色边线内侧叠加青蓝锁扣与内圈微光。
+    in property <bool> is-locked: false;
 
     // 列表的滚动位置（≤ 0），Rust 保持阅读位置时读写。
     in-out property <length> content-y <=> list.content-y;
@@ -111,6 +113,29 @@ export component OverlayWindow inherits Window {
         border-radius: 6px;
         border-width: 1px;
         border-color: #ffffff2e;
+    }
+
+    // 锁定布局叠加层：画在 1px 白色边线之内侧，用平滑显隐过渡避免软件渲染器持续空转。
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 5px;
+        border-width: 1px;
+        border-color: #38bdf84d;
+        opacity: root.is-locked ? 1.0 : 0.0;
+        animate opacity { duration: 240ms; easing: ease-out; }
+
+        // 四角 L 型战术锁扣，竖臂从横臂内侧起画以避免半透明角顶点二次混色。
+        Rectangle { x: 2px; y: 2px; width: 14px; height: 2px; background: #38bdf8d9; }
+        Rectangle { x: 2px; y: 4px; width: 2px; height: 12px; background: #38bdf8d9; }
+        Rectangle { x: parent.width - 16px; y: 2px; width: 14px; height: 2px; background: #38bdf8d9; }
+        Rectangle { x: parent.width - 4px; y: 4px; width: 2px; height: 12px; background: #38bdf8d9; }
+        Rectangle { x: 2px; y: parent.height - 4px; width: 14px; height: 2px; background: #38bdf8d9; }
+        Rectangle { x: 2px; y: parent.height - 16px; width: 2px; height: 12px; background: #38bdf8d9; }
+        Rectangle { x: parent.width - 16px; y: parent.height - 4px; width: 14px; height: 2px; background: #38bdf8d9; }
+        Rectangle { x: parent.width - 4px; y: parent.height - 16px; width: 2px; height: 12px; background: #38bdf8d9; }
     }
 
     VerticalLayout {

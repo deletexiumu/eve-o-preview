@@ -14,11 +14,12 @@ use std::collections::{HashMap, HashSet};
 
 use eveo_app_core::flash;
 use eveo_app_core::gesture::Gesture;
+use eveo_app_core::lock_effect::{self, LockFrame};
 use eveo_core::geometry::{ScreenInfo, ScreenRect, screen_containing};
 use eveo_core::model::{AppLanguage, COMBAT_ALERT_DEFAULT_COLOR, CombatAlertStyle, WindowId};
 use eveo_core::planning::{ThumbnailPlaceholder, ThumbnailPresentation, ThumbnailStatus};
 use eveo_core::support::hex_color;
-use eveo_platform_win::overlay::{self, OverlayAlert, OverlayContent, OverlayTitle};
+use eveo_platform_win::overlay::{self, OverlayAlert, OverlayContent, OverlayLock, OverlayTitle};
 use eveo_platform_win::thumbnail::{ThumbnailInput, ThumbnailWindow};
 
 /// 没有高亮也没有中性边框时的底色：深灰，与 DWM 画面之间没有缝隙时看不到。
@@ -43,6 +44,12 @@ pub struct ThumbnailManager {
     intensity: f32,
     /// 占位文字的语言。
     language: AppLanguage,
+    /// 是否已完成过至少一次呈现应用：启动时已锁定不播开启瞬间动画，仅在后续由未锁定切为锁定时播放。
+    has_applied: bool,
+    /// 上一次应用呈现时的锁定布局状态。
+    was_locked: bool,
+    /// 最近一次从未锁定切为锁定的单调时钟时刻（秒）；未锁定时为 `None`。
+    locked_since: Option<f64>,
 }
 
 impl Default for ThumbnailManager {
@@ -51,24 +58,43 @@ impl Default for ThumbnailManager {
             entries: HashMap::new(),
             intensity: 1.0,
             language: AppLanguage::En,
+            has_applied: false,
+            was_locked: false,
+            locked_since: None,
         }
     }
 }
 
 impl ThumbnailManager {
     /// 按呈现更新窗口。`make_handler` 给新建的窗口生成输入处理函数。
+    /// `is_locked` 直接取自当前配置方案的 `behavior.lock_layout`，这样在客户端数量为 0 时
+    /// 也能准确追踪锁定切换，避免启动时已锁定或客户端全部关闭重开后误播开启瞬间动画。
     /// 返回 DWM 状态有变化的窗口，调用方报给协调器。
     pub fn apply(
         &mut self,
-        presentations: &[ThumbnailPresentation],
-        thumbnails: &[WindowId],
-        interacting: &HashSet<WindowId>,
-        screens: &[ScreenInfo],
+        (presentations, thumbnails, interacting, screens): (
+            &[ThumbnailPresentation],
+            &[WindowId],
+            &HashSet<WindowId>,
+            &[ScreenInfo],
+        ),
+        is_locked: bool,
+        now: f64,
         mut make_handler: impl FnMut(WindowId) -> Box<dyn FnMut(ThumbnailInput)>,
     ) -> Vec<(WindowId, ThumbnailStatus)> {
         let live: HashSet<WindowId> = presentations.iter().map(|p| p.id).collect();
         // 客户端已消失的窗口直接丢弃：Drop 里注销缩略图并销毁窗口。
         self.entries.retain(|id, _| live.contains(id));
+        // 检测锁定布局状态变化：从未锁定切到锁定时记下开启时刻，驱动同步的合拢与对角流光动画。
+        if lock_effect::should_trigger_engage(self.has_applied, self.was_locked, is_locked) {
+            self.locked_since = Some(now);
+        } else if !is_locked {
+            self.locked_since = None;
+        }
+        self.has_applied = true;
+        self.was_locked = is_locked;
+        let lock_frame =
+            is_locked.then(|| lock_effect::sample(now, self.locked_since, overlay::animations_enabled()));
         // 要保持 DWM 注册的窗口：只有可见的缩略图注册，隐藏时注销，系统不再为它合成画面。
         let registered: HashSet<WindowId> = thumbnails.iter().copied().collect();
         let mut changes = Vec::new();
@@ -98,7 +124,7 @@ impl ThumbnailManager {
                 registered.contains(&id),
                 interacting,
                 screens,
-                (self.intensity, self.language),
+                (self.intensity, self.language, lock_frame),
             ) {
                 changes.push((id, status));
             }
@@ -130,23 +156,43 @@ impl ThumbnailManager {
         }
     }
 
-    /// 推进提醒的闪烁：有提醒的缩略图按 `now`（秒）取闪烁曲线的值重画叠加层。
-    /// 系统关掉了动画效果时提醒静止显示。没有提醒时什么也不做，定时器空转没有开销。
+    /// 推进提醒闪烁与锁定布局特效动画：按 `now`（秒）采样曲线并重画变化了的叠加层。
+    /// 系统关掉了动画效果时两类特效均静止显示（内容不变则不重画）；既无提醒也未锁定时立即返回，零开销。
     pub fn animate(&mut self, now: f64) {
-        if !self.entries.values().any(|e| e.overlay.alert.is_some()) {
+        let has_alert = self.entries.values().any(|e| e.overlay.alert.is_some());
+        let has_lock = self.entries.values().any(|e| e.overlay.lock.is_some());
+        if !has_alert && !has_lock {
             return;
         }
-        // 每帧都问一次系统设置：用户在提醒期间改了「动画效果」开关，下一帧就按新的设置显示。
-        self.intensity = if overlay::animations_enabled() {
-            flash::intensity(now) as f32
-        } else {
-            1.0
-        };
-        // 只改强度、其余内容不变；平台层发现内容不同就重画这一个叠加层。
-        // 隐藏的缩略图也会更新内容，但它的叠加层隐藏着，要到再次显示时才真正画。
+        // 每帧都问一次系统设置：用户在运行期间改了「动画效果」开关，下一帧立即生效。
+        let animated = overlay::animations_enabled();
+        if has_alert {
+            self.intensity = if animated {
+                flash::intensity(now) as f32
+            } else {
+                1.0
+            };
+        }
+        let lock_frame = has_lock.then(|| lock_effect::sample(now, self.locked_since, animated));
+        // 只改动画字段、其余内容不变；平台层比较内容不同才真正重画。
+        // 隐藏的缩略图跳过更新（再次显示时会由 apply 刷新），避免无谓的克隆与重画。
         for entry in self.entries.values_mut() {
+            if !entry.window.is_shown() {
+                continue;
+            }
+            let mut changed = false;
             if let Some(alert) = &mut entry.overlay.alert {
                 alert.intensity = self.intensity;
+                changed = true;
+            }
+            if let (Some(lock), Some(frame)) = (&mut entry.overlay.lock, lock_frame) {
+                let next = overlay_lock(frame, lock.border_inset);
+                if *lock != next {
+                    *lock = next;
+                    changed = true;
+                }
+            }
+            if changed {
                 entry.window.set_overlay(entry.overlay.clone());
             }
         }
@@ -165,7 +211,7 @@ fn update(
     should_register: bool,
     interacting: &HashSet<WindowId>,
     screens: &[ScreenInfo],
-    (intensity, language): (f32, AppLanguage),
+    (intensity, language, lock_frame): (f32, AppLanguage, Option<LockFrame>),
 ) -> Option<ThumbnailStatus> {
     let id = presentation.id;
     let window = &mut entry.window;
@@ -188,7 +234,11 @@ fn update(
         (None, None) => (None, 0.0),
     };
     window.set_background(color.unwrap_or(DEFAULT_BACKGROUND));
-    let inset = (thickness * scale).round() as i32;
+    let inset = if color.is_some() {
+        (thickness * scale).round() as i32
+    } else {
+        0
+    };
     // 不透明度只作用于 DWM 画面；边框（窗口底色）保持不透明，高亮在半透明时也看得清。
     let opacity = (presentation.opacity.clamp(0.0, 1.0) * 255.0).round() as u8;
 
@@ -205,8 +255,16 @@ fn update(
     };
     let _ = window.set_appearance(inset, presentation.is_visible, opacity);
     // 叠加层每次呈现都重算内容，但平台层比较内容后才重画：多数重算（例如前台切换）只改边框，不碰叠加层。
-    // 缩放取所在显示器的：缩略图拖到另一块缩放不同的显示器上时，标题字号与边距随之变化。
-    entry.overlay = overlay_content(presentation, scale as f32, intensity, language);
+    // 锁定特效把当前外圈边框的物理像素宽度 inset 传给叠加层，使锁定特效严格画在外圈高亮边框之内侧，两种效果叠加不覆盖。
+    entry.overlay = overlay_content(
+        presentation,
+        scale as f32,
+        intensity,
+        language,
+        lock_frame
+            .filter(|_| presentation.is_locked)
+            .map(|f| overlay_lock(f, inset.max(0) as f32)),
+    );
     window.set_overlay(entry.overlay.clone());
     (status != entry.status).then(|| {
         entry.status = status;
@@ -220,6 +278,7 @@ fn overlay_content(
     scale: f32,
     intensity: f32,
     language: AppLanguage,
+    lock: Option<OverlayLock>,
 ) -> OverlayContent {
     let strings = eveo_l10n::thumbnail(language);
     let title = presentation.shows_title.then(|| OverlayTitle {
@@ -246,8 +305,22 @@ fn overlay_content(
         title,
         skipped: presentation.is_skipped,
         placeholder,
+        lock,
         alert,
         scale,
+    }
+}
+
+/// 把 `LockFrame` 与外圈边框内缩像素转换成平台层的 `OverlayLock`。
+fn overlay_lock(frame: LockFrame, border_inset: f32) -> OverlayLock {
+    OverlayLock {
+        border_inset,
+        clamp_offset: frame.clamp_offset,
+        clamp_alpha: frame.clamp_alpha,
+        hairline_alpha: frame.hairline_alpha,
+        flash_mix: frame.flash_mix,
+        glint_phase: frame.glint_phase,
+        sheen_progress: frame.sheen_progress,
     }
 }
 

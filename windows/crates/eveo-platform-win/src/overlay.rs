@@ -82,6 +82,25 @@ pub struct OverlayAlert {
     pub intensity: f32,
 }
 
+/// 锁定布局的叠加特效：绘制在外圈边框（活动高亮或中性边框）之内侧，与外圈高亮共存不覆盖。
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OverlayLock {
+    /// 外圈边框占用的内缩宽度（物理像素），锁定特效全部画在该内缩区域之内。
+    pub border_inset: f32,
+    /// 四角锁扣相对稳态位置的额外向内偏移（DIP，0 表示已合拢就位）。
+    pub clamp_offset: f32,
+    /// 四角锁扣的不透明度（0～1）。
+    pub clamp_alpha: f32,
+    /// 内圈微光边线的不透明度（0～1）。
+    pub hairline_alpha: f32,
+    /// 高光混色比例（0 = 主色 `#38BDF8`，1 = 亮青白 `#BAE6FD`）。
+    pub flash_mix: f32,
+    /// 内圈巡游流光的相位（0～1）；减弱动态效果时为 `None`。
+    pub glint_phase: Option<f32>,
+    /// 开启瞬间对角流光的扫过进度（0～1）；结束后或减弱动态效果时为 `None`。
+    pub sheen_progress: Option<f32>,
+}
+
 /// 叠加层上要画的全部内容。各项都没有时窗口隐藏，不占合成开销。
 #[derive(Debug, Clone, PartialEq)]
 pub struct OverlayContent {
@@ -91,6 +110,8 @@ pub struct OverlayContent {
     pub skipped: bool,
     /// 占位说明；`None` 表示不显示占位。有占位时整块铺一层深色半透明底。
     pub placeholder: Option<String>,
+    /// 锁定布局特效；`None` 表示未锁定。
+    pub lock: Option<OverlayLock>,
     /// 战斗提醒；`None` 表示没有。
     pub alert: Option<OverlayAlert>,
     /// 所在显示器的缩放（1.0 = 96 DPI），字号、边距与粗细都乘以它。
@@ -103,6 +124,7 @@ impl Default for OverlayContent {
             title: None,
             skipped: false,
             placeholder: None,
+            lock: None,
             alert: None,
             scale: 1.0,
         }
@@ -112,7 +134,11 @@ impl Default for OverlayContent {
 impl OverlayContent {
     /// 是否什么都不用画。
     pub fn is_empty(&self) -> bool {
-        self.title.is_none() && !self.skipped && self.placeholder.is_none() && self.alert.is_none()
+        self.title.is_none()
+            && !self.skipped
+            && self.placeholder.is_none()
+            && self.lock.is_none()
+            && self.alert.is_none()
     }
 }
 
@@ -532,6 +558,9 @@ impl Renderer {
         }
         if content.skipped {
             draw_skip_badge(target, width, height, scale)?;
+        }
+        if let Some(lock) = &content.lock {
+            crate::overlay_lock::draw(target, (width, height), scale, lock)?;
         }
         if let Some(alert) = &content.alert {
             let intensity = alert.intensity.clamp(0.0, 1.0);

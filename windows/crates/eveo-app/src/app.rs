@@ -493,12 +493,16 @@ impl App {
                 interacting,
             } => {
                 let weak = Rc::downgrade(runtime);
-                let changes =
-                    self.thumbnails
-                        .apply(&presentations, &thumbnails, &interacting, &self.screens, |id| {
-                            let weak = weak.clone();
-                            Box::new(move |input| post(&weak, Input::Thumbnail(id, input)))
-                        });
+                let locked = self.coordinator.profile().behavior.lock_layout;
+                let changes = self.thumbnails.apply(
+                    (&presentations, &thumbnails, &interacting, &self.screens),
+                    locked,
+                    self.now(),
+                    |id| {
+                        let weak = weak.clone();
+                        Box::new(move |input| post(&weak, Input::Thumbnail(id, input)))
+                    },
+                );
                 // 状态变化排进队列，本轮效果执行完后再交给协调器，不在 apply 中途重入。
                 let mut queue = runtime.queue.borrow_mut();
                 for (id, status) in changes {
@@ -594,7 +598,7 @@ impl App {
         self.updates_tick(runtime);
         self.frame_cap_tick();
         self.debug_panic_check();
-        // 战斗提醒的闪烁随定时器逐帧推进（每 50 毫秒一帧）；没有提醒时立即返回。
+        // 战斗提醒闪烁与锁定布局特效随定时器逐帧推进（每 50 毫秒一帧）；两者皆无时立即返回。
         self.thumbnails.animate(self.now());
         let now = Instant::now();
         if now >= self.poll_at {

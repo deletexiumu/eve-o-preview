@@ -34,6 +34,10 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     /// 新消息条：圆角底色加一行文字。
     private let newMessagesBar = NSView()
     private let newMessagesLabel = InfoOverlayContentView.makeLabel(maximumLines: 1)
+    /// 锁定特效层：画在 1 点白色边线之内侧，锁定布局开启时显示叠加动画。
+    private let lockLayer = LockEffectLayer()
+    /// 最近一次应用的锁定状态，用于判断是否触发开启瞬间动画。
+    private var lastLocked: Bool?
 
     /// 最近一次的内容；nil 表示还没收到过内容。
     private var content: OverlayContent?
@@ -92,6 +96,8 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
         for view in [titleLabel, channelButton, statusLabel, scrollView, placeholderLabel, newMessagesBar] {
             addSubview(view)
         }
+        lockLayer.cornerRadius = max(0, OverlayStyle.cornerRadius - 1)
+        layer?.addSublayer(lockLayer)
         NotificationCenter.default.addObserver(self, selector: #selector(clipBoundsChanged),
                                                name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
         applyAppearance(opacity: 0.75, fontSize: 12)
@@ -194,6 +200,24 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
     }
 
     // MARK: - 对外接口
+
+    /// 移到不同缩放的屏幕时更新锁定特效图层的 contentsScale。
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        lockLayer.updateContentsScale(window?.backingScaleFactor ?? 2)
+    }
+
+    /// 更新锁定布局的叠加特效：仅当从未锁定切为锁定时播放开启瞬间动画。
+    func applyLockState(_ isLocked: Bool) {
+        let trigger = LockEffectRules.shouldTriggerEngage(previousLocked: lastLocked, newLocked: isLocked)
+        lastLocked = isLocked
+        lockLayer.update(locked: isLocked, triggerEngage: trigger)
+    }
+
+    /// 面板从隐藏变为显示后补回可能被系统移除的锁定特效动画。
+    func refreshLockEffect() {
+        lockLayer.refresh()
+    }
 
     /// 应用外观：背景不透明度与字号。字号变了时重排全部行，位置按贴住底部的规则保持。
     func applyAppearance(opacity: Double, fontSize: Double) {
@@ -471,6 +495,13 @@ final class InfoOverlayContentView: NSView, NSTableViewDataSource, NSTableViewDe
             if !lines.isEmpty { tableView.noteHeightOfRows(withIndexesChanged: IndexSet(0..<lines.count)) }
         }
         layoutAccessories()
+        // 锁定特效层贴在 1 点白色边线之内侧，始终置于最顶层以便在列表与内容上清晰呈现。
+        let lockInset: CGFloat = 1
+        let safeInset = min(lockInset, min(bounds.width, bounds.height) / 2)
+        lockLayer.frame = bounds.insetBy(dx: safeInset, dy: safeInset)
+        if let rootLayer = layer, lockLayer.superlayer === rootLayer {
+            lockLayer.zPosition = 100
+        }
     }
 
     /// 更新空列表的说明与新消息条的文字和可见性，并摆放它们。

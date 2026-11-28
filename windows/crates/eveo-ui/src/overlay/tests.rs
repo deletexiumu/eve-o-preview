@@ -317,3 +317,16 @@ fn host_channel_switcher_button() {
     // 取走后立即复位。
     assert!(!host.take_channel_switcher_clicked());
 }
+
+/// 布局锁定状态同步到浮窗属性，触发重画后回到静止（不持续空转）。
+#[test]
+fn host_applies_lock_state() {
+    crate::screenshot::ensure_platform().expect("软件渲染平台");
+    let mut host = host::OverlayHost::new(AppLanguage::Zh).expect("建宿主");
+    host.resize(380, 260, 1.0);
+    assert!(!host.view().borrow().window().get_is_locked());
+    host.render();
+    host.view().borrow().set_locked(true);
+    assert!(host.view().borrow().window().get_is_locked());
+    assert!(host.render().is_some(), "切换锁定状态应触发重画");
+}

@@ -48,6 +48,7 @@ final class InfoOverlayController {
         // 鼠标停在边缘带上时显示缩放光标；规则与左键按下时相同（布局锁定时不显示）。
         contentView.cursorEdges = { [weak self] in self?.interaction.hoverEdges() ?? [] }
         contentView.applyAppearance(opacity: presentation.opacity, fontSize: presentation.fontSize)
+        contentView.applyLockState(presentation.isLocked)
     }
 
     /// 面板当前是否可见。
@@ -66,6 +67,7 @@ final class InfoOverlayController {
     func apply(_ newPresentation: OverlayPresentation, isInteracting: Bool) {
         presentation = newPresentation
         contentView.applyAppearance(opacity: newPresentation.opacity, fontSize: newPresentation.fontSize)
+        contentView.applyLockState(newPresentation.isLocked)
         guard newPresentation.isVisible else {
             if panel.isVisible {
                 // 拖动中被隐藏时取消拖动：协调器同时清掉它的交互状态，松开鼠标时不再提交。
@@ -90,6 +92,7 @@ final class InfoOverlayController {
         if !panel.isVisible {
             // 本应用几乎不在前台，orderFront 对非活动应用无效，所以用 orderFrontRegardless；不激活本应用。
             panel.orderFrontRegardless()
+            contentView.refreshLockEffect()
         }
     }
 

@@ -156,6 +156,7 @@ fn present(client: &EveClient, base: ScreenRect, input: &PlannerInput<'_>) -> Th
             style: profile.combat_alert.style,
         }),
         is_active,
+        is_locked: profile.behavior.lock_layout,
         is_skipped: client
             .character_name()
             .is_some_and(|name| session.skipped_characters.contains(name)),

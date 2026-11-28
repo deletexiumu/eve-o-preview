@@ -2470,6 +2470,100 @@
         ],
         "layoutsToPersist": {}
       }
+    },
+    {
+      "name": "锁定布局开启时保留活动高亮与中性边框",
+      "clients": [
+        {
+          "id": 1,
+          "pid": 100,
+          "identity": {
+            "kind": "character",
+            "name": "Alpha"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        },
+        {
+          "id": 2,
+          "pid": 200,
+          "identity": {
+            "kind": "character",
+            "name": "Bravo"
+          },
+          "frame": [
+            0,
+            0,
+            1280,
+            720
+          ]
+        }
+      ],
+      "frontmost": {
+        "client": 100
+      },
+      "profile": {
+        "behavior": {
+          "lockLayout": true
+        },
+        "layouts": {
+          "Alpha": {
+            "x": 16,
+            "y": 16
+          },
+          "Bravo": {
+            "x": 416,
+            "y": 16
+          }
+        }
+      },
+      "session": {},
+      "screens": [
+        {
+          "frame": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "visibleFrame": [
+            0,
+            0,
+            1920,
+            1040
+          ],
+          "scale": 1,
+          "isMain": true
+        }
+      ],
+      "now": 100,
+      "expect": {
+        "presentations": [
+          {
+            "isActive": true,
+            "isLocked": true,
+            "highlightColor": "#ADFF2F",
+            "highlightThickness": 3,
+            "borderColor": "#C0C0C0",
+            "borderThickness": 2
+          },
+          {
+            "isActive": false,
+            "isLocked": true,
+            "highlightColor": null,
+            "borderColor": "#C0C0C0",
+            "borderThickness": 2
+          }
+        ],
+        "visible": [
+          1,
+          2
+        ]
+      }
     }
   ]
 }

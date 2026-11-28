@@ -294,11 +294,10 @@ impl InfoOverlays {
                 let scale = size_scale_at(screens, presentation.frame.center());
                 panel.set_frame(presentation.frame, scale);
             }
-            panel
-                .host
-                .view()
-                .borrow()
-                .set_appearance(presentation.opacity, presentation.font_size);
+            let view = panel.host.view().borrow();
+            view.set_appearance(presentation.opacity, presentation.font_size);
+            view.set_locked(presentation.is_locked);
+            drop(view);
             // 盖在全屏客户端上也是置顶；每次都设，后显示的置顶窗口在前，浮窗不会被缩略图盖住以外的置顶窗口挡住。
             panel
                 .window
